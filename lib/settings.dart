@@ -12,9 +12,15 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final keyController = TextEditingController();
 
+  //This is akin to ReactJS' componentDidMount()
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  //This is akin to ReactJS' componentWillUnmount()
   @override
   void dispose() {
-    //This is akin to ReactJS' componentWillUnmount()
     keyController.dispose();
     super.dispose(); //Calls parent's dispose function
   }
@@ -30,15 +36,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: keyController,
-                  style: 
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter an API key'),
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    //print(keyController.text);
+                  },
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50)),
                   child: const Text('Set API Key'),
                 ),
+                const SizedBox(height: 10),
+                const Text('Your API Key is: ')
               ],
             )));
   }
