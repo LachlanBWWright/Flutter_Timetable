@@ -12,7 +12,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final keyController = TextEditingController();
-  String _apiKey = "";
+  String _apiKey = '';
 
   //This is akin to ReactJS' componentDidMount()
   @override
@@ -68,7 +68,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 10),
                 Text(_apiKey == ""
                     ? 'Your API key has not been set'
-                    : 'Your API Key is: $_apiKey')
+                    : 'Your API Key is: $_apiKey'),
+                const SizedBox(height: 10),
+                const Text(
+                    'How to set API key: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam porta pretium metus ac finibus. Suspendisse condimentum vitae tortor eleifend elementum. In viverra scelerisque elit, nec cursus diam lobortis non. Donec tortor eros, venenatis tempor vulputate eu, pulvinar at ex. In ac ipsum id dolor laoreet vehicula ut consequat diam. Ut accumsan bibendum quam eu consequat. Proin dignissim varius velit, ac vestibulum lorem porta in. Etiam ac lacus in quam sodales finibus eget ac sem. Mauris odio orci, malesuada ac condimentum eget, lobortis nec risus. Etiam rhoncus enim ac convallis elementum. Quisque et mi in risus tristique tincidunt.')
               ],
             )));
   }
