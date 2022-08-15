@@ -1,9 +1,10 @@
 import 'dart:io';
-
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:csv/csv.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({Key? key}) : super(key: key);
@@ -54,9 +55,16 @@ class _NewTripScreenState extends State<NewTripScreen> {
     );
   }
 
+  void loadStations() async {
+    final _dataset =
+        await rootBundle.loadString('assets/LocationFacilityData.csv');
+  }
+
   @override
   void initState() {
     super.initState();
+
+    loadStations();
 
     fetchTrips();
   }
