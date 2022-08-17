@@ -95,6 +95,9 @@ class _NewTripScreenState extends State<NewTripScreen> {
                       hintText: "Search for a station",
                       hintStyle: TextStyle(color: Colors.white)),
                   style: const TextStyle(color: Colors.white),
+                  onSubmitted: (value) {
+                    print(value);
+                  },
                 )
               : const Text('Add New Trip'),
           actions: [
