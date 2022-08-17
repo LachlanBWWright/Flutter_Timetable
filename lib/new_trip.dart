@@ -1,9 +1,7 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
+import 'dart:convert';
 
-import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:csv/csv.dart';
@@ -19,6 +17,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
   List<Station> _stationList = [];
   String _firstStation = '';
   String _secondStation = '';
+  bool _isSearching = false;
 
   void setStation(String station) {
     setState(() {
@@ -27,12 +26,10 @@ class _NewTripScreenState extends State<NewTripScreen> {
       } else {
         _secondStation = station;
       }
-
-      print('Stations: $_firstStation, $_secondStation');
     });
   }
 
-  Future<http.Response> fetchTrips() async {
+  Future<http.Response> fetchTrips(String stop) async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString('apiKey');
 
@@ -40,7 +37,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
       //https://opendata.transport.nsw.gov.au/system/files/resources/Trip%20Planner%20API%20manual-opendataproduction%20v3.2.pdf https://opendata.transport.nsw.gov.au/node/601/exploreapi#!/default/tfnsw_stopfinder_request
       'outputFormat': 'rapidJSON',
       'type_sf': 'stop',
-      'name_sf': 'a',
+      'name_sf': stop,
       'coordOutputFormat': 'EPSG:4326',
       'TfNSWSF': 'true',
       'version': '10.2.1.42',
@@ -49,11 +46,13 @@ class _NewTripScreenState extends State<NewTripScreen> {
         Uri.https('api.transport.nsw.gov.au', '/v1/tp/stop_finder/', params);
     final res =
         await http.get(uri, headers: {'authorization': 'apikey $apiKey'});
-    return http.get(
-      Uri.parse(
-          'https://api.transport.nsw.gov.au/v1/publictransport/timetables/complete'),
-      headers: {'authorization': 'apikey $apiKey'},
-    );
+
+    print(jsonDecode(res.body)['locations']);
+    for (dynamic location in jsonDecode(res.body)['locations']) {
+      print(location);
+    }
+
+    return res;
   }
 
   Future<List<Station>> loadStations() async {
@@ -82,7 +81,6 @@ class _NewTripScreenState extends State<NewTripScreen> {
         }
       });
     });
-    //fetchTrips();
   }
 
   @override
@@ -91,7 +89,24 @@ class _NewTripScreenState extends State<NewTripScreen> {
         appBar: AppBar(
           title: const Text('Add New Trip'),
           actions: [
-            IconButton(onPressed: () {}, icon: const Icon(Icons.search))
+            if (_firstStation == '' || _secondStation == '')
+              IconButton(onPressed: () {}, icon: const Icon(Icons.search))
+            else
+              IconButton(
+                  onPressed: () async {
+                    //TODO: Save the trip to storage
+                    fetchTrips(_firstStation);
+
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(
+                          "Saved trip from $_firstStation to $_secondStation."),
+                    ));
+                    setState(() {
+                      _firstStation = '';
+                      _secondStation = '';
+                    });
+                  },
+                  icon: const Icon(Icons.arrow_forward))
           ],
         ),
         body: Column(
@@ -108,12 +123,12 @@ class _NewTripScreenState extends State<NewTripScreen> {
                   Positioned(
                       right: 0,
                       child: InkWell(
-                          child: Icon(Icons.cancel, size: 20),
                           onTap: (() {
                             setState(() {
                               _firstStation = '';
                             });
-                          })))
+                          }),
+                          child: const Icon(Icons.cancel, size: 20)))
                 ],
               ),
             if (_secondStation != '')
@@ -128,12 +143,12 @@ class _NewTripScreenState extends State<NewTripScreen> {
                   Positioned(
                       right: 0,
                       child: InkWell(
-                          child: Icon(Icons.cancel, size: 20),
                           onTap: (() {
                             setState(() {
                               _secondStation = '';
                             });
-                          })))
+                          }),
+                          child: const Icon(Icons.cancel, size: 20)))
                 ],
               ),
             Expanded(
@@ -145,12 +160,6 @@ class _NewTripScreenState extends State<NewTripScreen> {
           ],
         ));
   }
-}
-
-class Station {
-  String name;
-  String address;
-  Station(this.name, this.address);
 }
 
 class StationList extends StatelessWidget {
@@ -196,3 +205,11 @@ class StationView extends StatelessWidget {
     );
   }
 }
+
+class Station {
+  String name;
+  String address;
+  Station(this.name, this.address);
+}
+
+class Trip {}
