@@ -18,6 +18,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
   String _firstStation = '';
   String _secondStation = '';
   bool _isSearching = false;
+  final keyController = TextEditingController();
 
   void setStation(String station) {
     setState(() {
@@ -87,10 +88,33 @@ class _NewTripScreenState extends State<NewTripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Add New Trip'),
+          title: _isSearching
+              ? TextField(
+                  controller: keyController,
+                  decoration: const InputDecoration(
+                      hintText: "Search for a station",
+                      hintStyle: TextStyle(color: Colors.white)),
+                  style: const TextStyle(color: Colors.white),
+                )
+              : const Text('Add New Trip'),
           actions: [
             if (_firstStation == '' || _secondStation == '')
-              IconButton(onPressed: () {}, icon: const Icon(Icons.search))
+              if (_isSearching)
+                IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = false;
+                      });
+                    },
+                    icon: const Icon(Icons.cancel))
+              else
+                IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = true;
+                      });
+                    },
+                    icon: const Icon(Icons.search))
             else
               IconButton(
                   onPressed: () async {
@@ -211,5 +235,3 @@ class Station {
   String address;
   Station(this.name, this.address);
 }
-
-class Trip {}
