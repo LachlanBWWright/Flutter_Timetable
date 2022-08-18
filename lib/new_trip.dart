@@ -2,9 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:csv/csv.dart';
+
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
+import 'package:lbww_flutter/schema/journey.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({Key? key}) : super(key: key);
@@ -20,17 +26,53 @@ class _NewTripScreenState extends State<NewTripScreen> {
   bool _isSearching = false;
   final keyController = TextEditingController();
 
-  void setStation(String station) {
+  Future<Database> initDb() async {
+    print('Creating DB');
+    //sqfliteFfiInit();
+    WidgetsFlutterBinding.ensureInitialized();
+    final database =
+        openDatabase(join(await getDatabasesPath(), 'trip_database.db'),
+            onCreate: ((db, version) {
+      return db.execute(
+          'CREATE TABLE journeys(id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT, destination TEXT)');
+    }), version: 1);
+    return database;
+  }
+
+  Future<void> insertJourney(Journey journey) async {
+    final db = await initDb();
+    await db.insert('journeys', journey.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  void setStation(String station) async {
     setState(() {
       if (_firstStation == '') {
         _firstStation = station;
+        keyController.text = '';
       } else {
         _secondStation = station;
+        keyController.text = '';
       }
     });
+    _stationList = await loadStations();
   }
 
-  Future<http.Response> fetchTrips(String stop) async {
+  Future<List<Station>> loadStations() async {
+    final dataset =
+        await rootBundle.loadString('assets/LocationFacilityData.csv');
+    List<dynamic> data = const CsvToListConverter().convert(dataset, eol: "\n");
+    data.removeWhere((station) => !station[9].contains("Train"));
+
+    var stations = List<Station>.empty(growable: true);
+    for (var element in data) {
+      stations.add(Station(element[0]));
+    }
+
+    return stations;
+  }
+
+  void loadSearchStations(String search) async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString('apiKey');
 
@@ -38,7 +80,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
       //https://opendata.transport.nsw.gov.au/system/files/resources/Trip%20Planner%20API%20manual-opendataproduction%20v3.2.pdf https://opendata.transport.nsw.gov.au/node/601/exploreapi#!/default/tfnsw_stopfinder_request
       'outputFormat': 'rapidJSON',
       'type_sf': 'stop',
-      'name_sf': stop,
+      'name_sf': search,
       'coordOutputFormat': 'EPSG:4326',
       'TfNSWSF': 'true',
       'version': '10.2.1.42',
@@ -48,28 +90,18 @@ class _NewTripScreenState extends State<NewTripScreen> {
     final res =
         await http.get(uri, headers: {'authorization': 'apikey $apiKey'});
 
-    print(jsonDecode(res.body)['locations']);
-    for (dynamic location in jsonDecode(res.body)['locations']) {
-      print(location);
+    if (res.statusCode == 200) {
+      var stations = List<Station>.empty(growable: true);
+
+      for (dynamic location in jsonDecode(res.body)['locations']) {
+        String station = location['disassembledName'];
+        stations.add(Station('$station Station'));
+      }
+
+      setState(() {
+        _stationList = stations;
+      });
     }
-
-    return res;
-  }
-
-  Future<List<Station>> loadStations() async {
-    final dataset =
-        await rootBundle.loadString('assets/LocationFacilityData.csv');
-    List<dynamic> data = const CsvToListConverter().convert(dataset, eol: "\n");
-    data.removeWhere((station) => !station[0].contains("Station"));
-
-    var stations = List<Station>.empty(growable: true);
-
-    for (var element in data) {
-      stations.add(Station(element[0], element[6]));
-    }
-
-    print(stations[57]);
-    return stations;
   }
 
   @override
@@ -82,6 +114,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
         }
       });
     });
+
+    initDb();
   }
 
   @override
@@ -96,7 +130,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                       hintStyle: TextStyle(color: Colors.white)),
                   style: const TextStyle(color: Colors.white),
                   onSubmitted: (value) {
-                    print(value);
+                    loadSearchStations(value);
                   },
                 )
               : const Text('Add New Trip'),
@@ -121,9 +155,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
             else
               IconButton(
                   onPressed: () async {
-                    //TODO: Save the trip to storage
-                    fetchTrips(_firstStation);
-
+                    insertJourney(Journey(
+                        origin: _firstStation, destination: _secondStation));
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text(
                           "Saved trip from $_firstStation to $_secondStation."),
@@ -226,7 +259,6 @@ class StationView extends StatelessWidget {
               child: Column(
                 children: [
                   Text(station.name),
-                  Text(station.address),
                 ],
               ))),
     );
@@ -235,6 +267,5 @@ class StationView extends StatelessWidget {
 
 class Station {
   String name;
-  String address;
-  Station(this.name, this.address);
+  Station(this.name);
 }
