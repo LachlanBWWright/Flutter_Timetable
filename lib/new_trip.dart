@@ -27,22 +27,28 @@ class _NewTripScreenState extends State<NewTripScreen> {
   final keyController = TextEditingController();
 
   Future<Database> initDb() async {
-    print('Creating DB');
+    print('Creating DB.');
     //sqfliteFfiInit();
     WidgetsFlutterBinding.ensureInitialized();
     final database =
         openDatabase(join(await getDatabasesPath(), 'trip_database.db'),
             onCreate: ((db, version) {
+      print('Creating');
       return db.execute(
           'CREATE TABLE journeys(id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT, destination TEXT)');
     }), version: 1);
+    print('TEST');
     return database;
   }
 
   Future<void> insertJourney(Journey journey) async {
-    final db = await initDb();
-    await db.insert('journeys', journey.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    try {
+      final db = await initDb();
+      await db.insert('journeys', journey.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    // ignore: empty_catches
+    catch (e) {}
   }
 
   void setStation(String station) async {

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/settings.dart';
 
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -31,6 +34,33 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  List<Map<String, dynamic>> _journeys = [];
+
+  Future<void> getTrips() async {
+    print('GET Trips function');
+
+    WidgetsFlutterBinding.ensureInitialized();
+    final database =
+        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'));
+
+    try {
+      final List<Map<String, dynamic>> journeys =
+          await database.query('journeys');
+      print(journeys);
+      setState(() {
+        _journeys = journeys;
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getTrips();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,9 +70,12 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(
               onPressed: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const NewTripScreen()));
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const NewTripScreen()))
+                    .then((val) {
+                  getTrips(); //TODO: Replace
+                });
               },
               icon: const Icon(Icons.add)),
           IconButton(
@@ -58,9 +91,9 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const <Widget>[
+          children: <Widget>[
             Text(
-              'Placeholder text',
+              'Placeholder text! $_journeys',
             ),
           ],
         ),
