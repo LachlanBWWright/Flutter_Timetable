@@ -6,6 +6,7 @@ import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 void main() {
@@ -38,6 +39,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<Map<String, dynamic>> _journeys = [];
+  bool _hasApiKey = false;
 
   Future<void> getTrips() async {
     print('GET Trips function');
@@ -58,10 +60,34 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> checkApiKey() async {
+    //TODO: Perform a query to ensure API key is valid
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final apiKey = prefs.getString('apiKey');
+      if (apiKey != null && apiKey.length > 5) {
+        setState(
+          () {
+            _hasApiKey = true;
+          },
+        );
+      } else {
+        setState(() {
+          _hasApiKey = false;
+        });
+      }
+    } catch (err) {
+      setState(() {
+        _hasApiKey = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     getTrips();
+    checkApiKey();
   }
 
   @override
@@ -70,23 +96,27 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
+          if (_hasApiKey)
+            IconButton(
+                onPressed: () {
+                  Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const NewTripScreen()))
+                      .then((val) {
+                    getTrips();
+                  });
+                },
+                icon: const Icon(Icons.add)),
           IconButton(
               onPressed: () {
                 Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const NewTripScreen()))
+                            builder: (context) => const SettingsScreen()))
                     .then((val) {
-                  getTrips(); //TODO: Replace
+                  checkApiKey();
                 });
-              },
-              icon: const Icon(Icons.add)),
-          IconButton(
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SettingsScreen()));
               },
               icon: const Icon(Icons.settings)),
         ],
