@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/settings.dart';
+import 'package:lbww_flutter/trip.dart';
 
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -98,7 +99,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: ListView.builder(
               itemCount: _journeys.length,
               itemBuilder: ((context, index) {
-                return ListTile(
+                return Card(
+                    child: ListTile(
                   title: Text(_journeys[index]['origin'] +
                       ' - ' +
                       _journeys[index]['destination'].toString()),
@@ -106,7 +108,19 @@ class _MyHomePageState extends State<MyHomePage> {
                       _journeys[index]['origin'] +
                       ' to ' +
                       _journeys[index]['destination']),
-                );
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const TripScreen()));
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      print('TODO: Impelement database deletion.');
+                    },
+                  ),
+                ));
               }),
             ))
           ],

@@ -262,10 +262,8 @@ class StationView extends StatelessWidget {
               onTap: () {
                 setStation(station.name);
               },
-              child: Column(
-                children: [
-                  Text(station.name),
-                ],
+              child: ListTile(
+                title: Text(station.name),
               ))),
     );
   }

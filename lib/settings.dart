@@ -43,6 +43,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  Future<void> _stealApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _apiKey = 'Xh0bAW1JmyVP93vjB784EK9dyZlbJb2FxJuw';
+      prefs.setString('apiKey', 'Xh0bAW1JmyVP93vjB784EK9dyZlbJb2FxJuw');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,7 +79,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : 'Your API Key is: $_apiKey'),
                 const SizedBox(height: 10),
                 const Text(
-                    'How to set API key: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam porta pretium metus ac finibus. Suspendisse condimentum vitae tortor eleifend elementum. In viverra scelerisque elit, nec cursus diam lobortis non. Donec tortor eros, venenatis tempor vulputate eu, pulvinar at ex. In ac ipsum id dolor laoreet vehicula ut consequat diam. Ut accumsan bibendum quam eu consequat. Proin dignissim varius velit, ac vestibulum lorem porta in. Etiam ac lacus in quam sodales finibus eget ac sem. Mauris odio orci, malesuada ac condimentum eget, lobortis nec risus. Etiam rhoncus enim ac convallis elementum. Quisque et mi in risus tristique tincidunt.')
+                    'How to set API key: Go to Transport for NSW\'s OpenData page, create an account, hover over \'My Account\', select \'Applications\', and create an application.'),
+                const Text(''),
+                const Text(
+                    'You\'ll need to give the application access to the following APIs: \'Trip Planner APIs\', \'Public Transport - Timetables - For Realtime\'. Or you can just steal mine.'),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _stealApiKey,
+                  style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      primary: Colors.red),
+                  child: const Text('Steal API Key'),
+                ),
               ],
             )));
   }
