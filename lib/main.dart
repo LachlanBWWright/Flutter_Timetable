@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
-
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
@@ -60,12 +60,38 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> deleteTrip(int trip) async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final database =
+        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'));
+    try {
+      await database.delete('journeys', where: 'id = $trip');
+      getTrips();
+    } catch (e) {
+      print(e);
+    }
+  }
+
   Future<void> checkApiKey() async {
-    //TODO: Perform a query to ensure API key is valid
     try {
       final prefs = await SharedPreferences.getInstance();
       final apiKey = prefs.getString('apiKey');
-      if (apiKey != null && apiKey.length > 5) {
+
+      final params = {
+        //https://opendata.transport.nsw.gov.au/system/files/resources/Trip%20Planner%20API%20manual-opendataproduction%20v3.2.pdf https://opendata.transport.nsw.gov.au/node/601/exploreapi#!/default/tfnsw_stopfinder_request
+        'outputFormat': 'rapidJSON',
+        'type_sf': 'stop',
+        'name_sf': '',
+        'coordOutputFormat': 'EPSG:4326',
+        'TfNSWSF': 'true',
+        'version': '10.2.1.42',
+      };
+      final uri =
+          Uri.https('api.transport.nsw.gov.au', '/v1/tp/stop_finder/', params);
+      final res =
+          await http.get(uri, headers: {'authorization': 'apikey $apiKey'});
+
+      if (res.statusCode == 200) {
         setState(
           () {
             _hasApiKey = true;
@@ -147,7 +173,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () {
-                      print('TODO: Impelement database deletion.');
+                      print(_journeys[index]['id'].toString());
+                      deleteTrip(_journeys[index]['id']);
                     },
                   ),
                 ));
