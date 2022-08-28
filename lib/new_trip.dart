@@ -22,18 +22,21 @@ class NewTripScreen extends StatefulWidget {
 class _NewTripScreenState extends State<NewTripScreen> {
   List<Station> _stationList = [];
   String _firstStation = '';
+  String _firstStationId = '';
   String _secondStation = '';
+  String _secondStationId = '';
   bool _isSearching = false;
   final keyController = TextEditingController();
 
   Future<Database> initDb() async {
     //sqfliteFfiInit();
     WidgetsFlutterBinding.ensureInitialized();
+
     final database =
-        openDatabase(join(await getDatabasesPath(), 'trip_database.db'),
-            onCreate: ((db, version) {
-      return db.execute(
-          'CREATE TABLE journeys(id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT, destination TEXT)');
+        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'),
+            onCreate: ((Database db, int version) async {
+      return await db.execute(
+          'CREATE TABLE journeys(id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT, originId TEXT, destination TEXT, destinationId TEXT)');
     }), version: 1);
     return database;
   }
@@ -48,13 +51,15 @@ class _NewTripScreenState extends State<NewTripScreen> {
     catch (e) {}
   }
 
-  void setStation(String station) async {
+  void setStation(String station, String id) async {
     setState(() {
       if (_firstStation == '') {
         _firstStation = station;
+        _firstStationId = id;
         keyController.text = '';
       } else {
         _secondStation = station;
+        _secondStationId = id;
         keyController.text = '';
       }
     });
@@ -69,7 +74,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
 
     var stations = List<Station>.empty(growable: true);
     for (var element in data) {
-      stations.add(Station(element[0]));
+      stations.add(Station(name: element[0], id: element[4].toString()));
     }
 
     return stations;
@@ -97,10 +102,11 @@ class _NewTripScreenState extends State<NewTripScreen> {
       var stations = List<Station>.empty(growable: true);
 
       for (dynamic location in jsonDecode(res.body)['locations']) {
-        String station = location['disassembledName'];
-        stations.add(Station('$station Station'));
+        stations.add(Station(
+            name: '${location['disassembledName']} Station',
+            id: '${location['id']}'));
       }
-
+      print(res.body);
       setState(() {
         _stationList = stations;
       });
@@ -118,6 +124,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
       });
     });
 
+    print('TEST2');
     initDb();
   }
 
@@ -143,7 +150,11 @@ class _NewTripScreenState extends State<NewTripScreen> {
                 IconButton(
                     onPressed: () {
                       setState(() {
-                        _isSearching = false;
+                        if (keyController.text == '') {
+                          _isSearching = false;
+                        } else {
+                          keyController.text = '';
+                        }
                       });
                     },
                     icon: const Icon(Icons.cancel))
@@ -159,14 +170,19 @@ class _NewTripScreenState extends State<NewTripScreen> {
               IconButton(
                   onPressed: () async {
                     insertJourney(Journey(
-                        origin: _firstStation, destination: _secondStation));
+                        origin: _firstStation,
+                        originId: _firstStationId,
+                        destination: _secondStation,
+                        destinationId: _secondStationId));
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text(
                           "Saved trip from $_firstStation to $_secondStation."),
                     ));
                     setState(() {
                       _firstStation = '';
+                      _firstStationId = '';
                       _secondStation = '';
+                      _secondStationId = '';
                     });
                   },
                   icon: const Icon(Icons.arrow_forward))
@@ -189,6 +205,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                           onTap: (() {
                             setState(() {
                               _firstStation = '';
+                              _firstStationId = '';
                             });
                           }),
                           child: const Icon(Icons.cancel, size: 20)))
@@ -209,6 +226,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                           onTap: (() {
                             setState(() {
                               _secondStation = '';
+                              _secondStationId = '';
                             });
                           }),
                           child: const Icon(Icons.cancel, size: 20)))
@@ -227,7 +245,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
 
 class StationList extends StatelessWidget {
   final List<Station> listItems;
-  final Function(String) setStation;
+  final Function(String, String) setStation;
 
   const StationList(
       {Key? key, required this.listItems, required this.setStation})
@@ -245,7 +263,7 @@ class StationList extends StatelessWidget {
 
 class StationView extends StatelessWidget {
   final Station station;
-  final Function(String) setStation;
+  final Function(String, String) setStation;
 
   const StationView({Key? key, required this.station, required this.setStation})
       : super(key: key);
@@ -257,7 +275,7 @@ class StationView extends StatelessWidget {
       child: Card(
           child: InkWell(
               onTap: () {
-                setStation(station.name);
+                setStation(station.name, station.id);
               },
               child: ListTile(
                 title: Text(station.name),
@@ -268,5 +286,6 @@ class StationView extends StatelessWidget {
 
 class Station {
   String name;
-  Station(this.name);
+  String id;
+  Station({required this.name, required this.id});
 }

@@ -46,7 +46,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
     WidgetsFlutterBinding.ensureInitialized();
     final database =
-        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'));
+        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'),
+            onCreate: ((Database db, int version) async {
+      return await db.execute(
+          'CREATE TABLE journeys(id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT, originId TEXT, destination TEXT, destinationId TEXT)');
+    }), version: 1);
 
     try {
       final List<Map<String, dynamic>> journeys =
@@ -168,12 +172,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const TripScreen()));
+                            builder: (context) =>
+                                TripScreen(trip: _journeys[index])));
                   },
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () {
-                      print(_journeys[index]['id'].toString());
                       deleteTrip(_journeys[index]['id']);
                     },
                   ),
@@ -183,20 +187,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class Trip extends StatelessWidget {
-  Trip(List<Map<String, dynamic>> journeys);
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: 10,
-      itemBuilder: ((context, index) {
-        return const Text('TEST');
-      }),
     );
   }
 }
