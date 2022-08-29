@@ -16,6 +16,8 @@ class TripScreen extends StatefulWidget {
 
 class _TripScreenState extends State<TripScreen> {
   String testText = '';
+  List<dynamic> trips = [];
+
   Future<void> getTripData() async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString('apiKey');
@@ -34,7 +36,7 @@ class _TripScreenState extends State<TripScreen> {
       'name_origin': widget.trip['originId'],
       'type_destination': 'any',
       'name_destination': widget.trip['destinationId'],
-      'calcNumberOfTrips': '6',
+      'calcNumberOfTrips': '20',
       //'wheelchair': 'anything' This will block non-wheelchair accessible results
       'excludedMeans': 'checkbox', //'checkbox
       //'exclMOT_1': 1,
@@ -43,7 +45,7 @@ class _TripScreenState extends State<TripScreen> {
       'exclMOT_7': '1',
       //'exclMOT_9': 1,
       'exclMOT_11': '1',
-      'TfNSWTR': 'true',
+      'TfNSWTR': 'true', //TODO: change back
       'version': '10.2.1.42',
       'itOptionsActive':
           '0', //1 allows individual transport methods to be taken into account
@@ -56,15 +58,26 @@ class _TripScreenState extends State<TripScreen> {
     setState(() {
       testText = jsonDecode(res.body)['journeys'].toString();
     });
-    log(jsonDecode(res.body)['journeys'].toString());
-
+    //log(jsonDecode(res.body)['journeys'].length);
+    for (dynamic journey in jsonDecode(res.body)['journeys']) {
+      //print("TEST");
+      trips.add(journey);
+      //log(journey.toString());
+    }
+    print(trips.length);
     //Fields for each journey in 'journeys'
-    //rating
-    //isAdditional
-    //interchanges
-    //legs
-    //fare
-    //daysOfService
+    //rating - Number
+    //isAdditional - true/false
+    //interchanges - Number
+    //legs- Array of 'leg' objects
+    //  Duration - Number eg 1020 (Likely seconds)
+    //  Distance - Number E.G 1114
+    //  Origin -
+    //  Destination
+    //  TODO: Document
+    //fare - Object
+    //  tickets - Array
+    //daysOfService - {rvb: 30000000027CD9F3000000000000000000000000}}
   }
 
   @override
@@ -73,16 +86,47 @@ class _TripScreenState extends State<TripScreen> {
     getTripData();
   }
 
+  String parseTime(String time) {
+    //String is in UTC time, with format 2022-08-28T19:55:54Z
+    DateTime dt = DateTime.parse(time).toLocal();
+    //24-Hour time to 12-hour
+    if (dt.hour == 0) {
+      return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
+    }
+    if (dt.hour == 12) {
+      return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
+    } else if (dt.hour < 12) {
+      return "${dt.hour}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
+    } else {
+      return "${dt.hour - 12}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: Text('Trip')),
-        body: ListView(
-          children: [
-            Text('TEST! !!${widget.trip.toString()}!'),
-            Text('TEST'),
-            Text(testText),
-          ],
+        body: ListView.builder(
+          itemBuilder: (((context, index) {
+            return Card(
+              child: ListTile(
+                  title: Text(
+                      "${trips[index]['legs'][0]['origin']['disassembledName'].toString()} to ${trips[index]['legs'][trips[index]['legs'].length - 1]['destination']['disassembledName'].toString()}"),
+                  subtitle: Column(
+                    children: [
+                      Text(
+                          "${parseTime(trips[index]['legs'][0]['origin']['departureTimePlanned'].toString())} - ${parseTime(trips[index]['legs'][trips[index]['legs'].length - 1]['destination']['arrivalTimePlanned'].toString())} (Scheduled)"),
+                      Text(
+                          "${parseTime(trips[index]['legs'][0]['origin']['departureTimeEstimated'].toString())} - ${parseTime(trips[index]['legs'][trips[index]['legs'].length - 1]['destination']['arrivalTimeEstimated'].toString())} (Estimated)"),
+                      Text("Number of legs: ${trips[index]['legs'].length}"),
+                      Text(
+                          "Number of interchanges: ${trips[index]['interchanges']}"),
+                      //Text("Placeholder Text! ${trips[index].toString()}"),
+                    ],
+                  )),
+            );
+          })),
+          itemCount: trips.length,
         ));
   }
 }

@@ -103,8 +103,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
 
       for (dynamic location in jsonDecode(res.body)['locations']) {
         stations.add(Station(
-            name: '${location['disassembledName']} Station',
-            id: '${location['id']}'));
+            name: '${location['disassembledName']}', id: '${location['id']}'));
       }
       print(res.body);
       setState(() {
