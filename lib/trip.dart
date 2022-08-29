@@ -5,6 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
+String parseTime(String time) {
+  //String is in UTC time, with format 2022-08-28T19:55:54Z
+  DateTime dt = DateTime.parse(time).toLocal();
+  //24-Hour time to 12-hour
+  if (dt.hour == 0) {
+    return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
+  }
+  if (dt.hour == 12) {
+    return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
+  } else if (dt.hour < 12) {
+    return "${dt.hour}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
+  } else {
+    return "${dt.hour - 12}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
+  }
+}
+
 class TripScreen extends StatefulWidget {
   const TripScreen({Key? key, required this.trip}) : super(key: key);
 
@@ -45,7 +61,7 @@ class _TripScreenState extends State<TripScreen> {
       'exclMOT_7': '1',
       //'exclMOT_9': 1,
       'exclMOT_11': '1',
-      'TfNSWTR': 'true', //TODO: change back
+      'TfNSWTR': 'true',
       'version': '10.2.1.42',
       'itOptionsActive':
           '0', //1 allows individual transport methods to be taken into account
@@ -58,13 +74,9 @@ class _TripScreenState extends State<TripScreen> {
     setState(() {
       testText = jsonDecode(res.body)['journeys'].toString();
     });
-    //log(jsonDecode(res.body)['journeys'].length);
     for (dynamic journey in jsonDecode(res.body)['journeys']) {
-      //print("TEST");
       trips.add(journey);
-      //log(journey.toString());
     }
-    print(trips.length);
     //Fields for each journey in 'journeys'
     //rating - Number
     //isAdditional - true/false
@@ -110,6 +122,14 @@ class _TripScreenState extends State<TripScreen> {
           itemBuilder: (((context, index) {
             return Card(
               child: ListTile(
+                  onTap: () {
+                    print("TODO: UPDATE");
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                TripLegScreen(trip: trips[index])));
+                  },
                   title: Text(
                       "${trips[index]['legs'][0]['origin']['disassembledName'].toString()} to ${trips[index]['legs'][trips[index]['legs'].length - 1]['destination']['disassembledName'].toString()}"),
                   subtitle: Column(
@@ -133,7 +153,8 @@ class _TripScreenState extends State<TripScreen> {
 
 //For each leg of the trip (E.G Station, Bus stop, ETC.)
 class TripLegScreen extends StatefulWidget {
-  const TripLegScreen({Key? key}) : super(key: key);
+  TripLegScreen({Key? key, required this.trip}) : super(key: key);
+  final dynamic trip;
 
   @override
   State<TripLegScreen> createState() => _TripLegScreenState();
@@ -144,14 +165,22 @@ class _TripLegScreenState extends State<TripLegScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: Text('Trip')),
-        body: Column(
-          children: [
-            Text('TEST'),
-            Text('TEST'),
-            Text('TEST'),
-            Text('TEST'),
-            Text('TEST'),
-          ],
+        body: ListView.builder(
+          itemBuilder: (((context, index) {
+            return Card(
+              child: ListTile(
+                  title: Text(
+                      "${widget.trip['legs'][0]['origin']['disassembledName'].toString()} to ${widget.trip['legs'][widget.trip['legs'].length - 1]['destination']['disassembledName'].toString()}"),
+                  subtitle: Column(
+                    children: [
+                      Text(
+                          "${widget.trip['legs'][index]['origin']['disassembledName'].toString()} to ${widget.trip['legs'][index]['destination']['disassembledName'].toString()}"),
+                      //Text("Test ${widget.trip['legs'][index].toString()}"),
+                    ],
+                  )),
+            );
+          })),
+          itemCount: widget.trip['legs'].length,
         ));
   }
 }
