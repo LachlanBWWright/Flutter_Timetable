@@ -38,8 +38,6 @@ class _TripScreenState extends State<TripScreen> {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString('apiKey');
 
-    //1 = train, 4 = light rail, 5 = bus, 7 = coach, 9 = ferry, 11 = school bus. (For mode)
-
     final params = {
       //https://opendata.transport.nsw.gov.au/node/601/exploreapi#!/default/tfnsw_dm_request
       'outputFormat': 'rapidJSON',
@@ -123,7 +121,6 @@ class _TripScreenState extends State<TripScreen> {
             return Card(
               child: ListTile(
                   onTap: () {
-                    print("TODO: UPDATE");
                     Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -161,6 +158,62 @@ class TripLegScreen extends StatefulWidget {
 }
 
 class _TripLegScreenState extends State<TripLegScreen> {
+  List<Widget> getStops(int index) {
+    List<Widget> stops = [];
+
+    try {
+      for (dynamic stop in widget.trip['legs'][index]['stopSequence']) {
+        stops.add(Text(
+            "${stop['disassembledName'] ?? stop['name']} ${stop['departureTimePlanned'] != null ? parseTime(stop['departureTimePlanned']) : "(TBD)"}"));
+      }
+    } catch (e) {
+      stops.add(Text("Walk!"));
+    }
+
+    return stops;
+  }
+
+  //TODO: Implement!
+  Color getModeColor(int id) {
+    //1 = train, 4 = light rail, 5 = bus, 7 = coach, 9 = ferry, 11 = school bus. (For mode) 100 - Walking??
+    //0xAARRGGBB
+    print(id);
+    if (id == 1) {
+      return Color.fromARGB(255, 255, 97, 35);
+    } else if (id == 4) {
+      return Color.fromARGB(255, 255, 82, 82);
+    } else if (id == 5 || id == 11) {
+      return Color.fromARGB(255, 82, 186, 255);
+    } else if (id == 7) {
+      return Color.fromARGB(255, 161, 84, 47);
+    } else if (id == 9) {
+      return Color.fromARGB(255, 68, 240, 91);
+    }
+    return Color(0xFFFFFFFF);
+  }
+
+  String getModeName(int id) {
+    //1 = train, 4 = light rail, 5 = bus, 7 = coach, 9 = ferry, 11 = school bus. (For mode) 100 - Walking??
+    //0xAARRGGBB
+    print(id);
+    if (id == 1) {
+      return "Train";
+    } else if (id == 4) {
+      return "Light Rail";
+    } else if (id == 5) {
+      return "Bus";
+    } else if (id == 11) {
+      return "School Bus";
+    } else if (id == 7) {
+      return "Coach";
+    } else if (id == 9) {
+      return "Ferry";
+    } else if (id == 100) {
+      return "Walk";
+    }
+    return "(Unknown)";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,15 +221,26 @@ class _TripLegScreenState extends State<TripLegScreen> {
         body: ListView.builder(
           itemBuilder: (((context, index) {
             return Card(
+              color: getModeColor(widget.trip['legs'][index]['transportation']
+                  ['product']['class']),
               child: ListTile(
                   title: Text(
-                      "${widget.trip['legs'][0]['origin']['disassembledName'].toString()} to ${widget.trip['legs'][widget.trip['legs'].length - 1]['destination']['disassembledName'].toString()}"),
+                      "(${getModeName(widget.trip['legs'][index]['transportation']['product']['class'])}) ${widget.trip['legs'][index]['origin']['disassembledName'] ?? widget.trip['legs'][index]['origin']['name']} to ${widget.trip['legs'][index]['destination']['disassembledName'] ?? widget.trip['legs'][index]['destination']['name']}"),
                   subtitle: Column(
-                    children: [
-                      Text(
-                          "${widget.trip['legs'][index]['origin']['disassembledName'].toString()} to ${widget.trip['legs'][index]['destination']['disassembledName'].toString()}"),
-                      //Text("Test ${widget.trip['legs'][index].toString()}"),
-                    ],
+                    children: <Widget>[
+/*                       Text(widget.trip['legs'][index]['transportation']
+                          .toString()),
+                      Text(""), */ //TODO: Uncomment for more data
+                      Text(widget.trip['legs'][index]['transportation']
+                              ['name'] ??
+                          widget.trip['legs'][index]['transportation']
+                              ['disassembledName'] ??
+                          ""),
+                      Text(""),
+                      ...getStops(index)
+                    ]
+                    //Text("Test ${widget.trip['legs'][index].toString()}"),
+                    ,
                   )),
             );
           })),
