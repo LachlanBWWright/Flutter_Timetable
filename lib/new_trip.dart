@@ -105,7 +105,6 @@ class _NewTripScreenState extends State<NewTripScreen> {
         stations.add(Station(
             name: '${location['disassembledName']}', id: '${location['id']}'));
       }
-      print(res.body);
       setState(() {
         _stationList = stations;
       });
@@ -123,122 +122,138 @@ class _NewTripScreenState extends State<NewTripScreen> {
       });
     });
 
-    print('TEST2');
     initDb();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: _isSearching
-              ? TextField(
-                  controller: keyController,
-                  decoration: const InputDecoration(
-                      hintText: "Search for a station",
-                      hintStyle: TextStyle(color: Colors.white)),
-                  style: const TextStyle(color: Colors.white),
-                  onSubmitted: (value) {
-                    loadSearchStations(value);
-                  },
-                )
-              : const Text('Add New Trip'),
-          actions: [
-            if (_firstStation == '' || _secondStation == '')
-              if (_isSearching)
-                IconButton(
-                    onPressed: () {
-                      setState(() {
-                        if (keyController.text == '') {
-                          _isSearching = false;
-                        } else {
-                          keyController.text = '';
-                        }
-                      });
-                    },
-                    icon: const Icon(Icons.cancel))
-              else
-                IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _isSearching = true;
-                      });
-                    },
-                    icon: const Icon(Icons.search))
-            else
-              IconButton(
-                  onPressed: () async {
-                    insertJourney(Journey(
-                        origin: _firstStation,
-                        originId: _firstStationId,
-                        destination: _secondStation,
-                        destinationId: _secondStationId));
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(
-                          "Saved trip from $_firstStation to $_secondStation."),
-                    ));
-                    setState(() {
-                      _firstStation = '';
-                      _firstStationId = '';
-                      _secondStation = '';
-                      _secondStationId = '';
-                    });
-                  },
-                  icon: const Icon(Icons.arrow_forward))
-          ],
-        ),
-        body: Column(
-          children: [
-            if (_firstStation != '')
-              Stack(
-                children: [
-                  Align(
-                    child: Text(
-                      'First Station Selected: $_firstStation',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Positioned(
-                      right: 0,
-                      child: InkWell(
-                          onTap: (() {
-                            setState(() {
-                              _firstStation = '';
-                              _firstStationId = '';
-                            });
-                          }),
-                          child: const Icon(Icons.cancel, size: 20)))
+    return DefaultTabController(
+        length: 4,
+        child: Scaffold(
+            appBar: AppBar(
+              title: _isSearching
+                  ? TextField(
+                      controller: keyController,
+                      decoration: const InputDecoration(
+                          hintText: "Search for a station",
+                          hintStyle: TextStyle(color: Colors.white)),
+                      style: const TextStyle(color: Colors.white),
+                      onSubmitted: (value) {
+                        loadSearchStations(value);
+                      },
+                    )
+                  : const Text('Add New Trip'),
+              actions: [
+                if (_firstStation == '' || _secondStation == '')
+                  if (_isSearching)
+                    IconButton(
+                        onPressed: () {
+                          setState(() {
+                            if (keyController.text == '') {
+                              _isSearching = false;
+                            } else {
+                              keyController.text = '';
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.cancel))
+                  else
+                    IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _isSearching = true;
+                          });
+                        },
+                        icon: const Icon(Icons.search))
+                else
+                  IconButton(
+                      onPressed: () async {
+                        insertJourney(Journey(
+                            origin: _firstStation,
+                            originId: _firstStationId,
+                            destination: _secondStation,
+                            destinationId: _secondStationId));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(
+                              "Saved trip from $_firstStation to $_secondStation."),
+                        ));
+                        setState(() {
+                          _firstStation = '';
+                          _firstStationId = '';
+                          _secondStation = '';
+                          _secondStationId = '';
+                        });
+                      },
+                      icon: const Icon(Icons.arrow_forward))
+              ],
+              bottom: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.directions_train)),
+                  Tab(icon: Icon(Icons.directions_bus)),
+                  Tab(icon: Icon(Icons.directions_ferry)),
+                  Tab(icon: Icon(Icons.directions_walk)),
                 ],
               ),
-            if (_secondStation != '')
-              Stack(
-                children: [
-                  Align(
-                    child: Text(
-                      'Second Station Selected: $_secondStation',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Positioned(
-                      right: 0,
-                      child: InkWell(
-                          onTap: (() {
-                            setState(() {
-                              _secondStation = '';
-                              _secondStationId = '';
-                            });
-                          }),
-                          child: const Icon(Icons.cancel, size: 20)))
-                ],
-              ),
-            Expanded(
-              child: StationList(
-                listItems: _stationList,
-                setStation: setStation,
-              ),
-            )
-          ],
-        ));
+            ),
+            body: TabBarView(
+              children: [
+                Column(
+                  children: [
+                    if (_firstStation != '')
+                      Stack(
+                        children: [
+                          Align(
+                            child: Text(
+                              'First Station Selected: $_firstStation',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          Positioned(
+                              right: 0,
+                              child: InkWell(
+                                  onTap: (() {
+                                    setState(() {
+                                      _firstStation = '';
+                                      _firstStationId = '';
+                                    });
+                                  }),
+                                  child: const Icon(Icons.cancel, size: 20)))
+                        ],
+                      ),
+                    if (_secondStation != '')
+                      Stack(
+                        children: [
+                          Align(
+                            child: Text(
+                              'Second Station Selected: $_secondStation',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          Positioned(
+                              right: 0,
+                              child: InkWell(
+                                  onTap: (() {
+                                    setState(() {
+                                      _secondStation = '';
+                                      _secondStationId = '';
+                                    });
+                                  }),
+                                  child: const Icon(Icons.cancel, size: 20)))
+                        ],
+                      ),
+                    Expanded(
+                      child: StationList(
+                        listItems: _stationList,
+                        setStation: setStation,
+                      ),
+                    )
+                  ],
+                ),
+                const Text('Placeholder'),
+                const Text('Placeholder'),
+                const Text('Placeholder'),
+              ],
+            )));
   }
 }
 
