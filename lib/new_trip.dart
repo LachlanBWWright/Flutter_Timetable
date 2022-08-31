@@ -128,7 +128,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-        length: 4,
+        length: 5,
         child: Scaffold(
             appBar: AppBar(
               title: _isSearching
@@ -188,10 +188,23 @@ class _NewTripScreenState extends State<NewTripScreen> {
               ],
               bottom: const TabBar(
                 tabs: [
-                  Tab(icon: Icon(Icons.directions_train)),
-                  Tab(icon: Icon(Icons.directions_bus)),
-                  Tab(icon: Icon(Icons.directions_ferry)),
-                  Tab(icon: Icon(Icons.directions_walk)),
+                  Tab(
+                      icon: Icon(
+                    Icons.directions_train,
+                    color: Color.fromARGB(255, 255, 97, 35),
+                  )),
+                  Tab(
+                      icon: Icon(
+                    Icons.tram,
+                    color: Color.fromARGB(255, 255, 82, 82),
+                  )),
+                  Tab(
+                      icon: Icon(Icons.directions_bus,
+                          color: Color.fromARGB(255, 82, 186, 255))),
+                  Tab(
+                      icon: Icon(Icons.directions_ferry,
+                          color: Color.fromARGB(255, 68, 240, 91))),
+                  Tab(icon: Icon(Icons.map)),
                 ],
               ),
             ),
@@ -249,6 +262,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                     )
                   ],
                 ),
+                const Text('Placeholder'),
                 const Text('Placeholder'),
                 const Text('Placeholder'),
                 const Text('Placeholder'),
