@@ -20,7 +20,7 @@ class NewTripScreen extends StatefulWidget {
 }
 
 class _NewTripScreenState extends State<NewTripScreen> {
-  List<Station> _stationList = [];
+  List<Station> _trainStationList = [];
   String _firstStation = '';
   String _firstStationId = '';
   String _secondStation = '';
@@ -63,7 +63,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
         keyController.text = '';
       }
     });
-    _stationList = await loadStations();
+    _trainStationList = await loadStations();
   }
 
   Future<List<Station>> loadStations() async {
@@ -71,7 +71,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
         await rootBundle.loadString('assets/LocationFacilityData.csv');
     List<dynamic> data = const CsvToListConverter().convert(dataset, eol: "\n");
     data.removeWhere((station) => !station[9].contains("Train"));
-
+    //[10] - Mode
     var stations = List<Station>.empty(growable: true);
     for (var element in data) {
       stations.add(Station(name: element[0], id: element[4].toString()));
@@ -106,7 +106,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
             name: '${location['disassembledName']}', id: '${location['id']}'));
       }
       setState(() {
-        _stationList = stations;
+        _trainStationList = stations;
       });
     }
   }
@@ -117,7 +117,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
     loadStations().then((res) {
       setState(() {
         {
-          _stationList = res;
+          _trainStationList = res;
         }
       });
     });
@@ -256,7 +256,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                       ),
                     Expanded(
                       child: StationList(
-                        listItems: _stationList,
+                        listItems: _trainStationList,
                         setStation: setStation,
                       ),
                     )
