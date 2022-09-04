@@ -1,15 +1,11 @@
 import 'dart:convert';
-
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:csv/csv.dart';
-
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-
 import 'package:lbww_flutter/schema/journey.dart';
 
 class NewTripScreen extends StatefulWidget {
@@ -21,10 +17,14 @@ class NewTripScreen extends StatefulWidget {
 
 class _NewTripScreenState extends State<NewTripScreen> {
   List<Station> _trainStationList = [];
+  List<Station> _busStationList = [];
+  List<Station> _ferryStationList = [];
+  List<Station> _lightRailStationList = [];
   String _firstStation = '';
   String _firstStationId = '';
   String _secondStation = '';
   String _secondStationId = '';
+  List<Station> _selectedStations = [];
   bool _isSearching = false;
   final keyController = TextEditingController();
 
@@ -63,21 +63,41 @@ class _NewTripScreenState extends State<NewTripScreen> {
         keyController.text = '';
       }
     });
-    _trainStationList = await loadStations();
+    loadStations();
   }
 
-  Future<List<Station>> loadStations() async {
+  Future<void> loadStations() async {
     final dataset =
         await rootBundle.loadString('assets/LocationFacilityData.csv');
     List<dynamic> data = const CsvToListConverter().convert(dataset, eol: "\n");
     data.removeWhere((station) => !station[9].contains("Train"));
     //[10] - Mode
-    var stations = List<Station>.empty(growable: true);
-    for (var element in data) {
-      stations.add(Station(name: element[0], id: element[4].toString()));
+    var trainStations = List<Station>.empty(growable: true);
+    var busStations = List<Station>.empty(growable: true);
+    var lightRailStations = List<Station>.empty(growable: true);
+    var ferryStations = List<Station>.empty(growable: true);
+    for (var station in data) {
+      if (station[9].contains("Train")) {
+        trainStations.add(Station(name: station[0], id: station[4].toString()));
+      }
+      if (station[9].contains("Bus")) {
+        busStations.add(Station(name: station[0], id: station[4].toString()));
+      }
+      if (station[9].contains("Light")) {
+        lightRailStations
+            .add(Station(name: station[0], id: station[4].toString()));
+      }
+      if (station[9].contains("Ferry")) {
+        ferryStations.add(Station(name: station[0], id: station[4].toString()));
+      }
     }
 
-    return stations;
+    setState(() {
+      _trainStationList = trainStations;
+      _busStationList = busStations;
+      _lightRailStationList = lightRailStations;
+      _ferryStationList = ferryStations;
+    });
   }
 
   void loadSearchStations(String search) async {
@@ -87,7 +107,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
     final params = {
       //https://opendata.transport.nsw.gov.au/system/files/resources/Trip%20Planner%20API%20manual-opendataproduction%20v3.2.pdf https://opendata.transport.nsw.gov.au/node/601/exploreapi#!/default/tfnsw_stopfinder_request
       'outputFormat': 'rapidJSON',
-      'type_sf': 'stop',
+      'type_sf': 'any',
       'name_sf': search,
       'coordOutputFormat': 'EPSG:4326',
       'TfNSWSF': 'true',
@@ -114,14 +134,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
   @override
   void initState() {
     super.initState();
-    loadStations().then((res) {
-      setState(() {
-        {
-          _trainStationList = res;
-        }
-      });
-    });
-
+    loadStations();
     initDb();
   }
 
@@ -230,7 +243,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                                       _firstStationId = '';
                                     });
                                   }),
-                                  child: const Icon(Icons.cancel, size: 20)))
+                                  child: const Icon(Icons.cancel, size: 12)))
                         ],
                       ),
                     if (_secondStation != '')
@@ -251,7 +264,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                                       _secondStationId = '';
                                     });
                                   }),
-                                  child: const Icon(Icons.cancel, size: 20)))
+                                  child: const Icon(Icons.cancel, size: 12)))
                         ],
                       ),
                     Expanded(
@@ -262,9 +275,18 @@ class _NewTripScreenState extends State<NewTripScreen> {
                     )
                   ],
                 ),
-                const Text('Placeholder'),
-                const Text('Placeholder'),
-                const Text('Placeholder'),
+                StationList(
+                  listItems: _lightRailStationList,
+                  setStation: setStation,
+                ),
+                StationList(
+                  listItems: _busStationList,
+                  setStation: setStation,
+                ),
+                StationList(
+                  listItems: _ferryStationList,
+                  setStation: setStation,
+                ),
                 const Text('Placeholder'),
               ],
             )));
@@ -312,8 +334,28 @@ class StationView extends StatelessWidget {
   }
 }
 
+class StationSelectionColumn extends StatefulWidget {
+  @override
+  State<StationSelectionColumn> createState() => _StationSelectionColumnState();
+}
+
+class _StationSelectionColumnState extends State<StationSelectionColumn> {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    throw UnimplementedError();
+  }
+}
+
 class Station {
   String name;
   String id;
-  Station({required this.name, required this.id});
+  double? latitude;
+  double? longitude;
+  Station({
+    required this.name,
+    required this.id,
+    this.latitude,
+    this.longitude,
+  });
 }
