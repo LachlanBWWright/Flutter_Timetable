@@ -287,7 +287,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
                   listItems: _ferryStationList,
                   setStation: setStation,
                 ),
-                const Text('Placeholder'),
+                const Text("TEST")
               ],
             )));
   }
