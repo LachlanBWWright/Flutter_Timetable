@@ -1,25 +1,8 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 import 'dart:convert';
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-
-String parseTime(String time) {
-  //String is in UTC time, with format 2022-08-28T19:55:54Z
-  DateTime dt = DateTime.parse(time).toLocal();
-  //24-Hour time to 12-hour
-  if (dt.hour == 0) {
-    return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
-  }
-  if (dt.hour == 12) {
-    return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
-  } else if (dt.hour < 12) {
-    return "${dt.hour}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
-  } else {
-    return "${dt.hour - 12}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
-  }
-}
 
 class TripScreen extends StatefulWidget {
   const TripScreen({Key? key, required this.trip}) : super(key: key);
@@ -246,5 +229,21 @@ class _TripLegScreenState extends State<TripLegScreen> {
           })),
           itemCount: widget.trip['legs'].length,
         ));
+  }
+}
+
+String parseTime(String time) {
+  //String is in UTC time, with format 2022-08-28T19:55:54Z
+  DateTime dt = DateTime.parse(time).toLocal();
+  //24-Hour time to 12-hour
+  if (dt.hour == 0) {
+    return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
+  }
+  if (dt.hour == 12) {
+    return "12:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
+  } else if (dt.hour < 12) {
+    return "${dt.hour}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}AM (${dt.day}/${dt.month})";
+  } else {
+    return "${dt.hour - 12}:${dt.minute < 10 ? "0${dt.minute}" : dt.minute}PM (${dt.day}/${dt.month})";
   }
 }

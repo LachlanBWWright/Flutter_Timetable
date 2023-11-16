@@ -1,5 +1,3 @@
-// ignore_for_file: prefer_interpolation_to_compose_strings
-
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/settings.dart';
@@ -164,10 +162,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   title: Text(_journeys[index]['origin'] +
                       ' - ' +
                       _journeys[index]['destination'].toString()),
-                  subtitle: Text('Trip from ' +
-                      _journeys[index]['origin'] +
-                      ' to ' +
-                      _journeys[index]['destination']),
+                  subtitle: Text(
+                      'Trip from ${_journeys[index]['origin']} to ${_journeys[index]['destination']}'),
                   onTap: () {
                     Navigator.push(
                         context,
