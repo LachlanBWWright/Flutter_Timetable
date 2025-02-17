@@ -159,9 +159,8 @@ class _MyHomePageState extends State<MyHomePage> {
               itemBuilder: ((context, index) {
                 return Card(
                     child: ListTile(
-                  title: Text(_journeys[index]['origin'] +
-                      ' - ' +
-                      _journeys[index]['destination'].toString()),
+                  title: Text(
+                      '${_journeys[index]['origin']} - ${_journeys[index]['destination'].toString()}'),
                   subtitle: Text(
                       'Trip from ${_journeys[index]['origin']} to ${_journeys[index]['destination']}'),
                   onTap: () {

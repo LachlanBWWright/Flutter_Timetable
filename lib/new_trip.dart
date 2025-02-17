@@ -24,7 +24,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
   String _firstStationId = '';
   String _secondStation = '';
   String _secondStationId = '';
-  List<Station> _selectedStations = [];
+  final List<Station> _selectedStations = [];
   bool _isSearching = false;
   final keyController = TextEditingController();
 
@@ -335,6 +335,8 @@ class StationView extends StatelessWidget {
 }
 
 class StationSelectionColumn extends StatefulWidget {
+  const StationSelectionColumn({super.key});
+
   @override
   State<StationSelectionColumn> createState() => _StationSelectionColumnState();
 }

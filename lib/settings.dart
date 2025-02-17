@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onPressed: _stealApiKey,
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
-                      primary: Colors.red),
+                      backgroundColor: Colors.red),
                   child: const Text('Steal API Key'),
                 ),
               ],

@@ -133,7 +133,7 @@ class _TripScreenState extends State<TripScreen> {
 
 //For each leg of the trip (E.G Station, Bus stop, ETC.)
 class TripLegScreen extends StatefulWidget {
-  TripLegScreen({Key? key, required this.trip}) : super(key: key);
+  const TripLegScreen({Key? key, required this.trip}) : super(key: key);
   final dynamic trip;
 
   @override
