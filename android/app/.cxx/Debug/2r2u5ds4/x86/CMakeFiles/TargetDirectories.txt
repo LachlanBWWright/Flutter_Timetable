@@ -1,0 +1,2 @@
+C:/Users/lachl/Desktop/Flutter_Timetable/android/app/.cxx/Debug/2r2u5ds4/x86/CMakeFiles/edit_cache.dir
+C:/Users/lachl/Desktop/Flutter_Timetable/android/app/.cxx/Debug/2r2u5ds4/x86/CMakeFiles/rebuild_cache.dir
