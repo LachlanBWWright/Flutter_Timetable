@@ -3,10 +3,9 @@ import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
-import 'package:http/http.dart' as http;
-import 'package:path/path.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/constants/app_constants.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,11 +18,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NSW Trains Timetable',
+      title: AppConstants.appTitle,
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'NSW Trains Timetable'),
+      home: const MyHomePage(title: AppConstants.appTitle),
     );
   }
 }
@@ -41,34 +40,19 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _hasApiKey = false;
 
   Future<void> getTrips() async {
-    print('GET Trips function');
-
-    WidgetsFlutterBinding.ensureInitialized();
-    final database =
-        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'),
-            onCreate: ((Database db, int version) async {
-      return await db.execute(
-          'CREATE TABLE journeys(id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT, originId TEXT, destination TEXT, destinationId TEXT)');
-    }), version: 1);
-
     try {
-      final List<Map<String, dynamic>> journeys =
-          await database.query('journeys');
-      print(journeys);
+      final journeys = await DatabaseService.getAllJourneys();
       setState(() {
         _journeys = journeys;
       });
     } catch (e) {
-      print(e);
+      print('Error loading trips: $e');
     }
   }
 
   Future<void> deleteTrip(int tripId) async {
-    WidgetsFlutterBinding.ensureInitialized();
-    final database =
-        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'));
     try {
-      await database.delete('journeys', where: 'id = ?', whereArgs: [tripId]);
+      await DatabaseService.deleteJourney(tripId);
       getTrips();
     } catch (e) {
       print('Error deleting trip: $e');
@@ -77,34 +61,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> checkApiKey() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final apiKey = prefs.getString('apiKey');
-
-      final params = {
-        //https://opendata.transport.nsw.gov.au/system/files/resources/Trip%20Planner%20API%20manual-opendataproduction%20v3.2.pdf https://opendata.transport.nsw.gov.au/node/601/exploreapi#!/default/tfnsw_stopfinder_request
-        'outputFormat': 'rapidJSON',
-        'type_sf': 'stop',
-        'name_sf': '',
-        'coordOutputFormat': 'EPSG:4326',
-        'TfNSWSF': 'true',
-        'version': '10.2.1.42',
-      };
-      final uri =
-          Uri.https('api.transport.nsw.gov.au', '/v1/tp/stop_finder/', params);
-      final res =
-          await http.get(uri, headers: {'authorization': 'apikey $apiKey'});
-
-      if (res.statusCode == 200) {
-        setState(
-          () {
-            _hasApiKey = true;
-          },
-        );
-      } else {
-        setState(() {
-          _hasApiKey = false;
-        });
-      }
+      final isValid = await TransportApiService.isApiKeyValid();
+      setState(() {
+        _hasApiKey = isValid;
+      });
     } catch (err) {
       setState(() {
         _hasApiKey = false;

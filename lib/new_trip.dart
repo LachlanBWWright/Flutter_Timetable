@@ -1,13 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'package:csv/csv.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:lbww_flutter/schema/journey.dart';
+import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({Key? key}) : super(key: key);
@@ -29,27 +27,12 @@ class _NewTripScreenState extends State<NewTripScreen> {
   bool _isSearching = false;
   final keyController = TextEditingController();
 
-  Future<Database> initDb() async {
-    //sqfliteFfiInit();
-    WidgetsFlutterBinding.ensureInitialized();
-
-    final database =
-        await openDatabase(join(await getDatabasesPath(), 'trip_database.db'),
-            onCreate: ((Database db, int version) async {
-      return await db.execute(
-          'CREATE TABLE journeys(id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT, originId TEXT, destination TEXT, destinationId TEXT)');
-    }), version: 1);
-    return database;
-  }
-
   Future<void> insertJourney(Journey journey) async {
     try {
-      final db = await initDb();
-      await db.insert('journeys', journey.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace);
+      await DatabaseService.insertJourney(journey);
+    } catch (e) {
+      print('Error inserting journey: $e');
     }
-    // ignore: empty_catches
-    catch (e) {}
   }
 
   void setStation(String station, String id) async {
@@ -151,33 +134,18 @@ class _NewTripScreenState extends State<NewTripScreen> {
   }
 
   void loadSearchStations(String search) async {
-    final prefs = await SharedPreferences.getInstance();
-    final apiKey = prefs.getString('apiKey');
-
-    final params = {
-      //https://opendata.transport.nsw.gov.au/system/files/resources/Trip%20Planner%20API%20manual-opendataproduction%20v3.2.pdf https://opendata.transport.nsw.gov.au/node/601/exploreapi#!/default/tfnsw_stopfinder_request
-      'outputFormat': 'rapidJSON',
-      'type_sf': 'any',
-      'name_sf': search,
-      'coordOutputFormat': 'EPSG:4326',
-      'TfNSWSF': 'true',
-      'version': '10.2.1.42',
-    };
-    final uri =
-        Uri.https('api.transport.nsw.gov.au', '/v1/tp/stop_finder/', params);
-    final res =
-        await http.get(uri, headers: {'authorization': 'apikey $apiKey'});
-
-    if (res.statusCode == 200) {
-      var stations = List<Station>.empty(growable: true);
-
-      for (dynamic location in jsonDecode(res.body)['locations']) {
-        stations.add(Station(
-            name: '${location['disassembledName']}', id: '${location['id']}'));
-      }
+    try {
+      final results = await TransportApiService.searchStations(search);
+      final stations = results.map((result) => Station(
+        name: result['name'] ?? '',
+        id: result['id'] ?? '',
+      )).toList();
+      
       setState(() {
         _trainStationList = stations;
       });
+    } catch (e) {
+      print('Error searching stations: $e');
     }
   }
 
@@ -185,7 +153,6 @@ class _NewTripScreenState extends State<NewTripScreen> {
   void initState() {
     super.initState();
     loadStations();
-    initDb();
   }
 
   @override
