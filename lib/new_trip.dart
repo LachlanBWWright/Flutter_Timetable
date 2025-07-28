@@ -7,6 +7,7 @@ import 'package:csv/csv.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:lbww_flutter/schema/journey.dart';
+import 'package:lbww_flutter/widgets/station_widgets.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({Key? key}) : super(key: key);
@@ -64,6 +65,55 @@ class _NewTripScreenState extends State<NewTripScreen> {
       }
     });
     loadStations();
+  }
+
+  void _clearFirstStation() {
+    setState(() {
+      _firstStation = '';
+      _firstStationId = '';
+    });
+  }
+
+  void _clearSecondStation() {
+    setState(() {
+      _secondStation = '';
+      _secondStationId = '';
+    });
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      if (keyController.text == '') {
+        _isSearching = !_isSearching;
+      } else {
+        keyController.text = '';
+      }
+    });
+  }
+
+  Future<void> _saveTrip() async {
+    if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
+      await insertJourney(Journey(
+        origin: _firstStation,
+        originId: _firstStationId,
+        destination: _secondStation,
+        destinationId: _secondStationId,
+      ));
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            "Saved trip from $_firstStation to $_secondStation.",
+          ),
+        ));
+        setState(() {
+          _firstStation = '';
+          _firstStationId = '';
+          _secondStation = '';
+          _secondStationId = '';
+        });
+      }
+    }
   }
 
   Future<void> loadStations() async {
@@ -140,224 +190,65 @@ class _NewTripScreenState extends State<NewTripScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool canSave = _firstStation.isNotEmpty && _secondStation.isNotEmpty;
+    
     return DefaultTabController(
-        length: 5,
-        child: Scaffold(
-            appBar: AppBar(
-              title: _isSearching
-                  ? TextField(
-                      controller: keyController,
-                      decoration: const InputDecoration(
-                          hintText: "Search for a station",
-                          hintStyle: TextStyle(color: Colors.white)),
-                      style: const TextStyle(color: Colors.white),
-                      onSubmitted: (value) {
-                        loadSearchStations(value);
-                      },
-                    )
-                  : const Text('Add New Trip'),
-              actions: [
-                if (_firstStation == '' || _secondStation == '')
-                  if (_isSearching)
-                    IconButton(
-                        onPressed: () {
-                          setState(() {
-                            if (keyController.text == '') {
-                              _isSearching = false;
-                            } else {
-                              keyController.text = '';
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.cancel))
-                  else
-                    IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _isSearching = true;
-                          });
-                        },
-                        icon: const Icon(Icons.search))
-                else
-                  IconButton(
-                      onPressed: () async {
-                        insertJourney(Journey(
-                            origin: _firstStation,
-                            originId: _firstStationId,
-                            destination: _secondStation,
-                            destinationId: _secondStationId));
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(
-                              "Saved trip from $_firstStation to $_secondStation."),
-                        ));
-                        setState(() {
-                          _firstStation = '';
-                          _firstStationId = '';
-                          _secondStation = '';
-                          _secondStationId = '';
-                        });
-                      },
-                      icon: const Icon(Icons.arrow_forward))
-              ],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(
-                      icon: Icon(
-                    Icons.directions_train,
-                    color: Color.fromARGB(255, 255, 97, 35),
-                  )),
-                  Tab(
-                      icon: Icon(
-                    Icons.tram,
-                    color: Color.fromARGB(255, 255, 82, 82),
-                  )),
-                  Tab(
-                      icon: Icon(Icons.directions_bus,
-                          color: Color.fromARGB(255, 82, 186, 255))),
-                  Tab(
-                      icon: Icon(Icons.directions_ferry,
-                          color: Color.fromARGB(255, 68, 240, 91))),
-                  Tab(icon: Icon(Icons.map)),
-                ],
-              ),
+      length: 5,
+      child: Scaffold(
+        appBar: NewTripAppBar(
+          isSearching: _isSearching,
+          searchController: keyController,
+          onSearch: loadSearchStations,
+          onToggleSearch: _toggleSearch,
+          onSaveTrip: canSave ? _saveTrip : null,
+          canSave: canSave,
+        ),
+        body: TabBarView(
+          children: [
+            _buildTrainStationTab(),
+            StationList(
+              listItems: _lightRailStationList,
+              setStation: setStation,
             ),
-            body: TabBarView(
-              children: [
-                Column(
-                  children: [
-                    if (_firstStation != '')
-                      Stack(
-                        children: [
-                          Align(
-                            child: Text(
-                              'First Station Selected: $_firstStation',
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          Positioned(
-                              right: 0,
-                              child: InkWell(
-                                  onTap: (() {
-                                    setState(() {
-                                      _firstStation = '';
-                                      _firstStationId = '';
-                                    });
-                                  }),
-                                  child: const Icon(Icons.cancel, size: 12)))
-                        ],
-                      ),
-                    if (_secondStation != '')
-                      Stack(
-                        children: [
-                          Align(
-                            child: Text(
-                              'Second Station Selected: $_secondStation',
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          Positioned(
-                              right: 0,
-                              child: InkWell(
-                                  onTap: (() {
-                                    setState(() {
-                                      _secondStation = '';
-                                      _secondStationId = '';
-                                    });
-                                  }),
-                                  child: const Icon(Icons.cancel, size: 12)))
-                        ],
-                      ),
-                    Expanded(
-                      child: StationList(
-                        listItems: _trainStationList,
-                        setStation: setStation,
-                      ),
-                    )
-                  ],
-                ),
-                StationList(
-                  listItems: _lightRailStationList,
-                  setStation: setStation,
-                ),
-                StationList(
-                  listItems: _busStationList,
-                  setStation: setStation,
-                ),
-                StationList(
-                  listItems: _ferryStationList,
-                  setStation: setStation,
-                ),
-                const Text("TEST")
-              ],
-            )));
+            StationList(
+              listItems: _busStationList,
+              setStation: setStation,
+            ),
+            StationList(
+              listItems: _ferryStationList,
+              setStation: setStation,
+            ),
+            const Center(child: Text("Map functionality coming soon")),
+          ],
+        ),
+      ),
+    );
   }
-}
 
-class StationList extends StatelessWidget {
-  final List<Station> listItems;
-  final Function(String, String) setStation;
-
-  const StationList(
-      {Key? key, required this.listItems, required this.setStation})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-        itemCount: listItems.length,
-        itemBuilder: (context, index) {
-          return StationView(station: listItems[index], setStation: setStation);
-        });
-  }
-}
-
-class StationView extends StatelessWidget {
-  final Station station;
-  final Function(String, String) setStation;
-
-  const StationView({Key? key, required this.station, required this.setStation})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(1.0),
-      child: Card(
-          child: InkWell(
-              onTap: () {
-                setStation(station.name, station.id);
-              },
-              child: ListTile(
-                title: Text(station.name),
-              ))),
+  Widget _buildTrainStationTab() {
+    return Column(
+      children: [
+        if (_firstStation.isNotEmpty)
+          SelectedStationCard(
+            label: 'First Station Selected',
+            stationName: _firstStation,
+            onCancel: _clearFirstStation,
+          ),
+        if (_secondStation.isNotEmpty)
+          SelectedStationCard(
+            label: 'Second Station Selected',
+            stationName: _secondStation,
+            onCancel: _clearSecondStation,
+          ),
+        Expanded(
+          child: StationList(
+            listItems: _trainStationList,
+            setStation: setStation,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class StationSelectionColumn extends StatefulWidget {
-  const StationSelectionColumn({super.key});
 
-  @override
-  State<StationSelectionColumn> createState() => _StationSelectionColumnState();
-}
-
-class _StationSelectionColumnState extends State<StationSelectionColumn> {
-  @override
-  Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
-  }
-}
-
-class Station {
-  String name;
-  String id;
-  double? latitude;
-  double? longitude;
-  Station({
-    required this.name,
-    required this.id,
-    this.latitude,
-    this.longitude,
-  });
-}

@@ -43,11 +43,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _stealApiKey() async {
+  Future<void> _clearApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _apiKey = 'Xh0bAW1JmyVP93vjB784EK9dyZlbJb2FxJuw';
-      prefs.setString('apiKey', 'Xh0bAW1JmyVP93vjB784EK9dyZlbJb2FxJuw');
+      _apiKey = '';
+      keyController.text = '';
+      prefs.remove('apiKey');
     });
   }
 
@@ -82,14 +83,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'How to set API key: Go to Transport for NSW\'s OpenData page, create an account, hover over \'My Account\', select \'Applications\', and create an application.'),
                 const Text(''),
                 const Text(
-                    'You\'ll need to give the application access to the following APIs: \'Trip Planner APIs\', \'Public Transport - Timetables - For Realtime\'. Or you can just steal mine.'),
+                    'You\'ll need to give the application access to the following APIs: \'Trip Planner APIs\', \'Public Transport - Timetables - For Realtime\'.'),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: _stealApiKey,
+                  onPressed: _clearApiKey,
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
-                      backgroundColor: Colors.red),
-                  child: const Text('Steal API Key'),
+                      backgroundColor: Colors.orange),
+                  child: const Text('Clear API Key'),
                 ),
               ],
             )));

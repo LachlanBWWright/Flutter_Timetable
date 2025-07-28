@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
+import 'package:lbww_flutter/widgets/journey_widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,15 +63,15 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> deleteTrip(int trip) async {
+  Future<void> deleteTrip(int tripId) async {
     WidgetsFlutterBinding.ensureInitialized();
     final database =
         await openDatabase(join(await getDatabasesPath(), 'trip_database.db'));
     try {
-      await database.delete('journeys', where: 'id = $trip');
+      await database.delete('journeys', where: 'id = ?', whereArgs: [tripId]);
       getTrips();
     } catch (e) {
-      print(e);
+      print('Error deleting trip: $e');
     }
   }
 
@@ -118,67 +119,49 @@ class _MyHomePageState extends State<MyHomePage> {
     checkApiKey();
   }
 
+  void _navigateToNewTrip() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NewTripScreen()),
+    ).then((val) {
+      getTrips();
+    });
+  }
+
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    ).then((val) {
+      checkApiKey();
+    });
+  }
+
+  void _navigateToTrip(Map<String, dynamic> journey) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => TripScreen(trip: journey)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: <Widget>[
-          if (_hasApiKey)
-            IconButton(
-                onPressed: () {
-                  Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const NewTripScreen()))
-                      .then((val) {
-                    getTrips();
-                  });
-                },
-                icon: const Icon(Icons.add)),
-          IconButton(
-              onPressed: () {
-                Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const SettingsScreen()))
-                    .then((val) {
-                  checkApiKey();
-                });
-              },
-              icon: const Icon(Icons.settings)),
-        ],
+      appBar: HomeAppBar(
+        title: widget.title,
+        hasApiKey: _hasApiKey,
+        onAddTrip: _navigateToNewTrip,
+        onSettings: _navigateToSettings,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Expanded(
-                child: ListView.builder(
-              itemCount: _journeys.length,
-              itemBuilder: ((context, index) {
-                return Card(
-                    child: ListTile(
-                  title: Text(
-                      '${_journeys[index]['origin']} - ${_journeys[index]['destination'].toString()}'),
-                  subtitle: Text(
-                      'Trip from ${_journeys[index]['origin']} to ${_journeys[index]['destination']}'),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                TripScreen(trip: _journeys[index])));
-                  },
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      deleteTrip(_journeys[index]['id']);
-                    },
-                  ),
-                ));
-              }),
-            ))
+            JourneyList(
+              journeys: _journeys,
+              onJourneyTap: _navigateToTrip,
+              onDeleteJourney: deleteTrip,
+            ),
           ],
         ),
       ),
