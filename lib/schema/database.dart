@@ -1,75 +1,43 @@
-import 'package:lbww_flutter/schema/journey.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
+import 'dart:io';
 
-/// Service class for handling database operations
-class DatabaseService {
-  static Database? _database;
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:path_provider/path_provider.dart';
 
-  /// Get database instance (singleton pattern)
-  static Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
+part 'database.g.dart';
 
-  /// Initialize the database
-  static Future<Database> _initDatabase() async {
-    final databasePath = await getDatabasesPath();
-    final path = join(databasePath, 'trip_database.db');
+// Drift table for journeys
+class Journeys extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get origin => text()();
+  TextColumn get originId => text()();
+  TextColumn get destination => text()();
+  TextColumn get destinationId => text()();
+}
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
-  }
+@DriftDatabase(tables: [Journeys])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase() : super(_openConnection());
 
-  /// Create tables when database is first created
-  static Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE journeys(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        origin TEXT NOT NULL,
-        originId TEXT NOT NULL,
-        destination TEXT NOT NULL,
-        destinationId TEXT NOT NULL
-      )
-    ''');
-  }
+  @override
+  int get schemaVersion => 1;
 
-  /// Insert a journey into the database
-  static Future<int> insertJourney(Journey journey) async {
-    final db = await database;
-    return await db.insert(
-      'journeys',
-      journey.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
+  // Insert a journey
+  Future<int> insertJourney(JourneysCompanion journey) =>
+      into(journeys).insert(journey);
 
-  /// Get all journeys from the database
-  static Future<List<Map<String, dynamic>>> getAllJourneys() async {
-    final db = await database;
-    return await db.query('journeys');
-  }
+  // Get all journeys
+  Future<List<Journey>> getAllJourneys() => select(journeys).get();
 
-  /// Delete a journey by ID
-  static Future<int> deleteJourney(int id) async {
-    final db = await database;
-    return await db.delete(
-      'journeys',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
+  // Delete a journey by id
+  Future<int> deleteJourney(int id) =>
+      (delete(journeys)..where((tbl) => tbl.id.equals(id))).go();
+}
 
-  /// Close the database
-  static Future<void> close() async {
-    final db = _database;
-    if (db != null) {
-      await db.close();
-      _database = null;
-    }
-  }
+LazyDatabase _openConnection() {
+  return LazyDatabase(() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File('${dbFolder.path}/trip_database.db');
+    return NativeDatabase(file);
+  });
 }

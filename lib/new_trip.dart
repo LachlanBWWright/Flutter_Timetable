@@ -1,8 +1,8 @@
 import 'package:csv/csv.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:lbww_flutter/schema/database.dart';
-import 'package:lbww_flutter/schema/journey.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 
@@ -24,14 +24,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
   String _secondStationId = '';
   bool _isSearching = false;
   final keyController = TextEditingController();
-
-  Future<void> insertJourney(Journey journey) async {
-    try {
-      await DatabaseService.insertJourney(journey);
-    } catch (e) {
-      print('Error inserting journey: $e');
-    }
-  }
+  final AppDatabase _db = AppDatabase();
 
   void setStation(String station, String id) async {
     setState(() {
@@ -74,25 +67,28 @@ class _NewTripScreenState extends State<NewTripScreen> {
 
   Future<void> _saveTrip() async {
     if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
-      await insertJourney(Journey(
-        origin: _firstStation,
-        originId: _firstStationId,
-        destination: _secondStation,
-        destinationId: _secondStationId,
-      ));
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-            'Saved trip from $_firstStation to $_secondStation.',
-          ),
+      try {
+        await _db.insertJourney(JourneysCompanion(
+          origin: drift.Value(_firstStation),
+          originId: drift.Value(_firstStationId),
+          destination: drift.Value(_secondStation),
+          destinationId: drift.Value(_secondStationId),
         ));
-        setState(() {
-          _firstStation = '';
-          _firstStationId = '';
-          _secondStation = '';
-          _secondStationId = '';
-        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+              'Saved trip from $_firstStation to $_secondStation.',
+            ),
+          ));
+          setState(() {
+            _firstStation = '';
+            _firstStationId = '';
+            _secondStation = '';
+            _secondStationId = '';
+          });
+        }
+      } catch (e) {
+        print('Error inserting journey: $e');
       }
     }
   }

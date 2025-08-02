@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/schema/database.dart';
 
 /// A reusable card widget for displaying journey information
 class JourneyCard extends StatelessWidget {
-  final Map<String, dynamic> journey;
+  final Journey journey;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
@@ -18,10 +19,10 @@ class JourneyCard extends StatelessWidget {
     return Card(
       child: ListTile(
         title: Text(
-          '${journey['origin']} - ${journey['destination']}',
+          '${journey.origin} - ${journey.destination}',
         ),
         subtitle: Text(
-          'Trip from ${journey['origin']} to ${journey['destination']}',
+          'Trip from ${journey.origin} to ${journey.destination}',
         ),
         onTap: onTap,
         trailing: IconButton(
@@ -31,12 +32,13 @@ class JourneyCard extends StatelessWidget {
       ),
     );
   }
+// Removed extra closing brace
 }
 
 /// A widget that displays a list of journeys
 class JourneyList extends StatelessWidget {
-  final List<Map<String, dynamic>> journeys;
-  final Function(Map<String, dynamic>) onJourneyTap;
+  final List<Journey> journeys;
+  final Function(Journey) onJourneyTap;
   final Function(int) onDeleteJourney;
 
   const JourneyList({
@@ -55,7 +57,7 @@ class JourneyList extends StatelessWidget {
           return JourneyCard(
             journey: journeys[index],
             onTap: () => onJourneyTap(journeys[index]),
-            onDelete: () => onDeleteJourney(journeys[index]['id']),
+            onDelete: () => onDeleteJourney(journeys[index].id),
           );
         },
       ),

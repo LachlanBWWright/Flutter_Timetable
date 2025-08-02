@@ -39,12 +39,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Map<String, dynamic>> _journeys = [];
+  List<Journey> _journeys = [];
   bool _hasApiKey = false;
 
   Future<void> getTrips() async {
     try {
-      final journeys = await DatabaseService.getAllJourneys();
+      final journeys = await AppDatabase().getAllJourneys();
       setState(() {
         _journeys = journeys;
       });
@@ -55,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> deleteTrip(int tripId) async {
     try {
-      await DatabaseService.deleteJourney(tripId);
+      await AppDatabase().deleteJourney(tripId);
       getTrips();
     } catch (e) {
       print('Error deleting trip: $e');
@@ -100,10 +100,20 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _navigateToTrip(Map<String, dynamic> journey) {
+  void _navigateToTrip(Journey journey) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => TripScreen(trip: journey)),
+      MaterialPageRoute(
+        builder: (context) => TripScreen(
+          trip: {
+            'id': journey.id,
+            'origin': journey.origin,
+            'originId': journey.originId,
+            'destination': journey.destination,
+            'destinationId': journey.destinationId,
+          },
+        ),
+      ),
     );
   }
 
