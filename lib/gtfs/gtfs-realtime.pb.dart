@@ -44,14 +44,14 @@ class FeedMessage extends $pb.GeneratedMessage {
     FeedHeader? header,
     $core.Iterable<FeedEntity>? entity,
   }) {
-    final _result = create();
+    final result = create();
     if (header != null) {
-      _result.header = header;
+      result.header = header;
     }
     if (entity != null) {
-      _result.entity.addAll(entity);
+      result.entity.addAll(entity);
     }
-    return _result;
+    return result;
   }
   factory FeedMessage.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -136,17 +136,17 @@ class FeedHeader extends $pb.GeneratedMessage {
     FeedHeader_Incrementality? incrementality,
     $fixnum.Int64? timestamp,
   }) {
-    final _result = create();
+    final result = create();
     if (gtfsRealtimeVersion != null) {
-      _result.gtfsRealtimeVersion = gtfsRealtimeVersion;
+      result.gtfsRealtimeVersion = gtfsRealtimeVersion;
     }
     if (incrementality != null) {
-      _result.incrementality = incrementality;
+      result.incrementality = incrementality;
     }
     if (timestamp != null) {
-      _result.timestamp = timestamp;
+      result.timestamp = timestamp;
     }
-    return _result;
+    return result;
   }
   factory FeedHeader.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -259,23 +259,23 @@ class FeedEntity extends $pb.GeneratedMessage {
     VehiclePosition? vehicle,
     Alert? alert,
   }) {
-    final _result = create();
+    final result = create();
     if (id != null) {
-      _result.id = id;
+      result.id = id;
     }
     if (isDeleted != null) {
-      _result.isDeleted = isDeleted;
+      result.isDeleted = isDeleted;
     }
     if (tripUpdate != null) {
-      _result.tripUpdate = tripUpdate;
+      result.tripUpdate = tripUpdate;
     }
     if (vehicle != null) {
-      _result.vehicle = vehicle;
+      result.vehicle = vehicle;
     }
     if (alert != null) {
-      _result.alert = alert;
+      result.alert = alert;
     }
-    return _result;
+    return result;
   }
   factory FeedEntity.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -405,17 +405,17 @@ class TripUpdate_StopTimeEvent extends $pb.GeneratedMessage {
     $fixnum.Int64? time,
     $core.int? uncertainty,
   }) {
-    final _result = create();
+    final result = create();
     if (delay != null) {
-      _result.delay = delay;
+      result.delay = delay;
     }
     if (time != null) {
-      _result.time = time;
+      result.time = time;
     }
     if (uncertainty != null) {
-      _result.uncertainty = uncertainty;
+      result.uncertainty = uncertainty;
     }
-    return _result;
+    return result;
   }
   factory TripUpdate_StopTimeEvent.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -536,23 +536,23 @@ class TripUpdate_StopTimeUpdate extends $pb.GeneratedMessage {
     $core.String? stopId,
     TripUpdate_StopTimeUpdate_ScheduleRelationship? scheduleRelationship,
   }) {
-    final _result = create();
+    final result = create();
     if (stopSequence != null) {
-      _result.stopSequence = stopSequence;
+      result.stopSequence = stopSequence;
     }
     if (arrival != null) {
-      _result.arrival = arrival;
+      result.arrival = arrival;
     }
     if (departure != null) {
-      _result.departure = departure;
+      result.departure = departure;
     }
     if (stopId != null) {
-      _result.stopId = stopId;
+      result.stopId = stopId;
     }
     if (scheduleRelationship != null) {
-      _result.scheduleRelationship = scheduleRelationship;
+      result.scheduleRelationship = scheduleRelationship;
     }
-    return _result;
+    return result;
   }
   factory TripUpdate_StopTimeUpdate.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -701,23 +701,23 @@ class TripUpdate extends $pb.GeneratedMessage {
     $fixnum.Int64? timestamp,
     $core.int? delay,
   }) {
-    final _result = create();
+    final result = create();
     if (trip != null) {
-      _result.trip = trip;
+      result.trip = trip;
     }
     if (stopTimeUpdate != null) {
-      _result.stopTimeUpdate.addAll(stopTimeUpdate);
+      result.stopTimeUpdate.addAll(stopTimeUpdate);
     }
     if (vehicle != null) {
-      _result.vehicle = vehicle;
+      result.vehicle = vehicle;
     }
     if (timestamp != null) {
-      _result.timestamp = timestamp;
+      result.timestamp = timestamp;
     }
     if (delay != null) {
-      _result.delay = delay;
+      result.delay = delay;
     }
-    return _result;
+    return result;
   }
   factory TripUpdate.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -889,35 +889,35 @@ class VehiclePosition extends $pb.GeneratedMessage {
     VehicleDescriptor? vehicle,
     VehiclePosition_OccupancyStatus? occupancyStatus,
   }) {
-    final _result = create();
+    final result = create();
     if (trip != null) {
-      _result.trip = trip;
+      result.trip = trip;
     }
     if (position != null) {
-      _result.position = position;
+      result.position = position;
     }
     if (currentStopSequence != null) {
-      _result.currentStopSequence = currentStopSequence;
+      result.currentStopSequence = currentStopSequence;
     }
     if (currentStatus != null) {
-      _result.currentStatus = currentStatus;
+      result.currentStatus = currentStatus;
     }
     if (timestamp != null) {
-      _result.timestamp = timestamp;
+      result.timestamp = timestamp;
     }
     if (congestionLevel != null) {
-      _result.congestionLevel = congestionLevel;
+      result.congestionLevel = congestionLevel;
     }
     if (stopId != null) {
-      _result.stopId = stopId;
+      result.stopId = stopId;
     }
     if (vehicle != null) {
-      _result.vehicle = vehicle;
+      result.vehicle = vehicle;
     }
     if (occupancyStatus != null) {
-      _result.occupancyStatus = occupancyStatus;
+      result.occupancyStatus = occupancyStatus;
     }
-    return _result;
+    return result;
   }
   factory VehiclePosition.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -1133,29 +1133,29 @@ class Alert extends $pb.GeneratedMessage {
     TranslatedString? headerText,
     TranslatedString? descriptionText,
   }) {
-    final _result = create();
+    final result = create();
     if (activePeriod != null) {
-      _result.activePeriod.addAll(activePeriod);
+      result.activePeriod.addAll(activePeriod);
     }
     if (informedEntity != null) {
-      _result.informedEntity.addAll(informedEntity);
+      result.informedEntity.addAll(informedEntity);
     }
     if (cause != null) {
-      _result.cause = cause;
+      result.cause = cause;
     }
     if (effect != null) {
-      _result.effect = effect;
+      result.effect = effect;
     }
     if (url != null) {
-      _result.url = url;
+      result.url = url;
     }
     if (headerText != null) {
-      _result.headerText = headerText;
+      result.headerText = headerText;
     }
     if (descriptionText != null) {
-      _result.descriptionText = descriptionText;
+      result.descriptionText = descriptionText;
     }
-    return _result;
+    return result;
   }
   factory Alert.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -1287,14 +1287,14 @@ class TimeRange extends $pb.GeneratedMessage {
     $fixnum.Int64? start,
     $fixnum.Int64? end,
   }) {
-    final _result = create();
+    final result = create();
     if (start != null) {
-      _result.start = start;
+      result.start = start;
     }
     if (end != null) {
-      _result.end = end;
+      result.end = end;
     }
-    return _result;
+    return result;
   }
   factory TimeRange.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -1397,23 +1397,23 @@ class Position extends $pb.GeneratedMessage {
     $core.double? odometer,
     $core.double? speed,
   }) {
-    final _result = create();
+    final result = create();
     if (latitude != null) {
-      _result.latitude = latitude;
+      result.latitude = latitude;
     }
     if (longitude != null) {
-      _result.longitude = longitude;
+      result.longitude = longitude;
     }
     if (bearing != null) {
-      _result.bearing = bearing;
+      result.bearing = bearing;
     }
     if (odometer != null) {
-      _result.odometer = odometer;
+      result.odometer = odometer;
     }
     if (speed != null) {
-      _result.speed = speed;
+      result.speed = speed;
     }
-    return _result;
+    return result;
   }
   factory Position.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -1558,26 +1558,26 @@ class TripDescriptor extends $pb.GeneratedMessage {
     $core.String? routeId,
     $core.int? directionId,
   }) {
-    final _result = create();
+    final result = create();
     if (tripId != null) {
-      _result.tripId = tripId;
+      result.tripId = tripId;
     }
     if (startTime != null) {
-      _result.startTime = startTime;
+      result.startTime = startTime;
     }
     if (startDate != null) {
-      _result.startDate = startDate;
+      result.startDate = startDate;
     }
     if (scheduleRelationship != null) {
-      _result.scheduleRelationship = scheduleRelationship;
+      result.scheduleRelationship = scheduleRelationship;
     }
     if (routeId != null) {
-      _result.routeId = routeId;
+      result.routeId = routeId;
     }
     if (directionId != null) {
-      _result.directionId = directionId;
+      result.directionId = directionId;
     }
-    return _result;
+    return result;
   }
   factory TripDescriptor.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -1712,17 +1712,17 @@ class VehicleDescriptor extends $pb.GeneratedMessage {
     $core.String? label,
     $core.String? licensePlate,
   }) {
-    final _result = create();
+    final result = create();
     if (id != null) {
-      _result.id = id;
+      result.id = id;
     }
     if (label != null) {
-      _result.label = label;
+      result.label = label;
     }
     if (licensePlate != null) {
-      _result.licensePlate = licensePlate;
+      result.licensePlate = licensePlate;
     }
-    return _result;
+    return result;
   }
   factory VehicleDescriptor.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -1835,23 +1835,23 @@ class EntitySelector extends $pb.GeneratedMessage {
     TripDescriptor? trip,
     $core.String? stopId,
   }) {
-    final _result = create();
+    final result = create();
     if (agencyId != null) {
-      _result.agencyId = agencyId;
+      result.agencyId = agencyId;
     }
     if (routeId != null) {
-      _result.routeId = routeId;
+      result.routeId = routeId;
     }
     if (routeType != null) {
-      _result.routeType = routeType;
+      result.routeType = routeType;
     }
     if (trip != null) {
-      _result.trip = trip;
+      result.trip = trip;
     }
     if (stopId != null) {
-      _result.stopId = stopId;
+      result.stopId = stopId;
     }
-    return _result;
+    return result;
   }
   factory EntitySelector.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -1970,14 +1970,14 @@ class TranslatedString_Translation extends $pb.GeneratedMessage {
     $core.String? text,
     $core.String? language,
   }) {
-    final _result = create();
+    final result = create();
     if (text != null) {
-      _result.text = text;
+      result.text = text;
     }
     if (language != null) {
-      _result.language = language;
+      result.language = language;
     }
-    return _result;
+    return result;
   }
   factory TranslatedString_Translation.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -2058,11 +2058,11 @@ class TranslatedString extends $pb.GeneratedMessage {
   factory TranslatedString({
     $core.Iterable<TranslatedString_Translation>? translation,
   }) {
-    final _result = create();
+    final result = create();
     if (translation != null) {
-      _result.translation.addAll(translation);
+      result.translation.addAll(translation);
     }
-    return _result;
+    return result;
   }
   factory TranslatedString.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>

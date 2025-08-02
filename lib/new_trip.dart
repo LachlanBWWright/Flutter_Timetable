@@ -1,14 +1,13 @@
-import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
-import 'package:lbww_flutter/schema/journey.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:lbww_flutter/schema/database.dart';
-import 'package:lbww_flutter/widgets/station_widgets.dart';
+import 'package:lbww_flutter/schema/journey.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/widgets/station_widgets.dart';
 
 class NewTripScreen extends StatefulWidget {
-  const NewTripScreen({Key? key}) : super(key: key);
+  const NewTripScreen({super.key});
 
   @override
   State<NewTripScreen> createState() => _NewTripScreenState();
@@ -23,7 +22,6 @@ class _NewTripScreenState extends State<NewTripScreen> {
   String _firstStationId = '';
   String _secondStation = '';
   String _secondStationId = '';
-  final List<Station> _selectedStations = [];
   bool _isSearching = false;
   final keyController = TextEditingController();
 
@@ -82,11 +80,11 @@ class _NewTripScreenState extends State<NewTripScreen> {
         destination: _secondStation,
         destinationId: _secondStationId,
       ));
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-            "Saved trip from $_firstStation to $_secondStation.",
+            'Saved trip from $_firstStation to $_secondStation.',
           ),
         ));
         setState(() {
@@ -102,25 +100,26 @@ class _NewTripScreenState extends State<NewTripScreen> {
   Future<void> loadStations() async {
     final dataset =
         await rootBundle.loadString('assets/LocationFacilityData.csv');
-    List<dynamic> data = const CsvToListConverter().convert(dataset, eol: "\n");
-    data.removeWhere((station) => !station[9].contains("Train"));
+    final List<dynamic> data =
+        const CsvToListConverter().convert(dataset, eol: '\n');
+    data.removeWhere((station) => !station[9].contains('Train'));
     //[10] - Mode
-    var trainStations = List<Station>.empty(growable: true);
-    var busStations = List<Station>.empty(growable: true);
-    var lightRailStations = List<Station>.empty(growable: true);
-    var ferryStations = List<Station>.empty(growable: true);
+    final trainStations = List<Station>.empty(growable: true);
+    final busStations = List<Station>.empty(growable: true);
+    final lightRailStations = List<Station>.empty(growable: true);
+    final ferryStations = List<Station>.empty(growable: true);
     for (var station in data) {
-      if (station[9].contains("Train")) {
+      if (station[9].contains('Train')) {
         trainStations.add(Station(name: station[0], id: station[4].toString()));
       }
-      if (station[9].contains("Bus")) {
+      if (station[9].contains('Bus')) {
         busStations.add(Station(name: station[0], id: station[4].toString()));
       }
-      if (station[9].contains("Light")) {
+      if (station[9].contains('Light')) {
         lightRailStations
             .add(Station(name: station[0], id: station[4].toString()));
       }
-      if (station[9].contains("Ferry")) {
+      if (station[9].contains('Ferry')) {
         ferryStations.add(Station(name: station[0], id: station[4].toString()));
       }
     }
@@ -136,11 +135,13 @@ class _NewTripScreenState extends State<NewTripScreen> {
   void loadSearchStations(String search) async {
     try {
       final results = await TransportApiService.searchStations(search);
-      final stations = results.map((result) => Station(
-        name: result['name'] ?? '',
-        id: result['id'] ?? '',
-      )).toList();
-      
+      final stations = results
+          .map((result) => Station(
+                name: result['name'] ?? '',
+                id: result['id'] ?? '',
+              ))
+          .toList();
+
       setState(() {
         _trainStationList = stations;
       });
@@ -157,8 +158,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool canSave = _firstStation.isNotEmpty && _secondStation.isNotEmpty;
-    
+    final bool canSave = _firstStation.isNotEmpty && _secondStation.isNotEmpty;
+
     return DefaultTabController(
       length: 5,
       child: Scaffold(
@@ -185,7 +186,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
               listItems: _ferryStationList,
               setStation: setStation,
             ),
-            const Center(child: Text("Map functionality coming soon")),
+            const Center(child: Text('Map functionality coming soon')),
           ],
         ),
       ),
@@ -217,5 +218,3 @@ class _NewTripScreenState extends State<NewTripScreen> {
     );
   }
 }
-
-

@@ -1,6 +1,6 @@
+import 'package:lbww_flutter/schema/journey.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:lbww_flutter/schema/journey.dart';
 
 /// Service class for handling database operations
 class DatabaseService {

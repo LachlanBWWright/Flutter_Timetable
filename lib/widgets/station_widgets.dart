@@ -130,7 +130,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? TextField(
               controller: searchController,
               decoration: const InputDecoration(
-                hintText: "Search for a station",
+                hintText: 'Search for a station',
                 hintStyle: TextStyle(color: Colors.white),
               ),
               style: const TextStyle(color: Colors.white),
@@ -188,5 +188,5 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + kTabsHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

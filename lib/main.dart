@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/new_trip.dart';
+import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
-import 'package:lbww_flutter/schema/database.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
-import 'package:lbww_flutter/constants/app_constants.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
@@ -28,7 +31,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+  const MyHomePage({super.key, required this.title});
   final String title;
 
   @override

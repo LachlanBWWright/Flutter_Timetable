@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
 
 class TripScreen extends StatefulWidget {
-  const TripScreen({Key? key, required this.trip}) : super(key: key);
+  const TripScreen({super.key, required this.trip});
 
   final Map<String, dynamic> trip;
 
@@ -22,7 +22,7 @@ class _TripScreenState extends State<TripScreen> {
         originId: widget.trip['originId'],
         destinationId: widget.trip['destinationId'],
       );
-      
+
       setState(() {
         trips = tripData;
         testText = tripData.toString();
@@ -72,7 +72,7 @@ class _TripScreenState extends State<TripScreen> {
 
 //For each leg of the trip (E.G Station, Bus stop, ETC.)
 class TripLegScreen extends StatefulWidget {
-  const TripLegScreen({Key? key, required this.trip}) : super(key: key);
+  const TripLegScreen({super.key, required this.trip});
   final dynamic trip;
 
   @override
@@ -93,5 +93,3 @@ class _TripLegScreenState extends State<TripLegScreen> {
     );
   }
 }
-
-

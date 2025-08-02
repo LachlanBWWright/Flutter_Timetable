@@ -1,4 +1,3 @@
-///
 //  Generated code. Do not modify.
 //  source: gtfs-realtime.proto
 //

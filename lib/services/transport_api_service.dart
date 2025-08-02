@@ -1,15 +1,16 @@
 import 'dart:convert';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
   static const String _baseUrl = 'api.transport.nsw.gov.au';
 
-  /// Get API key from shared preferences
+  /// Get API key from .env
   static Future<String?> _getApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('apiKey');
+    // Ensure dotenv is loaded before calling this in main
+    return dotenv.env['API_KEY'];
   }
 
   /// Test if API key is valid
@@ -69,11 +70,13 @@ class TransportApiService {
 
       final data = jsonDecode(response.body);
       final locations = data['locations'] as List? ?? [];
-      
-      return locations.map((location) => {
-        'name': location['disassembledName'] ?? location['name'] ?? '',
-        'id': location['id']?.toString() ?? '',
-      }).toList();
+
+      return locations
+          .map((location) => {
+                'name': location['disassembledName'] ?? location['name'] ?? '',
+                'id': location['id']?.toString() ?? '',
+              })
+          .toList();
     } catch (e) {
       print('Error searching stations: $e');
       return [];

@@ -27,21 +27,21 @@ class TransportModeUtils {
   static String getModeName(int id) {
     switch (id) {
       case 1:
-        return "Train";
+        return 'Train';
       case 4:
-        return "Light Rail";
+        return 'Light Rail';
       case 5:
-        return "Bus";
+        return 'Bus';
       case 11:
-        return "School Bus";
+        return 'School Bus';
       case 7:
-        return "Coach";
+        return 'Coach';
       case 9:
-        return "Ferry";
+        return 'Ferry';
       case 100:
-        return "Walk";
+        return 'Walk';
       default:
-        return "(Unknown)";
+        return '(Unknown)';
     }
   }
 }
@@ -78,7 +78,7 @@ class TripCard extends StatelessWidget {
             Text(
               "${DateTimeUtils.parseTime(firstLeg['origin']['departureTimeEstimated'])} - ${DateTimeUtils.parseTime(lastLeg['destination']['arrivalTimeEstimated'])} (Estimated)",
             ),
-            Text("Number of legs: ${legs.length}"),
+            Text('Number of legs: ${legs.length}'),
             Text("Number of interchanges: ${trip['interchanges']}"),
           ],
         ),
@@ -97,7 +97,7 @@ class TripLegCard extends StatelessWidget {
   });
 
   List<Widget> _getStops() {
-    List<Widget> stops = [];
+    final List<Widget> stops = [];
     try {
       final stopSequence = leg['stopSequence'] as List?;
       if (stopSequence != null) {
@@ -108,7 +108,7 @@ class TripLegCard extends StatelessWidget {
         }
       }
     } catch (e) {
-      stops.add(const Text("Walk!"));
+      stops.add(const Text('Walk!'));
     }
     return stops;
   }
@@ -116,23 +116,25 @@ class TripLegCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final transportClass = leg['transportation']['product']['class'] as int;
-    final originName = leg['origin']['disassembledName'] ?? leg['origin']['name'];
-    final destinationName = leg['destination']['disassembledName'] ?? leg['destination']['name'];
-    final transportName = leg['transportation']['name'] ?? 
-                         leg['transportation']['disassembledName'] ?? 
-                         "";
+    final originName =
+        leg['origin']['disassembledName'] ?? leg['origin']['name'];
+    final destinationName =
+        leg['destination']['disassembledName'] ?? leg['destination']['name'];
+    final transportName = leg['transportation']['name'] ??
+        leg['transportation']['disassembledName'] ??
+        '';
 
     return Card(
       color: TransportModeUtils.getModeColor(transportClass),
       child: ListTile(
         title: Text(
-          "(${TransportModeUtils.getModeName(transportClass)}) $originName to $destinationName",
+          '(${TransportModeUtils.getModeName(transportClass)}) $originName to $destinationName',
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             if (transportName.isNotEmpty) Text(transportName),
-            if (transportName.isNotEmpty) const Text(""),
+            if (transportName.isNotEmpty) const Text(''),
             ..._getStops(),
           ],
         ),
