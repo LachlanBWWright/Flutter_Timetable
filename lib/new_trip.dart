@@ -67,13 +67,17 @@ class _NewTripScreenState extends State<NewTripScreen> {
 
   Future<void> _saveTrip() async {
     if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
+      print(
+          'Attempting to save trip: $_firstStation ($_firstStationId) -> $_secondStation ($_secondStationId)');
       try {
-        await _db.insertJourney(JourneysCompanion(
+        final result = await _db.insertJourney(JourneysCompanion(
           origin: drift.Value(_firstStation),
           originId: drift.Value(_firstStationId),
           destination: drift.Value(_secondStation),
           destinationId: drift.Value(_secondStationId),
         ));
+        print('Insert result: id = '
+            'result');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
