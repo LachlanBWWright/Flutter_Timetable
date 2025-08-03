@@ -1,0 +1,2 @@
+﻿route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_color,route_text_color,route_url
+"SMNW_M1","SMNW","M1","Metro North West & Bankstown Line","Sydney Metro Network","401","168388","FFFFFF",""

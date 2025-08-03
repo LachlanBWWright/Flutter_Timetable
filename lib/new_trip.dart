@@ -70,14 +70,13 @@ class _NewTripScreenState extends State<NewTripScreen> {
       print(
           'Attempting to save trip: $_firstStation ($_firstStationId) -> $_secondStation ($_secondStationId)');
       try {
-        final result = await _db.insertJourney(JourneysCompanion(
+        await _db.insertJourney(JourneysCompanion(
           origin: drift.Value(_firstStation),
           originId: drift.Value(_firstStationId),
           destination: drift.Value(_secondStation),
           destinationId: drift.Value(_secondStationId),
         ));
-        print('Insert result: id = '
-            'result');
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(

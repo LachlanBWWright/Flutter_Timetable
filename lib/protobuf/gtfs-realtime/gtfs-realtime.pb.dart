@@ -7,6 +7,7 @@
 
 import 'dart:core' as $core;
 
+// ignore: depend_on_referenced_packages
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
