@@ -1,0 +1,4 @@
+stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,wheelchair_boarding,platform_code
+200060,Central Station,-33.8824,151.2063,1,,1,Platform 1
+200061,Town Hall Station,-33.8724,151.2069,1,,1,Platform 2
+200062,Wynyard Station,-33.8651,151.2073,1,,1,Platform 3

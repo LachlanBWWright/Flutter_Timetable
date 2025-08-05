@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/constants/transport_colors.dart';
 
 /// Utility class for transport mode colors and names
 class TransportModeUtils {
@@ -8,18 +9,18 @@ class TransportModeUtils {
   static Color getModeColor(int id) {
     switch (id) {
       case 1:
-        return const Color.fromARGB(255, 255, 97, 35); // Train
+        return TransportColors.train; // Train
       case 4:
-        return const Color.fromARGB(255, 255, 82, 82); // Light Rail
+        return TransportColors.lightRail; // Light Rail
       case 5:
       case 11:
-        return const Color.fromARGB(255, 82, 186, 255); // Bus/School Bus
+        return TransportColors.bus; // Bus/School Bus
       case 7:
-        return const Color.fromARGB(255, 161, 84, 47); // Coach
+        return TransportColors.coach; // Coach
       case 9:
-        return const Color.fromARGB(255, 68, 240, 91); // Ferry
+        return TransportColors.ferry; // Ferry
       default:
-        return const Color(0xFFFFFFFF); // Default white
+        return Colors.grey; // Default grey
     }
   }
 
