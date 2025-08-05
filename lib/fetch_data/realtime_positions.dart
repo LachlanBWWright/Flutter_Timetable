@@ -240,3 +240,23 @@ Future<List<FeedMessage?>> getAllRegionBuses() async {
     fetchRegionBusesFarWestPositions(),
   ]);
 }
+
+Future<List<FeedMessage?>> fetchRegionBusesPositions() async {
+  final futures = [
+    fetchRegionBusesCentralWestAndOranaPositions(),
+    fetchRegionBusesCentralWestAndOrana2Positions(),
+    fetchRegionBusesNewEnglandNorthWestPositions(),
+    fetchRegionBusesNorthCoastPositions(),
+    fetchRegionBusesNorthCoast2Positions(),
+    fetchRegionBusesNorthCoast3Positions(),
+    fetchRegionBusesRiverinaMurrayPositions(),
+    fetchRegionBusesRiverinaMurray2Positions(),
+    fetchRegionBusesSouthEastTablelandsPositions(),
+    fetchRegionBusesSouthEastTablelands2Positions(),
+    fetchRegionBusesSydneySurroundsPositions(),
+    fetchRegionBusesNewcastleHunterPositions(),
+    fetchRegionBusesFarWestPositions(),
+  ];
+  final results = await Future.wait(futures);
+  return results;
+}
