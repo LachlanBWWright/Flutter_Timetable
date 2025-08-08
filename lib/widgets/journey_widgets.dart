@@ -1,50 +1,121 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
-/// A reusable card widget for displaying journey information
+import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'package:lbww_flutter/schema/database.dart';
+
+/// A reusable card widget for displaying journey information with two-column layout
 class JourneyCard extends StatelessWidget {
   final Journey journey;
   final VoidCallback onTap;
+  final VoidCallback onReverseTap;
   final VoidCallback onDelete;
 
   const JourneyCard({
     super.key,
     required this.journey,
     required this.onTap,
+    required this.onReverseTap,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: ListTile(
-        title: Text(
-          '${journey.origin} - ${journey.destination}',
-        ),
-        subtitle: Text(
-          'Trip from ${journey.origin} to ${journey.destination}',
-        ),
-        onTap: onTap,
-        trailing: IconButton(
-          icon: const Icon(Icons.delete),
-          onPressed: onDelete,
-        ),
+      child: Row(
+        children: [
+          // Origin column (left)
+          Expanded(
+            child: InkWell(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(
+                      color: TransportColors.getColorByMode('train'),
+                      width: 2.0,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'From',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      journey.origin,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Destination column (right)
+          Expanded(
+            child: InkWell(
+              onTap: onReverseTap,
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'To',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      journey.destination,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Delete button
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: onDelete,
+          ),
+        ],
       ),
     );
   }
-// Removed extra closing brace
 }
 
 /// A widget that displays a list of journeys
 class JourneyList extends StatelessWidget {
   final List<Journey> journeys;
   final Function(Journey) onJourneyTap;
+  final Function(Journey) onReverseJourneyTap;
   final Function(int) onDeleteJourney;
 
   const JourneyList({
     super.key,
     required this.journeys,
     required this.onJourneyTap,
+    required this.onReverseJourneyTap,
     required this.onDeleteJourney,
   });
 
@@ -57,6 +128,7 @@ class JourneyList extends StatelessWidget {
           return JourneyCard(
             journey: journeys[index],
             onTap: () => onJourneyTap(journeys[index]),
+            onReverseTap: () => onReverseJourneyTap(journeys[index]),
             onDelete: () => onDeleteJourney(journeys[index].id),
           );
         },

@@ -117,6 +117,23 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void _navigateToReverseTrip(Journey journey) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TripScreen(
+          trip: {
+            'id': journey.id,
+            'origin': journey.destination,
+            'originId': journey.destinationId,
+            'destination': journey.origin,
+            'destinationId': journey.originId,
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,6 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
             JourneyList(
               journeys: _journeys,
               onJourneyTap: _navigateToTrip,
+              onReverseJourneyTap: _navigateToReverseTrip,
               onDeleteJourney: deleteTrip,
             ),
           ],

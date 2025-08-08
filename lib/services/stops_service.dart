@@ -5,50 +5,19 @@ import 'package:csv/csv.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:sqflite/sqflite.dart';
 
 import '../fetch_data/timetable_data.dart';
 import '../gtfs/stop.dart';
+import '../schema/database.dart';
 
 /// Service for managing GTFS stops data - parsing from assets and API endpoints
 class StopsService {
-  static Database? _database;
-  static const String _stopsTable = 'stops';
+  static AppDatabase? _database;
   
   /// Get or create database instance
-  static Future<Database> get database async {
-    _database ??= await _initDatabase();
+  static AppDatabase get database {
+    _database ??= AppDatabase();
     return _database!;
-  }
-  
-  /// Initialize the stops database
-  static Future<Database> _initDatabase() async {
-    final databasesPath = await getDatabasesPath();
-    final path = join(databasesPath, 'stops_database.db');
-    
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE $_stopsTable (
-            stop_id TEXT PRIMARY KEY,
-            stop_name TEXT NOT NULL,
-            stop_lat REAL,
-            stop_lon REAL,
-            location_type INTEGER,
-            parent_station TEXT,
-            wheelchair_boarding INTEGER,
-            platform_code TEXT,
-            endpoint TEXT NOT NULL
-          )
-        ''');
-        
-        // Create index for faster queries
-        await db.execute('CREATE INDEX idx_stops_endpoint ON $_stopsTable(endpoint)');
-        await db.execute('CREATE INDEX idx_stops_name ON $_stopsTable(stop_name)');
-      },
-    );
   }
   
   /// Parse CSV file from assets and return list of Stop objects
@@ -87,71 +56,57 @@ class StopsService {
   
   /// Store stops to database for a specific endpoint
   static Future<void> storeStopsToDatabase(List<Stop> stops, String endpoint) async {
-    final db = await database;
+    final db = database;
     
-    await db.transaction((txn) async {
-      // Clear existing stops for this endpoint
-      await txn.delete(_stopsTable, where: 'endpoint = ?', whereArgs: [endpoint]);
-      
-      // Insert new stops
-      for (final stop in stops) {
-        await txn.insert(_stopsTable, {
-          'stop_id': stop.stopId,
-          'stop_name': stop.stopName,
-          'stop_lat': stop.stopLat,
-          'stop_lon': stop.stopLon,
-          'location_type': stop.locationType,
-          'parent_station': stop.parentStation,
-          'wheelchair_boarding': stop.wheelchairBoarding,
-          'platform_code': stop.platformCode,
-          'endpoint': endpoint,
-        });
-      }
-    });
+    // Convert Stop objects to StopsCompanion objects for Drift
+    final stopsCompanions = stops.map((stop) => StopsCompanion.insert(
+      stopId: stop.stopId,
+      stopName: stop.stopName,
+      stopLat: Value(stop.stopLat),
+      stopLon: Value(stop.stopLon),
+      locationType: Value(stop.locationType),
+      parentStation: Value(stop.parentStation),
+      wheelchairBoarding: Value(stop.wheelchairBoarding),
+      platformCode: Value(stop.platformCode),
+      endpoint: endpoint,
+    )).toList();
+    
+    await db.insertStopsForEndpoint(stopsCompanions, endpoint);
   }
   
   /// Get all stops for a specific endpoint from database
   static Future<List<Stop>> getStopsForEndpoint(String endpoint) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      _stopsTable,
-      where: 'endpoint = ?',
-      whereArgs: [endpoint],
-      orderBy: 'stop_name',
-    );
+    final db = database;
+    final dbStops = await db.getAllStopsForEndpoint(endpoint);
     
-    return maps.map((map) => Stop(
-      stopId: map['stop_id'],
-      stopName: map['stop_name'],
-      stopLat: map['stop_lat'] ?? 0.0,
-      stopLon: map['stop_lon'] ?? 0.0,
-      locationType: map['location_type'] ?? 0,
-      parentStation: map['parent_station'],
-      wheelchairBoarding: map['wheelchair_boarding'] ?? 0,
-      platformCode: map['platform_code'],
+    // Convert Drift Stop objects back to our Stop objects
+    return dbStops.map((dbStop) => Stop(
+      stopId: dbStop.stopId,
+      stopName: dbStop.stopName,
+      stopLat: dbStop.stopLat ?? 0.0,
+      stopLon: dbStop.stopLon ?? 0.0,
+      locationType: dbStop.locationType ?? 0,
+      parentStation: dbStop.parentStation,
+      wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+      platformCode: dbStop.platformCode,
     )).toList();
   }
   
   /// Search stops by name across all endpoints
   static Future<List<Stop>> searchStops(String query) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      _stopsTable,
-      where: 'stop_name LIKE ?',
-      whereArgs: ['%$query%'],
-      orderBy: 'stop_name',
-      limit: 50,
-    );
+    final db = database;
+    final dbStops = await db.searchStops(query);
     
-    return maps.map((map) => Stop(
-      stopId: map['stop_id'],
-      stopName: map['stop_name'],
-      stopLat: map['stop_lat'] ?? 0.0,
-      stopLon: map['stop_lon'] ?? 0.0,
-      locationType: map['location_type'] ?? 0,
-      parentStation: map['parent_station'],
-      wheelchairBoarding: map['wheelchair_boarding'] ?? 0,
-      platformCode: map['platform_code'],
+    // Convert Drift Stop objects back to our Stop objects
+    return dbStops.map((dbStop) => Stop(
+      stopId: dbStop.stopId,
+      stopName: dbStop.stopName,
+      stopLat: dbStop.stopLat ?? 0.0,
+      stopLon: dbStop.stopLon ?? 0.0,
+      locationType: dbStop.locationType ?? 0,
+      parentStation: dbStop.parentStation,
+      wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+      platformCode: dbStop.platformCode,
     )).toList();
   }
   
@@ -365,20 +320,13 @@ class StopsService {
   
   /// Get total number of stops in database
   static Future<int> getTotalStopsCount() async {
-    final db = await database;
-    final result = await db.rawQuery('SELECT COUNT(*) as count FROM $_stopsTable');
-    return result.first['count'] as int;
+    final db = database;
+    return await db.getTotalStopsCount();
   }
   
   /// Get stops count by endpoint
   static Future<Map<String, int>> getStopsCountByEndpoint() async {
-    final db = await database;
-    final result = await db.rawQuery(
-      'SELECT endpoint, COUNT(*) as count FROM $_stopsTable GROUP BY endpoint ORDER BY endpoint'
-    );
-    
-    return Map.fromEntries(
-      result.map((row) => MapEntry(row['endpoint'] as String, row['count'] as int))
-    );
+    final db = database;
+    return await db.getStopsCountByEndpoint();
   }
 }

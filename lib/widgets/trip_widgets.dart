@@ -124,20 +124,48 @@ class TripLegCard extends StatelessWidget {
     final transportName = leg['transportation']['name'] ??
         leg['transportation']['disassembledName'] ??
         '';
+    final modeColor = TransportModeUtils.getModeColor(transportClass);
 
     return Card(
-      color: TransportModeUtils.getModeColor(transportClass),
-      child: ListTile(
-        title: Text(
-          '(${TransportModeUtils.getModeName(transportClass)}) $originName to $destinationName',
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8.0),
+          border: Border.all(
+            color: modeColor,
+            width: 2.0,
+          ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            if (transportName.isNotEmpty) Text(transportName),
-            if (transportName.isNotEmpty) const Text(''),
-            ..._getStops(),
-          ],
+        child: ListTile(
+          leading: Container(
+            width: 4.0,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: modeColor,
+              borderRadius: BorderRadius.circular(2.0),
+            ),
+          ),
+          title: Text(
+            '(${TransportModeUtils.getModeName(transportClass)}) $originName to $destinationName',
+            style: TextStyle(
+              color: modeColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              if (transportName.isNotEmpty) 
+                Text(
+                  transportName,
+                  style: TextStyle(
+                    color: modeColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              if (transportName.isNotEmpty) const SizedBox(height: 4),
+              ..._getStops(),
+            ],
+          ),
         ),
       ),
     );
