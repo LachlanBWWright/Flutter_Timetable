@@ -11,6 +11,8 @@ class JourneyCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onReverseTap;
   final VoidCallback onDelete;
+  final VoidCallback onTogglePin;
+  final bool isEditingMode;
 
   const JourneyCard({
     super.key,
@@ -18,6 +20,8 @@ class JourneyCard extends StatelessWidget {
     required this.onTap,
     required this.onReverseTap,
     required this.onDelete,
+    required this.onTogglePin,
+    required this.isEditingMode,
   });
 
   @override
@@ -25,7 +29,7 @@ class JourneyCard extends StatelessWidget {
     return Card(
       child: Row(
         children: [
-          // Origin column (left)
+          // Origin column (left) with accent strip
           Expanded(
             child: InkWell(
               onTap: onTap,
@@ -33,24 +37,19 @@ class JourneyCard extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
                   border: Border(
-                    right: BorderSide(
+                    left: BorderSide(
                       color: TransportColors.getColorByMode('train'),
-                      width: 2.0,
+                      width: 4.0,
+                    ),
+                    right: BorderSide(
+                      color: Colors.grey.shade300,
+                      width: 1.0,
                     ),
                   ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'From',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
                       journey.origin,
                       style: const TextStyle(
@@ -63,24 +62,23 @@ class JourneyCard extends StatelessWidget {
               ),
             ),
           ),
-          // Destination column (right)
+          // Destination column (right) with accent strip
           Expanded(
             child: InkWell(
               onTap: onReverseTap,
               child: Container(
                 padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(
+                      color: TransportColors.getColorByMode('bus'),
+                      width: 4.0,
+                    ),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'To',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
                       journey.destination,
                       style: const TextStyle(
@@ -93,11 +91,20 @@ class JourneyCard extends StatelessWidget {
               ),
             ),
           ),
-          // Delete button
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: onDelete,
-          ),
+          // Action buttons (pin/delete)
+          if (isEditingMode) ...[
+            IconButton(
+              icon: Icon(
+                journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                color: journey.isPinned ? Colors.blue : Colors.grey,
+              ),
+              onPressed: onTogglePin,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: onDelete,
+            ),
+          ],
         ],
       ),
     );
@@ -110,6 +117,9 @@ class JourneyList extends StatelessWidget {
   final Function(Journey) onJourneyTap;
   final Function(Journey) onReverseJourneyTap;
   final Function(int) onDeleteJourney;
+  final Function(int, bool) onTogglePin;
+  final bool isEditingMode;
+  final bool isPinnedSection;
 
   const JourneyList({
     super.key,
@@ -117,22 +127,27 @@ class JourneyList extends StatelessWidget {
     required this.onJourneyTap,
     required this.onReverseJourneyTap,
     required this.onDeleteJourney,
+    required this.onTogglePin,
+    required this.isEditingMode,
+    required this.isPinnedSection,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: journeys.length,
-        itemBuilder: (context, index) {
-          return JourneyCard(
-            journey: journeys[index],
-            onTap: () => onJourneyTap(journeys[index]),
-            onReverseTap: () => onReverseJourneyTap(journeys[index]),
-            onDelete: () => onDeleteJourney(journeys[index].id),
-          );
-        },
-      ),
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: journeys.length,
+      itemBuilder: (context, index) {
+        return JourneyCard(
+          journey: journeys[index],
+          onTap: () => onJourneyTap(journeys[index]),
+          onReverseTap: () => onReverseJourneyTap(journeys[index]),
+          onDelete: () => onDeleteJourney(journeys[index].id),
+          onTogglePin: () => onTogglePin(journeys[index].id, journeys[index].isPinned),
+          isEditingMode: isEditingMode,
+        );
+      },
     );
   }
 }
@@ -141,31 +156,70 @@ class JourneyList extends StatelessWidget {
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool hasApiKey;
+  final bool isSearching;
+  final bool isEditingMode;
   final VoidCallback onAddTrip;
   final VoidCallback onSettings;
+  final VoidCallback onToggleSearch;
+  final VoidCallback onToggleEdit;
+  final Function(String) onSearchChanged;
+  final TextEditingController searchController;
 
   const HomeAppBar({
     super.key,
     required this.title,
     required this.hasApiKey,
+    required this.isSearching,
+    required this.isEditingMode,
     required this.onAddTrip,
     required this.onSettings,
+    required this.onToggleSearch,
+    required this.onToggleEdit,
+    required this.onSearchChanged,
+    required this.searchController,
   });
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(title),
+      title: isSearching
+          ? TextField(
+              controller: searchController,
+              onChanged: onSearchChanged,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Search trips...',
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: Colors.white70),
+              ),
+              style: const TextStyle(color: Colors.white),
+            )
+          : Text(title),
       actions: <Widget>[
-        if (hasApiKey)
+        if (!isSearching) ...[
           IconButton(
-            onPressed: onAddTrip,
-            icon: const Icon(Icons.add),
+            onPressed: onToggleSearch,
+            icon: const Icon(Icons.search),
           ),
-        IconButton(
-          onPressed: onSettings,
-          icon: const Icon(Icons.settings),
-        ),
+          IconButton(
+            onPressed: onToggleEdit,
+            icon: Icon(isEditingMode ? Icons.done : Icons.edit),
+          ),
+          if (hasApiKey)
+            IconButton(
+              onPressed: onAddTrip,
+              icon: const Icon(Icons.add),
+            ),
+          IconButton(
+            onPressed: onSettings,
+            icon: const Icon(Icons.settings),
+          ),
+        ] else ...[
+          IconButton(
+            onPressed: onToggleSearch,
+            icon: const Icon(Icons.close),
+          ),
+        ],
       ],
     );
   }

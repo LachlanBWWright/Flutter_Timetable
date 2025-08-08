@@ -58,6 +58,29 @@ class TripCard extends StatelessWidget {
     required this.onTap,
   });
 
+  String _formatTimeDifference(String planned, String estimated) {
+    try {
+      final plannedTime = DateTimeUtils.parseTimeToDateTime(planned);
+      final estimatedTime = DateTimeUtils.parseTimeToDateTime(estimated);
+      
+      if (plannedTime == null || estimatedTime == null) {
+        return DateTimeUtils.parseTimeOnly(estimated);
+      }
+
+      final difference = estimatedTime.difference(plannedTime).inMinutes;
+      
+      if (difference == 0) {
+        return DateTimeUtils.parseTimeOnly(estimated);
+      } else if (difference > 0) {
+        return "${DateTimeUtils.parseTimeOnly(estimated)} (+${difference}m late)";
+      } else {
+        return "${DateTimeUtils.parseTimeOnly(estimated)} (${difference.abs()}m early)";
+      }
+    } catch (e) {
+      return DateTimeUtils.parseTimeOnly(estimated);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final legs = trip['legs'] as List;
@@ -73,14 +96,23 @@ class TripCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "${DateTimeUtils.parseTime(firstLeg['origin']['departureTimePlanned'])} - ${DateTimeUtils.parseTime(lastLeg['destination']['arrivalTimePlanned'])} (Scheduled)",
+            Row(
+              children: [
+                Text(
+                  _formatTimeDifference(
+                    firstLeg['origin']['departureTimePlanned'],
+                    firstLeg['origin']['departureTimeEstimated'],
+                  ),
+                ),
+                const Text(' - '),
+                Text(
+                  _formatTimeDifference(
+                    lastLeg['destination']['arrivalTimePlanned'],
+                    lastLeg['destination']['arrivalTimeEstimated'],
+                  ),
+                ),
+              ],
             ),
-            Text(
-              "${DateTimeUtils.parseTime(firstLeg['origin']['departureTimeEstimated'])} - ${DateTimeUtils.parseTime(lastLeg['destination']['arrivalTimeEstimated'])} (Estimated)",
-            ),
-            Text('Number of legs: ${legs.length}'),
-            Text("Number of interchanges: ${trip['interchanges']}"),
           ],
         ),
       ),

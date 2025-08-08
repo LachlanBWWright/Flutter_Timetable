@@ -40,9 +40,17 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
   late final GeneratedColumn<String> destinationId = GeneratedColumn<String>(
       'destination_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _isPinnedMeta =
+      const VerificationMeta('isPinned');
+  @override
+  late final GeneratedColumn<bool> isPinned = GeneratedColumn<bool>(
+      'is_pinned', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('DEFAULT FALSE'));
   @override
   List<GeneratedColumn> get $columns =>
-      [id, origin, originId, destination, destinationId];
+      [id, origin, originId, destination, destinationId, isPinned];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -84,6 +92,10 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
     } else if (isInserting) {
       context.missing(_destinationIdMeta);
     }
+    if (data.containsKey('is_pinned')) {
+      context.handle(_isPinnedMeta,
+          isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta));
+    }
     return context;
   }
 
@@ -103,6 +115,8 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
           .read(DriftSqlType.string, data['${effectivePrefix}destination'])!,
       destinationId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}destination_id'])!,
+      isPinned: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_pinned'])!,
     );
   }
 
@@ -118,12 +132,14 @@ class Journey extends DataClass implements Insertable<Journey> {
   final String originId;
   final String destination;
   final String destinationId;
+  final bool isPinned;
   const Journey(
       {required this.id,
       required this.origin,
       required this.originId,
       required this.destination,
-      required this.destinationId});
+      required this.destinationId,
+      required this.isPinned});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -132,6 +148,7 @@ class Journey extends DataClass implements Insertable<Journey> {
     map['origin_id'] = Variable<String>(originId);
     map['destination'] = Variable<String>(destination);
     map['destination_id'] = Variable<String>(destinationId);
+    map['is_pinned'] = Variable<bool>(isPinned);
     return map;
   }
 
@@ -142,6 +159,7 @@ class Journey extends DataClass implements Insertable<Journey> {
       originId: Value(originId),
       destination: Value(destination),
       destinationId: Value(destinationId),
+      isPinned: Value(isPinned),
     );
   }
 
@@ -154,6 +172,7 @@ class Journey extends DataClass implements Insertable<Journey> {
       originId: serializer.fromJson<String>(json['originId']),
       destination: serializer.fromJson<String>(json['destination']),
       destinationId: serializer.fromJson<String>(json['destinationId']),
+      isPinned: serializer.fromJson<bool>(json['isPinned']),
     );
   }
   @override
@@ -165,6 +184,7 @@ class Journey extends DataClass implements Insertable<Journey> {
       'originId': serializer.toJson<String>(originId),
       'destination': serializer.toJson<String>(destination),
       'destinationId': serializer.toJson<String>(destinationId),
+      'isPinned': serializer.toJson<bool>(isPinned),
     };
   }
 
@@ -173,13 +193,15 @@ class Journey extends DataClass implements Insertable<Journey> {
           String? origin,
           String? originId,
           String? destination,
-          String? destinationId}) =>
+          String? destinationId,
+          bool? isPinned}) =>
       Journey(
         id: id ?? this.id,
         origin: origin ?? this.origin,
         originId: originId ?? this.originId,
         destination: destination ?? this.destination,
         destinationId: destinationId ?? this.destinationId,
+        isPinned: isPinned ?? this.isPinned,
       );
   Journey copyWithCompanion(JourneysCompanion data) {
     return Journey(
@@ -191,6 +213,7 @@ class Journey extends DataClass implements Insertable<Journey> {
       destinationId: data.destinationId.present
           ? data.destinationId.value
           : this.destinationId,
+      isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
     );
   }
 
@@ -201,14 +224,15 @@ class Journey extends DataClass implements Insertable<Journey> {
           ..write('origin: $origin, ')
           ..write('originId: $originId, ')
           ..write('destination: $destination, ')
-          ..write('destinationId: $destinationId')
+          ..write('destinationId: $destinationId, ')
+          ..write('isPinned: $isPinned')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, origin, originId, destination, destinationId);
+      Object.hash(id, origin, originId, destination, destinationId, isPinned);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -217,7 +241,8 @@ class Journey extends DataClass implements Insertable<Journey> {
           other.origin == this.origin &&
           other.originId == this.originId &&
           other.destination == this.destination &&
-          other.destinationId == this.destinationId);
+          other.destinationId == this.destinationId &&
+          other.isPinned == this.isPinned);
 }
 
 class JourneysCompanion extends UpdateCompanion<Journey> {
@@ -226,12 +251,14 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
   final Value<String> originId;
   final Value<String> destination;
   final Value<String> destinationId;
+  final Value<bool> isPinned;
   const JourneysCompanion({
     this.id = const Value.absent(),
     this.origin = const Value.absent(),
     this.originId = const Value.absent(),
     this.destination = const Value.absent(),
     this.destinationId = const Value.absent(),
+    this.isPinned = const Value.absent(),
   });
   JourneysCompanion.insert({
     this.id = const Value.absent(),
@@ -239,6 +266,7 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     required String originId,
     required String destination,
     required String destinationId,
+    this.isPinned = const Value.absent(),
   })  : origin = Value(origin),
         originId = Value(originId),
         destination = Value(destination),
@@ -249,6 +277,7 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     Expression<String>? originId,
     Expression<String>? destination,
     Expression<String>? destinationId,
+    Expression<bool>? isPinned,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -256,6 +285,7 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
       if (originId != null) 'origin_id': originId,
       if (destination != null) 'destination': destination,
       if (destinationId != null) 'destination_id': destinationId,
+      if (isPinned != null) 'is_pinned': isPinned,
     });
   }
 
@@ -264,13 +294,15 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
       Value<String>? origin,
       Value<String>? originId,
       Value<String>? destination,
-      Value<String>? destinationId}) {
+      Value<String>? destinationId,
+      Value<bool>? isPinned}) {
     return JourneysCompanion(
       id: id ?? this.id,
       origin: origin ?? this.origin,
       originId: originId ?? this.originId,
       destination: destination ?? this.destination,
       destinationId: destinationId ?? this.destinationId,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 
@@ -292,6 +324,9 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     if (destinationId.present) {
       map['destination_id'] = Variable<String>(destinationId.value);
     }
+    if (isPinned.present) {
+      map['is_pinned'] = Variable<bool>(isPinned.value);
+    }
     return map;
   }
 
@@ -302,7 +337,8 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
           ..write('origin: $origin, ')
           ..write('originId: $originId, ')
           ..write('destination: $destination, ')
-          ..write('destinationId: $destinationId')
+          ..write('destinationId: $destinationId, ')
+          ..write('isPinned: $isPinned')
           ..write(')'))
         .toString();
   }

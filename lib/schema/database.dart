@@ -11,6 +11,7 @@ class Journeys extends Table {
   TextColumn get originId => text()();
   TextColumn get destination => text()();
   TextColumn get destinationId => text()();
+  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
 }
 
 // Drift table for stops
@@ -34,13 +35,36 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) {
+          return m.createAll();
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          if (from < 3) {
+            // Add isPinned column to journeys table
+            await m.addColumn(journeys, journeys.isPinned);
+          }
+        },
+      );
 
   // Journey operations
   Future<int> insertJourney(JourneysCompanion journey) =>
       into(journeys).insert(journey);
 
   Future<List<Journey>> getAllJourneys() => select(journeys).get();
+
+  Future<List<Journey>> getPinnedJourneys() => 
+      (select(journeys)..where((tbl) => tbl.isPinned.equals(true))).get();
+
+  Future<List<Journey>> getUnpinnedJourneys() => 
+      (select(journeys)..where((tbl) => tbl.isPinned.equals(false))).get();
+
+  Future<int> toggleJourneyPin(int id, bool isPinned) =>
+      (update(journeys)..where((tbl) => tbl.id.equals(id)))
+          .write(JourneysCompanion(isPinned: Value(isPinned)));
 
   Future<int> deleteJourney(int id) =>
       (delete(journeys)..where((tbl) => tbl.id.equals(id))).go();
