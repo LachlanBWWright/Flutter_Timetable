@@ -308,15 +308,490 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
   }
 }
 
+class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StopsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _stopIdMeta = const VerificationMeta('stopId');
+  @override
+  late final GeneratedColumn<String> stopId = GeneratedColumn<String>(
+      'stop_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _stopNameMeta = const VerificationMeta('stopName');
+  @override
+  late final GeneratedColumn<String> stopName = GeneratedColumn<String>(
+      'stop_name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _stopLatMeta = const VerificationMeta('stopLat');
+  @override
+  late final GeneratedColumn<double> stopLat = GeneratedColumn<double>(
+      'stop_lat', aliasedName, true,
+      type: DriftSqlType.real, requiredDuringInsert: false);
+  static const VerificationMeta _stopLonMeta = const VerificationMeta('stopLon');
+  @override
+  late final GeneratedColumn<double> stopLon = GeneratedColumn<double>(
+      'stop_lon', aliasedName, true,
+      type: DriftSqlType.real, requiredDuringInsert: false);
+  static const VerificationMeta _locationTypeMeta =
+      const VerificationMeta('locationType');
+  @override
+  late final GeneratedColumn<int> locationType = GeneratedColumn<int>(
+      'location_type', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _parentStationMeta =
+      const VerificationMeta('parentStation');
+  @override
+  late final GeneratedColumn<String> parentStation = GeneratedColumn<String>(
+      'parent_station', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _wheelchairBoardingMeta =
+      const VerificationMeta('wheelchairBoarding');
+  @override
+  late final GeneratedColumn<int> wheelchairBoarding = GeneratedColumn<int>(
+      'wheelchair_boarding', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _platformCodeMeta =
+      const VerificationMeta('platformCode');
+  @override
+  late final GeneratedColumn<String> platformCode = GeneratedColumn<String>(
+      'platform_code', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _endpointMeta = const VerificationMeta('endpoint');
+  @override
+  late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
+      'endpoint', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        stopId,
+        stopName,
+        stopLat,
+        stopLon,
+        locationType,
+        parentStation,
+        wheelchairBoarding,
+        platformCode,
+        endpoint
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stops';
+  @override
+  VerificationContext validateIntegrity(Insertable<Stop> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('stop_id')) {
+      context.handle(_stopIdMeta,
+          stopId.isAcceptableOrUnknown(data['stop_id']!, _stopIdMeta));
+    } else if (isInserting) {
+      context.missing(_stopIdMeta);
+    }
+    if (data.containsKey('stop_name')) {
+      context.handle(_stopNameMeta,
+          stopName.isAcceptableOrUnknown(data['stop_name']!, _stopNameMeta));
+    } else if (isInserting) {
+      context.missing(_stopNameMeta);
+    }
+    if (data.containsKey('stop_lat')) {
+      context.handle(_stopLatMeta,
+          stopLat.isAcceptableOrUnknown(data['stop_lat']!, _stopLatMeta));
+    }
+    if (data.containsKey('stop_lon')) {
+      context.handle(_stopLonMeta,
+          stopLon.isAcceptableOrUnknown(data['stop_lon']!, _stopLonMeta));
+    }
+    if (data.containsKey('location_type')) {
+      context.handle(
+          _locationTypeMeta,
+          locationType.isAcceptableOrUnknown(
+              data['location_type']!, _locationTypeMeta));
+    }
+    if (data.containsKey('parent_station')) {
+      context.handle(
+          _parentStationMeta,
+          parentStation.isAcceptableOrUnknown(
+              data['parent_station']!, _parentStationMeta));
+    }
+    if (data.containsKey('wheelchair_boarding')) {
+      context.handle(
+          _wheelchairBoardingMeta,
+          wheelchairBoarding.isAcceptableOrUnknown(
+              data['wheelchair_boarding']!, _wheelchairBoardingMeta));
+    }
+    if (data.containsKey('platform_code')) {
+      context.handle(
+          _platformCodeMeta,
+          platformCode.isAcceptableOrUnknown(
+              data['platform_code']!, _platformCodeMeta));
+    }
+    if (data.containsKey('endpoint')) {
+      context.handle(_endpointMeta,
+          endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta));
+    } else if (isInserting) {
+      context.missing(_endpointMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {stopId, endpoint};
+  @override
+  Stop map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Stop(
+      stopId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}stop_id'])!,
+      stopName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}stop_name'])!,
+      stopLat: attachedDatabase.typeMapping
+          .read(DriftSqlType.real, data['${effectivePrefix}stop_lat']),
+      stopLon: attachedDatabase.typeMapping
+          .read(DriftSqlType.real, data['${effectivePrefix}stop_lon']),
+      locationType: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}location_type']),
+      parentStation: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}parent_station']),
+      wheelchairBoarding: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}wheelchair_boarding']),
+      platformCode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}platform_code']),
+      endpoint: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}endpoint'])!,
+    );
+  }
+
+  @override
+  $StopsTable createAlias(String alias) {
+    return $StopsTable(attachedDatabase, alias);
+  }
+}
+
+class Stop extends DataClass implements Insertable<Stop> {
+  final String stopId;
+  final String stopName;
+  final double? stopLat;
+  final double? stopLon;
+  final int? locationType;
+  final String? parentStation;
+  final int? wheelchairBoarding;
+  final String? platformCode;
+  final String endpoint;
+  const Stop(
+      {required this.stopId,
+      required this.stopName,
+      this.stopLat,
+      this.stopLon,
+      this.locationType,
+      this.parentStation,
+      this.wheelchairBoarding,
+      this.platformCode,
+      required this.endpoint});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['stop_id'] = Variable<String>(stopId);
+    map['stop_name'] = Variable<String>(stopName);
+    if (!nullToAbsent || stopLat != null) {
+      map['stop_lat'] = Variable<double>(stopLat);
+    }
+    if (!nullToAbsent || stopLon != null) {
+      map['stop_lon'] = Variable<double>(stopLon);
+    }
+    if (!nullToAbsent || locationType != null) {
+      map['location_type'] = Variable<int>(locationType);
+    }
+    if (!nullToAbsent || parentStation != null) {
+      map['parent_station'] = Variable<String>(parentStation);
+    }
+    if (!nullToAbsent || wheelchairBoarding != null) {
+      map['wheelchair_boarding'] = Variable<int>(wheelchairBoarding);
+    }
+    if (!nullToAbsent || platformCode != null) {
+      map['platform_code'] = Variable<String>(platformCode);
+    }
+    map['endpoint'] = Variable<String>(endpoint);
+    return map;
+  }
+
+  StopsCompanion toCompanion(bool nullToAbsent) {
+    return StopsCompanion(
+      stopId: Value(stopId),
+      stopName: Value(stopName),
+      stopLat:
+          stopLat == null && nullToAbsent ? const Value.absent() : Value(stopLat),
+      stopLon:
+          stopLon == null && nullToAbsent ? const Value.absent() : Value(stopLon),
+      locationType: locationType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(locationType),
+      parentStation: parentStation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentStation),
+      wheelchairBoarding: wheelchairBoarding == null && nullToAbsent
+          ? const Value.absent()
+          : Value(wheelchairBoarding),
+      platformCode: platformCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(platformCode),
+      endpoint: Value(endpoint),
+    );
+  }
+
+  factory Stop.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Stop(
+      stopId: serializer.fromJson<String>(json['stopId']),
+      stopName: serializer.fromJson<String>(json['stopName']),
+      stopLat: serializer.fromJson<double?>(json['stopLat']),
+      stopLon: serializer.fromJson<double?>(json['stopLon']),
+      locationType: serializer.fromJson<int?>(json['locationType']),
+      parentStation: serializer.fromJson<String?>(json['parentStation']),
+      wheelchairBoarding: serializer.fromJson<int?>(json['wheelchairBoarding']),
+      platformCode: serializer.fromJson<String?>(json['platformCode']),
+      endpoint: serializer.fromJson<String>(json['endpoint']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'stopId': serializer.toJson<String>(stopId),
+      'stopName': serializer.toJson<String>(stopName),
+      'stopLat': serializer.toJson<double?>(stopLat),
+      'stopLon': serializer.toJson<double?>(stopLon),
+      'locationType': serializer.toJson<int?>(locationType),
+      'parentStation': serializer.toJson<String?>(parentStation),
+      'wheelchairBoarding': serializer.toJson<int?>(wheelchairBoarding),
+      'platformCode': serializer.toJson<String?>(platformCode),
+      'endpoint': serializer.toJson<String>(endpoint),
+    };
+  }
+
+  Stop copyWith(
+          {String? stopId,
+          String? stopName,
+          Value<double?> stopLat = const Value.absent(),
+          Value<double?> stopLon = const Value.absent(),
+          Value<int?> locationType = const Value.absent(),
+          Value<String?> parentStation = const Value.absent(),
+          Value<int?> wheelchairBoarding = const Value.absent(),
+          Value<String?> platformCode = const Value.absent(),
+          String? endpoint}) =>
+      Stop(
+        stopId: stopId ?? this.stopId,
+        stopName: stopName ?? this.stopName,
+        stopLat: stopLat.present ? stopLat.value : this.stopLat,
+        stopLon: stopLon.present ? stopLon.value : this.stopLon,
+        locationType: locationType.present ? locationType.value : this.locationType,
+        parentStation: parentStation.present ? parentStation.value : this.parentStation,
+        wheelchairBoarding: wheelchairBoarding.present ? wheelchairBoarding.value : this.wheelchairBoarding,
+        platformCode: platformCode.present ? platformCode.value : this.platformCode,
+        endpoint: endpoint ?? this.endpoint,
+      );
+  Stop copyWithCompanion(StopsCompanion data) {
+    return Stop(
+      stopId: data.stopId.present ? data.stopId.value : this.stopId,
+      stopName: data.stopName.present ? data.stopName.value : this.stopName,
+      stopLat: data.stopLat.present ? data.stopLat.value : this.stopLat,
+      stopLon: data.stopLon.present ? data.stopLon.value : this.stopLon,
+      locationType: data.locationType.present ? data.locationType.value : this.locationType,
+      parentStation: data.parentStation.present ? data.parentStation.value : this.parentStation,
+      wheelchairBoarding: data.wheelchairBoarding.present ? data.wheelchairBoarding.value : this.wheelchairBoarding,
+      platformCode: data.platformCode.present ? data.platformCode.value : this.platformCode,
+      endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Stop(')
+          ..write('stopId: $stopId, ')
+          ..write('stopName: $stopName, ')
+          ..write('stopLat: $stopLat, ')
+          ..write('stopLon: $stopLon, ')
+          ..write('locationType: $locationType, ')
+          ..write('parentStation: $parentStation, ')
+          ..write('wheelchairBoarding: $wheelchairBoarding, ')
+          ..write('platformCode: $platformCode, ')
+          ..write('endpoint: $endpoint')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(stopId, stopName, stopLat, stopLon,
+      locationType, parentStation, wheelchairBoarding, platformCode, endpoint);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Stop &&
+          other.stopId == this.stopId &&
+          other.stopName == this.stopName &&
+          other.stopLat == this.stopLat &&
+          other.stopLon == this.stopLon &&
+          other.locationType == this.locationType &&
+          other.parentStation == this.parentStation &&
+          other.wheelchairBoarding == this.wheelchairBoarding &&
+          other.platformCode == this.platformCode &&
+          other.endpoint == this.endpoint);
+}
+
+class StopsCompanion extends UpdateCompanion<Stop> {
+  final Value<String> stopId;
+  final Value<String> stopName;
+  final Value<double?> stopLat;
+  final Value<double?> stopLon;
+  final Value<int?> locationType;
+  final Value<String?> parentStation;
+  final Value<int?> wheelchairBoarding;
+  final Value<String?> platformCode;
+  final Value<String> endpoint;
+  final Value<int> rowid;
+  const StopsCompanion({
+    this.stopId = const Value.absent(),
+    this.stopName = const Value.absent(),
+    this.stopLat = const Value.absent(),
+    this.stopLon = const Value.absent(),
+    this.locationType = const Value.absent(),
+    this.parentStation = const Value.absent(),
+    this.wheelchairBoarding = const Value.absent(),
+    this.platformCode = const Value.absent(),
+    this.endpoint = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StopsCompanion.insert({
+    required String stopId,
+    required String stopName,
+    this.stopLat = const Value.absent(),
+    this.stopLon = const Value.absent(),
+    this.locationType = const Value.absent(),
+    this.parentStation = const Value.absent(),
+    this.wheelchairBoarding = const Value.absent(),
+    this.platformCode = const Value.absent(),
+    required String endpoint,
+    this.rowid = const Value.absent(),
+  })  : stopId = Value(stopId),
+        stopName = Value(stopName),
+        endpoint = Value(endpoint);
+  static Insertable<Stop> custom({
+    Expression<String>? stopId,
+    Expression<String>? stopName,
+    Expression<double>? stopLat,
+    Expression<double>? stopLon,
+    Expression<int>? locationType,
+    Expression<String>? parentStation,
+    Expression<int>? wheelchairBoarding,
+    Expression<String>? platformCode,
+    Expression<String>? endpoint,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (stopId != null) 'stop_id': stopId,
+      if (stopName != null) 'stop_name': stopName,
+      if (stopLat != null) 'stop_lat': stopLat,
+      if (stopLon != null) 'stop_lon': stopLon,
+      if (locationType != null) 'location_type': locationType,
+      if (parentStation != null) 'parent_station': parentStation,
+      if (wheelchairBoarding != null) 'wheelchair_boarding': wheelchairBoarding,
+      if (platformCode != null) 'platform_code': platformCode,
+      if (endpoint != null) 'endpoint': endpoint,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StopsCompanion copyWith(
+      {Value<String>? stopId,
+      Value<String>? stopName,
+      Value<double?>? stopLat,
+      Value<double?>? stopLon,
+      Value<int?>? locationType,
+      Value<String?>? parentStation,
+      Value<int?>? wheelchairBoarding,
+      Value<String?>? platformCode,
+      Value<String>? endpoint,
+      Value<int>? rowid}) {
+    return StopsCompanion(
+      stopId: stopId ?? this.stopId,
+      stopName: stopName ?? this.stopName,
+      stopLat: stopLat ?? this.stopLat,
+      stopLon: stopLon ?? this.stopLon,
+      locationType: locationType ?? this.locationType,
+      parentStation: parentStation ?? this.parentStation,
+      wheelchairBoarding: wheelchairBoarding ?? this.wheelchairBoarding,
+      platformCode: platformCode ?? this.platformCode,
+      endpoint: endpoint ?? this.endpoint,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (stopId.present) {
+      map['stop_id'] = Variable<String>(stopId.value);
+    }
+    if (stopName.present) {
+      map['stop_name'] = Variable<String>(stopName.value);
+    }
+    if (stopLat.present) {
+      map['stop_lat'] = Variable<double>(stopLat.value);
+    }
+    if (stopLon.present) {
+      map['stop_lon'] = Variable<double>(stopLon.value);
+    }
+    if (locationType.present) {
+      map['location_type'] = Variable<int>(locationType.value);
+    }
+    if (parentStation.present) {
+      map['parent_station'] = Variable<String>(parentStation.value);
+    }
+    if (wheelchairBoarding.present) {
+      map['wheelchair_boarding'] = Variable<int>(wheelchairBoarding.value);
+    }
+    if (platformCode.present) {
+      map['platform_code'] = Variable<String>(platformCode.value);
+    }
+    if (endpoint.present) {
+      map['endpoint'] = Variable<String>(endpoint.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StopsCompanion(')
+          ..write('stopId: $stopId, ')
+          ..write('stopName: $stopName, ')
+          ..write('stopLat: $stopLat, ')
+          ..write('stopLon: $stopLon, ')
+          ..write('locationType: $locationType, ')
+          ..write('parentStation: $parentStation, ')
+          ..write('wheelchairBoarding: $wheelchairBoarding, ')
+          ..write('platformCode: $platformCode, ')
+          ..write('endpoint: $endpoint, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $JourneysTable journeys = $JourneysTable(this);
+  late final $StopsTable stops = $StopsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [journeys];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [journeys, stops];
 }
 
 typedef $$JourneysTableCreateCompanionBuilder = JourneysCompanion Function({

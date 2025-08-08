@@ -143,18 +143,58 @@ class _MyHomePageState extends State<MyHomePage> {
         onAddTrip: _navigateToNewTrip,
         onSettings: _navigateToSettings,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            JourneyList(
-              journeys: _journeys,
-              onJourneyTap: _navigateToTrip,
-              onReverseJourneyTap: _navigateToReverseTrip,
-              onDeleteJourney: deleteTrip,
-            ),
-          ],
-        ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await getTrips();
+          await checkApiKey();
+        },
+        child: _journeys.isEmpty
+            ? ListView(
+                children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.train,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'No trips saved yet',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Pull down to refresh or add a new trip',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  JourneyList(
+                    journeys: _journeys,
+                    onJourneyTap: _navigateToTrip,
+                    onReverseJourneyTap: _navigateToReverseTrip,
+                    onDeleteJourney: deleteTrip,
+                  ),
+                ],
+              ),
       ),
     );
   }

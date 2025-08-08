@@ -50,21 +50,35 @@ class _TripScreenState extends State<TripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Trip')),
-      body: ListView.builder(
-        itemBuilder: (context, index) {
-          return TripCard(
-            trip: trips[index],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TripLegScreen(trip: trips[index]),
-                ),
-              );
-            },
-          );
-        },
-        itemCount: trips.length,
+      body: RefreshIndicator(
+        onRefresh: getTripData,
+        child: trips.isEmpty
+            ? ListView(
+                children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                ],
+              )
+            : ListView.builder(
+                itemBuilder: (context, index) {
+                  return TripCard(
+                    trip: trips[index],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TripLegScreen(trip: trips[index]),
+                        ),
+                      );
+                    },
+                  );
+                },
+                itemCount: trips.length,
+              ),
       ),
     );
   }
