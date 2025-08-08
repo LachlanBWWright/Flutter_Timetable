@@ -49,20 +49,20 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         if (widget.mode != null && !entry.key.contains(widget.mode!)) {
           continue;
         }
-        
+
         final feedMessage = entry.value;
         if (feedMessage != null) {
-          final vehiclePositions = RealtimeService.extractVehiclePositions(feedMessage);
+          final vehiclePositions =
+              RealtimeService.extractVehiclePositions(feedMessage);
           vehicles.addAll(vehiclePositions);
         }
       }
 
       // Filter by route if specified
       if (widget.routeFilter != null) {
-        vehicles.removeWhere((vehicle) => 
-          !vehicle.trip.hasRouteId() || 
-          !vehicle.trip.routeId.contains(widget.routeFilter!)
-        );
+        vehicles.removeWhere((vehicle) =>
+            !vehicle.trip.hasRouteId() ||
+            !vehicle.trip.routeId.contains(widget.routeFilter!));
       }
 
       setState(() {
@@ -79,57 +79,61 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
   List<Marker> _buildVehicleMarkers() {
     return _vehicles
-        .where((vehicle) => 
-          vehicle.hasPosition() && 
-          vehicle.position.hasLatitude() && 
-          vehicle.position.hasLongitude()
-        )
+        .where((vehicle) =>
+            vehicle.hasPosition() &&
+            vehicle.position.hasLatitude() &&
+            vehicle.position.hasLongitude())
         .map((vehicle) {
-          final position = vehicle.position;
-          final trip = vehicle.trip;
-          final vehicleDesc = vehicle.vehicle;
+      final position = vehicle.position;
+      final trip = vehicle.trip;
+      final vehicleDesc = vehicle.vehicle;
 
-          // Determine color based on route or mode
-          Color markerColor = TransportColors.bus; // default
-          if (trip.hasRouteId()) {
-            markerColor = TransportColors.getColorByLine(trip.routeId);
-            if (markerColor == Colors.grey) {
-              // Fallback to mode-based color
-              if (trip.routeId.startsWith('T')) markerColor = TransportColors.train;
-              else if (trip.routeId.startsWith('M')) markerColor = TransportColors.metro;
-              else if (trip.routeId.startsWith('L')) markerColor = TransportColors.lightRail;
-              else if (trip.routeId.startsWith('F')) markerColor = TransportColors.ferry;
-            }
+      // Determine color based on route or mode
+      Color markerColor = TransportColors.bus; // default
+      if (trip.hasRouteId()) {
+        markerColor = TransportColors.getColorByLine(trip.routeId);
+        if (markerColor == Colors.grey) {
+          // Fallback to mode-based color
+          if (trip.routeId.startsWith('T')) {
+            markerColor = TransportColors.train;
+          } else if (trip.routeId.startsWith('M')) {
+            markerColor = TransportColors.metro;
+          } else if (trip.routeId.startsWith('L')) {
+            markerColor = TransportColors.lightRail;
+          } else if (trip.routeId.startsWith('F')) {
+            markerColor = TransportColors.ferry;
           }
+        }
+      }
 
-          return Marker(
-            point: LatLng(position.latitude, position.longitude),
-            width: 32,
-            height: 32,
-            child: GestureDetector(
-              onTap: () => _showVehicleInfo(vehicle),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: markerColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+      return Marker(
+        point: LatLng(position.latitude, position.longitude),
+        width: 32,
+        height: 32,
+        child: GestureDetector(
+          onTap: () => _showVehicleInfo(vehicle),
+          child: Container(
+            decoration: BoxDecoration(
+              color: markerColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
                 ),
-                child: Icon(
-                  _getVehicleIcon(trip.routeId),
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
+              ],
             ),
-          );
-        }).toList();
+            child: Icon(
+              _getVehicleIcon(trip.routeId),
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+        ),
+      );
+    }).toList();
   }
 
   IconData _getVehicleIcon(String routeId) {
@@ -160,20 +164,23 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             const SizedBox(height: 16),
             if (vehicleDesc.hasId())
               _buildInfoRow('Vehicle ID', vehicleDesc.id),
-            if (trip.hasRouteId())
-              _buildInfoRow('Route', trip.routeId),
-            if (trip.hasTripId())
-              _buildInfoRow('Trip ID', trip.tripId),
+            if (trip.hasRouteId()) _buildInfoRow('Route', trip.routeId),
+            if (trip.hasTripId()) _buildInfoRow('Trip ID', trip.tripId),
             if (position.hasLatitude() && position.hasLongitude())
-              _buildInfoRow('Position', 
-                '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}'),
+              _buildInfoRow('Position',
+                  '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}'),
             if (position.hasSpeed())
-              _buildInfoRow('Speed', '${position.speed.toStringAsFixed(1)} m/s'),
+              _buildInfoRow(
+                  'Speed', '${position.speed.toStringAsFixed(1)} m/s'),
             if (position.hasBearing())
-              _buildInfoRow('Bearing', '${position.bearing.toStringAsFixed(0)}°'),
+              _buildInfoRow(
+                  'Bearing', '${position.bearing.toStringAsFixed(0)}°'),
             if (vehicle.hasTimestamp())
-              _buildInfoRow('Last Update', 
-                DateTime.fromMillisecondsSinceEpoch(vehicle.timestamp.toInt() * 1000).toString()),
+              _buildInfoRow(
+                  'Last Update',
+                  DateTime.fromMillisecondsSinceEpoch(
+                          vehicle.timestamp.toInt() * 1000)
+                      .toString()),
           ],
         ),
       ),
@@ -205,7 +212,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.mode != null ? '${widget.mode} Map' : 'Realtime Map'),
+        title:
+            Text(widget.mode != null ? '${widget.mode} Map' : 'Realtime Map'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -220,7 +228,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const Icon(Icons.error_outline,
+                          size: 64, color: Colors.red),
                       const SizedBox(height: 16),
                       Text('Error: $_error'),
                       const SizedBox(height: 16),
@@ -235,7 +244,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                   children: [
                     FlutterMap(
                       mapController: _mapController,
-                      options: MapOptions(
+                      options: const MapOptions(
                         initialCenter: _sydneyCenter,
                         initialZoom: 11.0,
                         minZoom: 8.0,
@@ -243,7 +252,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.lbww.flutter_timetable',
                         ),
                         MarkerLayer(
@@ -256,7 +266,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                       top: 16,
                       right: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.black87,
                           borderRadius: BorderRadius.circular(20),
@@ -277,7 +288,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           // Fit map to show all vehicles
           if (_vehicles.isNotEmpty) {
             final bounds = _calculateBounds(_vehicles);
-            _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
+            _mapController.fitCamera(CameraFit.bounds(
+                bounds: bounds, padding: const EdgeInsets.all(50)));
           } else {
             _mapController.move(_sydneyCenter, 11.0);
           }
@@ -294,12 +306,12 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     double maxLng = -double.infinity;
 
     for (final vehicle in vehicles) {
-      if (vehicle.hasPosition() && 
-          vehicle.position.hasLatitude() && 
+      if (vehicle.hasPosition() &&
+          vehicle.position.hasLatitude() &&
           vehicle.position.hasLongitude()) {
         final lat = vehicle.position.latitude;
         final lng = vehicle.position.longitude;
-        
+
         minLat = lat < minLat ? lat : minLat;
         maxLat = lat > maxLat ? lat : maxLat;
         minLng = lng < minLng ? lng : minLng;

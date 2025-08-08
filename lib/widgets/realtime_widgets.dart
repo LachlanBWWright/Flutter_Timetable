@@ -92,7 +92,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
       final data = entry.value as Map<String, dynamic>;
       final vehicleCount = data['vehicles'] as int;
       final updateCount = data['updates'] as int;
-      
+
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.all(12.0),
@@ -135,13 +135,13 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
               ),
             ),
             if (vehicleCount > 0 || updateCount > 0)
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 color: Colors.green,
                 size: 20,
               )
             else
-              Icon(
+              const Icon(
                 Icons.error_outline,
                 color: Colors.orange,
                 size: 20,
@@ -184,9 +184,13 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
       case 'ferries_mff':
         return 'Manly Fast Ferry';
       default:
-        return mode.replaceAll('_', ' ').split(' ').map((word) => 
-          word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : word
-        ).join(' ');
+        return mode
+            .replaceAll('_', ' ')
+            .split(' ')
+            .map((word) => word.isNotEmpty
+                ? word[0].toUpperCase() + word.substring(1)
+                : word)
+            .join(' ');
     }
   }
 }
@@ -203,7 +207,8 @@ class TransportPositionsWidget extends StatefulWidget {
   });
 
   @override
-  State<TransportPositionsWidget> createState() => _TransportPositionsWidgetState();
+  State<TransportPositionsWidget> createState() =>
+      _TransportPositionsWidgetState();
 }
 
 class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
@@ -286,7 +291,7 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
       final vehicle = position.vehicle;
       final trip = position.trip;
       final pos = position.position;
-      
+
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.all(12.0),
@@ -307,7 +312,8 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
                 ),
                 if (trip.hasRouteId())
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: TransportColors.getColorByMode(widget.mode),
                       borderRadius: BorderRadius.circular(12),

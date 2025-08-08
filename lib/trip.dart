@@ -23,16 +23,14 @@ class _TripScreenState extends State<TripScreen> {
         destinationId: widget.trip['destinationId'],
       );
 
+      if (!context.mounted) return;
+
       setState(() {
         trips = tripData;
         testText = tripData.toString();
       });
     } catch (e) {
       print('Error getting trip data: $e');
-      setState(() {
-        trips = [];
-        testText = 'Error loading trip data: $e';
-      });
     }
   }
 
@@ -71,7 +69,8 @@ class _TripScreenState extends State<TripScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => TripLegScreen(trip: trips[index]),
+                          builder: (context) =>
+                              TripLegScreen(trip: trips[index]),
                         ),
                       );
                     },

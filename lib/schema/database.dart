@@ -1,7 +1,5 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'database.g.dart';
@@ -51,11 +49,17 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertStop(StopsCompanion stop) =>
       into(stops).insert(stop, mode: InsertMode.replace);
 
-  Future<List<Stop>> getAllStopsForEndpoint(String endpoint) =>
-      (select(stops)..where((tbl) => tbl.endpoint.equals(endpoint))..orderBy([(t) => OrderingTerm(expression: t.stopName)])).get();
+  Future<List<Stop>> getAllStopsForEndpoint(String endpoint) => (select(stops)
+        ..where((tbl) => tbl.endpoint.equals(endpoint))
+        ..orderBy([(t) => OrderingTerm(expression: t.stopName)]))
+      .get();
 
   Future<List<Stop>> searchStops(String query, {int limit = 50}) =>
-      (select(stops)..where((tbl) => tbl.stopName.like('%$query%'))..orderBy([(t) => OrderingTerm(expression: t.stopName)])..limit(limit)).get();
+      (select(stops)
+            ..where((tbl) => tbl.stopName.like('%$query%'))
+            ..orderBy([(t) => OrderingTerm(expression: t.stopName)])
+            ..limit(limit))
+          .get();
 
   Future<int> deleteStopsForEndpoint(String endpoint) =>
       (delete(stops)..where((tbl) => tbl.endpoint.equals(endpoint))).go();
@@ -73,22 +77,21 @@ class AppDatabase extends _$AppDatabase {
       ..addColumns([stops.endpoint, countExp])
       ..groupBy([stops.endpoint])
       ..orderBy([OrderingTerm(expression: stops.endpoint)]);
-    
+
     final results = await query.get();
-    return Map.fromEntries(
-      results.map((row) => MapEntry(
-        row.read(stops.endpoint)!,
-        row.read(countExp) ?? 0,
-      ))
-    );
+    return Map.fromEntries(results.map((row) => MapEntry(
+          row.read(stops.endpoint)!,
+          row.read(countExp) ?? 0,
+        )));
   }
 
   // Batch insert stops with transaction
-  Future<void> insertStopsForEndpoint(List<StopsCompanion> stopsList, String endpoint) async {
+  Future<void> insertStopsForEndpoint(
+      List<StopsCompanion> stopsList, String endpoint) async {
     await transaction(() async {
       // Clear existing stops for this endpoint
       await deleteStopsForEndpoint(endpoint);
-      
+
       // Insert new stops in batches
       await batch((batch) {
         for (final stop in stopsList) {
@@ -97,12 +100,25 @@ class AppDatabase extends _$AppDatabase {
       });
     });
   }
+
+  static QueryExecutor _openConnection() {
+    return driftDatabase(
+      name: 'my_database',
+      native: const DriftNativeOptions(
+        // By default, `driftDatabase` from `package:drift_flutter` stores the
+        // database files in `getApplicationDocumentsDirectory()`.
+        databaseDirectory: getApplicationSupportDirectory,
+      ),
+      // If you need web support, see https://drift.simonbinder.eu/platforms/web/
+    );
+  }
 }
 
-LazyDatabase _openConnection() {
+/* LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File('${dbFolder.path}/trip_database.db');
     return NativeDatabase(file);
   });
 }
+ */

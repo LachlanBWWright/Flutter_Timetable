@@ -1,6 +1,9 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
+import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart'
+    show FeedMessage;
 
 void main() {
   setUpAll(() async {
@@ -57,54 +60,67 @@ void main() {
   });
 
   test('fetchRegionBusesPositions returns valid FeedMessage or null', () async {
-    final feed = await fetchRegionBusesPositions();
-    if (feed == null) {
-      print('Region Buses: No data or API error');
-    } else {
-      print(
-          'Region Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
-      expect(feed.header.hasGtfsRealtimeVersion(), true);
-      expect(feed.entity.isNotEmpty, true);
+    final feeds = await fetchRegionBusesPositions();
+    expect(feeds.isNotEmpty, true);
+    for (final feed in feeds) {
+      if (feed == null) {
+        print('Region Buses: No data or API error');
+      } else {
+        print(
+            'Region Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+        expect(feed.header.hasGtfsRealtimeVersion(), true);
+        expect(feed.entity.isNotEmpty, true);
+      }
     }
   });
 
   test('getAllFerries returns list with valid FeedMessage or null', () async {
     final feeds = await getAllFerries();
-    expect(feeds.length, 1);
-    if (feeds[0] == null) {
-      print('All Ferries: No data or API error');
-    } else {
-      print(
-          'All Ferries: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
-      expect(feeds[0]!.header.hasGtfsRealtimeVersion(), true);
-      expect(feeds[0]!.entity.isNotEmpty, true);
+    expect(feeds.isNotEmpty, true);
+    for (final feed in feeds) {
+      if (feed == null) {
+        print('All Ferries: No data or API error');
+      } else {
+        print(
+            'All Ferries: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+        expect(feed.header.hasGtfsRealtimeVersion(), true);
+        expect(feed.entity.isNotEmpty, true);
+      }
     }
   });
 
   test('getAllLightRail returns list with valid FeedMessage or null', () async {
     final feeds = await getAllLightRail();
-    expect(feeds.length, 1);
-    if (feeds[0] == null) {
-      print('All Light Rail: No data or API error');
-    } else {
-      print(
-          'All Light Rail: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
-      expect(feeds[0]!.header.hasGtfsRealtimeVersion(), true);
-      expect(feeds[0]!.entity.isNotEmpty, true);
+    expect(feeds.isNotEmpty, true);
+    for (final feed in feeds) {
+      if (feed == null) {
+        print('All Light Rail: No data or API error');
+      } else {
+        print(
+            'All Light Rail: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+        expect(feed.header.hasGtfsRealtimeVersion(), true);
+        expect(feed.entity.isNotEmpty, true);
+      }
     }
   });
 
   test('getAllRegionBuses returns list with valid FeedMessage or null',
       () async {
-    final feeds = await getAllRegionBuses();
-    expect(feeds.length, 1);
-    if (feeds[0] == null) {
-      print('All Region Buses: No data or API error');
-    } else {
-      print(
-          'All Region Buses: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
-      expect(feeds[0]!.header.hasGtfsRealtimeVersion(), true);
-      expect(feeds[0]!.entity.isNotEmpty, true);
+    final regionBusesFeeds = await getAllRegionBuses();
+    expect(regionBusesFeeds.isNotEmpty, true);
+    // Flatten if any element is a list
+    final flatFeeds = regionBusesFeeds
+        .expand((e) => e is List ? e as List<FeedMessage?> : [e])
+        .cast<FeedMessage?>();
+    for (final feed in flatFeeds) {
+      if (feed == null) {
+        print('All Region Buses: No data or API error');
+      } else {
+        print(
+            'All Region Buses: \\${feed.header.gtfsRealtimeVersion}, entities: \\${feed.entity.length}');
+        expect(feed.header.hasGtfsRealtimeVersion(), true);
+        expect(feed.entity.isNotEmpty, true);
+      }
     }
   });
 }

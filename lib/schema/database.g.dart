@@ -318,21 +318,24 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
   late final GeneratedColumn<String> stopId = GeneratedColumn<String>(
       'stop_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _stopNameMeta = const VerificationMeta('stopName');
+  static const VerificationMeta _stopNameMeta =
+      const VerificationMeta('stopName');
   @override
   late final GeneratedColumn<String> stopName = GeneratedColumn<String>(
       'stop_name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _stopLatMeta = const VerificationMeta('stopLat');
+  static const VerificationMeta _stopLatMeta =
+      const VerificationMeta('stopLat');
   @override
   late final GeneratedColumn<double> stopLat = GeneratedColumn<double>(
       'stop_lat', aliasedName, true,
-      type: DriftSqlType.real, requiredDuringInsert: false);
-  static const VerificationMeta _stopLonMeta = const VerificationMeta('stopLon');
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _stopLonMeta =
+      const VerificationMeta('stopLon');
   @override
   late final GeneratedColumn<double> stopLon = GeneratedColumn<double>(
       'stop_lon', aliasedName, true,
-      type: DriftSqlType.real, requiredDuringInsert: false);
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _locationTypeMeta =
       const VerificationMeta('locationType');
   @override
@@ -357,7 +360,8 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
   late final GeneratedColumn<String> platformCode = GeneratedColumn<String>(
       'platform_code', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _endpointMeta = const VerificationMeta('endpoint');
+  static const VerificationMeta _endpointMeta =
+      const VerificationMeta('endpoint');
   @override
   late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
       'endpoint', aliasedName, false,
@@ -448,15 +452,15 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
       stopName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}stop_name'])!,
       stopLat: attachedDatabase.typeMapping
-          .read(DriftSqlType.real, data['${effectivePrefix}stop_lat']),
+          .read(DriftSqlType.double, data['${effectivePrefix}stop_lat']),
       stopLon: attachedDatabase.typeMapping
-          .read(DriftSqlType.real, data['${effectivePrefix}stop_lon']),
+          .read(DriftSqlType.double, data['${effectivePrefix}stop_lon']),
       locationType: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}location_type']),
       parentStation: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}parent_station']),
-      wheelchairBoarding: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}wheelchair_boarding']),
+      wheelchairBoarding: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}wheelchair_boarding']),
       platformCode: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}platform_code']),
       endpoint: attachedDatabase.typeMapping
@@ -521,10 +525,12 @@ class Stop extends DataClass implements Insertable<Stop> {
     return StopsCompanion(
       stopId: Value(stopId),
       stopName: Value(stopName),
-      stopLat:
-          stopLat == null && nullToAbsent ? const Value.absent() : Value(stopLat),
-      stopLon:
-          stopLon == null && nullToAbsent ? const Value.absent() : Value(stopLon),
+      stopLat: stopLat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopLat),
+      stopLon: stopLon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopLon),
       locationType: locationType == null && nullToAbsent
           ? const Value.absent()
           : Value(locationType),
@@ -587,10 +593,15 @@ class Stop extends DataClass implements Insertable<Stop> {
         stopName: stopName ?? this.stopName,
         stopLat: stopLat.present ? stopLat.value : this.stopLat,
         stopLon: stopLon.present ? stopLon.value : this.stopLon,
-        locationType: locationType.present ? locationType.value : this.locationType,
-        parentStation: parentStation.present ? parentStation.value : this.parentStation,
-        wheelchairBoarding: wheelchairBoarding.present ? wheelchairBoarding.value : this.wheelchairBoarding,
-        platformCode: platformCode.present ? platformCode.value : this.platformCode,
+        locationType:
+            locationType.present ? locationType.value : this.locationType,
+        parentStation:
+            parentStation.present ? parentStation.value : this.parentStation,
+        wheelchairBoarding: wheelchairBoarding.present
+            ? wheelchairBoarding.value
+            : this.wheelchairBoarding,
+        platformCode:
+            platformCode.present ? platformCode.value : this.platformCode,
         endpoint: endpoint ?? this.endpoint,
       );
   Stop copyWithCompanion(StopsCompanion data) {
@@ -599,10 +610,18 @@ class Stop extends DataClass implements Insertable<Stop> {
       stopName: data.stopName.present ? data.stopName.value : this.stopName,
       stopLat: data.stopLat.present ? data.stopLat.value : this.stopLat,
       stopLon: data.stopLon.present ? data.stopLon.value : this.stopLon,
-      locationType: data.locationType.present ? data.locationType.value : this.locationType,
-      parentStation: data.parentStation.present ? data.parentStation.value : this.parentStation,
-      wheelchairBoarding: data.wheelchairBoarding.present ? data.wheelchairBoarding.value : this.wheelchairBoarding,
-      platformCode: data.platformCode.present ? data.platformCode.value : this.platformCode,
+      locationType: data.locationType.present
+          ? data.locationType.value
+          : this.locationType,
+      parentStation: data.parentStation.present
+          ? data.parentStation.value
+          : this.parentStation,
+      wheelchairBoarding: data.wheelchairBoarding.present
+          ? data.wheelchairBoarding.value
+          : this.wheelchairBoarding,
+      platformCode: data.platformCode.present
+          ? data.platformCode.value
+          : this.platformCode,
       endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
     );
   }
@@ -781,6 +800,7 @@ class StopsCompanion extends UpdateCompanion<Stop> {
           ..write(')'))
         .toString();
   }
+}
 
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
@@ -954,10 +974,241 @@ typedef $$JourneysTableProcessedTableManager = ProcessedTableManager<
     (Journey, BaseReferences<_$AppDatabase, $JourneysTable, Journey>),
     Journey,
     PrefetchHooks Function()>;
+typedef $$StopsTableCreateCompanionBuilder = StopsCompanion Function({
+  required String stopId,
+  required String stopName,
+  Value<double?> stopLat,
+  Value<double?> stopLon,
+  Value<int?> locationType,
+  Value<String?> parentStation,
+  Value<int?> wheelchairBoarding,
+  Value<String?> platformCode,
+  required String endpoint,
+  Value<int> rowid,
+});
+typedef $$StopsTableUpdateCompanionBuilder = StopsCompanion Function({
+  Value<String> stopId,
+  Value<String> stopName,
+  Value<double?> stopLat,
+  Value<double?> stopLon,
+  Value<int?> locationType,
+  Value<String?> parentStation,
+  Value<int?> wheelchairBoarding,
+  Value<String?> platformCode,
+  Value<String> endpoint,
+  Value<int> rowid,
+});
+
+class $$StopsTableFilterComposer extends Composer<_$AppDatabase, $StopsTable> {
+  $$StopsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stopId => $composableBuilder(
+      column: $table.stopId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get stopName => $composableBuilder(
+      column: $table.stopName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get stopLat => $composableBuilder(
+      column: $table.stopLat, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get stopLon => $composableBuilder(
+      column: $table.stopLon, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get locationType => $composableBuilder(
+      column: $table.locationType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get parentStation => $composableBuilder(
+      column: $table.parentStation, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get wheelchairBoarding => $composableBuilder(
+      column: $table.wheelchairBoarding,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get platformCode => $composableBuilder(
+      column: $table.platformCode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get endpoint => $composableBuilder(
+      column: $table.endpoint, builder: (column) => ColumnFilters(column));
+}
+
+class $$StopsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StopsTable> {
+  $$StopsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stopId => $composableBuilder(
+      column: $table.stopId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get stopName => $composableBuilder(
+      column: $table.stopName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get stopLat => $composableBuilder(
+      column: $table.stopLat, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get stopLon => $composableBuilder(
+      column: $table.stopLon, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get locationType => $composableBuilder(
+      column: $table.locationType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get parentStation => $composableBuilder(
+      column: $table.parentStation,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get wheelchairBoarding => $composableBuilder(
+      column: $table.wheelchairBoarding,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get platformCode => $composableBuilder(
+      column: $table.platformCode,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get endpoint => $composableBuilder(
+      column: $table.endpoint, builder: (column) => ColumnOrderings(column));
+}
+
+class $$StopsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StopsTable> {
+  $$StopsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stopId =>
+      $composableBuilder(column: $table.stopId, builder: (column) => column);
+
+  GeneratedColumn<String> get stopName =>
+      $composableBuilder(column: $table.stopName, builder: (column) => column);
+
+  GeneratedColumn<double> get stopLat =>
+      $composableBuilder(column: $table.stopLat, builder: (column) => column);
+
+  GeneratedColumn<double> get stopLon =>
+      $composableBuilder(column: $table.stopLon, builder: (column) => column);
+
+  GeneratedColumn<int> get locationType => $composableBuilder(
+      column: $table.locationType, builder: (column) => column);
+
+  GeneratedColumn<String> get parentStation => $composableBuilder(
+      column: $table.parentStation, builder: (column) => column);
+
+  GeneratedColumn<int> get wheelchairBoarding => $composableBuilder(
+      column: $table.wheelchairBoarding, builder: (column) => column);
+
+  GeneratedColumn<String> get platformCode => $composableBuilder(
+      column: $table.platformCode, builder: (column) => column);
+
+  GeneratedColumn<String> get endpoint =>
+      $composableBuilder(column: $table.endpoint, builder: (column) => column);
+}
+
+class $$StopsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $StopsTable,
+    Stop,
+    $$StopsTableFilterComposer,
+    $$StopsTableOrderingComposer,
+    $$StopsTableAnnotationComposer,
+    $$StopsTableCreateCompanionBuilder,
+    $$StopsTableUpdateCompanionBuilder,
+    (Stop, BaseReferences<_$AppDatabase, $StopsTable, Stop>),
+    Stop,
+    PrefetchHooks Function()> {
+  $$StopsTableTableManager(_$AppDatabase db, $StopsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StopsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StopsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StopsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> stopId = const Value.absent(),
+            Value<String> stopName = const Value.absent(),
+            Value<double?> stopLat = const Value.absent(),
+            Value<double?> stopLon = const Value.absent(),
+            Value<int?> locationType = const Value.absent(),
+            Value<String?> parentStation = const Value.absent(),
+            Value<int?> wheelchairBoarding = const Value.absent(),
+            Value<String?> platformCode = const Value.absent(),
+            Value<String> endpoint = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              StopsCompanion(
+            stopId: stopId,
+            stopName: stopName,
+            stopLat: stopLat,
+            stopLon: stopLon,
+            locationType: locationType,
+            parentStation: parentStation,
+            wheelchairBoarding: wheelchairBoarding,
+            platformCode: platformCode,
+            endpoint: endpoint,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String stopId,
+            required String stopName,
+            Value<double?> stopLat = const Value.absent(),
+            Value<double?> stopLon = const Value.absent(),
+            Value<int?> locationType = const Value.absent(),
+            Value<String?> parentStation = const Value.absent(),
+            Value<int?> wheelchairBoarding = const Value.absent(),
+            Value<String?> platformCode = const Value.absent(),
+            required String endpoint,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              StopsCompanion.insert(
+            stopId: stopId,
+            stopName: stopName,
+            stopLat: stopLat,
+            stopLon: stopLon,
+            locationType: locationType,
+            parentStation: parentStation,
+            wheelchairBoarding: wheelchairBoarding,
+            platformCode: platformCode,
+            endpoint: endpoint,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$StopsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $StopsTable,
+    Stop,
+    $$StopsTableFilterComposer,
+    $$StopsTableOrderingComposer,
+    $$StopsTableAnnotationComposer,
+    $$StopsTableCreateCompanionBuilder,
+    $$StopsTableUpdateCompanionBuilder,
+    (Stop, BaseReferences<_$AppDatabase, $StopsTable, Stop>),
+    Stop,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$JourneysTableTableManager get journeys =>
       $$JourneysTableTableManager(_db, _db.journeys);
+  $$StopsTableTableManager get stops =>
+      $$StopsTableTableManager(_db, _db.stops);
 }

@@ -32,7 +32,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     try {
       final count = await StopsService.getTotalStopsCount();
       final countByEndpoint = await StopsService.getStopsCountByEndpoint();
-      
+
       setState(() {
         _totalStops = count;
         _stopsCount = countByEndpoint;
@@ -55,7 +55,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     try {
       await StopsService.loadAllPlaceholderStops();
       await _loadStopsData(); // Refresh the counts
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -85,9 +85,8 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         builder: (context) => AlertDialog(
           title: const Text('Update from API'),
           content: const Text(
-            'This will fetch real stops data from all API endpoints and may take several minutes. '
-            'This operation requires a valid API key. Continue?'
-          ),
+              'This will fetch real stops data from all API endpoints and may take several minutes. '
+              'This operation requires a valid API key. Continue?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -104,7 +103,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       if (confirmed == true) {
         await StopsService.updateAllStopsFromApi();
         await _loadStopsData(); // Refresh the counts
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -123,7 +122,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         _error = e.toString();
         _isLoading = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -152,7 +151,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Summary card
             Container(
               padding: const EdgeInsets.all(16.0),
@@ -163,7 +162,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.database, color: Colors.blue[700], size: 32),
+                  Icon(Icons.save, color: Colors.blue[700], size: 32),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,9 +186,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Action buttons
             Row(
               children: [
@@ -223,9 +222,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
@@ -252,7 +251,8 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             else if (_stopsCount.isNotEmpty)
               _buildEndpointsList()
             else
-              const Text('No stops data found. Load placeholder data to get started.'),
+              const Text(
+                  'No stops data found. Load placeholder data to get started.'),
           ],
         ),
       ),
@@ -261,7 +261,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
   Widget _buildEndpointsList() {
     final endpointGroups = _groupEndpoints();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -276,8 +276,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         ...endpointGroups.entries.map((group) {
           final mode = group.key;
           final endpoints = group.value;
-          final totalCount = endpoints.values.fold(0, (sum, count) => sum + count);
-          
+          final totalCount =
+              endpoints.values.fold(0, (sum, count) => sum + count);
+
           return ExpansionTile(
             leading: Container(
               width: 4,
@@ -295,13 +296,18 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               return ListTile(
                 contentPadding: const EdgeInsets.only(left: 32, right: 16),
                 title: Text(
-                  endpoint.key.replaceAll('_', ' ').split(' ').map((word) => 
-                    word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : word
-                  ).join(' '),
+                  endpoint.key
+                      .replaceAll('_', ' ')
+                      .split(' ')
+                      .map((word) => word.isNotEmpty
+                          ? word[0].toUpperCase() + word.substring(1)
+                          : word)
+                      .join(' '),
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
@@ -324,11 +330,11 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
   Map<String, Map<String, int>> _groupEndpoints() {
     final groups = <String, Map<String, int>>{};
-    
+
     for (final entry in _stopsCount.entries) {
       final endpoint = entry.key;
       final count = entry.value;
-      
+
       String mode;
       if (endpoint.startsWith('buses')) {
         mode = 'buses';
@@ -345,11 +351,11 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       } else {
         mode = 'other';
       }
-      
+
       groups.putIfAbsent(mode, () => {});
       groups[mode]![endpoint] = count;
     }
-    
+
     return groups;
   }
 
@@ -470,7 +476,8 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
             const SizedBox(height: 16),
             if (_isSearching)
               const Center(child: CircularProgressIndicator())
-            else if (_searchResults.isEmpty && _searchController.text.isNotEmpty)
+            else if (_searchResults.isEmpty &&
+                _searchController.text.isNotEmpty)
               const Center(
                 child: Text(
                   'No stops found',

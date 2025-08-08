@@ -1,25 +1,21 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
+import 'package:drift/drift.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 
 import '../fetch_data/timetable_data.dart';
 import '../gtfs/stop.dart';
-import '../schema/database.dart';
+import '../schema/database.dart' hide Stop;
 
 /// Service for managing GTFS stops data - parsing from assets and API endpoints
 class StopsService {
   static AppDatabase? _database;
-  
+
   /// Get or create database instance
   static AppDatabase get database {
     _database ??= AppDatabase();
     return _database!;
   }
-  
+
   /// Parse CSV file from assets and return list of Stop objects
   static Future<List<Stop>> parseStopsFromAsset(String assetPath) async {
     try {
@@ -30,17 +26,18 @@ class StopsService {
       return [];
     }
   }
-  
+
   /// Parse CSV string and return list of Stop objects
   static List<Stop> _parseStopsFromCsv(String csvString) {
-    final List<List<dynamic>> csvData = const CsvToListConverter().convert(csvString);
-    
+    final List<List<dynamic>> csvData =
+        const CsvToListConverter().convert(csvString);
+
     if (csvData.isEmpty) return [];
-    
+
     // Skip header row
     final dataRows = csvData.skip(1);
     final stops = <Stop>[];
-    
+
     for (final row in dataRows) {
       if (row.length >= 8) {
         try {
@@ -50,97 +47,114 @@ class StopsService {
         }
       }
     }
-    
+
     return stops;
   }
-  
+
   /// Store stops to database for a specific endpoint
-  static Future<void> storeStopsToDatabase(List<Stop> stops, String endpoint) async {
+  static Future<void> storeStopsToDatabase(
+      List<Stop> stops, String endpoint) async {
     final db = database;
-    
+
     // Convert Stop objects to StopsCompanion objects for Drift
-    final stopsCompanions = stops.map((stop) => StopsCompanion.insert(
-      stopId: stop.stopId,
-      stopName: stop.stopName,
-      stopLat: Value(stop.stopLat),
-      stopLon: Value(stop.stopLon),
-      locationType: Value(stop.locationType),
-      parentStation: Value(stop.parentStation),
-      wheelchairBoarding: Value(stop.wheelchairBoarding),
-      platformCode: Value(stop.platformCode),
-      endpoint: endpoint,
-    )).toList();
-    
+    final stopsCompanions = stops
+        .map((stop) => StopsCompanion.insert(
+              stopId: stop.stopId,
+              stopName: stop.stopName,
+              stopLat: Value(stop.stopLat),
+              stopLon: Value(stop.stopLon),
+              locationType: Value(stop.locationType),
+              parentStation: Value(stop.parentStation),
+              wheelchairBoarding: Value(stop.wheelchairBoarding),
+              platformCode: Value(stop.platformCode),
+              endpoint: endpoint,
+            ))
+        .toList();
+
     await db.insertStopsForEndpoint(stopsCompanions, endpoint);
   }
-  
+
   /// Get all stops for a specific endpoint from database
   static Future<List<Stop>> getStopsForEndpoint(String endpoint) async {
     final db = database;
     final dbStops = await db.getAllStopsForEndpoint(endpoint);
-    
+
     // Convert Drift Stop objects back to our Stop objects
-    return dbStops.map((dbStop) => Stop(
-      stopId: dbStop.stopId,
-      stopName: dbStop.stopName,
-      stopLat: dbStop.stopLat ?? 0.0,
-      stopLon: dbStop.stopLon ?? 0.0,
-      locationType: dbStop.locationType ?? 0,
-      parentStation: dbStop.parentStation,
-      wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
-      platformCode: dbStop.platformCode,
-    )).toList();
+    return dbStops
+        .map((dbStop) => Stop(
+              stopId: dbStop.stopId,
+              stopName: dbStop.stopName,
+              stopLat: dbStop.stopLat ?? 0.0,
+              stopLon: dbStop.stopLon ?? 0.0,
+              locationType: dbStop.locationType ?? 0,
+              parentStation: dbStop.parentStation,
+              wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+              platformCode: dbStop.platformCode,
+            ))
+        .toList();
   }
-  
+
   /// Search stops by name across all endpoints
   static Future<List<Stop>> searchStops(String query) async {
     final db = database;
     final dbStops = await db.searchStops(query);
-    
+
     // Convert Drift Stop objects back to our Stop objects
-    return dbStops.map((dbStop) => Stop(
-      stopId: dbStop.stopId,
-      stopName: dbStop.stopName,
-      stopLat: dbStop.stopLat ?? 0.0,
-      stopLon: dbStop.stopLon ?? 0.0,
-      locationType: dbStop.locationType ?? 0,
-      parentStation: dbStop.parentStation,
-      wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
-      platformCode: dbStop.platformCode,
-    )).toList();
+    return dbStops
+        .map((dbStop) => Stop(
+              stopId: dbStop.stopId,
+              stopName: dbStop.stopName,
+              stopLat: dbStop.stopLat ?? 0.0,
+              stopLon: dbStop.stopLon ?? 0.0,
+              locationType: dbStop.locationType ?? 0,
+              parentStation: dbStop.parentStation,
+              wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+              platformCode: dbStop.platformCode,
+            ))
+        .toList();
   }
-  
+
   /// Load all placeholder stops from assets into database
   static Future<void> loadAllPlaceholderStops() async {
     // List of all endpoint asset files
     final endpoints = [
       // Buses
-      'buses', 'buses_SBSC006', 'buses_GSBC001', 'buses_GSBC002', 'buses_GSBC003',
-      'buses_GSBC004', 'buses_GSBC007', 'buses_GSBC008', 'buses_GSBC009', 'buses_GSBC010',
-      'buses_GSBC014', 'buses_OSMBSC001', 'buses_OSMBSC002', 'buses_OSMBSC003', 'buses_OSMBSC004',
-      'buses_OMBSC006', 'buses_OMBSC007', 'buses_OSMBSC008', 'buses_OSMBSC009', 'buses_OSMBSC010',
-      'buses_OSMBSC011', 'buses_OSMBSC012', 'buses_NISC001', 'buses_ReplacementBus',
-      
+      'buses', 'buses_SBSC006', 'buses_GSBC001', 'buses_GSBC002',
+      'buses_GSBC003',
+      'buses_GSBC004', 'buses_GSBC007', 'buses_GSBC008', 'buses_GSBC009',
+      'buses_GSBC010',
+      'buses_GSBC014', 'buses_OSMBSC001', 'buses_OSMBSC002', 'buses_OSMBSC003',
+      'buses_OSMBSC004',
+      'buses_OMBSC006', 'buses_OMBSC007', 'buses_OSMBSC008', 'buses_OSMBSC009',
+      'buses_OSMBSC010',
+      'buses_OSMBSC011', 'buses_OSMBSC012', 'buses_NISC001',
+      'buses_ReplacementBus',
+
       // Ferries
       'ferries_sydneyferries', 'ferries_MFF',
-      
+
       // Light Rail
-      'lightrail_innerwest', 'lightrail_newcastle', 'lightrail_cbdandsoutheast', 'lightrail_parramatta',
-      
+      'lightrail_innerwest', 'lightrail_newcastle', 'lightrail_cbdandsoutheast',
+      'lightrail_parramatta',
+
       // Trains
       'nswtrains', 'sydneytrains',
-      
+
       // Regional Buses
-      'regionbuses_southeasttablelands', 'regionbuses_southeasttablelands2', 'regionbuses_northcoast',
-      'regionbuses_northcoast2', 'regionbuses_centralwestandorana', 'regionbuses_centralwestandorana2',
-      'regionbuses_riverinamurray', 'regionbuses_newenglandnorthwest', 'regionbuses_riverinamurray2',
-      'regionbuses_northcoast3', 'regionbuses_sydneysurrounds', 'regionbuses_newcastlehunter',
+      'regionbuses_southeasttablelands', 'regionbuses_southeasttablelands2',
+      'regionbuses_northcoast',
+      'regionbuses_northcoast2', 'regionbuses_centralwestandorana',
+      'regionbuses_centralwestandorana2',
+      'regionbuses_riverinamurray', 'regionbuses_newenglandnorthwest',
+      'regionbuses_riverinamurray2',
+      'regionbuses_northcoast3', 'regionbuses_sydneysurrounds',
+      'regionbuses_newcastlehunter',
       'regionbuses_farwest',
-      
+
       // Metro
       'metro',
     ];
-    
+
     for (final endpoint in endpoints) {
       try {
         final assetPath = 'assets/stops/${endpoint}_stops.txt';
@@ -152,28 +166,27 @@ class StopsService {
       }
     }
   }
-  
+
   /// Fetch stops from API endpoint and update database (manual update function)
   static Future<void> updateStopsFromEndpoint(String endpoint) async {
     try {
       print('Fetching stops from API for endpoint: $endpoint');
-      
+
       // Get GTFS data from the appropriate endpoint
       final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
       if (gtfsData == null) {
         print('Failed to fetch GTFS data for $endpoint');
         return;
       }
-      
+
       // Store the stops to database
       await storeStopsToDatabase(gtfsData.stops, endpoint);
       print('Updated ${gtfsData.stops.length} stops for $endpoint from API');
-      
     } catch (e) {
       print('Error updating stops from endpoint $endpoint: $e');
     }
   }
-  
+
   /// Helper function to call the appropriate GTFS fetch function for an endpoint
   static Future<dynamic> _fetchGtfsDataForEndpoint(String endpoint) async {
     switch (endpoint) {
@@ -226,13 +239,13 @@ class StopsService {
         return await fetchBusesNISC001GtfsData();
       case 'buses_ReplacementBus':
         return await fetchBusesReplacementBusGtfsData();
-        
+
       // Ferries
       case 'ferries_sydneyferries':
         return await fetchFerriesSydneyFerriesGtfsData();
       case 'ferries_MFF':
         return await fetchFerriesMFFGtfsData();
-        
+
       // Light Rail
       case 'lightrail_innerwest':
         return await fetchLightRailInnerWestGtfsData();
@@ -242,13 +255,13 @@ class StopsService {
         return await fetchLightRailCbdAndSoutheastGtfsData();
       case 'lightrail_parramatta':
         return await fetchLightRailParramattaGtfsData();
-        
+
       // Trains
       case 'nswtrains':
         return await fetchNswTrainsGtfsData();
       case 'sydneytrains':
         return await fetchSydneyTrainsGtfsData();
-        
+
       // Regional Buses
       case 'regionbuses_southeasttablelands':
         return await fetchRegionBusesSouthEastTablelandsGtfsData();
@@ -276,35 +289,67 @@ class StopsService {
         return await fetchRegionBusesNewcastleHunterGtfsData();
       case 'regionbuses_farwest':
         return await fetchRegionBusesFarWestGtfsData();
-        
+
       default:
         print('Unknown endpoint: $endpoint');
         return null;
     }
   }
-  
+
   /// Update all endpoints from API (manual function - not called automatically)
   static Future<void> updateAllStopsFromApi() async {
     final endpoints = [
-      'buses', 'buses_SBSC006', 'buses_GSBC001', 'buses_GSBC002', 'buses_GSBC003',
-      'buses_GSBC004', 'buses_GSBC007', 'buses_GSBC008', 'buses_GSBC009', 'buses_GSBC010',
-      'buses_GSBC014', 'buses_OSMBSC001', 'buses_OSMBSC002', 'buses_OSMBSC003', 'buses_OSMBSC004',
-      'buses_OMBSC006', 'buses_OMBSC007', 'buses_OSMBSC008', 'buses_OSMBSC009', 'buses_OSMBSC010',
-      'buses_OSMBSC011', 'buses_OSMBSC012', 'buses_NISC001', 'buses_ReplacementBus',
-      'ferries_sydneyferries', 'ferries_MFF',
-      'lightrail_innerwest', 'lightrail_newcastle', 'lightrail_cbdandsoutheast', 'lightrail_parramatta',
-      'nswtrains', 'sydneytrains',
-      'regionbuses_southeasttablelands', 'regionbuses_southeasttablelands2', 'regionbuses_northcoast',
-      'regionbuses_northcoast2', 'regionbuses_centralwestandorana', 'regionbuses_centralwestandorana2',
-      'regionbuses_riverinamurray', 'regionbuses_newenglandnorthwest', 'regionbuses_riverinamurray2',
-      'regionbuses_northcoast3', 'regionbuses_sydneysurrounds', 'regionbuses_newcastlehunter',
+      'buses',
+      'buses_SBSC006',
+      'buses_GSBC001',
+      'buses_GSBC002',
+      'buses_GSBC003',
+      'buses_GSBC004',
+      'buses_GSBC007',
+      'buses_GSBC008',
+      'buses_GSBC009',
+      'buses_GSBC010',
+      'buses_GSBC014',
+      'buses_OSMBSC001',
+      'buses_OSMBSC002',
+      'buses_OSMBSC003',
+      'buses_OSMBSC004',
+      'buses_OMBSC006',
+      'buses_OMBSC007',
+      'buses_OSMBSC008',
+      'buses_OSMBSC009',
+      'buses_OSMBSC010',
+      'buses_OSMBSC011',
+      'buses_OSMBSC012',
+      'buses_NISC001',
+      'buses_ReplacementBus',
+      'ferries_sydneyferries',
+      'ferries_MFF',
+      'lightrail_innerwest',
+      'lightrail_newcastle',
+      'lightrail_cbdandsoutheast',
+      'lightrail_parramatta',
+      'nswtrains',
+      'sydneytrains',
+      'regionbuses_southeasttablelands',
+      'regionbuses_southeasttablelands2',
+      'regionbuses_northcoast',
+      'regionbuses_northcoast2',
+      'regionbuses_centralwestandorana',
+      'regionbuses_centralwestandorana2',
+      'regionbuses_riverinamurray',
+      'regionbuses_newenglandnorthwest',
+      'regionbuses_riverinamurray2',
+      'regionbuses_northcoast3',
+      'regionbuses_sydneysurrounds',
+      'regionbuses_newcastlehunter',
       'regionbuses_farwest',
     ];
-    
+
     print('Starting to update all stops from API endpoints...');
     int successCount = 0;
     int failureCount = 0;
-    
+
     for (final endpoint in endpoints) {
       try {
         await updateStopsFromEndpoint(endpoint);
@@ -314,16 +359,17 @@ class StopsService {
         failureCount++;
       }
     }
-    
-    print('Finished updating stops. Success: $successCount, Failures: $failureCount');
+
+    print(
+        'Finished updating stops. Success: $successCount, Failures: $failureCount');
   }
-  
+
   /// Get total number of stops in database
   static Future<int> getTotalStopsCount() async {
     final db = database;
     return await db.getTotalStopsCount();
   }
-  
+
   /// Get stops count by endpoint
   static Future<Map<String, int>> getStopsCountByEndpoint() async {
     final db = database;
