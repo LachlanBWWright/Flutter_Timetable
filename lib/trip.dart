@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
+import 'package:lbww_flutter/trip_legs_screen.dart';
 
 class TripScreen extends StatefulWidget {
   const TripScreen({super.key, required this.trip});
@@ -83,26 +84,4 @@ class _TripScreenState extends State<TripScreen> {
   }
 }
 
-//For each leg of the trip (E.G Station, Bus stop, ETC.)
-class TripLegScreen extends StatefulWidget {
-  const TripLegScreen({super.key, required this.trip});
-  final dynamic trip;
-
-  @override
-  State<TripLegScreen> createState() => _TripLegScreenState();
-}
-
-class _TripLegScreenState extends State<TripLegScreen> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Trip Legs')),
-      body: ListView.builder(
-        itemBuilder: (context, index) {
-          return TripLegCard(leg: widget.trip['legs'][index]);
-        },
-        itemCount: widget.trip['legs'].length,
-      ),
-    );
-  }
-}
+// TripLegScreen moved to trip_leg_screen.dart
