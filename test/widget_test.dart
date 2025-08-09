@@ -11,20 +11,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('NSW Trains Timetable App Tests', () {
+    testWidgets('App loads and shows correct title', (WidgetTester tester) async {
+      // Build our app and trigger a frame.
+      await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      // Verify that our app shows the correct title
+      expect(find.text('NSW Trains Timetable'), findsOneWidget);
+      
+      // Verify that the settings icon is present
+      expect(find.byIcon(Icons.settings), findsOneWidget);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    testWidgets('Settings button navigates to settings screen', (WidgetTester tester) async {
+      // Build our app and trigger a frame.
+      await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      // Tap the settings button
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pumpAndSettle();
+
+      // Verify that we've navigated to the settings screen
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Enter an API key'), findsOneWidget);
+    });
+
+    testWidgets('API key input field is present in settings', (WidgetTester tester) async {
+      // Build our app and trigger a frame.
+      await tester.pumpWidget(const MyApp());
+
+      // Navigate to settings
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pumpAndSettle();
+
+      // Verify API key input components are present
+      expect(find.text('Set API Key'), findsOneWidget);
+      expect(find.text('Clear API Key'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+    });
   });
 }

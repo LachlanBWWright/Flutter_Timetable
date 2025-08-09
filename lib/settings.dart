@@ -1,97 +1,135 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables
-
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'widgets/realtime_widgets.dart';
+import 'widgets/realtime_map_widget.dart';
+import 'widgets/stops_widgets.dart';
+import 'services/location_service.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final keyController = TextEditingController();
-  String _apiKey = '';
+  bool _isAlphabeticalSorting = false;
 
-  //This is akin to ReactJS' componentDidMount()
   @override
   void initState() {
     super.initState();
-    _loadApiKey();
+    _loadSortingPreference();
   }
 
-  //This is akin to ReactJS' componentWillUnmount()
-  @override
-  void dispose() {
-    keyController.dispose();
-    super.dispose(); //Calls parent's dispose function
-  }
-
-  Future<void> _loadApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadSortingPreference() async {
+    final isAlphabetical = await LocationService.isAlphabeticalSorting();
     setState(() {
-      _apiKey = prefs.getString('apiKey') ?? "";
+      _isAlphabeticalSorting = isAlphabetical;
     });
   }
 
-  Future<void> _setApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _updateSortingPreference(bool value) async {
+    await LocationService.setSortingPreference(value);
     setState(() {
-      _apiKey = keyController.text;
-      prefs.setString('apiKey', keyController.text);
+      _isAlphabeticalSorting = value;
     });
   }
 
-  Future<void> _stealApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _apiKey = 'Xh0bAW1JmyVP93vjB784EK9dyZlbJb2FxJuw';
-      prefs.setString('apiKey', 'Xh0bAW1JmyVP93vjB784EK9dyZlbJb2FxJuw');
-    });
+  void _navigateToRealtimeMap(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RealtimeMapWidget(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Settings')),
-        body: Align(
-            alignment: Alignment.topCenter,
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                TextField(
-                  controller: keyController,
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter an API key'),
+      appBar: AppBar(
+        title: const Text('Settings & Management'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Map access card
+            Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Live Transport Map',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'View real-time vehicle positions on an interactive map',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _navigateToRealtimeMap(context),
+                        icon: const Icon(Icons.map),
+                        label: const Text('Open Realtime Map'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _setApiKey,
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50)),
-                  child: const Text('Set API Key'),
+              ),
+            ),
+            // Trip sorting preference card
+            Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Trip Sorting',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Choose how trips are sorted on the main page',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: const Text('Sort alphabetically'),
+                      subtitle: Text(
+                        _isAlphabeticalSorting
+                            ? 'Trips sorted by origin station name'
+                            : 'Trips sorted by closest station to your location',
+                      ),
+                      value: _isAlphabeticalSorting,
+                      onChanged: _updateSortingPreference,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                Text(_apiKey == ""
-                    ? 'Your API key has not been set'
-                    : 'Your API Key is: $_apiKey'),
-                const SizedBox(height: 10),
-                const Text(
-                    'How to set API key: Go to Transport for NSW\'s OpenData page, create an account, hover over \'My Account\', select \'Applications\', and create an application.'),
-                const Text(''),
-                const Text(
-                    'You\'ll need to give the application access to the following APIs: \'Trip Planner APIs\', \'Public Transport - Timetables - For Realtime\'. Or you can just steal mine.'),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _stealApiKey,
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      backgroundColor: Colors.red),
-                  child: const Text('Steal API Key'),
-                ),
-              ],
-            )));
+              ),
+            ),
+            const StopsManagementWidget(),
+            const StopsSearchWidget(),
+            const RealtimeInfoWidget(),
+          ],
+        ),
+      ),
+    );
   }
 }
