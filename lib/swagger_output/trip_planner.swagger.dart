@@ -5,7 +5,7 @@ import 'package:json_annotation/json_annotation.dart' as json;
 import 'package:collection/collection.dart';
 import 'dart:convert';
 
-import 'package:chopper/chopper.dart';
+import 'package:chopper/chopper.dart' show ChopperApi, ChopperClient, ChopperService, Converter, Authenticator, ErrorConverter, Get, Query;
 
 import 'client_mapping.dart';
 import 'dart:async';
@@ -31,21 +31,20 @@ abstract class TripPlanner extends ChopperService {
     ErrorConverter? errorConverter,
     Converter? converter,
     Uri? baseUrl,
-    List<Interceptor>? interceptors,
+    List<dynamic>? interceptors,
   }) {
     if (client != null) {
       return _$TripPlanner(client);
     }
 
     final newClient = ChopperClient(
-      services: [_$TripPlanner()],
-      converter: converter ?? $JsonSerializableConverter(),
-      interceptors: interceptors ?? [],
-      client: httpClient,
-      authenticator: authenticator,
-      errorConverter: errorConverter,
-      baseUrl: baseUrl ?? Uri.parse('http://api.transport.nsw.gov.au/v1/tp'),
-    );
+        services: [_$TripPlanner()],
+        converter: converter ?? $JsonSerializableConverter(),
+        interceptors: interceptors ?? [],
+        client: httpClient,
+        authenticator: authenticator,
+        errorConverter: errorConverter,
+        baseUrl: baseUrl ?? Uri.parse('http://api.transport.nsw.gov.au/v1/tp'));
     return _$TripPlanner(newClient);
   }
 
@@ -73,22 +72,19 @@ abstract class TripPlanner extends ChopperService {
     String? version,
   }) {
     generatedMapping.putIfAbsent(
-      AdditionalInfoResponse,
-      () => AdditionalInfoResponse.fromJsonFactory,
-    );
+        AdditionalInfoResponse, () => AdditionalInfoResponse.fromJsonFactory);
 
     return _addInfoGet(
-      outputFormat: outputFormat?.value?.toString(),
-      filterDateValid: filterDateValid,
-      filterMOTType: filterMOTType?.value?.toString(),
-      filterPublicationStatus: filterPublicationStatus?.value?.toString(),
-      itdLPxxSelStop: itdLPxxSelStop,
-      itdLPxxSelLine: itdLPxxSelLine,
-      itdLPxxSelOperator: itdLPxxSelOperator,
-      filterPNLineDir: filterPNLineDir,
-      filterPNLineSub: filterPNLineSub,
-      version: version,
-    );
+        outputFormat: outputFormat?.value?.toString(),
+        filterDateValid: filterDateValid,
+        filterMOTType: filterMOTType?.value?.toString(),
+        filterPublicationStatus: filterPublicationStatus?.value?.toString(),
+        itdLPxxSelStop: itdLPxxSelStop,
+        itdLPxxSelLine: itdLPxxSelLine,
+        itdLPxxSelOperator: itdLPxxSelOperator,
+        filterPNLineDir: filterPNLineDir,
+        filterPNLineSub: filterPNLineSub,
+        version: version);
   }
 
   ///Provides capability to display all public transport service status and incident information (as published from the Service Alert Messaging System).
@@ -102,7 +98,7 @@ abstract class TripPlanner extends ChopperService {
   ///@param filterPNLineDir This parameter allows you to filter the returned items by specific routes. The route is provided in the format `NNN:LLLLL:D`, (NNN: subnet, LLLLL: Route number, D: direction `H`/`R`). You can use this parameter multiple times if you want to search for more than one line number.
   ///@param filterPNLineSub This parameter allows you to filter the returned items by specific routes. The route is provided in the format `NNN:LLLLL:E`, (NNN: subnet, LLLLL: Route number, E: supplement). You can use this parameter multiple times if you want to search for more than one line number.
   ///@param version Indicates which version of the API the caller is expecting for both request and response data. Note that if this version differs from the version listed above then the returned data may not be as expected.
-  @GET(path: '/add_info')
+  @Get(path: '/add_info')
   Future<chopper.Response<AdditionalInfoResponse>> _addInfoGet({
     @Query('outputFormat') required String? outputFormat,
     @Query('filterDateValid') String? filterDateValid,
@@ -138,21 +134,18 @@ abstract class TripPlanner extends ChopperService {
     String? version,
   }) {
     generatedMapping.putIfAbsent(
-      CoordRequestResponse,
-      () => CoordRequestResponse.fromJsonFactory,
-    );
+        CoordRequestResponse, () => CoordRequestResponse.fromJsonFactory);
 
     return _coordGet(
-      outputFormat: outputFormat?.value?.toString(),
-      coord: coord,
-      coordOutputFormat: coordOutputFormat?.value?.toString(),
-      inclFilter: inclFilter?.value?.toString(),
-      type1: type1?.value?.toString(),
-      radius1: radius1,
-      inclDrawClasses1: inclDrawClasses1?.value?.toString(),
-      poisOnMapMacro: poisOnMapMacro?.value?.toString(),
-      version: version,
-    );
+        outputFormat: outputFormat?.value?.toString(),
+        coord: coord,
+        coordOutputFormat: coordOutputFormat?.value?.toString(),
+        inclFilter: inclFilter?.value?.toString(),
+        type1: type1?.value?.toString(),
+        radius1: radius1,
+        inclDrawClasses1: inclDrawClasses1?.value?.toString(),
+        poisOnMapMacro: poisOnMapMacro?.value?.toString(),
+        version: version);
   }
 
   ///When given a specific geographical location, this API finds public transport stops, stations, wharfs and points of interest around that location.
@@ -165,7 +158,7 @@ abstract class TripPlanner extends ChopperService {
   ///@param inclDrawClasses_1 This flag changes the list of POIs that are returned. To return Opal resellers, set this value to `74` and `type_1` to `GIS_POINT`.The suffix of `_1` indicates this radius value corresponds to the `type_1` value. If multiple filters are to be included, the appropriate suffix should be updated accordingly.
   ///@param PoisOnMapMacro This field indicates how the returned data is to be used, which in turn impacts whether or not certain locations are returned.
   ///@param version Indicates which version of the API the caller is expecting for both request and response data. Note that if this version differs from the version listed above then the returned data may not be as expected.
-  @GET(path: '/coord')
+  @Get(path: '/coord')
   Future<chopper.Response<CoordRequestResponse>> _coordGet({
     @Query('outputFormat') required String? outputFormat,
     @Query('coord') required String? coord,
@@ -219,32 +212,29 @@ abstract class TripPlanner extends ChopperService {
     enums.DepartureMonGetTfNSWDM? tfNSWDM,
     String? version,
   }) {
-    generatedMapping.putIfAbsent(
-      DepartureMonitorResponse,
-      () => DepartureMonitorResponse.fromJsonFactory,
-    );
+    generatedMapping.putIfAbsent(DepartureMonitorResponse,
+        () => DepartureMonitorResponse.fromJsonFactory);
 
     return _departureMonGet(
-      outputFormat: outputFormat?.value?.toString(),
-      coordOutputFormat: coordOutputFormat?.value?.toString(),
-      mode: mode?.value?.toString(),
-      typeDm: typeDm?.value?.toString(),
-      nameDm: nameDm,
-      nameKeyDm: nameKeyDm?.value?.toString(),
-      itdDate: itdDate,
-      itdTime: itdTime,
-      departureMonitorMacro: departureMonitorMacro?.value?.toString(),
-      excludedMeans: excludedMeans?.value?.toString(),
-      exclMOT1: exclMOT1?.value?.toString(),
-      exclMOT2: exclMOT2?.value?.toString(),
-      exclMOT4: exclMOT4?.value?.toString(),
-      exclMOT5: exclMOT5?.value?.toString(),
-      exclMOT7: exclMOT7?.value?.toString(),
-      exclMOT9: exclMOT9?.value?.toString(),
-      exclMOT11: exclMOT11?.value?.toString(),
-      tfNSWDM: tfNSWDM?.value?.toString(),
-      version: version,
-    );
+        outputFormat: outputFormat?.value?.toString(),
+        coordOutputFormat: coordOutputFormat?.value?.toString(),
+        mode: mode?.value?.toString(),
+        typeDm: typeDm?.value?.toString(),
+        nameDm: nameDm,
+        nameKeyDm: nameKeyDm?.value?.toString(),
+        itdDate: itdDate,
+        itdTime: itdTime,
+        departureMonitorMacro: departureMonitorMacro?.value?.toString(),
+        excludedMeans: excludedMeans?.value?.toString(),
+        exclMOT1: exclMOT1?.value?.toString(),
+        exclMOT2: exclMOT2?.value?.toString(),
+        exclMOT4: exclMOT4?.value?.toString(),
+        exclMOT5: exclMOT5?.value?.toString(),
+        exclMOT7: exclMOT7?.value?.toString(),
+        exclMOT9: exclMOT9?.value?.toString(),
+        exclMOT11: exclMOT11?.value?.toString(),
+        tfNSWDM: tfNSWDM?.value?.toString(),
+        version: version);
   }
 
   ///Provides capability to provide NSW public transport departure information from a stop, station or wharf including real-time.
@@ -267,7 +257,7 @@ abstract class TripPlanner extends ChopperService {
   ///@param exclMOT_11 Excludes school bus services from the departure monitor.  Must be used in conjunction with `excludedMeans=checkbox`
   ///@param TfNSWDM Including this parameter enables a number of options that result in the departure monitor operating in the same way as the Transport for NSW Trip Planner web site, including enabling real-time data. It is recommended this is enabled, along with the `departureMonitorMacro` parameter.
   ///@param version Indicates which version of the API the caller is expecting for both request and response data. Note that if this version differs from the version listed above then the returned data may not be as expected.
-  @GET(path: '/departure_mon')
+  @Get(path: '/departure_mon')
   Future<chopper.Response<DepartureMonitorResponse>> _departureMonGet({
     @Query('outputFormat') required String? outputFormat,
     @Query('coordOutputFormat') required String? coordOutputFormat,
@@ -306,18 +296,15 @@ abstract class TripPlanner extends ChopperService {
     String? version,
   }) {
     generatedMapping.putIfAbsent(
-      StopFinderResponse,
-      () => StopFinderResponse.fromJsonFactory,
-    );
+        StopFinderResponse, () => StopFinderResponse.fromJsonFactory);
 
     return _stopFinderGet(
-      outputFormat: outputFormat?.value?.toString(),
-      typeSf: typeSf?.value?.toString(),
-      nameSf: nameSf,
-      coordOutputFormat: coordOutputFormat?.value?.toString(),
-      tfNSWSF: tfNSWSF?.value?.toString(),
-      version: version,
-    );
+        outputFormat: outputFormat?.value?.toString(),
+        typeSf: typeSf?.value?.toString(),
+        nameSf: nameSf,
+        coordOutputFormat: coordOutputFormat?.value?.toString(),
+        tfNSWSF: tfNSWSF?.value?.toString(),
+        version: version);
   }
 
   ///Provides capability to return all NSW public transport stop, station, wharf, points of interest and known addresses to be used for auto-suggest/auto-complete (to be used with the Trip planner and Departure board APIs).
@@ -327,7 +314,7 @@ abstract class TripPlanner extends ChopperService {
   ///@param coordOutputFormat This specifies the format the coordinates are returned in. While other variations are available, the `EPSG:4326` format will return the widely-used format.
   ///@param TfNSWSF Including this parameter enables a number of options that result in the stop finder operating in the same way as the Transport for NSW Trip Planner web site.
   ///@param version Indicates which version of the API the caller is expecting for both request and response data. Note that if this version differs from the version listed above then the returned data may not be as expected.
-  @GET(path: '/stop_finder')
+  @Get(path: '/stop_finder')
   Future<chopper.Response<StopFinderResponse>> _stopFinderGet({
     @Query('outputFormat') required String? outputFormat,
     @Query('type_sf') String? typeSf,
@@ -399,41 +386,38 @@ abstract class TripPlanner extends ChopperService {
     int? elevFac,
   }) {
     generatedMapping.putIfAbsent(
-      TripRequestResponse,
-      () => TripRequestResponse.fromJsonFactory,
-    );
+        TripRequestResponse, () => TripRequestResponse.fromJsonFactory);
 
     return _tripGet(
-      outputFormat: outputFormat?.value?.toString(),
-      coordOutputFormat: coordOutputFormat?.value?.toString(),
-      depArrMacro: depArrMacro?.value?.toString(),
-      itdDate: itdDate,
-      itdTime: itdTime,
-      typeOrigin: typeOrigin?.value?.toString(),
-      nameOrigin: nameOrigin,
-      typeDestination: typeDestination?.value?.toString(),
-      nameDestination: nameDestination,
-      calcNumberOfTrips: calcNumberOfTrips,
-      wheelchair: wheelchair?.value?.toString(),
-      excludedMeans: excludedMeans?.value?.toString(),
-      exclMOT1: exclMOT1?.value?.toString(),
-      exclMOT2: exclMOT2?.value?.toString(),
-      exclMOT4: exclMOT4?.value?.toString(),
-      exclMOT5: exclMOT5?.value?.toString(),
-      exclMOT7: exclMOT7?.value?.toString(),
-      exclMOT9: exclMOT9?.value?.toString(),
-      exclMOT11: exclMOT11?.value?.toString(),
-      tfNSWTR: tfNSWTR?.value?.toString(),
-      version: version,
-      itOptionsActive: itOptionsActive,
-      computeMonomodalTripBicycle: computeMonomodalTripBicycle,
-      cycleSpeed: cycleSpeed,
-      bikeProfSpeed: bikeProfSpeed?.value?.toString(),
-      maxTimeBicycle: maxTimeBicycle,
-      onlyITBicycle: onlyITBicycle,
-      useElevationData: useElevationData,
-      elevFac: elevFac,
-    );
+        outputFormat: outputFormat?.value?.toString(),
+        coordOutputFormat: coordOutputFormat?.value?.toString(),
+        depArrMacro: depArrMacro?.value?.toString(),
+        itdDate: itdDate,
+        itdTime: itdTime,
+        typeOrigin: typeOrigin?.value?.toString(),
+        nameOrigin: nameOrigin,
+        typeDestination: typeDestination?.value?.toString(),
+        nameDestination: nameDestination,
+        calcNumberOfTrips: calcNumberOfTrips,
+        wheelchair: wheelchair?.value?.toString(),
+        excludedMeans: excludedMeans?.value?.toString(),
+        exclMOT1: exclMOT1?.value?.toString(),
+        exclMOT2: exclMOT2?.value?.toString(),
+        exclMOT4: exclMOT4?.value?.toString(),
+        exclMOT5: exclMOT5?.value?.toString(),
+        exclMOT7: exclMOT7?.value?.toString(),
+        exclMOT9: exclMOT9?.value?.toString(),
+        exclMOT11: exclMOT11?.value?.toString(),
+        tfNSWTR: tfNSWTR?.value?.toString(),
+        version: version,
+        itOptionsActive: itOptionsActive,
+        computeMonomodalTripBicycle: computeMonomodalTripBicycle,
+        cycleSpeed: cycleSpeed,
+        bikeProfSpeed: bikeProfSpeed?.value?.toString(),
+        maxTimeBicycle: maxTimeBicycle,
+        onlyITBicycle: onlyITBicycle,
+        useElevationData: useElevationData,
+        elevFac: elevFac);
   }
 
   ///Provides capability to provide NSW public transport trip plan options, including walking and driving legs and real-time information.
@@ -466,7 +450,7 @@ abstract class TripPlanner extends ChopperService {
   ///@param onlyITBicycle Restricts the calculation to trips with the bikes only. Note: To be able to use this parameter, the options for individual transport must be activated with itOptionsActive=1. Possible values are 1, true, on
   ///@param useElevationData If this parameter is active, the elevation data is taken into account in the trip calculation for all means of transport and output in a route description for each individual transport section. Note: To be able to use this parameter, the options for individual transport must be activated with itOptionsActive=1. Possible values are 1, true, on
   ///@param elevFac This parameter specifies the maximum slope for bike routes. Roads with a slope greater than the specified?? one are avoided. The slope is specified by a factor <factor> whose value range is [0..100]. By default, the value of the parameter is 50
-  @GET(path: '/trip')
+  @Get(path: '/trip')
   Future<chopper.Response<TripRequestResponse>> _tripGet({
     @Query('outputFormat') required String? outputFormat,
     @Query('coordOutputFormat') required String? coordOutputFormat,
@@ -534,10 +518,8 @@ class AdditionalInfoResponse {
             (identical(other.infos, infos) ||
                 const DeepCollectionEquality().equals(other.infos, infos)) &&
             (identical(other.timestamp, timestamp) ||
-                const DeepCollectionEquality().equals(
-                  other.timestamp,
-                  timestamp,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.timestamp, timestamp)) &&
             (identical(other.version, version) ||
                 const DeepCollectionEquality().equals(other.version, version)));
   }
@@ -555,32 +537,28 @@ class AdditionalInfoResponse {
 }
 
 extension $AdditionalInfoResponseExtension on AdditionalInfoResponse {
-  AdditionalInfoResponse copyWith({
-    ApiErrorResponse? error,
-    AdditionalInfoResponse$Infos? infos,
-    String? timestamp,
-    String? version,
-  }) {
+  AdditionalInfoResponse copyWith(
+      {ApiErrorResponse? error,
+      AdditionalInfoResponse$Infos? infos,
+      String? timestamp,
+      String? version}) {
     return AdditionalInfoResponse(
-      error: error ?? this.error,
-      infos: infos ?? this.infos,
-      timestamp: timestamp ?? this.timestamp,
-      version: version ?? this.version,
-    );
+        error: error ?? this.error,
+        infos: infos ?? this.infos,
+        timestamp: timestamp ?? this.timestamp,
+        version: version ?? this.version);
   }
 
-  AdditionalInfoResponse copyWithWrapped({
-    Wrapped<ApiErrorResponse?>? error,
-    Wrapped<AdditionalInfoResponse$Infos?>? infos,
-    Wrapped<String?>? timestamp,
-    Wrapped<String?>? version,
-  }) {
+  AdditionalInfoResponse copyWithWrapped(
+      {Wrapped<ApiErrorResponse?>? error,
+      Wrapped<AdditionalInfoResponse$Infos?>? infos,
+      Wrapped<String?>? timestamp,
+      Wrapped<String?>? version}) {
     return AdditionalInfoResponse(
-      error: (error != null ? error.value : this.error),
-      infos: (infos != null ? infos.value : this.infos),
-      timestamp: (timestamp != null ? timestamp.value : this.timestamp),
-      version: (version != null ? version.value : this.version),
-    );
+        error: (error != null ? error.value : this.error),
+        infos: (infos != null ? infos.value : this.infos),
+        timestamp: (timestamp != null ? timestamp.value : this.timestamp),
+        version: (version != null ? version.value : this.version));
   }
 }
 
@@ -595,8 +573,8 @@ class AdditionalInfoResponseAffectedLine {
   });
 
   factory AdditionalInfoResponseAffectedLine.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseAffectedLineFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseAffectedLineFromJson(json);
 
   static const toJsonFactory = _$AdditionalInfoResponseAffectedLineToJson;
   Map<String, dynamic> toJson() =>
@@ -619,10 +597,8 @@ class AdditionalInfoResponseAffectedLine {
     return identical(this, other) ||
         (other is AdditionalInfoResponseAffectedLine &&
             (identical(other.destination, destination) ||
-                const DeepCollectionEquality().equals(
-                  other.destination,
-                  destination,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.destination, destination)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.name, name) ||
@@ -648,36 +624,33 @@ class AdditionalInfoResponseAffectedLine {
 
 extension $AdditionalInfoResponseAffectedLineExtension
     on AdditionalInfoResponseAffectedLine {
-  AdditionalInfoResponseAffectedLine copyWith({
-    AdditionalInfoResponseAffectedLine$Destination? destination,
-    String? id,
-    String? name,
-    String? number,
-    RouteProduct? product,
-  }) {
+  AdditionalInfoResponseAffectedLine copyWith(
+      {AdditionalInfoResponseAffectedLine$Destination? destination,
+      String? id,
+      String? name,
+      String? number,
+      RouteProduct? product}) {
     return AdditionalInfoResponseAffectedLine(
-      destination: destination ?? this.destination,
-      id: id ?? this.id,
-      name: name ?? this.name,
-      number: number ?? this.number,
-      product: product ?? this.product,
-    );
+        destination: destination ?? this.destination,
+        id: id ?? this.id,
+        name: name ?? this.name,
+        number: number ?? this.number,
+        product: product ?? this.product);
   }
 
-  AdditionalInfoResponseAffectedLine copyWithWrapped({
-    Wrapped<AdditionalInfoResponseAffectedLine$Destination?>? destination,
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-    Wrapped<String?>? number,
-    Wrapped<RouteProduct?>? product,
-  }) {
+  AdditionalInfoResponseAffectedLine copyWithWrapped(
+      {Wrapped<AdditionalInfoResponseAffectedLine$Destination?>? destination,
+      Wrapped<String?>? id,
+      Wrapped<String?>? name,
+      Wrapped<String?>? number,
+      Wrapped<RouteProduct?>? product}) {
     return AdditionalInfoResponseAffectedLine(
-      destination: (destination != null ? destination.value : this.destination),
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-      number: (number != null ? number.value : this.number),
-      product: (product != null ? product.value : this.product),
-    );
+        destination:
+            (destination != null ? destination.value : this.destination),
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name),
+        number: (number != null ? number.value : this.number),
+        product: (product != null ? product.value : this.product));
   }
 }
 
@@ -691,8 +664,8 @@ class AdditionalInfoResponseAffectedStop {
   });
 
   factory AdditionalInfoResponseAffectedStop.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseAffectedStopFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseAffectedStopFromJson(json);
 
   static const toJsonFactory = _$AdditionalInfoResponseAffectedStopToJson;
   Map<String, dynamic> toJson() =>
@@ -740,32 +713,28 @@ class AdditionalInfoResponseAffectedStop {
 
 extension $AdditionalInfoResponseAffectedStopExtension
     on AdditionalInfoResponseAffectedStop {
-  AdditionalInfoResponseAffectedStop copyWith({
-    String? id,
-    String? name,
-    ParentLocation? parent,
-    enums.AdditionalInfoResponseAffectedStopType? type,
-  }) {
+  AdditionalInfoResponseAffectedStop copyWith(
+      {String? id,
+      String? name,
+      ParentLocation? parent,
+      enums.AdditionalInfoResponseAffectedStopType? type}) {
     return AdditionalInfoResponseAffectedStop(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      parent: parent ?? this.parent,
-      type: type ?? this.type,
-    );
+        id: id ?? this.id,
+        name: name ?? this.name,
+        parent: parent ?? this.parent,
+        type: type ?? this.type);
   }
 
-  AdditionalInfoResponseAffectedStop copyWithWrapped({
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-    Wrapped<ParentLocation?>? parent,
-    Wrapped<enums.AdditionalInfoResponseAffectedStopType?>? type,
-  }) {
+  AdditionalInfoResponseAffectedStop copyWithWrapped(
+      {Wrapped<String?>? id,
+      Wrapped<String?>? name,
+      Wrapped<ParentLocation?>? parent,
+      Wrapped<enums.AdditionalInfoResponseAffectedStopType?>? type}) {
     return AdditionalInfoResponseAffectedStop(
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-      parent: (parent != null ? parent.value : this.parent),
-      type: (type != null ? type.value : this.type),
-    );
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name),
+        parent: (parent != null ? parent.value : this.parent),
+        type: (type != null ? type.value : this.type));
   }
 }
 
@@ -828,46 +797,32 @@ class AdditionalInfoResponseMessage {
     return identical(this, other) ||
         (other is AdditionalInfoResponseMessage &&
             (identical(other.affected, affected) ||
-                const DeepCollectionEquality().equals(
-                  other.affected,
-                  affected,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.affected, affected)) &&
             (identical(other.content, content) ||
-                const DeepCollectionEquality().equals(
-                  other.content,
-                  content,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.content, content)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.priority, priority) ||
-                const DeepCollectionEquality().equals(
-                  other.priority,
-                  priority,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.priority, priority)) &&
             (identical(other.properties, properties) ||
-                const DeepCollectionEquality().equals(
-                  other.properties,
-                  properties,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.properties, properties)) &&
             (identical(other.subtitle, subtitle) ||
-                const DeepCollectionEquality().equals(
-                  other.subtitle,
-                  subtitle,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.subtitle, subtitle)) &&
             (identical(other.timestamps, timestamps) ||
-                const DeepCollectionEquality().equals(
-                  other.timestamps,
-                  timestamps,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.timestamps, timestamps)) &&
             (identical(other.type, type) ||
                 const DeepCollectionEquality().equals(other.type, type)) &&
             (identical(other.url, url) ||
                 const DeepCollectionEquality().equals(other.url, url)) &&
             (identical(other.urlText, urlText) ||
-                const DeepCollectionEquality().equals(
-                  other.urlText,
-                  urlText,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.urlText, urlText)) &&
             (identical(other.version, version) ||
                 const DeepCollectionEquality().equals(other.version, version)));
   }
@@ -893,60 +848,56 @@ class AdditionalInfoResponseMessage {
 
 extension $AdditionalInfoResponseMessageExtension
     on AdditionalInfoResponseMessage {
-  AdditionalInfoResponseMessage copyWith({
-    AdditionalInfoResponseMessage$Affected? affected,
-    String? content,
-    String? id,
-    enums.AdditionalInfoResponseMessagePriority? priority,
-    AdditionalInfoResponseMessage$Properties? properties,
-    String? subtitle,
-    AdditionalInfoResponseTimestamps? timestamps,
-    enums.AdditionalInfoResponseMessageType? type,
-    String? url,
-    String? urlText,
-    int? version,
-  }) {
+  AdditionalInfoResponseMessage copyWith(
+      {AdditionalInfoResponseMessage$Affected? affected,
+      String? content,
+      String? id,
+      enums.AdditionalInfoResponseMessagePriority? priority,
+      AdditionalInfoResponseMessage$Properties? properties,
+      String? subtitle,
+      AdditionalInfoResponseTimestamps? timestamps,
+      enums.AdditionalInfoResponseMessageType? type,
+      String? url,
+      String? urlText,
+      int? version}) {
     return AdditionalInfoResponseMessage(
-      affected: affected ?? this.affected,
-      content: content ?? this.content,
-      id: id ?? this.id,
-      priority: priority ?? this.priority,
-      properties: properties ?? this.properties,
-      subtitle: subtitle ?? this.subtitle,
-      timestamps: timestamps ?? this.timestamps,
-      type: type ?? this.type,
-      url: url ?? this.url,
-      urlText: urlText ?? this.urlText,
-      version: version ?? this.version,
-    );
+        affected: affected ?? this.affected,
+        content: content ?? this.content,
+        id: id ?? this.id,
+        priority: priority ?? this.priority,
+        properties: properties ?? this.properties,
+        subtitle: subtitle ?? this.subtitle,
+        timestamps: timestamps ?? this.timestamps,
+        type: type ?? this.type,
+        url: url ?? this.url,
+        urlText: urlText ?? this.urlText,
+        version: version ?? this.version);
   }
 
-  AdditionalInfoResponseMessage copyWithWrapped({
-    Wrapped<AdditionalInfoResponseMessage$Affected?>? affected,
-    Wrapped<String?>? content,
-    Wrapped<String?>? id,
-    Wrapped<enums.AdditionalInfoResponseMessagePriority?>? priority,
-    Wrapped<AdditionalInfoResponseMessage$Properties?>? properties,
-    Wrapped<String?>? subtitle,
-    Wrapped<AdditionalInfoResponseTimestamps?>? timestamps,
-    Wrapped<enums.AdditionalInfoResponseMessageType?>? type,
-    Wrapped<String?>? url,
-    Wrapped<String?>? urlText,
-    Wrapped<int?>? version,
-  }) {
+  AdditionalInfoResponseMessage copyWithWrapped(
+      {Wrapped<AdditionalInfoResponseMessage$Affected?>? affected,
+      Wrapped<String?>? content,
+      Wrapped<String?>? id,
+      Wrapped<enums.AdditionalInfoResponseMessagePriority?>? priority,
+      Wrapped<AdditionalInfoResponseMessage$Properties?>? properties,
+      Wrapped<String?>? subtitle,
+      Wrapped<AdditionalInfoResponseTimestamps?>? timestamps,
+      Wrapped<enums.AdditionalInfoResponseMessageType?>? type,
+      Wrapped<String?>? url,
+      Wrapped<String?>? urlText,
+      Wrapped<int?>? version}) {
     return AdditionalInfoResponseMessage(
-      affected: (affected != null ? affected.value : this.affected),
-      content: (content != null ? content.value : this.content),
-      id: (id != null ? id.value : this.id),
-      priority: (priority != null ? priority.value : this.priority),
-      properties: (properties != null ? properties.value : this.properties),
-      subtitle: (subtitle != null ? subtitle.value : this.subtitle),
-      timestamps: (timestamps != null ? timestamps.value : this.timestamps),
-      type: (type != null ? type.value : this.type),
-      url: (url != null ? url.value : this.url),
-      urlText: (urlText != null ? urlText.value : this.urlText),
-      version: (version != null ? version.value : this.version),
-    );
+        affected: (affected != null ? affected.value : this.affected),
+        content: (content != null ? content.value : this.content),
+        id: (id != null ? id.value : this.id),
+        priority: (priority != null ? priority.value : this.priority),
+        properties: (properties != null ? properties.value : this.properties),
+        subtitle: (subtitle != null ? subtitle.value : this.subtitle),
+        timestamps: (timestamps != null ? timestamps.value : this.timestamps),
+        type: (type != null ? type.value : this.type),
+        url: (url != null ? url.value : this.url),
+        urlText: (urlText != null ? urlText.value : this.urlText),
+        version: (version != null ? version.value : this.version));
   }
 }
 
@@ -960,8 +911,8 @@ class AdditionalInfoResponseTimestamps {
   });
 
   factory AdditionalInfoResponseTimestamps.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseTimestampsFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseTimestampsFromJson(json);
 
   static const toJsonFactory = _$AdditionalInfoResponseTimestampsToJson;
   Map<String, dynamic> toJson() =>
@@ -982,25 +933,17 @@ class AdditionalInfoResponseTimestamps {
     return identical(this, other) ||
         (other is AdditionalInfoResponseTimestamps &&
             (identical(other.availability, availability) ||
-                const DeepCollectionEquality().equals(
-                  other.availability,
-                  availability,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.availability, availability)) &&
             (identical(other.creation, creation) ||
-                const DeepCollectionEquality().equals(
-                  other.creation,
-                  creation,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.creation, creation)) &&
             (identical(other.lastModification, lastModification) ||
-                const DeepCollectionEquality().equals(
-                  other.lastModification,
-                  lastModification,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.lastModification, lastModification)) &&
             (identical(other.validity, validity) ||
-                const DeepCollectionEquality().equals(
-                  other.validity,
-                  validity,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.validity, validity)));
   }
 
   @override
@@ -1017,42 +960,41 @@ class AdditionalInfoResponseTimestamps {
 
 extension $AdditionalInfoResponseTimestampsExtension
     on AdditionalInfoResponseTimestamps {
-  AdditionalInfoResponseTimestamps copyWith({
-    AdditionalInfoResponseTimestamps$Availability? availability,
-    String? creation,
-    String? lastModification,
-    List<AdditionalInfoResponseTimestamps$Validity$Item>? validity,
-  }) {
+  AdditionalInfoResponseTimestamps copyWith(
+      {AdditionalInfoResponseTimestamps$Availability? availability,
+      String? creation,
+      String? lastModification,
+      List<AdditionalInfoResponseTimestamps$Validity$Item>? validity}) {
     return AdditionalInfoResponseTimestamps(
-      availability: availability ?? this.availability,
-      creation: creation ?? this.creation,
-      lastModification: lastModification ?? this.lastModification,
-      validity: validity ?? this.validity,
-    );
+        availability: availability ?? this.availability,
+        creation: creation ?? this.creation,
+        lastModification: lastModification ?? this.lastModification,
+        validity: validity ?? this.validity);
   }
 
-  AdditionalInfoResponseTimestamps copyWithWrapped({
-    Wrapped<AdditionalInfoResponseTimestamps$Availability?>? availability,
-    Wrapped<String?>? creation,
-    Wrapped<String?>? lastModification,
-    Wrapped<List<AdditionalInfoResponseTimestamps$Validity$Item>?>? validity,
-  }) {
+  AdditionalInfoResponseTimestamps copyWithWrapped(
+      {Wrapped<AdditionalInfoResponseTimestamps$Availability?>? availability,
+      Wrapped<String?>? creation,
+      Wrapped<String?>? lastModification,
+      Wrapped<List<AdditionalInfoResponseTimestamps$Validity$Item>?>?
+          validity}) {
     return AdditionalInfoResponseTimestamps(
-      availability: (availability != null
-          ? availability.value
-          : this.availability),
-      creation: (creation != null ? creation.value : this.creation),
-      lastModification: (lastModification != null
-          ? lastModification.value
-          : this.lastModification),
-      validity: (validity != null ? validity.value : this.validity),
-    );
+        availability:
+            (availability != null ? availability.value : this.availability),
+        creation: (creation != null ? creation.value : this.creation),
+        lastModification: (lastModification != null
+            ? lastModification.value
+            : this.lastModification),
+        validity: (validity != null ? validity.value : this.validity));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class ApiErrorResponse {
-  const ApiErrorResponse({this.message, this.versions});
+  const ApiErrorResponse({
+    this.message,
+    this.versions,
+  });
 
   factory ApiErrorResponse.fromJson(Map<String, dynamic> json) =>
       _$ApiErrorResponseFromJson(json);
@@ -1071,15 +1013,11 @@ class ApiErrorResponse {
     return identical(this, other) ||
         (other is ApiErrorResponse &&
             (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(
-                  other.message,
-                  message,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
             (identical(other.versions, versions) ||
-                const DeepCollectionEquality().equals(
-                  other.versions,
-                  versions,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.versions, versions)));
   }
 
   @override
@@ -1093,30 +1031,28 @@ class ApiErrorResponse {
 }
 
 extension $ApiErrorResponseExtension on ApiErrorResponse {
-  ApiErrorResponse copyWith({
-    String? message,
-    ApiErrorResponse$Versions? versions,
-  }) {
+  ApiErrorResponse copyWith(
+      {String? message, ApiErrorResponse$Versions? versions}) {
     return ApiErrorResponse(
-      message: message ?? this.message,
-      versions: versions ?? this.versions,
-    );
+        message: message ?? this.message, versions: versions ?? this.versions);
   }
 
-  ApiErrorResponse copyWithWrapped({
-    Wrapped<String?>? message,
-    Wrapped<ApiErrorResponse$Versions?>? versions,
-  }) {
+  ApiErrorResponse copyWithWrapped(
+      {Wrapped<String?>? message,
+      Wrapped<ApiErrorResponse$Versions?>? versions}) {
     return ApiErrorResponse(
-      message: (message != null ? message.value : this.message),
-      versions: (versions != null ? versions.value : this.versions),
-    );
+        message: (message != null ? message.value : this.message),
+        versions: (versions != null ? versions.value : this.versions));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class CoordRequestResponse {
-  const CoordRequestResponse({this.error, this.locations, this.version});
+  const CoordRequestResponse({
+    this.error,
+    this.locations,
+    this.version,
+  });
 
   factory CoordRequestResponse.fromJson(Map<String, dynamic> json) =>
       _$CoordRequestResponseFromJson(json);
@@ -1139,10 +1075,8 @@ class CoordRequestResponse {
             (identical(other.error, error) ||
                 const DeepCollectionEquality().equals(other.error, error)) &&
             (identical(other.locations, locations) ||
-                const DeepCollectionEquality().equals(
-                  other.locations,
-                  locations,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.locations, locations)) &&
             (identical(other.version, version) ||
                 const DeepCollectionEquality().equals(other.version, version)));
   }
@@ -1159,28 +1093,24 @@ class CoordRequestResponse {
 }
 
 extension $CoordRequestResponseExtension on CoordRequestResponse {
-  CoordRequestResponse copyWith({
-    ApiErrorResponse? error,
-    List<CoordRequestResponseLocation>? locations,
-    String? version,
-  }) {
+  CoordRequestResponse copyWith(
+      {ApiErrorResponse? error,
+      List<CoordRequestResponseLocation>? locations,
+      String? version}) {
     return CoordRequestResponse(
-      error: error ?? this.error,
-      locations: locations ?? this.locations,
-      version: version ?? this.version,
-    );
+        error: error ?? this.error,
+        locations: locations ?? this.locations,
+        version: version ?? this.version);
   }
 
-  CoordRequestResponse copyWithWrapped({
-    Wrapped<ApiErrorResponse?>? error,
-    Wrapped<List<CoordRequestResponseLocation>?>? locations,
-    Wrapped<String?>? version,
-  }) {
+  CoordRequestResponse copyWithWrapped(
+      {Wrapped<ApiErrorResponse?>? error,
+      Wrapped<List<CoordRequestResponseLocation>?>? locations,
+      Wrapped<String?>? version}) {
     return CoordRequestResponse(
-      error: (error != null ? error.value : this.error),
-      locations: (locations != null ? locations.value : this.locations),
-      version: (version != null ? version.value : this.version),
-    );
+        error: (error != null ? error.value : this.error),
+        locations: (locations != null ? locations.value : this.locations),
+        version: (version != null ? version.value : this.version));
   }
 }
 
@@ -1229,10 +1159,8 @@ class CoordRequestResponseLocation {
             (identical(other.coord, coord) ||
                 const DeepCollectionEquality().equals(other.coord, coord)) &&
             (identical(other.disassembledName, disassembledName) ||
-                const DeepCollectionEquality().equals(
-                  other.disassembledName,
-                  disassembledName,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.disassembledName, disassembledName)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.name, name) ||
@@ -1240,10 +1168,8 @@ class CoordRequestResponseLocation {
             (identical(other.parent, parent) ||
                 const DeepCollectionEquality().equals(other.parent, parent)) &&
             (identical(other.properties, properties) ||
-                const DeepCollectionEquality().equals(
-                  other.properties,
-                  properties,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.properties, properties)) &&
             (identical(other.type, type) ||
                 const DeepCollectionEquality().equals(other.type, type)));
   }
@@ -1265,46 +1191,42 @@ class CoordRequestResponseLocation {
 
 extension $CoordRequestResponseLocationExtension
     on CoordRequestResponseLocation {
-  CoordRequestResponseLocation copyWith({
-    List<double>? coord,
-    String? disassembledName,
-    String? id,
-    String? name,
-    ParentLocation? parent,
-    CoordRequestResponseLocation$Properties? properties,
-    enums.CoordRequestResponseLocationType? type,
-  }) {
+  CoordRequestResponseLocation copyWith(
+      {List<double>? coord,
+      String? disassembledName,
+      String? id,
+      String? name,
+      ParentLocation? parent,
+      CoordRequestResponseLocation$Properties? properties,
+      enums.CoordRequestResponseLocationType? type}) {
     return CoordRequestResponseLocation(
-      coord: coord ?? this.coord,
-      disassembledName: disassembledName ?? this.disassembledName,
-      id: id ?? this.id,
-      name: name ?? this.name,
-      parent: parent ?? this.parent,
-      properties: properties ?? this.properties,
-      type: type ?? this.type,
-    );
+        coord: coord ?? this.coord,
+        disassembledName: disassembledName ?? this.disassembledName,
+        id: id ?? this.id,
+        name: name ?? this.name,
+        parent: parent ?? this.parent,
+        properties: properties ?? this.properties,
+        type: type ?? this.type);
   }
 
-  CoordRequestResponseLocation copyWithWrapped({
-    Wrapped<List<double>?>? coord,
-    Wrapped<String?>? disassembledName,
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-    Wrapped<ParentLocation?>? parent,
-    Wrapped<CoordRequestResponseLocation$Properties?>? properties,
-    Wrapped<enums.CoordRequestResponseLocationType?>? type,
-  }) {
+  CoordRequestResponseLocation copyWithWrapped(
+      {Wrapped<List<double>?>? coord,
+      Wrapped<String?>? disassembledName,
+      Wrapped<String?>? id,
+      Wrapped<String?>? name,
+      Wrapped<ParentLocation?>? parent,
+      Wrapped<CoordRequestResponseLocation$Properties?>? properties,
+      Wrapped<enums.CoordRequestResponseLocationType?>? type}) {
     return CoordRequestResponseLocation(
-      coord: (coord != null ? coord.value : this.coord),
-      disassembledName: (disassembledName != null
-          ? disassembledName.value
-          : this.disassembledName),
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-      parent: (parent != null ? parent.value : this.parent),
-      properties: (properties != null ? properties.value : this.properties),
-      type: (type != null ? type.value : this.type),
-    );
+        coord: (coord != null ? coord.value : this.coord),
+        disassembledName: (disassembledName != null
+            ? disassembledName.value
+            : this.disassembledName),
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name),
+        parent: (parent != null ? parent.value : this.parent),
+        properties: (properties != null ? properties.value : this.properties),
+        type: (type != null ? type.value : this.type));
   }
 }
 
@@ -1328,9 +1250,7 @@ class DepartureMonitorResponse {
   @JsonKey(name: 'locations', defaultValue: <StopFinderLocation>[])
   final List<StopFinderLocation>? locations;
   @JsonKey(
-    name: 'stopEvents',
-    defaultValue: <DepartureMonitorResponseStopEvent>[],
-  )
+      name: 'stopEvents', defaultValue: <DepartureMonitorResponseStopEvent>[])
   final List<DepartureMonitorResponseStopEvent>? stopEvents;
   @JsonKey(name: 'version')
   final String? version;
@@ -1343,15 +1263,11 @@ class DepartureMonitorResponse {
             (identical(other.error, error) ||
                 const DeepCollectionEquality().equals(other.error, error)) &&
             (identical(other.locations, locations) ||
-                const DeepCollectionEquality().equals(
-                  other.locations,
-                  locations,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.locations, locations)) &&
             (identical(other.stopEvents, stopEvents) ||
-                const DeepCollectionEquality().equals(
-                  other.stopEvents,
-                  stopEvents,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.stopEvents, stopEvents)) &&
             (identical(other.version, version) ||
                 const DeepCollectionEquality().equals(other.version, version)));
   }
@@ -1369,32 +1285,28 @@ class DepartureMonitorResponse {
 }
 
 extension $DepartureMonitorResponseExtension on DepartureMonitorResponse {
-  DepartureMonitorResponse copyWith({
-    ApiErrorResponse? error,
-    List<StopFinderLocation>? locations,
-    List<DepartureMonitorResponseStopEvent>? stopEvents,
-    String? version,
-  }) {
+  DepartureMonitorResponse copyWith(
+      {ApiErrorResponse? error,
+      List<StopFinderLocation>? locations,
+      List<DepartureMonitorResponseStopEvent>? stopEvents,
+      String? version}) {
     return DepartureMonitorResponse(
-      error: error ?? this.error,
-      locations: locations ?? this.locations,
-      stopEvents: stopEvents ?? this.stopEvents,
-      version: version ?? this.version,
-    );
+        error: error ?? this.error,
+        locations: locations ?? this.locations,
+        stopEvents: stopEvents ?? this.stopEvents,
+        version: version ?? this.version);
   }
 
-  DepartureMonitorResponse copyWithWrapped({
-    Wrapped<ApiErrorResponse?>? error,
-    Wrapped<List<StopFinderLocation>?>? locations,
-    Wrapped<List<DepartureMonitorResponseStopEvent>?>? stopEvents,
-    Wrapped<String?>? version,
-  }) {
+  DepartureMonitorResponse copyWithWrapped(
+      {Wrapped<ApiErrorResponse?>? error,
+      Wrapped<List<StopFinderLocation>?>? locations,
+      Wrapped<List<DepartureMonitorResponseStopEvent>?>? stopEvents,
+      Wrapped<String?>? version}) {
     return DepartureMonitorResponse(
-      error: (error != null ? error.value : this.error),
-      locations: (locations != null ? locations.value : this.locations),
-      stopEvents: (stopEvents != null ? stopEvents.value : this.stopEvents),
-      version: (version != null ? version.value : this.version),
-    );
+        error: (error != null ? error.value : this.error),
+        locations: (locations != null ? locations.value : this.locations),
+        stopEvents: (stopEvents != null ? stopEvents.value : this.stopEvents),
+        version: (version != null ? version.value : this.version));
   }
 }
 
@@ -1408,8 +1320,8 @@ class DepartureMonitorResponseStopEvent {
   });
 
   factory DepartureMonitorResponseStopEvent.fromJson(
-    Map<String, dynamic> json,
-  ) => _$DepartureMonitorResponseStopEventFromJson(json);
+          Map<String, dynamic> json) =>
+      _$DepartureMonitorResponseStopEventFromJson(json);
 
   static const toJsonFactory = _$DepartureMonitorResponseStopEventToJson;
   Map<String, dynamic> toJson() =>
@@ -1418,9 +1330,7 @@ class DepartureMonitorResponseStopEvent {
   @JsonKey(name: 'departureTimePlanned')
   final String? departureTimePlanned;
   @JsonKey(
-    name: 'infos',
-    defaultValue: <TripRequestResponseJourneyLegStopInfo>[],
-  )
+      name: 'infos', defaultValue: <TripRequestResponseJourneyLegStopInfo>[])
   final List<TripRequestResponseJourneyLegStopInfo>? infos;
   @JsonKey(name: 'location')
   final StopFinderLocation? location;
@@ -1434,21 +1344,15 @@ class DepartureMonitorResponseStopEvent {
         (other is DepartureMonitorResponseStopEvent &&
             (identical(other.departureTimePlanned, departureTimePlanned) ||
                 const DeepCollectionEquality().equals(
-                  other.departureTimePlanned,
-                  departureTimePlanned,
-                )) &&
+                    other.departureTimePlanned, departureTimePlanned)) &&
             (identical(other.infos, infos) ||
                 const DeepCollectionEquality().equals(other.infos, infos)) &&
             (identical(other.location, location) ||
-                const DeepCollectionEquality().equals(
-                  other.location,
-                  location,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.location, location)) &&
             (identical(other.transportation, transportation) ||
-                const DeepCollectionEquality().equals(
-                  other.transportation,
-                  transportation,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.transportation, transportation)));
   }
 
   @override
@@ -1465,36 +1369,32 @@ class DepartureMonitorResponseStopEvent {
 
 extension $DepartureMonitorResponseStopEventExtension
     on DepartureMonitorResponseStopEvent {
-  DepartureMonitorResponseStopEvent copyWith({
-    String? departureTimePlanned,
-    List<TripRequestResponseJourneyLegStopInfo>? infos,
-    StopFinderLocation? location,
-    TripTransportation? transportation,
-  }) {
+  DepartureMonitorResponseStopEvent copyWith(
+      {String? departureTimePlanned,
+      List<TripRequestResponseJourneyLegStopInfo>? infos,
+      StopFinderLocation? location,
+      TripTransportation? transportation}) {
     return DepartureMonitorResponseStopEvent(
-      departureTimePlanned: departureTimePlanned ?? this.departureTimePlanned,
-      infos: infos ?? this.infos,
-      location: location ?? this.location,
-      transportation: transportation ?? this.transportation,
-    );
+        departureTimePlanned: departureTimePlanned ?? this.departureTimePlanned,
+        infos: infos ?? this.infos,
+        location: location ?? this.location,
+        transportation: transportation ?? this.transportation);
   }
 
-  DepartureMonitorResponseStopEvent copyWithWrapped({
-    Wrapped<String?>? departureTimePlanned,
-    Wrapped<List<TripRequestResponseJourneyLegStopInfo>?>? infos,
-    Wrapped<StopFinderLocation?>? location,
-    Wrapped<TripTransportation?>? transportation,
-  }) {
+  DepartureMonitorResponseStopEvent copyWithWrapped(
+      {Wrapped<String?>? departureTimePlanned,
+      Wrapped<List<TripRequestResponseJourneyLegStopInfo>?>? infos,
+      Wrapped<StopFinderLocation?>? location,
+      Wrapped<TripTransportation?>? transportation}) {
     return DepartureMonitorResponseStopEvent(
-      departureTimePlanned: (departureTimePlanned != null
-          ? departureTimePlanned.value
-          : this.departureTimePlanned),
-      infos: (infos != null ? infos.value : this.infos),
-      location: (location != null ? location.value : this.location),
-      transportation: (transportation != null
-          ? transportation.value
-          : this.transportation),
-    );
+        departureTimePlanned: (departureTimePlanned != null
+            ? departureTimePlanned.value
+            : this.departureTimePlanned),
+        infos: (infos != null ? infos.value : this.infos),
+        location: (location != null ? location.value : this.location),
+        transportation: (transportation != null
+            ? transportation.value
+            : this.transportation));
   }
 }
 
@@ -1531,30 +1431,20 @@ class HttpErrorResponse {
     return identical(this, other) ||
         (other is HttpErrorResponse &&
             (identical(other.errorDateTime, errorDateTime) ||
-                const DeepCollectionEquality().equals(
-                  other.errorDateTime,
-                  errorDateTime,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.errorDateTime, errorDateTime)) &&
             (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(
-                  other.message,
-                  message,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
             (identical(other.requestedMethod, requestedMethod) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedMethod,
-                  requestedMethod,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedMethod, requestedMethod)) &&
             (identical(other.requestedUrl, requestedUrl) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedUrl,
-                  requestedUrl,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedUrl, requestedUrl)) &&
             (identical(other.transactionId, transactionId) ||
-                const DeepCollectionEquality().equals(
-                  other.transactionId,
-                  transactionId,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.transactionId, transactionId)));
   }
 
   @override
@@ -1571,44 +1461,37 @@ class HttpErrorResponse {
 }
 
 extension $HttpErrorResponseExtension on HttpErrorResponse {
-  HttpErrorResponse copyWith({
-    String? errorDateTime,
-    String? message,
-    String? requestedMethod,
-    String? requestedUrl,
-    String? transactionId,
-  }) {
+  HttpErrorResponse copyWith(
+      {String? errorDateTime,
+      String? message,
+      String? requestedMethod,
+      String? requestedUrl,
+      String? transactionId}) {
     return HttpErrorResponse(
-      errorDateTime: errorDateTime ?? this.errorDateTime,
-      message: message ?? this.message,
-      requestedMethod: requestedMethod ?? this.requestedMethod,
-      requestedUrl: requestedUrl ?? this.requestedUrl,
-      transactionId: transactionId ?? this.transactionId,
-    );
+        errorDateTime: errorDateTime ?? this.errorDateTime,
+        message: message ?? this.message,
+        requestedMethod: requestedMethod ?? this.requestedMethod,
+        requestedUrl: requestedUrl ?? this.requestedUrl,
+        transactionId: transactionId ?? this.transactionId);
   }
 
-  HttpErrorResponse copyWithWrapped({
-    Wrapped<String?>? errorDateTime,
-    Wrapped<String?>? message,
-    Wrapped<String?>? requestedMethod,
-    Wrapped<String?>? requestedUrl,
-    Wrapped<String?>? transactionId,
-  }) {
+  HttpErrorResponse copyWithWrapped(
+      {Wrapped<String?>? errorDateTime,
+      Wrapped<String?>? message,
+      Wrapped<String?>? requestedMethod,
+      Wrapped<String?>? requestedUrl,
+      Wrapped<String?>? transactionId}) {
     return HttpErrorResponse(
-      errorDateTime: (errorDateTime != null
-          ? errorDateTime.value
-          : this.errorDateTime),
-      message: (message != null ? message.value : this.message),
-      requestedMethod: (requestedMethod != null
-          ? requestedMethod.value
-          : this.requestedMethod),
-      requestedUrl: (requestedUrl != null
-          ? requestedUrl.value
-          : this.requestedUrl),
-      transactionId: (transactionId != null
-          ? transactionId.value
-          : this.transactionId),
-    );
+        errorDateTime:
+            (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
+        message: (message != null ? message.value : this.message),
+        requestedMethod: (requestedMethod != null
+            ? requestedMethod.value
+            : this.requestedMethod),
+        requestedUrl:
+            (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
+        transactionId:
+            (transactionId != null ? transactionId.value : this.transactionId));
   }
 }
 
@@ -1649,10 +1532,8 @@ class ParentLocation {
     return identical(this, other) ||
         (other is ParentLocation &&
             (identical(other.disassembledName, disassembledName) ||
-                const DeepCollectionEquality().equals(
-                  other.disassembledName,
-                  disassembledName,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.disassembledName, disassembledName)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.name, name) ||
@@ -1677,44 +1558,44 @@ class ParentLocation {
 }
 
 extension $ParentLocationExtension on ParentLocation {
-  ParentLocation copyWith({
-    String? disassembledName,
-    String? id,
-    String? name,
-    ParentLocation? parent,
-    enums.ParentLocationType? type,
-  }) {
+  ParentLocation copyWith(
+      {String? disassembledName,
+      String? id,
+      String? name,
+      ParentLocation? parent,
+      enums.ParentLocationType? type}) {
     return ParentLocation(
-      disassembledName: disassembledName ?? this.disassembledName,
-      id: id ?? this.id,
-      name: name ?? this.name,
-      parent: parent ?? this.parent,
-      type: type ?? this.type,
-    );
+        disassembledName: disassembledName ?? this.disassembledName,
+        id: id ?? this.id,
+        name: name ?? this.name,
+        parent: parent ?? this.parent,
+        type: type ?? this.type);
   }
 
-  ParentLocation copyWithWrapped({
-    Wrapped<String?>? disassembledName,
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-    Wrapped<ParentLocation?>? parent,
-    Wrapped<enums.ParentLocationType?>? type,
-  }) {
+  ParentLocation copyWithWrapped(
+      {Wrapped<String?>? disassembledName,
+      Wrapped<String?>? id,
+      Wrapped<String?>? name,
+      Wrapped<ParentLocation?>? parent,
+      Wrapped<enums.ParentLocationType?>? type}) {
     return ParentLocation(
-      disassembledName: (disassembledName != null
-          ? disassembledName.value
-          : this.disassembledName),
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-      parent: (parent != null ? parent.value : this.parent),
-      type: (type != null ? type.value : this.type),
-    );
+        disassembledName: (disassembledName != null
+            ? disassembledName.value
+            : this.disassembledName),
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name),
+        parent: (parent != null ? parent.value : this.parent),
+        type: (type != null ? type.value : this.type));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class RouteProduct {
-  const RouteProduct({this.$class, this.iconId, this.name});
+  const RouteProduct({
+    this.$class,
+    this.iconId,
+    this.name,
+  });
 
   factory RouteProduct.fromJson(Map<String, dynamic> json) =>
       _$RouteProductFromJson(json);
@@ -1756,22 +1637,17 @@ class RouteProduct {
 extension $RouteProductExtension on RouteProduct {
   RouteProduct copyWith({int? $class, int? iconId, String? name}) {
     return RouteProduct(
-      $class: $class ?? this.$class,
-      iconId: iconId ?? this.iconId,
-      name: name ?? this.name,
-    );
+        $class: $class ?? this.$class,
+        iconId: iconId ?? this.iconId,
+        name: name ?? this.name);
   }
 
-  RouteProduct copyWithWrapped({
-    Wrapped<int?>? $class,
-    Wrapped<int?>? iconId,
-    Wrapped<String?>? name,
-  }) {
+  RouteProduct copyWithWrapped(
+      {Wrapped<int?>? $class, Wrapped<int?>? iconId, Wrapped<String?>? name}) {
     return RouteProduct(
-      $class: ($class != null ? $class.value : this.$class),
-      iconId: (iconId != null ? iconId.value : this.iconId),
-      name: (name != null ? name.value : this.name),
-    );
+        $class: ($class != null ? $class.value : this.$class),
+        iconId: (iconId != null ? iconId.value : this.iconId),
+        name: (name != null ? name.value : this.name));
   }
 }
 
@@ -1827,27 +1703,19 @@ class StopFinderAssignedStop {
     return identical(this, other) ||
         (other is StopFinderAssignedStop &&
             (identical(other.connectingMode, connectingMode) ||
-                const DeepCollectionEquality().equals(
-                  other.connectingMode,
-                  connectingMode,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.connectingMode, connectingMode)) &&
             (identical(other.coord, coord) ||
                 const DeepCollectionEquality().equals(other.coord, coord)) &&
             (identical(other.disassembledName, disassembledName) ||
-                const DeepCollectionEquality().equals(
-                  other.disassembledName,
-                  disassembledName,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.disassembledName, disassembledName)) &&
             (identical(other.distance, distance) ||
-                const DeepCollectionEquality().equals(
-                  other.distance,
-                  distance,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.distance, distance)) &&
             (identical(other.duration, duration) ||
-                const DeepCollectionEquality().equals(
-                  other.duration,
-                  duration,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.duration, duration)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.modes, modes) ||
@@ -1879,60 +1747,56 @@ class StopFinderAssignedStop {
 }
 
 extension $StopFinderAssignedStopExtension on StopFinderAssignedStop {
-  StopFinderAssignedStop copyWith({
-    int? connectingMode,
-    List<double>? coord,
-    String? disassembledName,
-    int? distance,
-    int? duration,
-    String? id,
-    List<int>? modes,
-    String? name,
-    ParentLocation? parent,
-    enums.StopFinderAssignedStopType? type,
-  }) {
+  StopFinderAssignedStop copyWith(
+      {int? connectingMode,
+      List<double>? coord,
+      String? disassembledName,
+      int? distance,
+      int? duration,
+      String? id,
+      List<int>? modes,
+      String? name,
+      ParentLocation? parent,
+      enums.StopFinderAssignedStopType? type}) {
     return StopFinderAssignedStop(
-      connectingMode: connectingMode ?? this.connectingMode,
-      coord: coord ?? this.coord,
-      disassembledName: disassembledName ?? this.disassembledName,
-      distance: distance ?? this.distance,
-      duration: duration ?? this.duration,
-      id: id ?? this.id,
-      modes: modes ?? this.modes,
-      name: name ?? this.name,
-      parent: parent ?? this.parent,
-      type: type ?? this.type,
-    );
+        connectingMode: connectingMode ?? this.connectingMode,
+        coord: coord ?? this.coord,
+        disassembledName: disassembledName ?? this.disassembledName,
+        distance: distance ?? this.distance,
+        duration: duration ?? this.duration,
+        id: id ?? this.id,
+        modes: modes ?? this.modes,
+        name: name ?? this.name,
+        parent: parent ?? this.parent,
+        type: type ?? this.type);
   }
 
-  StopFinderAssignedStop copyWithWrapped({
-    Wrapped<int?>? connectingMode,
-    Wrapped<List<double>?>? coord,
-    Wrapped<String?>? disassembledName,
-    Wrapped<int?>? distance,
-    Wrapped<int?>? duration,
-    Wrapped<String?>? id,
-    Wrapped<List<int>?>? modes,
-    Wrapped<String?>? name,
-    Wrapped<ParentLocation?>? parent,
-    Wrapped<enums.StopFinderAssignedStopType?>? type,
-  }) {
+  StopFinderAssignedStop copyWithWrapped(
+      {Wrapped<int?>? connectingMode,
+      Wrapped<List<double>?>? coord,
+      Wrapped<String?>? disassembledName,
+      Wrapped<int?>? distance,
+      Wrapped<int?>? duration,
+      Wrapped<String?>? id,
+      Wrapped<List<int>?>? modes,
+      Wrapped<String?>? name,
+      Wrapped<ParentLocation?>? parent,
+      Wrapped<enums.StopFinderAssignedStopType?>? type}) {
     return StopFinderAssignedStop(
-      connectingMode: (connectingMode != null
-          ? connectingMode.value
-          : this.connectingMode),
-      coord: (coord != null ? coord.value : this.coord),
-      disassembledName: (disassembledName != null
-          ? disassembledName.value
-          : this.disassembledName),
-      distance: (distance != null ? distance.value : this.distance),
-      duration: (duration != null ? duration.value : this.duration),
-      id: (id != null ? id.value : this.id),
-      modes: (modes != null ? modes.value : this.modes),
-      name: (name != null ? name.value : this.name),
-      parent: (parent != null ? parent.value : this.parent),
-      type: (type != null ? type.value : this.type),
-    );
+        connectingMode: (connectingMode != null
+            ? connectingMode.value
+            : this.connectingMode),
+        coord: (coord != null ? coord.value : this.coord),
+        disassembledName: (disassembledName != null
+            ? disassembledName.value
+            : this.disassembledName),
+        distance: (distance != null ? distance.value : this.distance),
+        duration: (duration != null ? duration.value : this.duration),
+        id: (id != null ? id.value : this.id),
+        modes: (modes != null ? modes.value : this.modes),
+        name: (name != null ? name.value : this.name),
+        parent: (parent != null ? parent.value : this.parent),
+        type: (type != null ? type.value : this.type));
   }
 }
 
@@ -1997,36 +1861,26 @@ class StopFinderLocation {
     return identical(this, other) ||
         (other is StopFinderLocation &&
             (identical(other.assignedStops, assignedStops) ||
-                const DeepCollectionEquality().equals(
-                  other.assignedStops,
-                  assignedStops,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.assignedStops, assignedStops)) &&
             (identical(other.buildingNumber, buildingNumber) ||
-                const DeepCollectionEquality().equals(
-                  other.buildingNumber,
-                  buildingNumber,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.buildingNumber, buildingNumber)) &&
             (identical(other.coord, coord) ||
                 const DeepCollectionEquality().equals(other.coord, coord)) &&
             (identical(other.disassembledName, disassembledName) ||
-                const DeepCollectionEquality().equals(
-                  other.disassembledName,
-                  disassembledName,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.disassembledName, disassembledName)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.isBest, isBest) ||
                 const DeepCollectionEquality().equals(other.isBest, isBest)) &&
             (identical(other.isGlobalId, isGlobalId) ||
-                const DeepCollectionEquality().equals(
-                  other.isGlobalId,
-                  isGlobalId,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.isGlobalId, isGlobalId)) &&
             (identical(other.matchQuality, matchQuality) ||
-                const DeepCollectionEquality().equals(
-                  other.matchQuality,
-                  matchQuality,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.matchQuality, matchQuality)) &&
             (identical(other.modes, modes) ||
                 const DeepCollectionEquality().equals(other.modes, modes)) &&
             (identical(other.name, name) ||
@@ -2034,10 +1888,8 @@ class StopFinderLocation {
             (identical(other.parent, parent) ||
                 const DeepCollectionEquality().equals(other.parent, parent)) &&
             (identical(other.streetName, streetName) ||
-                const DeepCollectionEquality().equals(
-                  other.streetName,
-                  streetName,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.streetName, streetName)) &&
             (identical(other.type, type) ||
                 const DeepCollectionEquality().equals(other.type, type)));
   }
@@ -2064,82 +1916,80 @@ class StopFinderLocation {
 }
 
 extension $StopFinderLocationExtension on StopFinderLocation {
-  StopFinderLocation copyWith({
-    List<StopFinderAssignedStop>? assignedStops,
-    String? buildingNumber,
-    List<double>? coord,
-    String? disassembledName,
-    String? id,
-    bool? isBest,
-    bool? isGlobalId,
-    int? matchQuality,
-    List<int>? modes,
-    String? name,
-    ParentLocation? parent,
-    String? streetName,
-    enums.StopFinderLocationType? type,
-  }) {
+  StopFinderLocation copyWith(
+      {List<StopFinderAssignedStop>? assignedStops,
+      String? buildingNumber,
+      List<double>? coord,
+      String? disassembledName,
+      String? id,
+      bool? isBest,
+      bool? isGlobalId,
+      int? matchQuality,
+      List<int>? modes,
+      String? name,
+      ParentLocation? parent,
+      String? streetName,
+      enums.StopFinderLocationType? type}) {
     return StopFinderLocation(
-      assignedStops: assignedStops ?? this.assignedStops,
-      buildingNumber: buildingNumber ?? this.buildingNumber,
-      coord: coord ?? this.coord,
-      disassembledName: disassembledName ?? this.disassembledName,
-      id: id ?? this.id,
-      isBest: isBest ?? this.isBest,
-      isGlobalId: isGlobalId ?? this.isGlobalId,
-      matchQuality: matchQuality ?? this.matchQuality,
-      modes: modes ?? this.modes,
-      name: name ?? this.name,
-      parent: parent ?? this.parent,
-      streetName: streetName ?? this.streetName,
-      type: type ?? this.type,
-    );
+        assignedStops: assignedStops ?? this.assignedStops,
+        buildingNumber: buildingNumber ?? this.buildingNumber,
+        coord: coord ?? this.coord,
+        disassembledName: disassembledName ?? this.disassembledName,
+        id: id ?? this.id,
+        isBest: isBest ?? this.isBest,
+        isGlobalId: isGlobalId ?? this.isGlobalId,
+        matchQuality: matchQuality ?? this.matchQuality,
+        modes: modes ?? this.modes,
+        name: name ?? this.name,
+        parent: parent ?? this.parent,
+        streetName: streetName ?? this.streetName,
+        type: type ?? this.type);
   }
 
-  StopFinderLocation copyWithWrapped({
-    Wrapped<List<StopFinderAssignedStop>?>? assignedStops,
-    Wrapped<String?>? buildingNumber,
-    Wrapped<List<double>?>? coord,
-    Wrapped<String?>? disassembledName,
-    Wrapped<String?>? id,
-    Wrapped<bool?>? isBest,
-    Wrapped<bool?>? isGlobalId,
-    Wrapped<int?>? matchQuality,
-    Wrapped<List<int>?>? modes,
-    Wrapped<String?>? name,
-    Wrapped<ParentLocation?>? parent,
-    Wrapped<String?>? streetName,
-    Wrapped<enums.StopFinderLocationType?>? type,
-  }) {
+  StopFinderLocation copyWithWrapped(
+      {Wrapped<List<StopFinderAssignedStop>?>? assignedStops,
+      Wrapped<String?>? buildingNumber,
+      Wrapped<List<double>?>? coord,
+      Wrapped<String?>? disassembledName,
+      Wrapped<String?>? id,
+      Wrapped<bool?>? isBest,
+      Wrapped<bool?>? isGlobalId,
+      Wrapped<int?>? matchQuality,
+      Wrapped<List<int>?>? modes,
+      Wrapped<String?>? name,
+      Wrapped<ParentLocation?>? parent,
+      Wrapped<String?>? streetName,
+      Wrapped<enums.StopFinderLocationType?>? type}) {
     return StopFinderLocation(
-      assignedStops: (assignedStops != null
-          ? assignedStops.value
-          : this.assignedStops),
-      buildingNumber: (buildingNumber != null
-          ? buildingNumber.value
-          : this.buildingNumber),
-      coord: (coord != null ? coord.value : this.coord),
-      disassembledName: (disassembledName != null
-          ? disassembledName.value
-          : this.disassembledName),
-      id: (id != null ? id.value : this.id),
-      isBest: (isBest != null ? isBest.value : this.isBest),
-      isGlobalId: (isGlobalId != null ? isGlobalId.value : this.isGlobalId),
-      matchQuality: (matchQuality != null
-          ? matchQuality.value
-          : this.matchQuality),
-      modes: (modes != null ? modes.value : this.modes),
-      name: (name != null ? name.value : this.name),
-      parent: (parent != null ? parent.value : this.parent),
-      streetName: (streetName != null ? streetName.value : this.streetName),
-      type: (type != null ? type.value : this.type),
-    );
+        assignedStops:
+            (assignedStops != null ? assignedStops.value : this.assignedStops),
+        buildingNumber: (buildingNumber != null
+            ? buildingNumber.value
+            : this.buildingNumber),
+        coord: (coord != null ? coord.value : this.coord),
+        disassembledName: (disassembledName != null
+            ? disassembledName.value
+            : this.disassembledName),
+        id: (id != null ? id.value : this.id),
+        isBest: (isBest != null ? isBest.value : this.isBest),
+        isGlobalId: (isGlobalId != null ? isGlobalId.value : this.isGlobalId),
+        matchQuality:
+            (matchQuality != null ? matchQuality.value : this.matchQuality),
+        modes: (modes != null ? modes.value : this.modes),
+        name: (name != null ? name.value : this.name),
+        parent: (parent != null ? parent.value : this.parent),
+        streetName: (streetName != null ? streetName.value : this.streetName),
+        type: (type != null ? type.value : this.type));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class StopFinderResponse {
-  const StopFinderResponse({this.error, this.locations, this.version});
+  const StopFinderResponse({
+    this.error,
+    this.locations,
+    this.version,
+  });
 
   factory StopFinderResponse.fromJson(Map<String, dynamic> json) =>
       _$StopFinderResponseFromJson(json);
@@ -2162,10 +2012,8 @@ class StopFinderResponse {
             (identical(other.error, error) ||
                 const DeepCollectionEquality().equals(other.error, error)) &&
             (identical(other.locations, locations) ||
-                const DeepCollectionEquality().equals(
-                  other.locations,
-                  locations,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.locations, locations)) &&
             (identical(other.version, version) ||
                 const DeepCollectionEquality().equals(other.version, version)));
   }
@@ -2182,28 +2030,24 @@ class StopFinderResponse {
 }
 
 extension $StopFinderResponseExtension on StopFinderResponse {
-  StopFinderResponse copyWith({
-    ApiErrorResponse? error,
-    List<StopFinderLocation>? locations,
-    String? version,
-  }) {
+  StopFinderResponse copyWith(
+      {ApiErrorResponse? error,
+      List<StopFinderLocation>? locations,
+      String? version}) {
     return StopFinderResponse(
-      error: error ?? this.error,
-      locations: locations ?? this.locations,
-      version: version ?? this.version,
-    );
+        error: error ?? this.error,
+        locations: locations ?? this.locations,
+        version: version ?? this.version);
   }
 
-  StopFinderResponse copyWithWrapped({
-    Wrapped<ApiErrorResponse?>? error,
-    Wrapped<List<StopFinderLocation>?>? locations,
-    Wrapped<String?>? version,
-  }) {
+  StopFinderResponse copyWithWrapped(
+      {Wrapped<ApiErrorResponse?>? error,
+      Wrapped<List<StopFinderLocation>?>? locations,
+      Wrapped<String?>? version}) {
     return StopFinderResponse(
-      error: (error != null ? error.value : this.error),
-      locations: (locations != null ? locations.value : this.locations),
-      version: (version != null ? version.value : this.version),
-    );
+        error: (error != null ? error.value : this.error),
+        locations: (locations != null ? locations.value : this.locations),
+        version: (version != null ? version.value : this.version));
   }
 }
 
@@ -2239,15 +2083,11 @@ class TripRequestResponse {
             (identical(other.error, error) ||
                 const DeepCollectionEquality().equals(other.error, error)) &&
             (identical(other.journeys, journeys) ||
-                const DeepCollectionEquality().equals(
-                  other.journeys,
-                  journeys,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.journeys, journeys)) &&
             (identical(other.systemMessages, systemMessages) ||
-                const DeepCollectionEquality().equals(
-                  other.systemMessages,
-                  systemMessages,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.systemMessages, systemMessages)) &&
             (identical(other.version, version) ||
                 const DeepCollectionEquality().equals(other.version, version)));
   }
@@ -2265,40 +2105,40 @@ class TripRequestResponse {
 }
 
 extension $TripRequestResponseExtension on TripRequestResponse {
-  TripRequestResponse copyWith({
-    ApiErrorResponse? error,
-    List<TripRequestResponseJourney>? journeys,
-    TripRequestResponse$SystemMessages? systemMessages,
-    String? version,
-  }) {
+  TripRequestResponse copyWith(
+      {ApiErrorResponse? error,
+      List<TripRequestResponseJourney>? journeys,
+      TripRequestResponse$SystemMessages? systemMessages,
+      String? version}) {
     return TripRequestResponse(
-      error: error ?? this.error,
-      journeys: journeys ?? this.journeys,
-      systemMessages: systemMessages ?? this.systemMessages,
-      version: version ?? this.version,
-    );
+        error: error ?? this.error,
+        journeys: journeys ?? this.journeys,
+        systemMessages: systemMessages ?? this.systemMessages,
+        version: version ?? this.version);
   }
 
-  TripRequestResponse copyWithWrapped({
-    Wrapped<ApiErrorResponse?>? error,
-    Wrapped<List<TripRequestResponseJourney>?>? journeys,
-    Wrapped<TripRequestResponse$SystemMessages?>? systemMessages,
-    Wrapped<String?>? version,
-  }) {
+  TripRequestResponse copyWithWrapped(
+      {Wrapped<ApiErrorResponse?>? error,
+      Wrapped<List<TripRequestResponseJourney>?>? journeys,
+      Wrapped<TripRequestResponse$SystemMessages?>? systemMessages,
+      Wrapped<String?>? version}) {
     return TripRequestResponse(
-      error: (error != null ? error.value : this.error),
-      journeys: (journeys != null ? journeys.value : this.journeys),
-      systemMessages: (systemMessages != null
-          ? systemMessages.value
-          : this.systemMessages),
-      version: (version != null ? version.value : this.version),
-    );
+        error: (error != null ? error.value : this.error),
+        journeys: (journeys != null ? journeys.value : this.journeys),
+        systemMessages: (systemMessages != null
+            ? systemMessages.value
+            : this.systemMessages),
+        version: (version != null ? version.value : this.version));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class TripRequestResponseJourney {
-  const TripRequestResponseJourney({this.isAdditional, this.legs, this.rating});
+  const TripRequestResponseJourney({
+    this.isAdditional,
+    this.legs,
+    this.rating,
+  });
 
   factory TripRequestResponseJourney.fromJson(Map<String, dynamic> json) =>
       _$TripRequestResponseJourneyFromJson(json);
@@ -2319,10 +2159,8 @@ class TripRequestResponseJourney {
     return identical(this, other) ||
         (other is TripRequestResponseJourney &&
             (identical(other.isAdditional, isAdditional) ||
-                const DeepCollectionEquality().equals(
-                  other.isAdditional,
-                  isAdditional,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.isAdditional, isAdditional)) &&
             (identical(other.legs, legs) ||
                 const DeepCollectionEquality().equals(other.legs, legs)) &&
             (identical(other.rating, rating) ||
@@ -2341,30 +2179,25 @@ class TripRequestResponseJourney {
 }
 
 extension $TripRequestResponseJourneyExtension on TripRequestResponseJourney {
-  TripRequestResponseJourney copyWith({
-    bool? isAdditional,
-    List<TripRequestResponseJourneyLeg>? legs,
-    int? rating,
-  }) {
+  TripRequestResponseJourney copyWith(
+      {bool? isAdditional,
+      List<TripRequestResponseJourneyLeg>? legs,
+      int? rating}) {
     return TripRequestResponseJourney(
-      isAdditional: isAdditional ?? this.isAdditional,
-      legs: legs ?? this.legs,
-      rating: rating ?? this.rating,
-    );
+        isAdditional: isAdditional ?? this.isAdditional,
+        legs: legs ?? this.legs,
+        rating: rating ?? this.rating);
   }
 
-  TripRequestResponseJourney copyWithWrapped({
-    Wrapped<bool?>? isAdditional,
-    Wrapped<List<TripRequestResponseJourneyLeg>?>? legs,
-    Wrapped<int?>? rating,
-  }) {
+  TripRequestResponseJourney copyWithWrapped(
+      {Wrapped<bool?>? isAdditional,
+      Wrapped<List<TripRequestResponseJourneyLeg>?>? legs,
+      Wrapped<int?>? rating}) {
     return TripRequestResponseJourney(
-      isAdditional: (isAdditional != null
-          ? isAdditional.value
-          : this.isAdditional),
-      legs: (legs != null ? legs.value : this.legs),
-      rating: (rating != null ? rating.value : this.rating),
-    );
+        isAdditional:
+            (isAdditional != null ? isAdditional.value : this.isAdditional),
+        legs: (legs != null ? legs.value : this.legs),
+        rating: (rating != null ? rating.value : this.rating));
   }
 }
 
@@ -2378,8 +2211,8 @@ class TripRequestResponseJourneyFareZone {
   });
 
   factory TripRequestResponseJourneyFareZone.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyFareZoneFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyFareZoneFromJson(json);
 
   static const toJsonFactory = _$TripRequestResponseJourneyFareZoneToJson;
   Map<String, dynamic> toJson() =>
@@ -2400,17 +2233,13 @@ class TripRequestResponseJourneyFareZone {
     return identical(this, other) ||
         (other is TripRequestResponseJourneyFareZone &&
             (identical(other.fromLeg, fromLeg) ||
-                const DeepCollectionEquality().equals(
-                  other.fromLeg,
-                  fromLeg,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.fromLeg, fromLeg)) &&
             (identical(other.net, net) ||
                 const DeepCollectionEquality().equals(other.net, net)) &&
             (identical(other.neutralZone, neutralZone) ||
-                const DeepCollectionEquality().equals(
-                  other.neutralZone,
-                  neutralZone,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.neutralZone, neutralZone)) &&
             (identical(other.toLeg, toLeg) ||
                 const DeepCollectionEquality().equals(other.toLeg, toLeg)));
   }
@@ -2429,32 +2258,26 @@ class TripRequestResponseJourneyFareZone {
 
 extension $TripRequestResponseJourneyFareZoneExtension
     on TripRequestResponseJourneyFareZone {
-  TripRequestResponseJourneyFareZone copyWith({
-    int? fromLeg,
-    String? net,
-    String? neutralZone,
-    int? toLeg,
-  }) {
+  TripRequestResponseJourneyFareZone copyWith(
+      {int? fromLeg, String? net, String? neutralZone, int? toLeg}) {
     return TripRequestResponseJourneyFareZone(
-      fromLeg: fromLeg ?? this.fromLeg,
-      net: net ?? this.net,
-      neutralZone: neutralZone ?? this.neutralZone,
-      toLeg: toLeg ?? this.toLeg,
-    );
+        fromLeg: fromLeg ?? this.fromLeg,
+        net: net ?? this.net,
+        neutralZone: neutralZone ?? this.neutralZone,
+        toLeg: toLeg ?? this.toLeg);
   }
 
-  TripRequestResponseJourneyFareZone copyWithWrapped({
-    Wrapped<int?>? fromLeg,
-    Wrapped<String?>? net,
-    Wrapped<String?>? neutralZone,
-    Wrapped<int?>? toLeg,
-  }) {
+  TripRequestResponseJourneyFareZone copyWithWrapped(
+      {Wrapped<int?>? fromLeg,
+      Wrapped<String?>? net,
+      Wrapped<String?>? neutralZone,
+      Wrapped<int?>? toLeg}) {
     return TripRequestResponseJourneyFareZone(
-      fromLeg: (fromLeg != null ? fromLeg.value : this.fromLeg),
-      net: (net != null ? net.value : this.net),
-      neutralZone: (neutralZone != null ? neutralZone.value : this.neutralZone),
-      toLeg: (toLeg != null ? toLeg.value : this.toLeg),
-    );
+        fromLeg: (fromLeg != null ? fromLeg.value : this.fromLeg),
+        net: (net != null ? net.value : this.net),
+        neutralZone:
+            (neutralZone != null ? neutralZone.value : this.neutralZone),
+        toLeg: (toLeg != null ? toLeg.value : this.toLeg));
   }
 }
 
@@ -2492,16 +2315,13 @@ class TripRequestResponseJourneyLeg {
   @JsonKey(name: 'duration')
   final int? duration;
   @JsonKey(
-    name: 'footPathInfo',
-    defaultValue: <TripRequestResponseJourneyLegStopFootpathInfo>[],
-  )
+      name: 'footPathInfo',
+      defaultValue: <TripRequestResponseJourneyLegStopFootpathInfo>[])
   final List<TripRequestResponseJourneyLegStopFootpathInfo>? footPathInfo;
   @JsonKey(name: 'hints')
   final List<TripRequestResponseJourneyLeg$Hints$Item>? hints;
   @JsonKey(
-    name: 'infos',
-    defaultValue: <TripRequestResponseJourneyLegStopInfo>[],
-  )
+      name: 'infos', defaultValue: <TripRequestResponseJourneyLegStopInfo>[])
   final List<TripRequestResponseJourneyLegStopInfo>? infos;
   @JsonKey(name: 'interchange')
   final TripRequestResponseJourneyLegInterchange? interchange;
@@ -2510,16 +2330,13 @@ class TripRequestResponseJourneyLeg {
   @JsonKey(name: 'origin')
   final TripRequestResponseJourneyLegStop? origin;
   @JsonKey(
-    name: 'pathDescriptions',
-    defaultValue: <TripRequestResponseJourneyLegPathDescription>[],
-  )
+      name: 'pathDescriptions',
+      defaultValue: <TripRequestResponseJourneyLegPathDescription>[])
   final List<TripRequestResponseJourneyLegPathDescription>? pathDescriptions;
   @JsonKey(name: 'properties')
   final TripRequestResponseJourneyLeg$Properties? properties;
   @JsonKey(
-    name: 'stopSequence',
-    defaultValue: <TripRequestResponseJourneyLegStop>[],
-  )
+      name: 'stopSequence', defaultValue: <TripRequestResponseJourneyLegStop>[])
   final List<TripRequestResponseJourneyLegStop>? stopSequence;
   @JsonKey(name: 'transportation')
   final TripTransportation? transportation;
@@ -2532,61 +2349,41 @@ class TripRequestResponseJourneyLeg {
             (identical(other.coords, coords) ||
                 const DeepCollectionEquality().equals(other.coords, coords)) &&
             (identical(other.destination, destination) ||
-                const DeepCollectionEquality().equals(
-                  other.destination,
-                  destination,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.destination, destination)) &&
             (identical(other.distance, distance) ||
-                const DeepCollectionEquality().equals(
-                  other.distance,
-                  distance,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.distance, distance)) &&
             (identical(other.duration, duration) ||
-                const DeepCollectionEquality().equals(
-                  other.duration,
-                  duration,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.duration, duration)) &&
             (identical(other.footPathInfo, footPathInfo) ||
-                const DeepCollectionEquality().equals(
-                  other.footPathInfo,
-                  footPathInfo,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.footPathInfo, footPathInfo)) &&
             (identical(other.hints, hints) ||
                 const DeepCollectionEquality().equals(other.hints, hints)) &&
             (identical(other.infos, infos) ||
                 const DeepCollectionEquality().equals(other.infos, infos)) &&
             (identical(other.interchange, interchange) ||
-                const DeepCollectionEquality().equals(
-                  other.interchange,
-                  interchange,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.interchange, interchange)) &&
             (identical(other.isRealtimeControlled, isRealtimeControlled) ||
                 const DeepCollectionEquality().equals(
-                  other.isRealtimeControlled,
-                  isRealtimeControlled,
-                )) &&
+                    other.isRealtimeControlled, isRealtimeControlled)) &&
             (identical(other.origin, origin) ||
                 const DeepCollectionEquality().equals(other.origin, origin)) &&
             (identical(other.pathDescriptions, pathDescriptions) ||
-                const DeepCollectionEquality().equals(
-                  other.pathDescriptions,
-                  pathDescriptions,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.pathDescriptions, pathDescriptions)) &&
             (identical(other.properties, properties) ||
-                const DeepCollectionEquality().equals(
-                  other.properties,
-                  properties,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.properties, properties)) &&
             (identical(other.stopSequence, stopSequence) ||
-                const DeepCollectionEquality().equals(
-                  other.stopSequence,
-                  stopSequence,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.stopSequence, stopSequence)) &&
             (identical(other.transportation, transportation) ||
-                const DeepCollectionEquality().equals(
-                  other.transportation,
-                  transportation,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.transportation, transportation)));
   }
 
   @override
@@ -2613,83 +2410,80 @@ class TripRequestResponseJourneyLeg {
 
 extension $TripRequestResponseJourneyLegExtension
     on TripRequestResponseJourneyLeg {
-  TripRequestResponseJourneyLeg copyWith({
-    List<List<double?>>? coords,
-    TripRequestResponseJourneyLegStop? destination,
-    int? distance,
-    int? duration,
-    List<TripRequestResponseJourneyLegStopFootpathInfo>? footPathInfo,
-    List<TripRequestResponseJourneyLeg$Hints$Item>? hints,
-    List<TripRequestResponseJourneyLegStopInfo>? infos,
-    TripRequestResponseJourneyLegInterchange? interchange,
-    bool? isRealtimeControlled,
-    TripRequestResponseJourneyLegStop? origin,
-    List<TripRequestResponseJourneyLegPathDescription>? pathDescriptions,
-    TripRequestResponseJourneyLeg$Properties? properties,
-    List<TripRequestResponseJourneyLegStop>? stopSequence,
-    TripTransportation? transportation,
-  }) {
+  TripRequestResponseJourneyLeg copyWith(
+      {List<List<double?>>? coords,
+      TripRequestResponseJourneyLegStop? destination,
+      int? distance,
+      int? duration,
+      List<TripRequestResponseJourneyLegStopFootpathInfo>? footPathInfo,
+      List<TripRequestResponseJourneyLeg$Hints$Item>? hints,
+      List<TripRequestResponseJourneyLegStopInfo>? infos,
+      TripRequestResponseJourneyLegInterchange? interchange,
+      bool? isRealtimeControlled,
+      TripRequestResponseJourneyLegStop? origin,
+      List<TripRequestResponseJourneyLegPathDescription>? pathDescriptions,
+      TripRequestResponseJourneyLeg$Properties? properties,
+      List<TripRequestResponseJourneyLegStop>? stopSequence,
+      TripTransportation? transportation}) {
     return TripRequestResponseJourneyLeg(
-      coords: coords ?? this.coords,
-      destination: destination ?? this.destination,
-      distance: distance ?? this.distance,
-      duration: duration ?? this.duration,
-      footPathInfo: footPathInfo ?? this.footPathInfo,
-      hints: hints ?? this.hints,
-      infos: infos ?? this.infos,
-      interchange: interchange ?? this.interchange,
-      isRealtimeControlled: isRealtimeControlled ?? this.isRealtimeControlled,
-      origin: origin ?? this.origin,
-      pathDescriptions: pathDescriptions ?? this.pathDescriptions,
-      properties: properties ?? this.properties,
-      stopSequence: stopSequence ?? this.stopSequence,
-      transportation: transportation ?? this.transportation,
-    );
+        coords: coords ?? this.coords,
+        destination: destination ?? this.destination,
+        distance: distance ?? this.distance,
+        duration: duration ?? this.duration,
+        footPathInfo: footPathInfo ?? this.footPathInfo,
+        hints: hints ?? this.hints,
+        infos: infos ?? this.infos,
+        interchange: interchange ?? this.interchange,
+        isRealtimeControlled: isRealtimeControlled ?? this.isRealtimeControlled,
+        origin: origin ?? this.origin,
+        pathDescriptions: pathDescriptions ?? this.pathDescriptions,
+        properties: properties ?? this.properties,
+        stopSequence: stopSequence ?? this.stopSequence,
+        transportation: transportation ?? this.transportation);
   }
 
-  TripRequestResponseJourneyLeg copyWithWrapped({
-    Wrapped<List<List<double?>>?>? coords,
-    Wrapped<TripRequestResponseJourneyLegStop?>? destination,
-    Wrapped<int?>? distance,
-    Wrapped<int?>? duration,
-    Wrapped<List<TripRequestResponseJourneyLegStopFootpathInfo>?>? footPathInfo,
-    Wrapped<List<TripRequestResponseJourneyLeg$Hints$Item>?>? hints,
-    Wrapped<List<TripRequestResponseJourneyLegStopInfo>?>? infos,
-    Wrapped<TripRequestResponseJourneyLegInterchange?>? interchange,
-    Wrapped<bool?>? isRealtimeControlled,
-    Wrapped<TripRequestResponseJourneyLegStop?>? origin,
-    Wrapped<List<TripRequestResponseJourneyLegPathDescription>?>?
-    pathDescriptions,
-    Wrapped<TripRequestResponseJourneyLeg$Properties?>? properties,
-    Wrapped<List<TripRequestResponseJourneyLegStop>?>? stopSequence,
-    Wrapped<TripTransportation?>? transportation,
-  }) {
+  TripRequestResponseJourneyLeg copyWithWrapped(
+      {Wrapped<List<List<double?>>?>? coords,
+      Wrapped<TripRequestResponseJourneyLegStop?>? destination,
+      Wrapped<int?>? distance,
+      Wrapped<int?>? duration,
+      Wrapped<List<TripRequestResponseJourneyLegStopFootpathInfo>?>?
+          footPathInfo,
+      Wrapped<List<TripRequestResponseJourneyLeg$Hints$Item>?>? hints,
+      Wrapped<List<TripRequestResponseJourneyLegStopInfo>?>? infos,
+      Wrapped<TripRequestResponseJourneyLegInterchange?>? interchange,
+      Wrapped<bool?>? isRealtimeControlled,
+      Wrapped<TripRequestResponseJourneyLegStop?>? origin,
+      Wrapped<List<TripRequestResponseJourneyLegPathDescription>?>?
+          pathDescriptions,
+      Wrapped<TripRequestResponseJourneyLeg$Properties?>? properties,
+      Wrapped<List<TripRequestResponseJourneyLegStop>?>? stopSequence,
+      Wrapped<TripTransportation?>? transportation}) {
     return TripRequestResponseJourneyLeg(
-      coords: (coords != null ? coords.value : this.coords),
-      destination: (destination != null ? destination.value : this.destination),
-      distance: (distance != null ? distance.value : this.distance),
-      duration: (duration != null ? duration.value : this.duration),
-      footPathInfo: (footPathInfo != null
-          ? footPathInfo.value
-          : this.footPathInfo),
-      hints: (hints != null ? hints.value : this.hints),
-      infos: (infos != null ? infos.value : this.infos),
-      interchange: (interchange != null ? interchange.value : this.interchange),
-      isRealtimeControlled: (isRealtimeControlled != null
-          ? isRealtimeControlled.value
-          : this.isRealtimeControlled),
-      origin: (origin != null ? origin.value : this.origin),
-      pathDescriptions: (pathDescriptions != null
-          ? pathDescriptions.value
-          : this.pathDescriptions),
-      properties: (properties != null ? properties.value : this.properties),
-      stopSequence: (stopSequence != null
-          ? stopSequence.value
-          : this.stopSequence),
-      transportation: (transportation != null
-          ? transportation.value
-          : this.transportation),
-    );
+        coords: (coords != null ? coords.value : this.coords),
+        destination:
+            (destination != null ? destination.value : this.destination),
+        distance: (distance != null ? distance.value : this.distance),
+        duration: (duration != null ? duration.value : this.duration),
+        footPathInfo:
+            (footPathInfo != null ? footPathInfo.value : this.footPathInfo),
+        hints: (hints != null ? hints.value : this.hints),
+        infos: (infos != null ? infos.value : this.infos),
+        interchange:
+            (interchange != null ? interchange.value : this.interchange),
+        isRealtimeControlled: (isRealtimeControlled != null
+            ? isRealtimeControlled.value
+            : this.isRealtimeControlled),
+        origin: (origin != null ? origin.value : this.origin),
+        pathDescriptions: (pathDescriptions != null
+            ? pathDescriptions.value
+            : this.pathDescriptions),
+        properties: (properties != null ? properties.value : this.properties),
+        stopSequence:
+            (stopSequence != null ? stopSequence.value : this.stopSequence),
+        transportation: (transportation != null
+            ? transportation.value
+            : this.transportation));
   }
 }
 
@@ -2702,8 +2496,8 @@ class TripRequestResponseJourneyLegInterchange {
   });
 
   factory TripRequestResponseJourneyLegInterchange.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLegInterchangeFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLegInterchangeFromJson(json);
 
   static const toJsonFactory = _$TripRequestResponseJourneyLegInterchangeToJson;
   Map<String, dynamic> toJson() =>
@@ -2743,28 +2537,22 @@ class TripRequestResponseJourneyLegInterchange {
 
 extension $TripRequestResponseJourneyLegInterchangeExtension
     on TripRequestResponseJourneyLegInterchange {
-  TripRequestResponseJourneyLegInterchange copyWith({
-    List<List<double?>>? coords,
-    String? desc,
-    int? type,
-  }) {
+  TripRequestResponseJourneyLegInterchange copyWith(
+      {List<List<double?>>? coords, String? desc, int? type}) {
     return TripRequestResponseJourneyLegInterchange(
-      coords: coords ?? this.coords,
-      desc: desc ?? this.desc,
-      type: type ?? this.type,
-    );
+        coords: coords ?? this.coords,
+        desc: desc ?? this.desc,
+        type: type ?? this.type);
   }
 
-  TripRequestResponseJourneyLegInterchange copyWithWrapped({
-    Wrapped<List<List<double?>>?>? coords,
-    Wrapped<String?>? desc,
-    Wrapped<int?>? type,
-  }) {
+  TripRequestResponseJourneyLegInterchange copyWithWrapped(
+      {Wrapped<List<List<double?>>?>? coords,
+      Wrapped<String?>? desc,
+      Wrapped<int?>? type}) {
     return TripRequestResponseJourneyLegInterchange(
-      coords: (coords != null ? coords.value : this.coords),
-      desc: (desc != null ? desc.value : this.desc),
-      type: (type != null ? type.value : this.type),
-    );
+        coords: (coords != null ? coords.value : this.coords),
+        desc: (desc != null ? desc.value : this.desc),
+        type: (type != null ? type.value : this.type));
   }
 }
 
@@ -2787,8 +2575,8 @@ class TripRequestResponseJourneyLegPathDescription {
   });
 
   factory TripRequestResponseJourneyLegPathDescription.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLegPathDescriptionFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLegPathDescriptionFromJson(json);
 
   static const toJsonFactory =
       _$TripRequestResponseJourneyLegPathDescriptionToJson;
@@ -2832,7 +2620,7 @@ class TripRequestResponseJourneyLegPathDescription {
         tripRequestResponseJourneyLegPathDescriptionTurnDirectionNullableFromJson,
   )
   final enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?
-  turnDirection;
+      turnDirection;
   static const fromJsonFactory =
       _$TripRequestResponseJourneyLegPathDescriptionFromJson;
 
@@ -2843,62 +2631,40 @@ class TripRequestResponseJourneyLegPathDescription {
             (identical(other.coord, coord) ||
                 const DeepCollectionEquality().equals(other.coord, coord)) &&
             (identical(other.cumDistance, cumDistance) ||
-                const DeepCollectionEquality().equals(
-                  other.cumDistance,
-                  cumDistance,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.cumDistance, cumDistance)) &&
             (identical(other.cumDuration, cumDuration) ||
-                const DeepCollectionEquality().equals(
-                  other.cumDuration,
-                  cumDuration,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.cumDuration, cumDuration)) &&
             (identical(other.distance, distance) ||
-                const DeepCollectionEquality().equals(
-                  other.distance,
-                  distance,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.distance, distance)) &&
             (identical(other.distanceDown, distanceDown) ||
-                const DeepCollectionEquality().equals(
-                  other.distanceDown,
-                  distanceDown,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.distanceDown, distanceDown)) &&
             (identical(other.distanceUp, distanceUp) ||
-                const DeepCollectionEquality().equals(
-                  other.distanceUp,
-                  distanceUp,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.distanceUp, distanceUp)) &&
             (identical(other.duration, duration) ||
-                const DeepCollectionEquality().equals(
-                  other.duration,
-                  duration,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.duration, duration)) &&
             (identical(other.fromCoordsIndex, fromCoordsIndex) ||
-                const DeepCollectionEquality().equals(
-                  other.fromCoordsIndex,
-                  fromCoordsIndex,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.fromCoordsIndex, fromCoordsIndex)) &&
             (identical(other.manoeuvre, manoeuvre) ||
-                const DeepCollectionEquality().equals(
-                  other.manoeuvre,
-                  manoeuvre,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.manoeuvre, manoeuvre)) &&
             (identical(other.name, name) ||
                 const DeepCollectionEquality().equals(other.name, name)) &&
             (identical(other.skyDirection, skyDirection) ||
-                const DeepCollectionEquality().equals(
-                  other.skyDirection,
-                  skyDirection,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.skyDirection, skyDirection)) &&
             (identical(other.toCoordsIndex, toCoordsIndex) ||
-                const DeepCollectionEquality().equals(
-                  other.toCoordsIndex,
-                  toCoordsIndex,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.toCoordsIndex, toCoordsIndex)) &&
             (identical(other.turnDirection, turnDirection) ||
-                const DeepCollectionEquality().equals(
-                  other.turnDirection,
-                  turnDirection,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.turnDirection, turnDirection)));
   }
 
   @override
@@ -2924,81 +2690,75 @@ class TripRequestResponseJourneyLegPathDescription {
 
 extension $TripRequestResponseJourneyLegPathDescriptionExtension
     on TripRequestResponseJourneyLegPathDescription {
-  TripRequestResponseJourneyLegPathDescription copyWith({
-    List<double>? coord,
-    int? cumDistance,
-    int? cumDuration,
-    int? distance,
-    int? distanceDown,
-    int? distanceUp,
-    int? duration,
-    int? fromCoordsIndex,
-    enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre? manoeuvre,
-    String? name,
-    int? skyDirection,
-    int? toCoordsIndex,
-    enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?
-    turnDirection,
-  }) {
+  TripRequestResponseJourneyLegPathDescription copyWith(
+      {List<double>? coord,
+      int? cumDistance,
+      int? cumDuration,
+      int? distance,
+      int? distanceDown,
+      int? distanceUp,
+      int? duration,
+      int? fromCoordsIndex,
+      enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre? manoeuvre,
+      String? name,
+      int? skyDirection,
+      int? toCoordsIndex,
+      enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?
+          turnDirection}) {
     return TripRequestResponseJourneyLegPathDescription(
-      coord: coord ?? this.coord,
-      cumDistance: cumDistance ?? this.cumDistance,
-      cumDuration: cumDuration ?? this.cumDuration,
-      distance: distance ?? this.distance,
-      distanceDown: distanceDown ?? this.distanceDown,
-      distanceUp: distanceUp ?? this.distanceUp,
-      duration: duration ?? this.duration,
-      fromCoordsIndex: fromCoordsIndex ?? this.fromCoordsIndex,
-      manoeuvre: manoeuvre ?? this.manoeuvre,
-      name: name ?? this.name,
-      skyDirection: skyDirection ?? this.skyDirection,
-      toCoordsIndex: toCoordsIndex ?? this.toCoordsIndex,
-      turnDirection: turnDirection ?? this.turnDirection,
-    );
+        coord: coord ?? this.coord,
+        cumDistance: cumDistance ?? this.cumDistance,
+        cumDuration: cumDuration ?? this.cumDuration,
+        distance: distance ?? this.distance,
+        distanceDown: distanceDown ?? this.distanceDown,
+        distanceUp: distanceUp ?? this.distanceUp,
+        duration: duration ?? this.duration,
+        fromCoordsIndex: fromCoordsIndex ?? this.fromCoordsIndex,
+        manoeuvre: manoeuvre ?? this.manoeuvre,
+        name: name ?? this.name,
+        skyDirection: skyDirection ?? this.skyDirection,
+        toCoordsIndex: toCoordsIndex ?? this.toCoordsIndex,
+        turnDirection: turnDirection ?? this.turnDirection);
   }
 
-  TripRequestResponseJourneyLegPathDescription copyWithWrapped({
-    Wrapped<List<double>?>? coord,
-    Wrapped<int?>? cumDistance,
-    Wrapped<int?>? cumDuration,
-    Wrapped<int?>? distance,
-    Wrapped<int?>? distanceDown,
-    Wrapped<int?>? distanceUp,
-    Wrapped<int?>? duration,
-    Wrapped<int?>? fromCoordsIndex,
-    Wrapped<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre?>?
-    manoeuvre,
-    Wrapped<String?>? name,
-    Wrapped<int?>? skyDirection,
-    Wrapped<int?>? toCoordsIndex,
-    Wrapped<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?>?
-    turnDirection,
-  }) {
+  TripRequestResponseJourneyLegPathDescription copyWithWrapped(
+      {Wrapped<List<double>?>? coord,
+      Wrapped<int?>? cumDistance,
+      Wrapped<int?>? cumDuration,
+      Wrapped<int?>? distance,
+      Wrapped<int?>? distanceDown,
+      Wrapped<int?>? distanceUp,
+      Wrapped<int?>? duration,
+      Wrapped<int?>? fromCoordsIndex,
+      Wrapped<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre?>?
+          manoeuvre,
+      Wrapped<String?>? name,
+      Wrapped<int?>? skyDirection,
+      Wrapped<int?>? toCoordsIndex,
+      Wrapped<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?>?
+          turnDirection}) {
     return TripRequestResponseJourneyLegPathDescription(
-      coord: (coord != null ? coord.value : this.coord),
-      cumDistance: (cumDistance != null ? cumDistance.value : this.cumDistance),
-      cumDuration: (cumDuration != null ? cumDuration.value : this.cumDuration),
-      distance: (distance != null ? distance.value : this.distance),
-      distanceDown: (distanceDown != null
-          ? distanceDown.value
-          : this.distanceDown),
-      distanceUp: (distanceUp != null ? distanceUp.value : this.distanceUp),
-      duration: (duration != null ? duration.value : this.duration),
-      fromCoordsIndex: (fromCoordsIndex != null
-          ? fromCoordsIndex.value
-          : this.fromCoordsIndex),
-      manoeuvre: (manoeuvre != null ? manoeuvre.value : this.manoeuvre),
-      name: (name != null ? name.value : this.name),
-      skyDirection: (skyDirection != null
-          ? skyDirection.value
-          : this.skyDirection),
-      toCoordsIndex: (toCoordsIndex != null
-          ? toCoordsIndex.value
-          : this.toCoordsIndex),
-      turnDirection: (turnDirection != null
-          ? turnDirection.value
-          : this.turnDirection),
-    );
+        coord: (coord != null ? coord.value : this.coord),
+        cumDistance:
+            (cumDistance != null ? cumDistance.value : this.cumDistance),
+        cumDuration:
+            (cumDuration != null ? cumDuration.value : this.cumDuration),
+        distance: (distance != null ? distance.value : this.distance),
+        distanceDown:
+            (distanceDown != null ? distanceDown.value : this.distanceDown),
+        distanceUp: (distanceUp != null ? distanceUp.value : this.distanceUp),
+        duration: (duration != null ? duration.value : this.duration),
+        fromCoordsIndex: (fromCoordsIndex != null
+            ? fromCoordsIndex.value
+            : this.fromCoordsIndex),
+        manoeuvre: (manoeuvre != null ? manoeuvre.value : this.manoeuvre),
+        name: (name != null ? name.value : this.name),
+        skyDirection:
+            (skyDirection != null ? skyDirection.value : this.skyDirection),
+        toCoordsIndex:
+            (toCoordsIndex != null ? toCoordsIndex.value : this.toCoordsIndex),
+        turnDirection:
+            (turnDirection != null ? turnDirection.value : this.turnDirection));
   }
 }
 
@@ -3019,8 +2779,8 @@ class TripRequestResponseJourneyLegStop {
   });
 
   factory TripRequestResponseJourneyLegStop.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLegStopFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLegStopFromJson(json);
 
   static const toJsonFactory = _$TripRequestResponseJourneyLegStopToJson;
   Map<String, dynamic> toJson() =>
@@ -3060,31 +2820,21 @@ class TripRequestResponseJourneyLegStop {
         (other is TripRequestResponseJourneyLegStop &&
             (identical(other.arrivalTimeEstimated, arrivalTimeEstimated) ||
                 const DeepCollectionEquality().equals(
-                  other.arrivalTimeEstimated,
-                  arrivalTimeEstimated,
-                )) &&
+                    other.arrivalTimeEstimated, arrivalTimeEstimated)) &&
             (identical(other.arrivalTimePlanned, arrivalTimePlanned) ||
-                const DeepCollectionEquality().equals(
-                  other.arrivalTimePlanned,
-                  arrivalTimePlanned,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.arrivalTimePlanned, arrivalTimePlanned)) &&
             (identical(other.coord, coord) ||
                 const DeepCollectionEquality().equals(other.coord, coord)) &&
             (identical(other.departureTimeEstimated, departureTimeEstimated) ||
                 const DeepCollectionEquality().equals(
-                  other.departureTimeEstimated,
-                  departureTimeEstimated,
-                )) &&
+                    other.departureTimeEstimated, departureTimeEstimated)) &&
             (identical(other.departureTimePlanned, departureTimePlanned) ||
                 const DeepCollectionEquality().equals(
-                  other.departureTimePlanned,
-                  departureTimePlanned,
-                )) &&
+                    other.departureTimePlanned, departureTimePlanned)) &&
             (identical(other.disassembledName, disassembledName) ||
-                const DeepCollectionEquality().equals(
-                  other.disassembledName,
-                  disassembledName,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.disassembledName, disassembledName)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.name, name) ||
@@ -3092,10 +2842,8 @@ class TripRequestResponseJourneyLegStop {
             (identical(other.parent, parent) ||
                 const DeepCollectionEquality().equals(other.parent, parent)) &&
             (identical(other.properties, properties) ||
-                const DeepCollectionEquality().equals(
-                  other.properties,
-                  properties,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.properties, properties)) &&
             (identical(other.type, type) ||
                 const DeepCollectionEquality().equals(other.type, type)));
   }
@@ -3121,81 +2869,80 @@ class TripRequestResponseJourneyLegStop {
 
 extension $TripRequestResponseJourneyLegStopExtension
     on TripRequestResponseJourneyLegStop {
-  TripRequestResponseJourneyLegStop copyWith({
-    String? arrivalTimeEstimated,
-    String? arrivalTimePlanned,
-    List<double>? coord,
-    String? departureTimeEstimated,
-    String? departureTimePlanned,
-    String? disassembledName,
-    String? id,
-    String? name,
-    ParentLocation? parent,
-    TripRequestResponseJourneyLegStop$Properties? properties,
-    enums.TripRequestResponseJourneyLegStopType? type,
-  }) {
+  TripRequestResponseJourneyLegStop copyWith(
+      {String? arrivalTimeEstimated,
+      String? arrivalTimePlanned,
+      List<double>? coord,
+      String? departureTimeEstimated,
+      String? departureTimePlanned,
+      String? disassembledName,
+      String? id,
+      String? name,
+      ParentLocation? parent,
+      TripRequestResponseJourneyLegStop$Properties? properties,
+      enums.TripRequestResponseJourneyLegStopType? type}) {
     return TripRequestResponseJourneyLegStop(
-      arrivalTimeEstimated: arrivalTimeEstimated ?? this.arrivalTimeEstimated,
-      arrivalTimePlanned: arrivalTimePlanned ?? this.arrivalTimePlanned,
-      coord: coord ?? this.coord,
-      departureTimeEstimated:
-          departureTimeEstimated ?? this.departureTimeEstimated,
-      departureTimePlanned: departureTimePlanned ?? this.departureTimePlanned,
-      disassembledName: disassembledName ?? this.disassembledName,
-      id: id ?? this.id,
-      name: name ?? this.name,
-      parent: parent ?? this.parent,
-      properties: properties ?? this.properties,
-      type: type ?? this.type,
-    );
+        arrivalTimeEstimated: arrivalTimeEstimated ?? this.arrivalTimeEstimated,
+        arrivalTimePlanned: arrivalTimePlanned ?? this.arrivalTimePlanned,
+        coord: coord ?? this.coord,
+        departureTimeEstimated:
+            departureTimeEstimated ?? this.departureTimeEstimated,
+        departureTimePlanned: departureTimePlanned ?? this.departureTimePlanned,
+        disassembledName: disassembledName ?? this.disassembledName,
+        id: id ?? this.id,
+        name: name ?? this.name,
+        parent: parent ?? this.parent,
+        properties: properties ?? this.properties,
+        type: type ?? this.type);
   }
 
-  TripRequestResponseJourneyLegStop copyWithWrapped({
-    Wrapped<String?>? arrivalTimeEstimated,
-    Wrapped<String?>? arrivalTimePlanned,
-    Wrapped<List<double>?>? coord,
-    Wrapped<String?>? departureTimeEstimated,
-    Wrapped<String?>? departureTimePlanned,
-    Wrapped<String?>? disassembledName,
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-    Wrapped<ParentLocation?>? parent,
-    Wrapped<TripRequestResponseJourneyLegStop$Properties?>? properties,
-    Wrapped<enums.TripRequestResponseJourneyLegStopType?>? type,
-  }) {
+  TripRequestResponseJourneyLegStop copyWithWrapped(
+      {Wrapped<String?>? arrivalTimeEstimated,
+      Wrapped<String?>? arrivalTimePlanned,
+      Wrapped<List<double>?>? coord,
+      Wrapped<String?>? departureTimeEstimated,
+      Wrapped<String?>? departureTimePlanned,
+      Wrapped<String?>? disassembledName,
+      Wrapped<String?>? id,
+      Wrapped<String?>? name,
+      Wrapped<ParentLocation?>? parent,
+      Wrapped<TripRequestResponseJourneyLegStop$Properties?>? properties,
+      Wrapped<enums.TripRequestResponseJourneyLegStopType?>? type}) {
     return TripRequestResponseJourneyLegStop(
-      arrivalTimeEstimated: (arrivalTimeEstimated != null
-          ? arrivalTimeEstimated.value
-          : this.arrivalTimeEstimated),
-      arrivalTimePlanned: (arrivalTimePlanned != null
-          ? arrivalTimePlanned.value
-          : this.arrivalTimePlanned),
-      coord: (coord != null ? coord.value : this.coord),
-      departureTimeEstimated: (departureTimeEstimated != null
-          ? departureTimeEstimated.value
-          : this.departureTimeEstimated),
-      departureTimePlanned: (departureTimePlanned != null
-          ? departureTimePlanned.value
-          : this.departureTimePlanned),
-      disassembledName: (disassembledName != null
-          ? disassembledName.value
-          : this.disassembledName),
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-      parent: (parent != null ? parent.value : this.parent),
-      properties: (properties != null ? properties.value : this.properties),
-      type: (type != null ? type.value : this.type),
-    );
+        arrivalTimeEstimated: (arrivalTimeEstimated != null
+            ? arrivalTimeEstimated.value
+            : this.arrivalTimeEstimated),
+        arrivalTimePlanned: (arrivalTimePlanned != null
+            ? arrivalTimePlanned.value
+            : this.arrivalTimePlanned),
+        coord: (coord != null ? coord.value : this.coord),
+        departureTimeEstimated: (departureTimeEstimated != null
+            ? departureTimeEstimated.value
+            : this.departureTimeEstimated),
+        departureTimePlanned: (departureTimePlanned != null
+            ? departureTimePlanned.value
+            : this.departureTimePlanned),
+        disassembledName: (disassembledName != null
+            ? disassembledName.value
+            : this.disassembledName),
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name),
+        parent: (parent != null ? parent.value : this.parent),
+        properties: (properties != null ? properties.value : this.properties),
+        type: (type != null ? type.value : this.type));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class TripRequestResponseJourneyLegStopDownload {
-  const TripRequestResponseJourneyLegStopDownload({this.type, this.url});
+  const TripRequestResponseJourneyLegStopDownload({
+    this.type,
+    this.url,
+  });
 
   factory TripRequestResponseJourneyLegStopDownload.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLegStopDownloadFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLegStopDownloadFromJson(json);
 
   static const toJsonFactory =
       _$TripRequestResponseJourneyLegStopDownloadToJson;
@@ -3231,24 +2978,17 @@ class TripRequestResponseJourneyLegStopDownload {
 
 extension $TripRequestResponseJourneyLegStopDownloadExtension
     on TripRequestResponseJourneyLegStopDownload {
-  TripRequestResponseJourneyLegStopDownload copyWith({
-    String? type,
-    String? url,
-  }) {
+  TripRequestResponseJourneyLegStopDownload copyWith(
+      {String? type, String? url}) {
     return TripRequestResponseJourneyLegStopDownload(
-      type: type ?? this.type,
-      url: url ?? this.url,
-    );
+        type: type ?? this.type, url: url ?? this.url);
   }
 
-  TripRequestResponseJourneyLegStopDownload copyWithWrapped({
-    Wrapped<String?>? type,
-    Wrapped<String?>? url,
-  }) {
+  TripRequestResponseJourneyLegStopDownload copyWithWrapped(
+      {Wrapped<String?>? type, Wrapped<String?>? url}) {
     return TripRequestResponseJourneyLegStopDownload(
-      type: (type != null ? type.value : this.type),
-      url: (url != null ? url.value : this.url),
-    );
+        type: (type != null ? type.value : this.type),
+        url: (url != null ? url.value : this.url));
   }
 }
 
@@ -3261,8 +3001,8 @@ class TripRequestResponseJourneyLegStopFootpathInfo {
   });
 
   factory TripRequestResponseJourneyLegStopFootpathInfo.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLegStopFootpathInfoFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLegStopFootpathInfoFromJson(json);
 
   static const toJsonFactory =
       _$TripRequestResponseJourneyLegStopFootpathInfoToJson;
@@ -3272,11 +3012,10 @@ class TripRequestResponseJourneyLegStopFootpathInfo {
   @JsonKey(name: 'duration')
   final int? duration;
   @JsonKey(
-    name: 'footPathElem',
-    defaultValue: <TripRequestResponseJourneyLegStopFootpathInfoFootpathElem>[],
-  )
+      name: 'footPathElem',
+      defaultValue: <TripRequestResponseJourneyLegStopFootpathInfoFootpathElem>[])
   final List<TripRequestResponseJourneyLegStopFootpathInfoFootpathElem>?
-  footPathElem;
+      footPathElem;
   @JsonKey(
     name: 'position',
     toJson: tripRequestResponseJourneyLegStopFootpathInfoPositionNullableToJson,
@@ -3292,20 +3031,14 @@ class TripRequestResponseJourneyLegStopFootpathInfo {
     return identical(this, other) ||
         (other is TripRequestResponseJourneyLegStopFootpathInfo &&
             (identical(other.duration, duration) ||
-                const DeepCollectionEquality().equals(
-                  other.duration,
-                  duration,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.duration, duration)) &&
             (identical(other.footPathElem, footPathElem) ||
-                const DeepCollectionEquality().equals(
-                  other.footPathElem,
-                  footPathElem,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.footPathElem, footPathElem)) &&
             (identical(other.position, position) ||
-                const DeepCollectionEquality().equals(
-                  other.position,
-                  position,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.position, position)));
   }
 
   @override
@@ -3321,33 +3054,28 @@ class TripRequestResponseJourneyLegStopFootpathInfo {
 
 extension $TripRequestResponseJourneyLegStopFootpathInfoExtension
     on TripRequestResponseJourneyLegStopFootpathInfo {
-  TripRequestResponseJourneyLegStopFootpathInfo copyWith({
-    int? duration,
-    List<TripRequestResponseJourneyLegStopFootpathInfoFootpathElem>?
-    footPathElem,
-    enums.TripRequestResponseJourneyLegStopFootpathInfoPosition? position,
-  }) {
+  TripRequestResponseJourneyLegStopFootpathInfo copyWith(
+      {int? duration,
+      List<TripRequestResponseJourneyLegStopFootpathInfoFootpathElem>?
+          footPathElem,
+      enums.TripRequestResponseJourneyLegStopFootpathInfoPosition? position}) {
     return TripRequestResponseJourneyLegStopFootpathInfo(
-      duration: duration ?? this.duration,
-      footPathElem: footPathElem ?? this.footPathElem,
-      position: position ?? this.position,
-    );
+        duration: duration ?? this.duration,
+        footPathElem: footPathElem ?? this.footPathElem,
+        position: position ?? this.position);
   }
 
-  TripRequestResponseJourneyLegStopFootpathInfo copyWithWrapped({
-    Wrapped<int?>? duration,
-    Wrapped<List<TripRequestResponseJourneyLegStopFootpathInfoFootpathElem>?>?
-    footPathElem,
-    Wrapped<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition?>?
-    position,
-  }) {
+  TripRequestResponseJourneyLegStopFootpathInfo copyWithWrapped(
+      {Wrapped<int?>? duration,
+      Wrapped<List<TripRequestResponseJourneyLegStopFootpathInfoFootpathElem>?>?
+          footPathElem,
+      Wrapped<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition?>?
+          position}) {
     return TripRequestResponseJourneyLegStopFootpathInfo(
-      duration: (duration != null ? duration.value : this.duration),
-      footPathElem: (footPathElem != null
-          ? footPathElem.value
-          : this.footPathElem),
-      position: (position != null ? position.value : this.position),
-    );
+        duration: (duration != null ? duration.value : this.duration),
+        footPathElem:
+            (footPathElem != null ? footPathElem.value : this.footPathElem),
+        position: (position != null ? position.value : this.position));
   }
 }
 
@@ -3364,8 +3092,7 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElem {
   });
 
   factory TripRequestResponseJourneyLegStopFootpathInfoFootpathElem.fromJson(
-    Map<String, dynamic> json,
-  ) =>
+          Map<String, dynamic> json) =>
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemFromJson(json);
 
   static const toJsonFactory =
@@ -3377,7 +3104,7 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElem {
   final String? description;
   @JsonKey(name: 'destination')
   final TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?
-  destination;
+      destination;
   @JsonKey(
     name: 'level',
     toJson:
@@ -3386,14 +3113,14 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElem {
         tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelNullableFromJson,
   )
   final enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
-  level;
+      level;
   @JsonKey(name: 'levelFrom')
   final int? levelFrom;
   @JsonKey(name: 'levelTo')
   final int? levelTo;
   @JsonKey(name: 'origin')
   final TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?
-  origin;
+      origin;
   @JsonKey(
     name: 'type',
     toJson:
@@ -3402,7 +3129,7 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElem {
         tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeNullableFromJson,
   )
   final enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
-  type;
+      type;
   static const fromJsonFactory =
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemFromJson;
 
@@ -3411,27 +3138,19 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElem {
     return identical(this, other) ||
         (other is TripRequestResponseJourneyLegStopFootpathInfoFootpathElem &&
             (identical(other.description, description) ||
-                const DeepCollectionEquality().equals(
-                  other.description,
-                  description,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.description, description)) &&
             (identical(other.destination, destination) ||
-                const DeepCollectionEquality().equals(
-                  other.destination,
-                  destination,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.destination, destination)) &&
             (identical(other.level, level) ||
                 const DeepCollectionEquality().equals(other.level, level)) &&
             (identical(other.levelFrom, levelFrom) ||
-                const DeepCollectionEquality().equals(
-                  other.levelFrom,
-                  levelFrom,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.levelFrom, levelFrom)) &&
             (identical(other.levelTo, levelTo) ||
-                const DeepCollectionEquality().equals(
-                  other.levelTo,
-                  levelTo,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.levelTo, levelTo)) &&
             (identical(other.origin, origin) ||
                 const DeepCollectionEquality().equals(other.origin, origin)) &&
             (identical(other.type, type) ||
@@ -3455,53 +3174,53 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElem {
 
 extension $TripRequestResponseJourneyLegStopFootpathInfoFootpathElemExtension
     on TripRequestResponseJourneyLegStopFootpathInfoFootpathElem {
-  TripRequestResponseJourneyLegStopFootpathInfoFootpathElem copyWith({
-    String? description,
-    TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?
-    destination,
-    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel? level,
-    int? levelFrom,
-    int? levelTo,
-    TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation? origin,
-    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType? type,
-  }) {
+  TripRequestResponseJourneyLegStopFootpathInfoFootpathElem copyWith(
+      {String? description,
+      TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?
+          destination,
+      enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
+          level,
+      int? levelFrom,
+      int? levelTo,
+      TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation? origin,
+      enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
+          type}) {
     return TripRequestResponseJourneyLegStopFootpathInfoFootpathElem(
-      description: description ?? this.description,
-      destination: destination ?? this.destination,
-      level: level ?? this.level,
-      levelFrom: levelFrom ?? this.levelFrom,
-      levelTo: levelTo ?? this.levelTo,
-      origin: origin ?? this.origin,
-      type: type ?? this.type,
-    );
+        description: description ?? this.description,
+        destination: destination ?? this.destination,
+        level: level ?? this.level,
+        levelFrom: levelFrom ?? this.levelFrom,
+        levelTo: levelTo ?? this.levelTo,
+        origin: origin ?? this.origin,
+        type: type ?? this.type);
   }
 
-  TripRequestResponseJourneyLegStopFootpathInfoFootpathElem copyWithWrapped({
-    Wrapped<String?>? description,
-    Wrapped<TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?>?
-    destination,
-    Wrapped<
-      enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
-    >?
-    level,
-    Wrapped<int?>? levelFrom,
-    Wrapped<int?>? levelTo,
-    Wrapped<TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?>?
-    origin,
-    Wrapped<
-      enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
-    >?
-    type,
-  }) {
+  TripRequestResponseJourneyLegStopFootpathInfoFootpathElem copyWithWrapped(
+      {Wrapped<String?>? description,
+      Wrapped<TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?>?
+          destination,
+      Wrapped<
+              enums
+              .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?>?
+          level,
+      Wrapped<int?>? levelFrom,
+      Wrapped<int?>? levelTo,
+      Wrapped<TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation?>?
+          origin,
+      Wrapped<
+              enums
+              .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?>?
+          type}) {
     return TripRequestResponseJourneyLegStopFootpathInfoFootpathElem(
-      description: (description != null ? description.value : this.description),
-      destination: (destination != null ? destination.value : this.destination),
-      level: (level != null ? level.value : this.level),
-      levelFrom: (levelFrom != null ? levelFrom.value : this.levelFrom),
-      levelTo: (levelTo != null ? levelTo.value : this.levelTo),
-      origin: (origin != null ? origin.value : this.origin),
-      type: (type != null ? type.value : this.type),
-    );
+        description:
+            (description != null ? description.value : this.description),
+        destination:
+            (destination != null ? destination.value : this.destination),
+        level: (level != null ? level.value : this.level),
+        levelFrom: (levelFrom != null ? levelFrom.value : this.levelFrom),
+        levelTo: (levelTo != null ? levelTo.value : this.levelTo),
+        origin: (origin != null ? origin.value : this.origin),
+        type: (type != null ? type.value : this.type));
   }
 }
 
@@ -3515,18 +3234,15 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation {
   });
 
   factory TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation.fromJson(
-    Map<String, dynamic> json,
-  ) =>
+          Map<String, dynamic> json) =>
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocationFromJson(
-        json,
-      );
+          json);
 
   static const toJsonFactory =
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocationToJson;
   Map<String, dynamic> toJson() =>
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocationToJson(
-        this,
-      );
+          this);
 
   @JsonKey(name: 'area')
   final int? area;
@@ -3534,7 +3250,7 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation {
   final String? georef;
   @JsonKey(name: 'location')
   final TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location?
-  location;
+      location;
   @JsonKey(name: 'platform')
   final int? platform;
   static const fromJsonFactory =
@@ -3543,22 +3259,17 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other
-                is TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation &&
+        (other is TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation &&
             (identical(other.area, area) ||
                 const DeepCollectionEquality().equals(other.area, area)) &&
             (identical(other.georef, georef) ||
                 const DeepCollectionEquality().equals(other.georef, georef)) &&
             (identical(other.location, location) ||
-                const DeepCollectionEquality().equals(
-                  other.location,
-                  location,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.location, location)) &&
             (identical(other.platform, platform) ||
-                const DeepCollectionEquality().equals(
-                  other.platform,
-                  platform,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.platform, platform)));
   }
 
   @override
@@ -3575,37 +3286,30 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation {
 
 extension $TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocationExtension
     on TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation {
-  TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation copyWith({
-    int? area,
-    String? georef,
-    TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location?
-    location,
-    int? platform,
-  }) {
+  TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation copyWith(
+      {int? area,
+      String? georef,
+      TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location?
+          location,
+      int? platform}) {
     return TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation(
-      area: area ?? this.area,
-      georef: georef ?? this.georef,
-      location: location ?? this.location,
-      platform: platform ?? this.platform,
-    );
+        area: area ?? this.area,
+        georef: georef ?? this.georef,
+        location: location ?? this.location,
+        platform: platform ?? this.platform);
   }
 
-  TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation
-  copyWithWrapped({
-    Wrapped<int?>? area,
-    Wrapped<String?>? georef,
-    Wrapped<
-      TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location?
-    >?
-    location,
-    Wrapped<int?>? platform,
-  }) {
+  TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation copyWithWrapped(
+      {Wrapped<int?>? area,
+      Wrapped<String?>? georef,
+      Wrapped<TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location?>?
+          location,
+      Wrapped<int?>? platform}) {
     return TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation(
-      area: (area != null ? area.value : this.area),
-      georef: (georef != null ? georef.value : this.georef),
-      location: (location != null ? location.value : this.location),
-      platform: (platform != null ? platform.value : this.platform),
-    );
+        area: (area != null ? area.value : this.area),
+        georef: (georef != null ? georef.value : this.georef),
+        location: (location != null ? location.value : this.location),
+        platform: (platform != null ? platform.value : this.platform));
   }
 }
 
@@ -3623,8 +3327,8 @@ class TripRequestResponseJourneyLegStopInfo {
   });
 
   factory TripRequestResponseJourneyLegStopInfo.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLegStopInfoFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLegStopInfoFromJson(json);
 
   static const toJsonFactory = _$TripRequestResponseJourneyLegStopInfoToJson;
   Map<String, dynamic> toJson() =>
@@ -3658,34 +3362,24 @@ class TripRequestResponseJourneyLegStopInfo {
     return identical(this, other) ||
         (other is TripRequestResponseJourneyLegStopInfo &&
             (identical(other.content, content) ||
-                const DeepCollectionEquality().equals(
-                  other.content,
-                  content,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.content, content)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.priority, priority) ||
-                const DeepCollectionEquality().equals(
-                  other.priority,
-                  priority,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.priority, priority)) &&
             (identical(other.subtitle, subtitle) ||
-                const DeepCollectionEquality().equals(
-                  other.subtitle,
-                  subtitle,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.subtitle, subtitle)) &&
             (identical(other.timestamps, timestamps) ||
-                const DeepCollectionEquality().equals(
-                  other.timestamps,
-                  timestamps,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.timestamps, timestamps)) &&
             (identical(other.url, url) ||
                 const DeepCollectionEquality().equals(other.url, url)) &&
             (identical(other.urlText, urlText) ||
-                const DeepCollectionEquality().equals(
-                  other.urlText,
-                  urlText,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.urlText, urlText)) &&
             (identical(other.version, version) ||
                 const DeepCollectionEquality().equals(other.version, version)));
   }
@@ -3708,48 +3402,44 @@ class TripRequestResponseJourneyLegStopInfo {
 
 extension $TripRequestResponseJourneyLegStopInfoExtension
     on TripRequestResponseJourneyLegStopInfo {
-  TripRequestResponseJourneyLegStopInfo copyWith({
-    String? content,
-    String? id,
-    enums.TripRequestResponseJourneyLegStopInfoPriority? priority,
-    String? subtitle,
-    AdditionalInfoResponseTimestamps? timestamps,
-    String? url,
-    String? urlText,
-    int? version,
-  }) {
+  TripRequestResponseJourneyLegStopInfo copyWith(
+      {String? content,
+      String? id,
+      enums.TripRequestResponseJourneyLegStopInfoPriority? priority,
+      String? subtitle,
+      AdditionalInfoResponseTimestamps? timestamps,
+      String? url,
+      String? urlText,
+      int? version}) {
     return TripRequestResponseJourneyLegStopInfo(
-      content: content ?? this.content,
-      id: id ?? this.id,
-      priority: priority ?? this.priority,
-      subtitle: subtitle ?? this.subtitle,
-      timestamps: timestamps ?? this.timestamps,
-      url: url ?? this.url,
-      urlText: urlText ?? this.urlText,
-      version: version ?? this.version,
-    );
+        content: content ?? this.content,
+        id: id ?? this.id,
+        priority: priority ?? this.priority,
+        subtitle: subtitle ?? this.subtitle,
+        timestamps: timestamps ?? this.timestamps,
+        url: url ?? this.url,
+        urlText: urlText ?? this.urlText,
+        version: version ?? this.version);
   }
 
-  TripRequestResponseJourneyLegStopInfo copyWithWrapped({
-    Wrapped<String?>? content,
-    Wrapped<String?>? id,
-    Wrapped<enums.TripRequestResponseJourneyLegStopInfoPriority?>? priority,
-    Wrapped<String?>? subtitle,
-    Wrapped<AdditionalInfoResponseTimestamps?>? timestamps,
-    Wrapped<String?>? url,
-    Wrapped<String?>? urlText,
-    Wrapped<int?>? version,
-  }) {
+  TripRequestResponseJourneyLegStopInfo copyWithWrapped(
+      {Wrapped<String?>? content,
+      Wrapped<String?>? id,
+      Wrapped<enums.TripRequestResponseJourneyLegStopInfoPriority?>? priority,
+      Wrapped<String?>? subtitle,
+      Wrapped<AdditionalInfoResponseTimestamps?>? timestamps,
+      Wrapped<String?>? url,
+      Wrapped<String?>? urlText,
+      Wrapped<int?>? version}) {
     return TripRequestResponseJourneyLegStopInfo(
-      content: (content != null ? content.value : this.content),
-      id: (id != null ? id.value : this.id),
-      priority: (priority != null ? priority.value : this.priority),
-      subtitle: (subtitle != null ? subtitle.value : this.subtitle),
-      timestamps: (timestamps != null ? timestamps.value : this.timestamps),
-      url: (url != null ? url.value : this.url),
-      urlText: (urlText != null ? urlText.value : this.urlText),
-      version: (version != null ? version.value : this.version),
-    );
+        content: (content != null ? content.value : this.content),
+        id: (id != null ? id.value : this.id),
+        priority: (priority != null ? priority.value : this.priority),
+        subtitle: (subtitle != null ? subtitle.value : this.subtitle),
+        timestamps: (timestamps != null ? timestamps.value : this.timestamps),
+        url: (url != null ? url.value : this.url),
+        urlText: (urlText != null ? urlText.value : this.urlText),
+        version: (version != null ? version.value : this.version));
   }
 }
 
@@ -3805,32 +3495,25 @@ class TripRequestResponseMessage {
 }
 
 extension $TripRequestResponseMessageExtension on TripRequestResponseMessage {
-  TripRequestResponseMessage copyWith({
-    int? code,
-    String? error,
-    String? module,
-    String? type,
-  }) {
+  TripRequestResponseMessage copyWith(
+      {int? code, String? error, String? module, String? type}) {
     return TripRequestResponseMessage(
-      code: code ?? this.code,
-      error: error ?? this.error,
-      module: module ?? this.module,
-      type: type ?? this.type,
-    );
+        code: code ?? this.code,
+        error: error ?? this.error,
+        module: module ?? this.module,
+        type: type ?? this.type);
   }
 
-  TripRequestResponseMessage copyWithWrapped({
-    Wrapped<int?>? code,
-    Wrapped<String?>? error,
-    Wrapped<String?>? module,
-    Wrapped<String?>? type,
-  }) {
+  TripRequestResponseMessage copyWithWrapped(
+      {Wrapped<int?>? code,
+      Wrapped<String?>? error,
+      Wrapped<String?>? module,
+      Wrapped<String?>? type}) {
     return TripRequestResponseMessage(
-      code: (code != null ? code.value : this.code),
-      error: (error != null ? error.value : this.error),
-      module: (module != null ? module.value : this.module),
-      type: (type != null ? type.value : this.type),
-    );
+        code: (code != null ? code.value : this.code),
+        error: (error != null ? error.value : this.error),
+        module: (module != null ? module.value : this.module),
+        type: (type != null ? type.value : this.type));
   }
 }
 
@@ -3882,20 +3565,14 @@ class TripTransportation {
     return identical(this, other) ||
         (other is TripTransportation &&
             (identical(other.description, description) ||
-                const DeepCollectionEquality().equals(
-                  other.description,
-                  description,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.description, description)) &&
             (identical(other.destination, destination) ||
-                const DeepCollectionEquality().equals(
-                  other.destination,
-                  destination,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.destination, destination)) &&
             (identical(other.disassembledName, disassembledName) ||
-                const DeepCollectionEquality().equals(
-                  other.disassembledName,
-                  disassembledName,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.disassembledName, disassembledName)) &&
             (identical(other.iconId, iconId) ||
                 const DeepCollectionEquality().equals(other.iconId, iconId)) &&
             (identical(other.id, id) ||
@@ -3905,20 +3582,14 @@ class TripTransportation {
             (identical(other.number, number) ||
                 const DeepCollectionEquality().equals(other.number, number)) &&
             (identical(other.$operator, $operator) ||
-                const DeepCollectionEquality().equals(
-                  other.$operator,
-                  $operator,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.$operator, $operator)) &&
             (identical(other.product, product) ||
-                const DeepCollectionEquality().equals(
-                  other.product,
-                  product,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.product, product)) &&
             (identical(other.properties, properties) ||
-                const DeepCollectionEquality().equals(
-                  other.properties,
-                  properties,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.properties, properties)));
   }
 
   @override
@@ -3940,58 +3611,56 @@ class TripTransportation {
 }
 
 extension $TripTransportationExtension on TripTransportation {
-  TripTransportation copyWith({
-    String? description,
-    TripTransportation$Destination? destination,
-    String? disassembledName,
-    int? iconId,
-    String? id,
-    String? name,
-    String? number,
-    TripTransportation$Operator? $operator,
-    RouteProduct? product,
-    TripTransportation$Properties? properties,
-  }) {
+  TripTransportation copyWith(
+      {String? description,
+      TripTransportation$Destination? destination,
+      String? disassembledName,
+      int? iconId,
+      String? id,
+      String? name,
+      String? number,
+      TripTransportation$Operator? $operator,
+      RouteProduct? product,
+      TripTransportation$Properties? properties}) {
     return TripTransportation(
-      description: description ?? this.description,
-      destination: destination ?? this.destination,
-      disassembledName: disassembledName ?? this.disassembledName,
-      iconId: iconId ?? this.iconId,
-      id: id ?? this.id,
-      name: name ?? this.name,
-      number: number ?? this.number,
-      $operator: $operator ?? this.$operator,
-      product: product ?? this.product,
-      properties: properties ?? this.properties,
-    );
+        description: description ?? this.description,
+        destination: destination ?? this.destination,
+        disassembledName: disassembledName ?? this.disassembledName,
+        iconId: iconId ?? this.iconId,
+        id: id ?? this.id,
+        name: name ?? this.name,
+        number: number ?? this.number,
+        $operator: $operator ?? this.$operator,
+        product: product ?? this.product,
+        properties: properties ?? this.properties);
   }
 
-  TripTransportation copyWithWrapped({
-    Wrapped<String?>? description,
-    Wrapped<TripTransportation$Destination?>? destination,
-    Wrapped<String?>? disassembledName,
-    Wrapped<int?>? iconId,
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-    Wrapped<String?>? number,
-    Wrapped<TripTransportation$Operator?>? $operator,
-    Wrapped<RouteProduct?>? product,
-    Wrapped<TripTransportation$Properties?>? properties,
-  }) {
+  TripTransportation copyWithWrapped(
+      {Wrapped<String?>? description,
+      Wrapped<TripTransportation$Destination?>? destination,
+      Wrapped<String?>? disassembledName,
+      Wrapped<int?>? iconId,
+      Wrapped<String?>? id,
+      Wrapped<String?>? name,
+      Wrapped<String?>? number,
+      Wrapped<TripTransportation$Operator?>? $operator,
+      Wrapped<RouteProduct?>? product,
+      Wrapped<TripTransportation$Properties?>? properties}) {
     return TripTransportation(
-      description: (description != null ? description.value : this.description),
-      destination: (destination != null ? destination.value : this.destination),
-      disassembledName: (disassembledName != null
-          ? disassembledName.value
-          : this.disassembledName),
-      iconId: (iconId != null ? iconId.value : this.iconId),
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-      number: (number != null ? number.value : this.number),
-      $operator: ($operator != null ? $operator.value : this.$operator),
-      product: (product != null ? product.value : this.product),
-      properties: (properties != null ? properties.value : this.properties),
-    );
+        description:
+            (description != null ? description.value : this.description),
+        destination:
+            (destination != null ? destination.value : this.destination),
+        disassembledName: (disassembledName != null
+            ? disassembledName.value
+            : this.disassembledName),
+        iconId: (iconId != null ? iconId.value : this.iconId),
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name),
+        number: (number != null ? number.value : this.number),
+        $operator: ($operator != null ? $operator.value : this.$operator),
+        product: (product != null ? product.value : this.product),
+        properties: (properties != null ? properties.value : this.properties));
   }
 }
 
@@ -4022,20 +3691,14 @@ class AdditionalInfoResponse$Infos {
     return identical(this, other) ||
         (other is AdditionalInfoResponse$Infos &&
             (identical(other.affected, affected) ||
-                const DeepCollectionEquality().equals(
-                  other.affected,
-                  affected,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.affected, affected)) &&
             (identical(other.current, current) ||
-                const DeepCollectionEquality().equals(
-                  other.current,
-                  current,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.current, current)) &&
             (identical(other.historic, historic) ||
-                const DeepCollectionEquality().equals(
-                  other.historic,
-                  historic,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.historic, historic)));
   }
 
   @override
@@ -4051,38 +3714,37 @@ class AdditionalInfoResponse$Infos {
 
 extension $AdditionalInfoResponse$InfosExtension
     on AdditionalInfoResponse$Infos {
-  AdditionalInfoResponse$Infos copyWith({
-    AdditionalInfoResponse$Infos$Affected? affected,
-    List<AdditionalInfoResponseMessage>? current,
-    List<AdditionalInfoResponseMessage>? historic,
-  }) {
+  AdditionalInfoResponse$Infos copyWith(
+      {AdditionalInfoResponse$Infos$Affected? affected,
+      List<AdditionalInfoResponseMessage>? current,
+      List<AdditionalInfoResponseMessage>? historic}) {
     return AdditionalInfoResponse$Infos(
-      affected: affected ?? this.affected,
-      current: current ?? this.current,
-      historic: historic ?? this.historic,
-    );
+        affected: affected ?? this.affected,
+        current: current ?? this.current,
+        historic: historic ?? this.historic);
   }
 
-  AdditionalInfoResponse$Infos copyWithWrapped({
-    Wrapped<AdditionalInfoResponse$Infos$Affected?>? affected,
-    Wrapped<List<AdditionalInfoResponseMessage>?>? current,
-    Wrapped<List<AdditionalInfoResponseMessage>?>? historic,
-  }) {
+  AdditionalInfoResponse$Infos copyWithWrapped(
+      {Wrapped<AdditionalInfoResponse$Infos$Affected?>? affected,
+      Wrapped<List<AdditionalInfoResponseMessage>?>? current,
+      Wrapped<List<AdditionalInfoResponseMessage>?>? historic}) {
     return AdditionalInfoResponse$Infos(
-      affected: (affected != null ? affected.value : this.affected),
-      current: (current != null ? current.value : this.current),
-      historic: (historic != null ? historic.value : this.historic),
-    );
+        affected: (affected != null ? affected.value : this.affected),
+        current: (current != null ? current.value : this.current),
+        historic: (historic != null ? historic.value : this.historic));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class AdditionalInfoResponseAffectedLine$Destination {
-  const AdditionalInfoResponseAffectedLine$Destination({this.name, this.type});
+  const AdditionalInfoResponseAffectedLine$Destination({
+    this.name,
+    this.type,
+  });
 
   factory AdditionalInfoResponseAffectedLine$Destination.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseAffectedLine$DestinationFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseAffectedLine$DestinationFromJson(json);
 
   static const toJsonFactory =
       _$AdditionalInfoResponseAffectedLine$DestinationToJson;
@@ -4123,34 +3785,33 @@ class AdditionalInfoResponseAffectedLine$Destination {
 
 extension $AdditionalInfoResponseAffectedLine$DestinationExtension
     on AdditionalInfoResponseAffectedLine$Destination {
-  AdditionalInfoResponseAffectedLine$Destination copyWith({
-    String? name,
-    enums.AdditionalInfoResponseAffectedLine$DestinationType? type,
-  }) {
+  AdditionalInfoResponseAffectedLine$Destination copyWith(
+      {String? name,
+      enums.AdditionalInfoResponseAffectedLine$DestinationType? type}) {
     return AdditionalInfoResponseAffectedLine$Destination(
-      name: name ?? this.name,
-      type: type ?? this.type,
-    );
+        name: name ?? this.name, type: type ?? this.type);
   }
 
-  AdditionalInfoResponseAffectedLine$Destination copyWithWrapped({
-    Wrapped<String?>? name,
-    Wrapped<enums.AdditionalInfoResponseAffectedLine$DestinationType?>? type,
-  }) {
+  AdditionalInfoResponseAffectedLine$Destination copyWithWrapped(
+      {Wrapped<String?>? name,
+      Wrapped<enums.AdditionalInfoResponseAffectedLine$DestinationType?>?
+          type}) {
     return AdditionalInfoResponseAffectedLine$Destination(
-      name: (name != null ? name.value : this.name),
-      type: (type != null ? type.value : this.type),
-    );
+        name: (name != null ? name.value : this.name),
+        type: (type != null ? type.value : this.type));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class AdditionalInfoResponseMessage$Affected {
-  const AdditionalInfoResponseMessage$Affected({this.lines, this.stops});
+  const AdditionalInfoResponseMessage$Affected({
+    this.lines,
+    this.stops,
+  });
 
   factory AdditionalInfoResponseMessage$Affected.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseMessage$AffectedFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseMessage$AffectedFromJson(json);
 
   static const toJsonFactory = _$AdditionalInfoResponseMessage$AffectedToJson;
   Map<String, dynamic> toJson() =>
@@ -4185,24 +3846,19 @@ class AdditionalInfoResponseMessage$Affected {
 
 extension $AdditionalInfoResponseMessage$AffectedExtension
     on AdditionalInfoResponseMessage$Affected {
-  AdditionalInfoResponseMessage$Affected copyWith({
-    List<AdditionalInfoResponseAffectedLine>? lines,
-    List<AdditionalInfoResponseAffectedStop>? stops,
-  }) {
+  AdditionalInfoResponseMessage$Affected copyWith(
+      {List<AdditionalInfoResponseAffectedLine>? lines,
+      List<AdditionalInfoResponseAffectedStop>? stops}) {
     return AdditionalInfoResponseMessage$Affected(
-      lines: lines ?? this.lines,
-      stops: stops ?? this.stops,
-    );
+        lines: lines ?? this.lines, stops: stops ?? this.stops);
   }
 
-  AdditionalInfoResponseMessage$Affected copyWithWrapped({
-    Wrapped<List<AdditionalInfoResponseAffectedLine>?>? lines,
-    Wrapped<List<AdditionalInfoResponseAffectedStop>?>? stops,
-  }) {
+  AdditionalInfoResponseMessage$Affected copyWithWrapped(
+      {Wrapped<List<AdditionalInfoResponseAffectedLine>?>? lines,
+      Wrapped<List<AdditionalInfoResponseAffectedStop>?>? stops}) {
     return AdditionalInfoResponseMessage$Affected(
-      lines: (lines != null ? lines.value : this.lines),
-      stops: (stops != null ? stops.value : this.stops),
-    );
+        lines: (lines != null ? lines.value : this.lines),
+        stops: (stops != null ? stops.value : this.stops));
   }
 }
 
@@ -4215,8 +3871,8 @@ class AdditionalInfoResponseMessage$Properties {
   });
 
   factory AdditionalInfoResponseMessage$Properties.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseMessage$PropertiesFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseMessage$PropertiesFromJson(json);
 
   static const toJsonFactory = _$AdditionalInfoResponseMessage$PropertiesToJson;
   Map<String, dynamic> toJson() =>
@@ -4236,15 +3892,11 @@ class AdditionalInfoResponseMessage$Properties {
     return identical(this, other) ||
         (other is AdditionalInfoResponseMessage$Properties &&
             (identical(other.providerCode, providerCode) ||
-                const DeepCollectionEquality().equals(
-                  other.providerCode,
-                  providerCode,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.providerCode, providerCode)) &&
             (identical(other.smsText, smsText) ||
-                const DeepCollectionEquality().equals(
-                  other.smsText,
-                  smsText,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.smsText, smsText)) &&
             (identical(other.source, source) ||
                 const DeepCollectionEquality().equals(other.source, source)));
   }
@@ -4262,40 +3914,38 @@ class AdditionalInfoResponseMessage$Properties {
 
 extension $AdditionalInfoResponseMessage$PropertiesExtension
     on AdditionalInfoResponseMessage$Properties {
-  AdditionalInfoResponseMessage$Properties copyWith({
-    String? providerCode,
-    String? smsText,
-    AdditionalInfoResponseMessage$Properties$Source? source,
-  }) {
+  AdditionalInfoResponseMessage$Properties copyWith(
+      {String? providerCode,
+      String? smsText,
+      AdditionalInfoResponseMessage$Properties$Source? source}) {
     return AdditionalInfoResponseMessage$Properties(
-      providerCode: providerCode ?? this.providerCode,
-      smsText: smsText ?? this.smsText,
-      source: source ?? this.source,
-    );
+        providerCode: providerCode ?? this.providerCode,
+        smsText: smsText ?? this.smsText,
+        source: source ?? this.source);
   }
 
-  AdditionalInfoResponseMessage$Properties copyWithWrapped({
-    Wrapped<String?>? providerCode,
-    Wrapped<String?>? smsText,
-    Wrapped<AdditionalInfoResponseMessage$Properties$Source?>? source,
-  }) {
+  AdditionalInfoResponseMessage$Properties copyWithWrapped(
+      {Wrapped<String?>? providerCode,
+      Wrapped<String?>? smsText,
+      Wrapped<AdditionalInfoResponseMessage$Properties$Source?>? source}) {
     return AdditionalInfoResponseMessage$Properties(
-      providerCode: (providerCode != null
-          ? providerCode.value
-          : this.providerCode),
-      smsText: (smsText != null ? smsText.value : this.smsText),
-      source: (source != null ? source.value : this.source),
-    );
+        providerCode:
+            (providerCode != null ? providerCode.value : this.providerCode),
+        smsText: (smsText != null ? smsText.value : this.smsText),
+        source: (source != null ? source.value : this.source));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class AdditionalInfoResponseTimestamps$Availability {
-  const AdditionalInfoResponseTimestamps$Availability({this.from, this.to});
+  const AdditionalInfoResponseTimestamps$Availability({
+    this.from,
+    this.to,
+  });
 
   factory AdditionalInfoResponseTimestamps$Availability.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseTimestamps$AvailabilityFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseTimestamps$AvailabilityFromJson(json);
 
   static const toJsonFactory =
       _$AdditionalInfoResponseTimestamps$AvailabilityToJson;
@@ -4331,34 +3981,30 @@ class AdditionalInfoResponseTimestamps$Availability {
 
 extension $AdditionalInfoResponseTimestamps$AvailabilityExtension
     on AdditionalInfoResponseTimestamps$Availability {
-  AdditionalInfoResponseTimestamps$Availability copyWith({
-    String? from,
-    String? to,
-  }) {
+  AdditionalInfoResponseTimestamps$Availability copyWith(
+      {String? from, String? to}) {
     return AdditionalInfoResponseTimestamps$Availability(
-      from: from ?? this.from,
-      to: to ?? this.to,
-    );
+        from: from ?? this.from, to: to ?? this.to);
   }
 
-  AdditionalInfoResponseTimestamps$Availability copyWithWrapped({
-    Wrapped<String?>? from,
-    Wrapped<String?>? to,
-  }) {
+  AdditionalInfoResponseTimestamps$Availability copyWithWrapped(
+      {Wrapped<String?>? from, Wrapped<String?>? to}) {
     return AdditionalInfoResponseTimestamps$Availability(
-      from: (from != null ? from.value : this.from),
-      to: (to != null ? to.value : this.to),
-    );
+        from: (from != null ? from.value : this.from),
+        to: (to != null ? to.value : this.to));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class AdditionalInfoResponseTimestamps$Validity$Item {
-  const AdditionalInfoResponseTimestamps$Validity$Item({this.from, this.to});
+  const AdditionalInfoResponseTimestamps$Validity$Item({
+    this.from,
+    this.to,
+  });
 
   factory AdditionalInfoResponseTimestamps$Validity$Item.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseTimestamps$Validity$ItemFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseTimestamps$Validity$ItemFromJson(json);
 
   static const toJsonFactory =
       _$AdditionalInfoResponseTimestamps$Validity$ItemToJson;
@@ -4394,24 +4040,17 @@ class AdditionalInfoResponseTimestamps$Validity$Item {
 
 extension $AdditionalInfoResponseTimestamps$Validity$ItemExtension
     on AdditionalInfoResponseTimestamps$Validity$Item {
-  AdditionalInfoResponseTimestamps$Validity$Item copyWith({
-    String? from,
-    String? to,
-  }) {
+  AdditionalInfoResponseTimestamps$Validity$Item copyWith(
+      {String? from, String? to}) {
     return AdditionalInfoResponseTimestamps$Validity$Item(
-      from: from ?? this.from,
-      to: to ?? this.to,
-    );
+        from: from ?? this.from, to: to ?? this.to);
   }
 
-  AdditionalInfoResponseTimestamps$Validity$Item copyWithWrapped({
-    Wrapped<String?>? from,
-    Wrapped<String?>? to,
-  }) {
+  AdditionalInfoResponseTimestamps$Validity$Item copyWithWrapped(
+      {Wrapped<String?>? from, Wrapped<String?>? to}) {
     return AdditionalInfoResponseTimestamps$Validity$Item(
-      from: (from != null ? from.value : this.from),
-      to: (to != null ? to.value : this.to),
-    );
+        from: (from != null ? from.value : this.from),
+        to: (to != null ? to.value : this.to));
   }
 }
 
@@ -4442,20 +4081,14 @@ class ApiErrorResponse$Versions {
     return identical(this, other) ||
         (other is ApiErrorResponse$Versions &&
             (identical(other.controller, controller) ||
-                const DeepCollectionEquality().equals(
-                  other.controller,
-                  controller,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.controller, controller)) &&
             (identical(other.interfaceMax, interfaceMax) ||
-                const DeepCollectionEquality().equals(
-                  other.interfaceMax,
-                  interfaceMax,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.interfaceMax, interfaceMax)) &&
             (identical(other.interfaceMin, interfaceMin) ||
-                const DeepCollectionEquality().equals(
-                  other.interfaceMin,
-                  interfaceMin,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.interfaceMin, interfaceMin)));
   }
 
   @override
@@ -4470,32 +4103,24 @@ class ApiErrorResponse$Versions {
 }
 
 extension $ApiErrorResponse$VersionsExtension on ApiErrorResponse$Versions {
-  ApiErrorResponse$Versions copyWith({
-    String? controller,
-    String? interfaceMax,
-    String? interfaceMin,
-  }) {
+  ApiErrorResponse$Versions copyWith(
+      {String? controller, String? interfaceMax, String? interfaceMin}) {
     return ApiErrorResponse$Versions(
-      controller: controller ?? this.controller,
-      interfaceMax: interfaceMax ?? this.interfaceMax,
-      interfaceMin: interfaceMin ?? this.interfaceMin,
-    );
+        controller: controller ?? this.controller,
+        interfaceMax: interfaceMax ?? this.interfaceMax,
+        interfaceMin: interfaceMin ?? this.interfaceMin);
   }
 
-  ApiErrorResponse$Versions copyWithWrapped({
-    Wrapped<String?>? controller,
-    Wrapped<String?>? interfaceMax,
-    Wrapped<String?>? interfaceMin,
-  }) {
+  ApiErrorResponse$Versions copyWithWrapped(
+      {Wrapped<String?>? controller,
+      Wrapped<String?>? interfaceMax,
+      Wrapped<String?>? interfaceMin}) {
     return ApiErrorResponse$Versions(
-      controller: (controller != null ? controller.value : this.controller),
-      interfaceMax: (interfaceMax != null
-          ? interfaceMax.value
-          : this.interfaceMax),
-      interfaceMin: (interfaceMin != null
-          ? interfaceMin.value
-          : this.interfaceMin),
-    );
+        controller: (controller != null ? controller.value : this.controller),
+        interfaceMax:
+            (interfaceMax != null ? interfaceMax.value : this.interfaceMax),
+        interfaceMin:
+            (interfaceMin != null ? interfaceMin.value : this.interfaceMin));
   }
 }
 
@@ -4513,8 +4138,8 @@ class CoordRequestResponseLocation$Properties {
   });
 
   factory CoordRequestResponseLocation$Properties.fromJson(
-    Map<String, dynamic> json,
-  ) => _$CoordRequestResponseLocation$PropertiesFromJson(json);
+          Map<String, dynamic> json) =>
+      _$CoordRequestResponseLocation$PropertiesFromJson(json);
 
   static const toJsonFactory = _$CoordRequestResponseLocation$PropertiesToJson;
   Map<String, dynamic> toJson() =>
@@ -4530,7 +4155,7 @@ class CoordRequestResponseLocation$Properties {
         coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPENullableFromJson,
   )
   final enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?
-  gisdrawclasstype;
+      gisdrawclasstype;
   @JsonKey(name: 'GIS_NIVEAU')
   final String? gisniveau;
   @JsonKey(name: 'POI_DRAW_CLASS')
@@ -4543,7 +4168,7 @@ class CoordRequestResponseLocation$Properties {
         coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPENullableFromJson,
   )
   final enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?
-  poidrawclasstype;
+      poidrawclasstype;
   @JsonKey(name: 'POI_HIERARCHY_0')
   final String? poihierarchy0;
   @JsonKey(name: 'POI_HIERARCHY_KEY')
@@ -4558,45 +4183,29 @@ class CoordRequestResponseLocation$Properties {
     return identical(this, other) ||
         (other is CoordRequestResponseLocation$Properties &&
             (identical(other.gisdrawclass, gisdrawclass) ||
-                const DeepCollectionEquality().equals(
-                  other.gisdrawclass,
-                  gisdrawclass,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.gisdrawclass, gisdrawclass)) &&
             (identical(other.gisdrawclasstype, gisdrawclasstype) ||
-                const DeepCollectionEquality().equals(
-                  other.gisdrawclasstype,
-                  gisdrawclasstype,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.gisdrawclasstype, gisdrawclasstype)) &&
             (identical(other.gisniveau, gisniveau) ||
-                const DeepCollectionEquality().equals(
-                  other.gisniveau,
-                  gisniveau,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.gisniveau, gisniveau)) &&
             (identical(other.poidrawclass, poidrawclass) ||
-                const DeepCollectionEquality().equals(
-                  other.poidrawclass,
-                  poidrawclass,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.poidrawclass, poidrawclass)) &&
             (identical(other.poidrawclasstype, poidrawclasstype) ||
-                const DeepCollectionEquality().equals(
-                  other.poidrawclasstype,
-                  poidrawclasstype,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.poidrawclasstype, poidrawclasstype)) &&
             (identical(other.poihierarchy0, poihierarchy0) ||
-                const DeepCollectionEquality().equals(
-                  other.poihierarchy0,
-                  poihierarchy0,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.poihierarchy0, poihierarchy0)) &&
             (identical(other.poihierarchykey, poihierarchykey) ||
-                const DeepCollectionEquality().equals(
-                  other.poihierarchykey,
-                  poihierarchykey,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.poihierarchykey, poihierarchykey)) &&
             (identical(other.distance, distance) ||
-                const DeepCollectionEquality().equals(
-                  other.distance,
-                  distance,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.distance, distance)));
   }
 
   @override
@@ -4617,83 +4226,76 @@ class CoordRequestResponseLocation$Properties {
 
 extension $CoordRequestResponseLocation$PropertiesExtension
     on CoordRequestResponseLocation$Properties {
-  CoordRequestResponseLocation$Properties copyWith({
-    String? gisdrawclass,
-    enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?
-    gisdrawclasstype,
-    String? gisniveau,
-    String? poidrawclass,
-    enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?
-    poidrawclasstype,
-    String? poihierarchy0,
-    String? poihierarchykey,
-    String? distance,
-  }) {
+  CoordRequestResponseLocation$Properties copyWith(
+      {String? gisdrawclass,
+      enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?
+          gisdrawclasstype,
+      String? gisniveau,
+      String? poidrawclass,
+      enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?
+          poidrawclasstype,
+      String? poihierarchy0,
+      String? poihierarchykey,
+      String? distance}) {
     return CoordRequestResponseLocation$Properties(
-      gisdrawclass: gisdrawclass ?? this.gisdrawclass,
-      gisdrawclasstype: gisdrawclasstype ?? this.gisdrawclasstype,
-      gisniveau: gisniveau ?? this.gisniveau,
-      poidrawclass: poidrawclass ?? this.poidrawclass,
-      poidrawclasstype: poidrawclasstype ?? this.poidrawclasstype,
-      poihierarchy0: poihierarchy0 ?? this.poihierarchy0,
-      poihierarchykey: poihierarchykey ?? this.poihierarchykey,
-      distance: distance ?? this.distance,
-    );
+        gisdrawclass: gisdrawclass ?? this.gisdrawclass,
+        gisdrawclasstype: gisdrawclasstype ?? this.gisdrawclasstype,
+        gisniveau: gisniveau ?? this.gisniveau,
+        poidrawclass: poidrawclass ?? this.poidrawclass,
+        poidrawclasstype: poidrawclasstype ?? this.poidrawclasstype,
+        poihierarchy0: poihierarchy0 ?? this.poihierarchy0,
+        poihierarchykey: poihierarchykey ?? this.poihierarchykey,
+        distance: distance ?? this.distance);
   }
 
-  CoordRequestResponseLocation$Properties copyWithWrapped({
-    Wrapped<String?>? gisdrawclass,
-    Wrapped<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?>?
-    gisdrawclasstype,
-    Wrapped<String?>? gisniveau,
-    Wrapped<String?>? poidrawclass,
-    Wrapped<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?>?
-    poidrawclasstype,
-    Wrapped<String?>? poihierarchy0,
-    Wrapped<String?>? poihierarchykey,
-    Wrapped<String?>? distance,
-  }) {
+  CoordRequestResponseLocation$Properties copyWithWrapped(
+      {Wrapped<String?>? gisdrawclass,
+      Wrapped<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?>?
+          gisdrawclasstype,
+      Wrapped<String?>? gisniveau,
+      Wrapped<String?>? poidrawclass,
+      Wrapped<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?>?
+          poidrawclasstype,
+      Wrapped<String?>? poihierarchy0,
+      Wrapped<String?>? poihierarchykey,
+      Wrapped<String?>? distance}) {
     return CoordRequestResponseLocation$Properties(
-      gisdrawclass: (gisdrawclass != null
-          ? gisdrawclass.value
-          : this.gisdrawclass),
-      gisdrawclasstype: (gisdrawclasstype != null
-          ? gisdrawclasstype.value
-          : this.gisdrawclasstype),
-      gisniveau: (gisniveau != null ? gisniveau.value : this.gisniveau),
-      poidrawclass: (poidrawclass != null
-          ? poidrawclass.value
-          : this.poidrawclass),
-      poidrawclasstype: (poidrawclasstype != null
-          ? poidrawclasstype.value
-          : this.poidrawclasstype),
-      poihierarchy0: (poihierarchy0 != null
-          ? poihierarchy0.value
-          : this.poihierarchy0),
-      poihierarchykey: (poihierarchykey != null
-          ? poihierarchykey.value
-          : this.poihierarchykey),
-      distance: (distance != null ? distance.value : this.distance),
-    );
+        gisdrawclass:
+            (gisdrawclass != null ? gisdrawclass.value : this.gisdrawclass),
+        gisdrawclasstype: (gisdrawclasstype != null
+            ? gisdrawclasstype.value
+            : this.gisdrawclasstype),
+        gisniveau: (gisniveau != null ? gisniveau.value : this.gisniveau),
+        poidrawclass:
+            (poidrawclass != null ? poidrawclass.value : this.poidrawclass),
+        poidrawclasstype: (poidrawclasstype != null
+            ? poidrawclasstype.value
+            : this.poidrawclasstype),
+        poihierarchy0:
+            (poihierarchy0 != null ? poihierarchy0.value : this.poihierarchy0),
+        poihierarchykey: (poihierarchykey != null
+            ? poihierarchykey.value
+            : this.poihierarchykey),
+        distance: (distance != null ? distance.value : this.distance));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class TripRequestResponse$SystemMessages {
-  const TripRequestResponse$SystemMessages({this.responseMessages});
+  const TripRequestResponse$SystemMessages({
+    this.responseMessages,
+  });
 
   factory TripRequestResponse$SystemMessages.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponse$SystemMessagesFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponse$SystemMessagesFromJson(json);
 
   static const toJsonFactory = _$TripRequestResponse$SystemMessagesToJson;
   Map<String, dynamic> toJson() =>
       _$TripRequestResponse$SystemMessagesToJson(this);
 
   @JsonKey(
-    name: 'responseMessages',
-    defaultValue: <TripRequestResponseMessage>[],
-  )
+      name: 'responseMessages', defaultValue: <TripRequestResponseMessage>[])
   final List<TripRequestResponseMessage>? responseMessages;
   static const fromJsonFactory = _$TripRequestResponse$SystemMessagesFromJson;
 
@@ -4702,10 +4304,8 @@ class TripRequestResponse$SystemMessages {
     return identical(this, other) ||
         (other is TripRequestResponse$SystemMessages &&
             (identical(other.responseMessages, responseMessages) ||
-                const DeepCollectionEquality().equals(
-                  other.responseMessages,
-                  responseMessages,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.responseMessages, responseMessages)));
   }
 
   @override
@@ -4719,32 +4319,30 @@ class TripRequestResponse$SystemMessages {
 
 extension $TripRequestResponse$SystemMessagesExtension
     on TripRequestResponse$SystemMessages {
-  TripRequestResponse$SystemMessages copyWith({
-    List<TripRequestResponseMessage>? responseMessages,
-  }) {
+  TripRequestResponse$SystemMessages copyWith(
+      {List<TripRequestResponseMessage>? responseMessages}) {
     return TripRequestResponse$SystemMessages(
-      responseMessages: responseMessages ?? this.responseMessages,
-    );
+        responseMessages: responseMessages ?? this.responseMessages);
   }
 
-  TripRequestResponse$SystemMessages copyWithWrapped({
-    Wrapped<List<TripRequestResponseMessage>?>? responseMessages,
-  }) {
+  TripRequestResponse$SystemMessages copyWithWrapped(
+      {Wrapped<List<TripRequestResponseMessage>?>? responseMessages}) {
     return TripRequestResponse$SystemMessages(
-      responseMessages: (responseMessages != null
-          ? responseMessages.value
-          : this.responseMessages),
-    );
+        responseMessages: (responseMessages != null
+            ? responseMessages.value
+            : this.responseMessages));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class TripRequestResponseJourneyLeg$Hints$Item {
-  const TripRequestResponseJourneyLeg$Hints$Item({this.infoText});
+  const TripRequestResponseJourneyLeg$Hints$Item({
+    this.infoText,
+  });
 
   factory TripRequestResponseJourneyLeg$Hints$Item.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLeg$Hints$ItemFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLeg$Hints$ItemFromJson(json);
 
   static const toJsonFactory = _$TripRequestResponseJourneyLeg$Hints$ItemToJson;
   Map<String, dynamic> toJson() =>
@@ -4760,10 +4358,8 @@ class TripRequestResponseJourneyLeg$Hints$Item {
     return identical(this, other) ||
         (other is TripRequestResponseJourneyLeg$Hints$Item &&
             (identical(other.infoText, infoText) ||
-                const DeepCollectionEquality().equals(
-                  other.infoText,
-                  infoText,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.infoText, infoText)));
   }
 
   @override
@@ -4778,16 +4374,13 @@ extension $TripRequestResponseJourneyLeg$Hints$ItemExtension
     on TripRequestResponseJourneyLeg$Hints$Item {
   TripRequestResponseJourneyLeg$Hints$Item copyWith({String? infoText}) {
     return TripRequestResponseJourneyLeg$Hints$Item(
-      infoText: infoText ?? this.infoText,
-    );
+        infoText: infoText ?? this.infoText);
   }
 
-  TripRequestResponseJourneyLeg$Hints$Item copyWithWrapped({
-    Wrapped<String?>? infoText,
-  }) {
+  TripRequestResponseJourneyLeg$Hints$Item copyWithWrapped(
+      {Wrapped<String?>? infoText}) {
     return TripRequestResponseJourneyLeg$Hints$Item(
-      infoText: (infoText != null ? infoText.value : this.infoText),
-    );
+        infoText: (infoText != null ? infoText.value : this.infoText));
   }
 }
 
@@ -4802,8 +4395,8 @@ class TripRequestResponseJourneyLeg$Properties {
   });
 
   factory TripRequestResponseJourneyLeg$Properties.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLeg$PropertiesFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLeg$PropertiesFromJson(json);
 
   static const toJsonFactory = _$TripRequestResponseJourneyLeg$PropertiesToJson;
   Map<String, dynamic> toJson() =>
@@ -4827,30 +4420,20 @@ class TripRequestResponseJourneyLeg$Properties {
     return identical(this, other) ||
         (other is TripRequestResponseJourneyLeg$Properties &&
             (identical(other.differentfares, differentfares) ||
-                const DeepCollectionEquality().equals(
-                  other.differentfares,
-                  differentfares,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.differentfares, differentfares)) &&
             (identical(other.planLowFloorVehicle, planLowFloorVehicle) ||
-                const DeepCollectionEquality().equals(
-                  other.planLowFloorVehicle,
-                  planLowFloorVehicle,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.planLowFloorVehicle, planLowFloorVehicle)) &&
             (identical(other.planWheelChairAccess, planWheelChairAccess) ||
                 const DeepCollectionEquality().equals(
-                  other.planWheelChairAccess,
-                  planWheelChairAccess,
-                )) &&
+                    other.planWheelChairAccess, planWheelChairAccess)) &&
             (identical(other.lineType, lineType) ||
-                const DeepCollectionEquality().equals(
-                  other.lineType,
-                  lineType,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.lineType, lineType)) &&
             (identical(other.vehicleAccess, vehicleAccess) ||
-                const DeepCollectionEquality().equals(
-                  other.vehicleAccess,
-                  vehicleAccess,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.vehicleAccess, vehicleAccess)));
   }
 
   @override
@@ -4868,44 +4451,39 @@ class TripRequestResponseJourneyLeg$Properties {
 
 extension $TripRequestResponseJourneyLeg$PropertiesExtension
     on TripRequestResponseJourneyLeg$Properties {
-  TripRequestResponseJourneyLeg$Properties copyWith({
-    String? differentfares,
-    String? planLowFloorVehicle,
-    String? planWheelChairAccess,
-    String? lineType,
-    List<String>? vehicleAccess,
-  }) {
+  TripRequestResponseJourneyLeg$Properties copyWith(
+      {String? differentfares,
+      String? planLowFloorVehicle,
+      String? planWheelChairAccess,
+      String? lineType,
+      List<String>? vehicleAccess}) {
     return TripRequestResponseJourneyLeg$Properties(
-      differentfares: differentfares ?? this.differentfares,
-      planLowFloorVehicle: planLowFloorVehicle ?? this.planLowFloorVehicle,
-      planWheelChairAccess: planWheelChairAccess ?? this.planWheelChairAccess,
-      lineType: lineType ?? this.lineType,
-      vehicleAccess: vehicleAccess ?? this.vehicleAccess,
-    );
+        differentfares: differentfares ?? this.differentfares,
+        planLowFloorVehicle: planLowFloorVehicle ?? this.planLowFloorVehicle,
+        planWheelChairAccess: planWheelChairAccess ?? this.planWheelChairAccess,
+        lineType: lineType ?? this.lineType,
+        vehicleAccess: vehicleAccess ?? this.vehicleAccess);
   }
 
-  TripRequestResponseJourneyLeg$Properties copyWithWrapped({
-    Wrapped<String?>? differentfares,
-    Wrapped<String?>? planLowFloorVehicle,
-    Wrapped<String?>? planWheelChairAccess,
-    Wrapped<String?>? lineType,
-    Wrapped<List<String>?>? vehicleAccess,
-  }) {
+  TripRequestResponseJourneyLeg$Properties copyWithWrapped(
+      {Wrapped<String?>? differentfares,
+      Wrapped<String?>? planLowFloorVehicle,
+      Wrapped<String?>? planWheelChairAccess,
+      Wrapped<String?>? lineType,
+      Wrapped<List<String>?>? vehicleAccess}) {
     return TripRequestResponseJourneyLeg$Properties(
-      differentfares: (differentfares != null
-          ? differentfares.value
-          : this.differentfares),
-      planLowFloorVehicle: (planLowFloorVehicle != null
-          ? planLowFloorVehicle.value
-          : this.planLowFloorVehicle),
-      planWheelChairAccess: (planWheelChairAccess != null
-          ? planWheelChairAccess.value
-          : this.planWheelChairAccess),
-      lineType: (lineType != null ? lineType.value : this.lineType),
-      vehicleAccess: (vehicleAccess != null
-          ? vehicleAccess.value
-          : this.vehicleAccess),
-    );
+        differentfares: (differentfares != null
+            ? differentfares.value
+            : this.differentfares),
+        planLowFloorVehicle: (planLowFloorVehicle != null
+            ? planLowFloorVehicle.value
+            : this.planLowFloorVehicle),
+        planWheelChairAccess: (planWheelChairAccess != null
+            ? planWheelChairAccess.value
+            : this.planWheelChairAccess),
+        lineType: (lineType != null ? lineType.value : this.lineType),
+        vehicleAccess:
+            (vehicleAccess != null ? vehicleAccess.value : this.vehicleAccess));
   }
 }
 
@@ -4917,8 +4495,8 @@ class TripRequestResponseJourneyLegStop$Properties {
   });
 
   factory TripRequestResponseJourneyLegStop$Properties.fromJson(
-    Map<String, dynamic> json,
-  ) => _$TripRequestResponseJourneyLegStop$PropertiesFromJson(json);
+          Map<String, dynamic> json) =>
+      _$TripRequestResponseJourneyLegStop$PropertiesFromJson(json);
 
   static const toJsonFactory =
       _$TripRequestResponseJourneyLegStop$PropertiesToJson;
@@ -4933,11 +4511,10 @@ class TripRequestResponseJourneyLegStop$Properties {
         tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessNullableFromJson,
   )
   final enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
-  wheelchairAccess;
+      wheelchairAccess;
   @JsonKey(
-    name: 'downloads',
-    defaultValue: <TripRequestResponseJourneyLegStopDownload>[],
-  )
+      name: 'downloads',
+      defaultValue: <TripRequestResponseJourneyLegStopDownload>[])
   final List<TripRequestResponseJourneyLegStopDownload>? downloads;
   static const fromJsonFactory =
       _$TripRequestResponseJourneyLegStop$PropertiesFromJson;
@@ -4947,15 +4524,11 @@ class TripRequestResponseJourneyLegStop$Properties {
     return identical(this, other) ||
         (other is TripRequestResponseJourneyLegStop$Properties &&
             (identical(other.wheelchairAccess, wheelchairAccess) ||
-                const DeepCollectionEquality().equals(
-                  other.wheelchairAccess,
-                  wheelchairAccess,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.wheelchairAccess, wheelchairAccess)) &&
             (identical(other.downloads, downloads) ||
-                const DeepCollectionEquality().equals(
-                  other.downloads,
-                  downloads,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.downloads, downloads)));
   }
 
   @override
@@ -4970,30 +4543,26 @@ class TripRequestResponseJourneyLegStop$Properties {
 
 extension $TripRequestResponseJourneyLegStop$PropertiesExtension
     on TripRequestResponseJourneyLegStop$Properties {
-  TripRequestResponseJourneyLegStop$Properties copyWith({
-    enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
-    wheelchairAccess,
-    List<TripRequestResponseJourneyLegStopDownload>? downloads,
-  }) {
+  TripRequestResponseJourneyLegStop$Properties copyWith(
+      {enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
+          wheelchairAccess,
+      List<TripRequestResponseJourneyLegStopDownload>? downloads}) {
     return TripRequestResponseJourneyLegStop$Properties(
-      wheelchairAccess: wheelchairAccess ?? this.wheelchairAccess,
-      downloads: downloads ?? this.downloads,
-    );
+        wheelchairAccess: wheelchairAccess ?? this.wheelchairAccess,
+        downloads: downloads ?? this.downloads);
   }
 
-  TripRequestResponseJourneyLegStop$Properties copyWithWrapped({
-    Wrapped<
-      enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
-    >?
-    wheelchairAccess,
-    Wrapped<List<TripRequestResponseJourneyLegStopDownload>?>? downloads,
-  }) {
+  TripRequestResponseJourneyLegStop$Properties copyWithWrapped(
+      {Wrapped<
+              enums
+              .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?>?
+          wheelchairAccess,
+      Wrapped<List<TripRequestResponseJourneyLegStopDownload>?>? downloads}) {
     return TripRequestResponseJourneyLegStop$Properties(
-      wheelchairAccess: (wheelchairAccess != null
-          ? wheelchairAccess.value
-          : this.wheelchairAccess),
-      downloads: (downloads != null ? downloads.value : this.downloads),
-    );
+        wheelchairAccess: (wheelchairAccess != null
+            ? wheelchairAccess.value
+            : this.wheelchairAccess),
+        downloads: (downloads != null ? downloads.value : this.downloads));
   }
 }
 
@@ -5006,18 +4575,15 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location
   });
 
   factory TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location.fromJson(
-    Map<String, dynamic> json,
-  ) =>
+          Map<String, dynamic> json) =>
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationFromJson(
-        json,
-      );
+          json);
 
   static const toJsonFactory =
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationToJson;
   Map<String, dynamic> toJson() =>
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationToJson(
-        this,
-      );
+          this);
 
   @JsonKey(name: 'coord', defaultValue: <double>[])
   final List<double>? coord;
@@ -5030,16 +4596,16 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location
     fromJson:
         tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNullableFromJson,
   )
-  final enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
-  type;
+  final enums
+      .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
+      type;
   static const fromJsonFactory =
       _$TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationFromJson;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other
-                is TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location &&
+        (other is TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location &&
             (identical(other.coord, coord) ||
                 const DeepCollectionEquality().equals(other.coord, coord)) &&
             (identical(other.id, id) ||
@@ -5062,39 +4628,37 @@ class TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location
 extension $TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationExtension
     on TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location {
   TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location
-  copyWith({
-    List<double>? coord,
-    String? id,
-    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
-    type,
-  }) {
+      copyWith(
+          {List<double>? coord,
+          String? id,
+          enums
+              .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
+              type}) {
     return TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location(
-      coord: coord ?? this.coord,
-      id: id ?? this.id,
-      type: type ?? this.type,
-    );
+        coord: coord ?? this.coord, id: id ?? this.id, type: type ?? this.type);
   }
 
   TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location
-  copyWithWrapped({
-    Wrapped<List<double>?>? coord,
-    Wrapped<String?>? id,
-    Wrapped<
-      enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
-    >?
-    type,
-  }) {
+      copyWithWrapped(
+          {Wrapped<List<double>?>? coord,
+          Wrapped<String?>? id,
+          Wrapped<
+                  enums
+                  .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?>?
+              type}) {
     return TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$Location(
-      coord: (coord != null ? coord.value : this.coord),
-      id: (id != null ? id.value : this.id),
-      type: (type != null ? type.value : this.type),
-    );
+        coord: (coord != null ? coord.value : this.coord),
+        id: (id != null ? id.value : this.id),
+        type: (type != null ? type.value : this.type));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class TripTransportation$Destination {
-  const TripTransportation$Destination({this.id, this.name});
+  const TripTransportation$Destination({
+    this.id,
+    this.name,
+  });
 
   factory TripTransportation$Destination.fromJson(Map<String, dynamic> json) =>
       _$TripTransportation$DestinationFromJson(json);
@@ -5132,25 +4696,23 @@ extension $TripTransportation$DestinationExtension
     on TripTransportation$Destination {
   TripTransportation$Destination copyWith({String? id, String? name}) {
     return TripTransportation$Destination(
-      id: id ?? this.id,
-      name: name ?? this.name,
-    );
+        id: id ?? this.id, name: name ?? this.name);
   }
 
-  TripTransportation$Destination copyWithWrapped({
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-  }) {
+  TripTransportation$Destination copyWithWrapped(
+      {Wrapped<String?>? id, Wrapped<String?>? name}) {
     return TripTransportation$Destination(
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-    );
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class TripTransportation$Operator {
-  const TripTransportation$Operator({this.id, this.name});
+  const TripTransportation$Operator({
+    this.id,
+    this.name,
+  });
 
   factory TripTransportation$Operator.fromJson(Map<String, dynamic> json) =>
       _$TripTransportation$OperatorFromJson(json);
@@ -5187,25 +4749,23 @@ class TripTransportation$Operator {
 extension $TripTransportation$OperatorExtension on TripTransportation$Operator {
   TripTransportation$Operator copyWith({String? id, String? name}) {
     return TripTransportation$Operator(
-      id: id ?? this.id,
-      name: name ?? this.name,
-    );
+        id: id ?? this.id, name: name ?? this.name);
   }
 
-  TripTransportation$Operator copyWithWrapped({
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-  }) {
+  TripTransportation$Operator copyWithWrapped(
+      {Wrapped<String?>? id, Wrapped<String?>? name}) {
     return TripTransportation$Operator(
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-    );
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class TripTransportation$Properties {
-  const TripTransportation$Properties({this.isTTB, this.tripCode});
+  const TripTransportation$Properties({
+    this.isTTB,
+    this.tripCode,
+  });
 
   factory TripTransportation$Properties.fromJson(Map<String, dynamic> json) =>
       _$TripTransportation$PropertiesFromJson(json);
@@ -5226,10 +4786,8 @@ class TripTransportation$Properties {
             (identical(other.isTTB, isTTB) ||
                 const DeepCollectionEquality().equals(other.isTTB, isTTB)) &&
             (identical(other.tripCode, tripCode) ||
-                const DeepCollectionEquality().equals(
-                  other.tripCode,
-                  tripCode,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.tripCode, tripCode)));
   }
 
   @override
@@ -5246,29 +4804,27 @@ extension $TripTransportation$PropertiesExtension
     on TripTransportation$Properties {
   TripTransportation$Properties copyWith({bool? isTTB, int? tripCode}) {
     return TripTransportation$Properties(
-      isTTB: isTTB ?? this.isTTB,
-      tripCode: tripCode ?? this.tripCode,
-    );
+        isTTB: isTTB ?? this.isTTB, tripCode: tripCode ?? this.tripCode);
   }
 
-  TripTransportation$Properties copyWithWrapped({
-    Wrapped<bool?>? isTTB,
-    Wrapped<int?>? tripCode,
-  }) {
+  TripTransportation$Properties copyWithWrapped(
+      {Wrapped<bool?>? isTTB, Wrapped<int?>? tripCode}) {
     return TripTransportation$Properties(
-      isTTB: (isTTB != null ? isTTB.value : this.isTTB),
-      tripCode: (tripCode != null ? tripCode.value : this.tripCode),
-    );
+        isTTB: (isTTB != null ? isTTB.value : this.isTTB),
+        tripCode: (tripCode != null ? tripCode.value : this.tripCode));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class AdditionalInfoResponse$Infos$Affected {
-  const AdditionalInfoResponse$Infos$Affected({this.lines, this.stops});
+  const AdditionalInfoResponse$Infos$Affected({
+    this.lines,
+    this.stops,
+  });
 
   factory AdditionalInfoResponse$Infos$Affected.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponse$Infos$AffectedFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponse$Infos$AffectedFromJson(json);
 
   static const toJsonFactory = _$AdditionalInfoResponse$Infos$AffectedToJson;
   Map<String, dynamic> toJson() =>
@@ -5303,24 +4859,19 @@ class AdditionalInfoResponse$Infos$Affected {
 
 extension $AdditionalInfoResponse$Infos$AffectedExtension
     on AdditionalInfoResponse$Infos$Affected {
-  AdditionalInfoResponse$Infos$Affected copyWith({
-    List<AdditionalInfoResponseAffectedLine>? lines,
-    List<AdditionalInfoResponseAffectedStop>? stops,
-  }) {
+  AdditionalInfoResponse$Infos$Affected copyWith(
+      {List<AdditionalInfoResponseAffectedLine>? lines,
+      List<AdditionalInfoResponseAffectedStop>? stops}) {
     return AdditionalInfoResponse$Infos$Affected(
-      lines: lines ?? this.lines,
-      stops: stops ?? this.stops,
-    );
+        lines: lines ?? this.lines, stops: stops ?? this.stops);
   }
 
-  AdditionalInfoResponse$Infos$Affected copyWithWrapped({
-    Wrapped<List<AdditionalInfoResponseAffectedLine>?>? lines,
-    Wrapped<List<AdditionalInfoResponseAffectedStop>?>? stops,
-  }) {
+  AdditionalInfoResponse$Infos$Affected copyWithWrapped(
+      {Wrapped<List<AdditionalInfoResponseAffectedLine>?>? lines,
+      Wrapped<List<AdditionalInfoResponseAffectedStop>?>? stops}) {
     return AdditionalInfoResponse$Infos$Affected(
-      lines: (lines != null ? lines.value : this.lines),
-      stops: (stops != null ? stops.value : this.stops),
-    );
+        lines: (lines != null ? lines.value : this.lines),
+        stops: (stops != null ? stops.value : this.stops));
   }
 }
 
@@ -5333,8 +4884,8 @@ class AdditionalInfoResponseMessage$Properties$Source {
   });
 
   factory AdditionalInfoResponseMessage$Properties$Source.fromJson(
-    Map<String, dynamic> json,
-  ) => _$AdditionalInfoResponseMessage$Properties$SourceFromJson(json);
+          Map<String, dynamic> json) =>
+      _$AdditionalInfoResponseMessage$Properties$SourceFromJson(json);
 
   static const toJsonFactory =
       _$AdditionalInfoResponseMessage$Properties$SourceToJson;
@@ -5375,63 +4926,48 @@ class AdditionalInfoResponseMessage$Properties$Source {
 
 extension $AdditionalInfoResponseMessage$Properties$SourceExtension
     on AdditionalInfoResponseMessage$Properties$Source {
-  AdditionalInfoResponseMessage$Properties$Source copyWith({
-    String? id,
-    String? name,
-    String? type,
-  }) {
+  AdditionalInfoResponseMessage$Properties$Source copyWith(
+      {String? id, String? name, String? type}) {
     return AdditionalInfoResponseMessage$Properties$Source(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      type: type ?? this.type,
-    );
+        id: id ?? this.id, name: name ?? this.name, type: type ?? this.type);
   }
 
-  AdditionalInfoResponseMessage$Properties$Source copyWithWrapped({
-    Wrapped<String?>? id,
-    Wrapped<String?>? name,
-    Wrapped<String?>? type,
-  }) {
+  AdditionalInfoResponseMessage$Properties$Source copyWithWrapped(
+      {Wrapped<String?>? id, Wrapped<String?>? name, Wrapped<String?>? type}) {
     return AdditionalInfoResponseMessage$Properties$Source(
-      id: (id != null ? id.value : this.id),
-      name: (name != null ? name.value : this.name),
-      type: (type != null ? type.value : this.type),
-    );
+        id: (id != null ? id.value : this.id),
+        name: (name != null ? name.value : this.name),
+        type: (type != null ? type.value : this.type));
   }
 }
 
 String? additionalInfoResponseAffectedLine$DestinationTypeNullableToJson(
-  enums.AdditionalInfoResponseAffectedLine$DestinationType?
-  additionalInfoResponseAffectedLine$DestinationType,
-) {
+    enums.AdditionalInfoResponseAffectedLine$DestinationType?
+        additionalInfoResponseAffectedLine$DestinationType) {
   return additionalInfoResponseAffectedLine$DestinationType?.value;
 }
 
 String? additionalInfoResponseAffectedLine$DestinationTypeToJson(
-  enums.AdditionalInfoResponseAffectedLine$DestinationType
-  additionalInfoResponseAffectedLine$DestinationType,
-) {
+    enums.AdditionalInfoResponseAffectedLine$DestinationType
+        additionalInfoResponseAffectedLine$DestinationType) {
   return additionalInfoResponseAffectedLine$DestinationType.value;
 }
 
 enums.AdditionalInfoResponseAffectedLine$DestinationType
-additionalInfoResponseAffectedLine$DestinationTypeFromJson(
+    additionalInfoResponseAffectedLine$DestinationTypeFromJson(
   Object? additionalInfoResponseAffectedLine$DestinationType, [
   enums.AdditionalInfoResponseAffectedLine$DestinationType? defaultValue,
 ]) {
   return enums.AdditionalInfoResponseAffectedLine$DestinationType.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value == additionalInfoResponseAffectedLine$DestinationType,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value == additionalInfoResponseAffectedLine$DestinationType) ??
       defaultValue ??
-      enums
-          .AdditionalInfoResponseAffectedLine$DestinationType
+      enums.AdditionalInfoResponseAffectedLine$DestinationType
           .swaggerGeneratedUnknown;
 }
 
 enums.AdditionalInfoResponseAffectedLine$DestinationType?
-additionalInfoResponseAffectedLine$DestinationTypeNullableFromJson(
+    additionalInfoResponseAffectedLine$DestinationTypeNullableFromJson(
   Object? additionalInfoResponseAffectedLine$DestinationType, [
   enums.AdditionalInfoResponseAffectedLine$DestinationType? defaultValue,
 ]) {
@@ -5439,17 +4975,14 @@ additionalInfoResponseAffectedLine$DestinationTypeNullableFromJson(
     return null;
   }
   return enums.AdditionalInfoResponseAffectedLine$DestinationType.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value == additionalInfoResponseAffectedLine$DestinationType,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value == additionalInfoResponseAffectedLine$DestinationType) ??
       defaultValue;
 }
 
 String additionalInfoResponseAffectedLine$DestinationTypeExplodedListToJson(
-  List<enums.AdditionalInfoResponseAffectedLine$DestinationType>?
-  additionalInfoResponseAffectedLine$DestinationType,
-) {
+    List<enums.AdditionalInfoResponseAffectedLine$DestinationType>?
+        additionalInfoResponseAffectedLine$DestinationType) {
   return additionalInfoResponseAffectedLine$DestinationType
           ?.map((e) => e.value!)
           .join(',') ??
@@ -5457,9 +4990,8 @@ String additionalInfoResponseAffectedLine$DestinationTypeExplodedListToJson(
 }
 
 List<String> additionalInfoResponseAffectedLine$DestinationTypeListToJson(
-  List<enums.AdditionalInfoResponseAffectedLine$DestinationType>?
-  additionalInfoResponseAffectedLine$DestinationType,
-) {
+    List<enums.AdditionalInfoResponseAffectedLine$DestinationType>?
+        additionalInfoResponseAffectedLine$DestinationType) {
   if (additionalInfoResponseAffectedLine$DestinationType == null) {
     return [];
   }
@@ -5470,7 +5002,7 @@ List<String> additionalInfoResponseAffectedLine$DestinationTypeListToJson(
 }
 
 List<enums.AdditionalInfoResponseAffectedLine$DestinationType>
-additionalInfoResponseAffectedLine$DestinationTypeListFromJson(
+    additionalInfoResponseAffectedLine$DestinationTypeListFromJson(
   List? additionalInfoResponseAffectedLine$DestinationType, [
   List<enums.AdditionalInfoResponseAffectedLine$DestinationType>? defaultValue,
 ]) {
@@ -5479,16 +5011,13 @@ additionalInfoResponseAffectedLine$DestinationTypeListFromJson(
   }
 
   return additionalInfoResponseAffectedLine$DestinationType
-      .map(
-        (e) => additionalInfoResponseAffectedLine$DestinationTypeFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) => additionalInfoResponseAffectedLine$DestinationTypeFromJson(
+          e.toString()))
       .toList();
 }
 
 List<enums.AdditionalInfoResponseAffectedLine$DestinationType>?
-additionalInfoResponseAffectedLine$DestinationTypeNullableListFromJson(
+    additionalInfoResponseAffectedLine$DestinationTypeNullableListFromJson(
   List? additionalInfoResponseAffectedLine$DestinationType, [
   List<enums.AdditionalInfoResponseAffectedLine$DestinationType>? defaultValue,
 ]) {
@@ -5497,42 +5026,36 @@ additionalInfoResponseAffectedLine$DestinationTypeNullableListFromJson(
   }
 
   return additionalInfoResponseAffectedLine$DestinationType
-      .map(
-        (e) => additionalInfoResponseAffectedLine$DestinationTypeFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) => additionalInfoResponseAffectedLine$DestinationTypeFromJson(
+          e.toString()))
       .toList();
 }
 
 String? additionalInfoResponseAffectedStopTypeNullableToJson(
-  enums.AdditionalInfoResponseAffectedStopType?
-  additionalInfoResponseAffectedStopType,
-) {
+    enums.AdditionalInfoResponseAffectedStopType?
+        additionalInfoResponseAffectedStopType) {
   return additionalInfoResponseAffectedStopType?.value;
 }
 
 String? additionalInfoResponseAffectedStopTypeToJson(
-  enums.AdditionalInfoResponseAffectedStopType
-  additionalInfoResponseAffectedStopType,
-) {
+    enums.AdditionalInfoResponseAffectedStopType
+        additionalInfoResponseAffectedStopType) {
   return additionalInfoResponseAffectedStopType.value;
 }
 
 enums.AdditionalInfoResponseAffectedStopType
-additionalInfoResponseAffectedStopTypeFromJson(
+    additionalInfoResponseAffectedStopTypeFromJson(
   Object? additionalInfoResponseAffectedStopType, [
   enums.AdditionalInfoResponseAffectedStopType? defaultValue,
 ]) {
   return enums.AdditionalInfoResponseAffectedStopType.values.firstWhereOrNull(
-        (e) => e.value == additionalInfoResponseAffectedStopType,
-      ) ??
+          (e) => e.value == additionalInfoResponseAffectedStopType) ??
       defaultValue ??
       enums.AdditionalInfoResponseAffectedStopType.swaggerGeneratedUnknown;
 }
 
 enums.AdditionalInfoResponseAffectedStopType?
-additionalInfoResponseAffectedStopTypeNullableFromJson(
+    additionalInfoResponseAffectedStopTypeNullableFromJson(
   Object? additionalInfoResponseAffectedStopType, [
   enums.AdditionalInfoResponseAffectedStopType? defaultValue,
 ]) {
@@ -5540,15 +5063,13 @@ additionalInfoResponseAffectedStopTypeNullableFromJson(
     return null;
   }
   return enums.AdditionalInfoResponseAffectedStopType.values.firstWhereOrNull(
-        (e) => e.value == additionalInfoResponseAffectedStopType,
-      ) ??
+          (e) => e.value == additionalInfoResponseAffectedStopType) ??
       defaultValue;
 }
 
 String additionalInfoResponseAffectedStopTypeExplodedListToJson(
-  List<enums.AdditionalInfoResponseAffectedStopType>?
-  additionalInfoResponseAffectedStopType,
-) {
+    List<enums.AdditionalInfoResponseAffectedStopType>?
+        additionalInfoResponseAffectedStopType) {
   return additionalInfoResponseAffectedStopType
           ?.map((e) => e.value!)
           .join(',') ??
@@ -5556,9 +5077,8 @@ String additionalInfoResponseAffectedStopTypeExplodedListToJson(
 }
 
 List<String> additionalInfoResponseAffectedStopTypeListToJson(
-  List<enums.AdditionalInfoResponseAffectedStopType>?
-  additionalInfoResponseAffectedStopType,
-) {
+    List<enums.AdditionalInfoResponseAffectedStopType>?
+        additionalInfoResponseAffectedStopType) {
   if (additionalInfoResponseAffectedStopType == null) {
     return [];
   }
@@ -5567,7 +5087,7 @@ List<String> additionalInfoResponseAffectedStopTypeListToJson(
 }
 
 List<enums.AdditionalInfoResponseAffectedStopType>
-additionalInfoResponseAffectedStopTypeListFromJson(
+    additionalInfoResponseAffectedStopTypeListFromJson(
   List? additionalInfoResponseAffectedStopType, [
   List<enums.AdditionalInfoResponseAffectedStopType>? defaultValue,
 ]) {
@@ -5581,7 +5101,7 @@ additionalInfoResponseAffectedStopTypeListFromJson(
 }
 
 List<enums.AdditionalInfoResponseAffectedStopType>?
-additionalInfoResponseAffectedStopTypeNullableListFromJson(
+    additionalInfoResponseAffectedStopTypeNullableListFromJson(
   List? additionalInfoResponseAffectedStopType, [
   List<enums.AdditionalInfoResponseAffectedStopType>? defaultValue,
 ]) {
@@ -5595,33 +5115,30 @@ additionalInfoResponseAffectedStopTypeNullableListFromJson(
 }
 
 String? additionalInfoResponseMessagePriorityNullableToJson(
-  enums.AdditionalInfoResponseMessagePriority?
-  additionalInfoResponseMessagePriority,
-) {
+    enums.AdditionalInfoResponseMessagePriority?
+        additionalInfoResponseMessagePriority) {
   return additionalInfoResponseMessagePriority?.value;
 }
 
 String? additionalInfoResponseMessagePriorityToJson(
-  enums.AdditionalInfoResponseMessagePriority
-  additionalInfoResponseMessagePriority,
-) {
+    enums.AdditionalInfoResponseMessagePriority
+        additionalInfoResponseMessagePriority) {
   return additionalInfoResponseMessagePriority.value;
 }
 
 enums.AdditionalInfoResponseMessagePriority
-additionalInfoResponseMessagePriorityFromJson(
+    additionalInfoResponseMessagePriorityFromJson(
   Object? additionalInfoResponseMessagePriority, [
   enums.AdditionalInfoResponseMessagePriority? defaultValue,
 ]) {
   return enums.AdditionalInfoResponseMessagePriority.values.firstWhereOrNull(
-        (e) => e.value == additionalInfoResponseMessagePriority,
-      ) ??
+          (e) => e.value == additionalInfoResponseMessagePriority) ??
       defaultValue ??
       enums.AdditionalInfoResponseMessagePriority.swaggerGeneratedUnknown;
 }
 
 enums.AdditionalInfoResponseMessagePriority?
-additionalInfoResponseMessagePriorityNullableFromJson(
+    additionalInfoResponseMessagePriorityNullableFromJson(
   Object? additionalInfoResponseMessagePriority, [
   enums.AdditionalInfoResponseMessagePriority? defaultValue,
 ]) {
@@ -5629,15 +5146,13 @@ additionalInfoResponseMessagePriorityNullableFromJson(
     return null;
   }
   return enums.AdditionalInfoResponseMessagePriority.values.firstWhereOrNull(
-        (e) => e.value == additionalInfoResponseMessagePriority,
-      ) ??
+          (e) => e.value == additionalInfoResponseMessagePriority) ??
       defaultValue;
 }
 
 String additionalInfoResponseMessagePriorityExplodedListToJson(
-  List<enums.AdditionalInfoResponseMessagePriority>?
-  additionalInfoResponseMessagePriority,
-) {
+    List<enums.AdditionalInfoResponseMessagePriority>?
+        additionalInfoResponseMessagePriority) {
   return additionalInfoResponseMessagePriority
           ?.map((e) => e.value!)
           .join(',') ??
@@ -5645,9 +5160,8 @@ String additionalInfoResponseMessagePriorityExplodedListToJson(
 }
 
 List<String> additionalInfoResponseMessagePriorityListToJson(
-  List<enums.AdditionalInfoResponseMessagePriority>?
-  additionalInfoResponseMessagePriority,
-) {
+    List<enums.AdditionalInfoResponseMessagePriority>?
+        additionalInfoResponseMessagePriority) {
   if (additionalInfoResponseMessagePriority == null) {
     return [];
   }
@@ -5656,7 +5170,7 @@ List<String> additionalInfoResponseMessagePriorityListToJson(
 }
 
 List<enums.AdditionalInfoResponseMessagePriority>
-additionalInfoResponseMessagePriorityListFromJson(
+    additionalInfoResponseMessagePriorityListFromJson(
   List? additionalInfoResponseMessagePriority, [
   List<enums.AdditionalInfoResponseMessagePriority>? defaultValue,
 ]) {
@@ -5670,7 +5184,7 @@ additionalInfoResponseMessagePriorityListFromJson(
 }
 
 List<enums.AdditionalInfoResponseMessagePriority>?
-additionalInfoResponseMessagePriorityNullableListFromJson(
+    additionalInfoResponseMessagePriorityNullableListFromJson(
   List? additionalInfoResponseMessagePriority, [
   List<enums.AdditionalInfoResponseMessagePriority>? defaultValue,
 ]) {
@@ -5684,31 +5198,29 @@ additionalInfoResponseMessagePriorityNullableListFromJson(
 }
 
 String? additionalInfoResponseMessageTypeNullableToJson(
-  enums.AdditionalInfoResponseMessageType? additionalInfoResponseMessageType,
-) {
+    enums.AdditionalInfoResponseMessageType?
+        additionalInfoResponseMessageType) {
   return additionalInfoResponseMessageType?.value;
 }
 
 String? additionalInfoResponseMessageTypeToJson(
-  enums.AdditionalInfoResponseMessageType additionalInfoResponseMessageType,
-) {
+    enums.AdditionalInfoResponseMessageType additionalInfoResponseMessageType) {
   return additionalInfoResponseMessageType.value;
 }
 
 enums.AdditionalInfoResponseMessageType
-additionalInfoResponseMessageTypeFromJson(
+    additionalInfoResponseMessageTypeFromJson(
   Object? additionalInfoResponseMessageType, [
   enums.AdditionalInfoResponseMessageType? defaultValue,
 ]) {
   return enums.AdditionalInfoResponseMessageType.values.firstWhereOrNull(
-        (e) => e.value == additionalInfoResponseMessageType,
-      ) ??
+          (e) => e.value == additionalInfoResponseMessageType) ??
       defaultValue ??
       enums.AdditionalInfoResponseMessageType.swaggerGeneratedUnknown;
 }
 
 enums.AdditionalInfoResponseMessageType?
-additionalInfoResponseMessageTypeNullableFromJson(
+    additionalInfoResponseMessageTypeNullableFromJson(
   Object? additionalInfoResponseMessageType, [
   enums.AdditionalInfoResponseMessageType? defaultValue,
 ]) {
@@ -5716,23 +5228,20 @@ additionalInfoResponseMessageTypeNullableFromJson(
     return null;
   }
   return enums.AdditionalInfoResponseMessageType.values.firstWhereOrNull(
-        (e) => e.value == additionalInfoResponseMessageType,
-      ) ??
+          (e) => e.value == additionalInfoResponseMessageType) ??
       defaultValue;
 }
 
 String additionalInfoResponseMessageTypeExplodedListToJson(
-  List<enums.AdditionalInfoResponseMessageType>?
-  additionalInfoResponseMessageType,
-) {
+    List<enums.AdditionalInfoResponseMessageType>?
+        additionalInfoResponseMessageType) {
   return additionalInfoResponseMessageType?.map((e) => e.value!).join(',') ??
       '';
 }
 
 List<String> additionalInfoResponseMessageTypeListToJson(
-  List<enums.AdditionalInfoResponseMessageType>?
-  additionalInfoResponseMessageType,
-) {
+    List<enums.AdditionalInfoResponseMessageType>?
+        additionalInfoResponseMessageType) {
   if (additionalInfoResponseMessageType == null) {
     return [];
   }
@@ -5741,7 +5250,7 @@ List<String> additionalInfoResponseMessageTypeListToJson(
 }
 
 List<enums.AdditionalInfoResponseMessageType>
-additionalInfoResponseMessageTypeListFromJson(
+    additionalInfoResponseMessageTypeListFromJson(
   List? additionalInfoResponseMessageType, [
   List<enums.AdditionalInfoResponseMessageType>? defaultValue,
 ]) {
@@ -5755,7 +5264,7 @@ additionalInfoResponseMessageTypeListFromJson(
 }
 
 List<enums.AdditionalInfoResponseMessageType>?
-additionalInfoResponseMessageTypeNullableListFromJson(
+    additionalInfoResponseMessageTypeNullableListFromJson(
   List? additionalInfoResponseMessageType, [
   List<enums.AdditionalInfoResponseMessageType>? defaultValue,
 ]) {
@@ -5769,38 +5278,33 @@ additionalInfoResponseMessageTypeNullableListFromJson(
 }
 
 String? coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPENullableToJson(
-  enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?
-  coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE,
-) {
+    enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?
+        coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE) {
   return coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?.value;
 }
 
 String? coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEToJson(
-  enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
-  coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE,
-) {
+    enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
+        coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE) {
   return coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE.value;
 }
 
 enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
-coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEFromJson(
+    coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEFromJson(
   Object? coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE, [
   enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE? defaultValue,
 ]) {
   return enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE) ??
       defaultValue ??
-      enums
-          .CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
+      enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
           .swaggerGeneratedUnknown;
 }
 
 enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE?
-coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPENullableFromJson(
+    coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPENullableFromJson(
   Object? coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE, [
   enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE? defaultValue,
 ]) {
@@ -5808,19 +5312,16 @@ coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPENullableFromJson(
     return null;
   }
   return enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE) ??
       defaultValue;
 }
 
 String
-coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEExplodedListToJson(
-  List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>?
-  coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE,
-) {
+    coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEExplodedListToJson(
+        List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>?
+            coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE) {
   return coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
           ?.map((e) => e.value!)
           .join(',') ??
@@ -5828,9 +5329,8 @@ coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEExplodedListToJson(
 }
 
 List<String> coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEListToJson(
-  List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>?
-  coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE,
-) {
+    List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>?
+        coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE) {
   if (coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE == null) {
     return [];
   }
@@ -5841,76 +5341,67 @@ List<String> coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEListToJson(
 }
 
 List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>
-coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEListFromJson(
+    coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEListFromJson(
   List? coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE, [
   List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE == null) {
     return defaultValue ?? [];
   }
 
   return coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
-      .map(
-        (e) => coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) =>
+          coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEFromJson(
+              e.toString()))
       .toList();
 }
 
 List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>?
-coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPENullableListFromJson(
+    coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPENullableListFromJson(
   List? coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE, [
   List<enums.CoordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE == null) {
     return defaultValue;
   }
 
   return coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPE
-      .map(
-        (e) => coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) =>
+          coordRequestResponseLocation$PropertiesGISDRAWCLASSTYPEFromJson(
+              e.toString()))
       .toList();
 }
 
 String? coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPENullableToJson(
-  enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?
-  coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE,
-) {
+    enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?
+        coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE) {
   return coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?.value;
 }
 
 String? coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEToJson(
-  enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
-  coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE,
-) {
+    enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
+        coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE) {
   return coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE.value;
 }
 
 enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
-coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEFromJson(
+    coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEFromJson(
   Object? coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE, [
   enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE? defaultValue,
 ]) {
   return enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE) ??
       defaultValue ??
-      enums
-          .CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
+      enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
           .swaggerGeneratedUnknown;
 }
 
 enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE?
-coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPENullableFromJson(
+    coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPENullableFromJson(
   Object? coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE, [
   enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE? defaultValue,
 ]) {
@@ -5918,19 +5409,16 @@ coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPENullableFromJson(
     return null;
   }
   return enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE) ??
       defaultValue;
 }
 
 String
-coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEExplodedListToJson(
-  List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>?
-  coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE,
-) {
+    coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEExplodedListToJson(
+        List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>?
+            coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE) {
   return coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
           ?.map((e) => e.value!)
           .join(',') ??
@@ -5938,9 +5426,8 @@ coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEExplodedListToJson(
 }
 
 List<String> coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEListToJson(
-  List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>?
-  coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE,
-) {
+    List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>?
+        coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE) {
   if (coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE == null) {
     return [];
   }
@@ -5951,52 +5438,46 @@ List<String> coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEListToJson(
 }
 
 List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>
-coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEListFromJson(
+    coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEListFromJson(
   List? coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE, [
   List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE == null) {
     return defaultValue ?? [];
   }
 
   return coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
-      .map(
-        (e) => coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) =>
+          coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEFromJson(
+              e.toString()))
       .toList();
 }
 
 List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>?
-coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPENullableListFromJson(
+    coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPENullableListFromJson(
   List? coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE, [
   List<enums.CoordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE == null) {
     return defaultValue;
   }
 
   return coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPE
-      .map(
-        (e) => coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) =>
+          coordRequestResponseLocation$PropertiesPOIDRAWCLASSTYPEFromJson(
+              e.toString()))
       .toList();
 }
 
 String? coordRequestResponseLocationTypeNullableToJson(
-  enums.CoordRequestResponseLocationType? coordRequestResponseLocationType,
-) {
+    enums.CoordRequestResponseLocationType? coordRequestResponseLocationType) {
   return coordRequestResponseLocationType?.value;
 }
 
 String? coordRequestResponseLocationTypeToJson(
-  enums.CoordRequestResponseLocationType coordRequestResponseLocationType,
-) {
+    enums.CoordRequestResponseLocationType coordRequestResponseLocationType) {
   return coordRequestResponseLocationType.value;
 }
 
@@ -6005,14 +5486,13 @@ enums.CoordRequestResponseLocationType coordRequestResponseLocationTypeFromJson(
   enums.CoordRequestResponseLocationType? defaultValue,
 ]) {
   return enums.CoordRequestResponseLocationType.values.firstWhereOrNull(
-        (e) => e.value == coordRequestResponseLocationType,
-      ) ??
+          (e) => e.value == coordRequestResponseLocationType) ??
       defaultValue ??
       enums.CoordRequestResponseLocationType.swaggerGeneratedUnknown;
 }
 
 enums.CoordRequestResponseLocationType?
-coordRequestResponseLocationTypeNullableFromJson(
+    coordRequestResponseLocationTypeNullableFromJson(
   Object? coordRequestResponseLocationType, [
   enums.CoordRequestResponseLocationType? defaultValue,
 ]) {
@@ -6020,22 +5500,19 @@ coordRequestResponseLocationTypeNullableFromJson(
     return null;
   }
   return enums.CoordRequestResponseLocationType.values.firstWhereOrNull(
-        (e) => e.value == coordRequestResponseLocationType,
-      ) ??
+          (e) => e.value == coordRequestResponseLocationType) ??
       defaultValue;
 }
 
 String coordRequestResponseLocationTypeExplodedListToJson(
-  List<enums.CoordRequestResponseLocationType>?
-  coordRequestResponseLocationType,
-) {
+    List<enums.CoordRequestResponseLocationType>?
+        coordRequestResponseLocationType) {
   return coordRequestResponseLocationType?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> coordRequestResponseLocationTypeListToJson(
-  List<enums.CoordRequestResponseLocationType>?
-  coordRequestResponseLocationType,
-) {
+    List<enums.CoordRequestResponseLocationType>?
+        coordRequestResponseLocationType) {
   if (coordRequestResponseLocationType == null) {
     return [];
   }
@@ -6044,7 +5521,7 @@ List<String> coordRequestResponseLocationTypeListToJson(
 }
 
 List<enums.CoordRequestResponseLocationType>
-coordRequestResponseLocationTypeListFromJson(
+    coordRequestResponseLocationTypeListFromJson(
   List? coordRequestResponseLocationType, [
   List<enums.CoordRequestResponseLocationType>? defaultValue,
 ]) {
@@ -6058,7 +5535,7 @@ coordRequestResponseLocationTypeListFromJson(
 }
 
 List<enums.CoordRequestResponseLocationType>?
-coordRequestResponseLocationTypeNullableListFromJson(
+    coordRequestResponseLocationTypeNullableListFromJson(
   List? coordRequestResponseLocationType, [
   List<enums.CoordRequestResponseLocationType>? defaultValue,
 ]) {
@@ -6072,8 +5549,7 @@ coordRequestResponseLocationTypeNullableListFromJson(
 }
 
 String? parentLocationTypeNullableToJson(
-  enums.ParentLocationType? parentLocationType,
-) {
+    enums.ParentLocationType? parentLocationType) {
   return parentLocationType?.value;
 }
 
@@ -6085,9 +5561,8 @@ enums.ParentLocationType parentLocationTypeFromJson(
   Object? parentLocationType, [
   enums.ParentLocationType? defaultValue,
 ]) {
-  return enums.ParentLocationType.values.firstWhereOrNull(
-        (e) => e.value == parentLocationType,
-      ) ??
+  return enums.ParentLocationType.values
+          .firstWhereOrNull((e) => e.value == parentLocationType) ??
       defaultValue ??
       enums.ParentLocationType.swaggerGeneratedUnknown;
 }
@@ -6099,21 +5574,18 @@ enums.ParentLocationType? parentLocationTypeNullableFromJson(
   if (parentLocationType == null) {
     return null;
   }
-  return enums.ParentLocationType.values.firstWhereOrNull(
-        (e) => e.value == parentLocationType,
-      ) ??
+  return enums.ParentLocationType.values
+          .firstWhereOrNull((e) => e.value == parentLocationType) ??
       defaultValue;
 }
 
 String parentLocationTypeExplodedListToJson(
-  List<enums.ParentLocationType>? parentLocationType,
-) {
+    List<enums.ParentLocationType>? parentLocationType) {
   return parentLocationType?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> parentLocationTypeListToJson(
-  List<enums.ParentLocationType>? parentLocationType,
-) {
+    List<enums.ParentLocationType>? parentLocationType) {
   if (parentLocationType == null) {
     return [];
   }
@@ -6148,14 +5620,12 @@ List<enums.ParentLocationType>? parentLocationTypeNullableListFromJson(
 }
 
 String? stopFinderAssignedStopTypeNullableToJson(
-  enums.StopFinderAssignedStopType? stopFinderAssignedStopType,
-) {
+    enums.StopFinderAssignedStopType? stopFinderAssignedStopType) {
   return stopFinderAssignedStopType?.value;
 }
 
 String? stopFinderAssignedStopTypeToJson(
-  enums.StopFinderAssignedStopType stopFinderAssignedStopType,
-) {
+    enums.StopFinderAssignedStopType stopFinderAssignedStopType) {
   return stopFinderAssignedStopType.value;
 }
 
@@ -6163,9 +5633,8 @@ enums.StopFinderAssignedStopType stopFinderAssignedStopTypeFromJson(
   Object? stopFinderAssignedStopType, [
   enums.StopFinderAssignedStopType? defaultValue,
 ]) {
-  return enums.StopFinderAssignedStopType.values.firstWhereOrNull(
-        (e) => e.value == stopFinderAssignedStopType,
-      ) ??
+  return enums.StopFinderAssignedStopType.values
+          .firstWhereOrNull((e) => e.value == stopFinderAssignedStopType) ??
       defaultValue ??
       enums.StopFinderAssignedStopType.swaggerGeneratedUnknown;
 }
@@ -6177,21 +5646,18 @@ enums.StopFinderAssignedStopType? stopFinderAssignedStopTypeNullableFromJson(
   if (stopFinderAssignedStopType == null) {
     return null;
   }
-  return enums.StopFinderAssignedStopType.values.firstWhereOrNull(
-        (e) => e.value == stopFinderAssignedStopType,
-      ) ??
+  return enums.StopFinderAssignedStopType.values
+          .firstWhereOrNull((e) => e.value == stopFinderAssignedStopType) ??
       defaultValue;
 }
 
 String stopFinderAssignedStopTypeExplodedListToJson(
-  List<enums.StopFinderAssignedStopType>? stopFinderAssignedStopType,
-) {
+    List<enums.StopFinderAssignedStopType>? stopFinderAssignedStopType) {
   return stopFinderAssignedStopType?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> stopFinderAssignedStopTypeListToJson(
-  List<enums.StopFinderAssignedStopType>? stopFinderAssignedStopType,
-) {
+    List<enums.StopFinderAssignedStopType>? stopFinderAssignedStopType) {
   if (stopFinderAssignedStopType == null) {
     return [];
   }
@@ -6213,7 +5679,7 @@ List<enums.StopFinderAssignedStopType> stopFinderAssignedStopTypeListFromJson(
 }
 
 List<enums.StopFinderAssignedStopType>?
-stopFinderAssignedStopTypeNullableListFromJson(
+    stopFinderAssignedStopTypeNullableListFromJson(
   List? stopFinderAssignedStopType, [
   List<enums.StopFinderAssignedStopType>? defaultValue,
 ]) {
@@ -6227,14 +5693,12 @@ stopFinderAssignedStopTypeNullableListFromJson(
 }
 
 String? stopFinderLocationTypeNullableToJson(
-  enums.StopFinderLocationType? stopFinderLocationType,
-) {
+    enums.StopFinderLocationType? stopFinderLocationType) {
   return stopFinderLocationType?.value;
 }
 
 String? stopFinderLocationTypeToJson(
-  enums.StopFinderLocationType stopFinderLocationType,
-) {
+    enums.StopFinderLocationType stopFinderLocationType) {
   return stopFinderLocationType.value;
 }
 
@@ -6242,9 +5706,8 @@ enums.StopFinderLocationType stopFinderLocationTypeFromJson(
   Object? stopFinderLocationType, [
   enums.StopFinderLocationType? defaultValue,
 ]) {
-  return enums.StopFinderLocationType.values.firstWhereOrNull(
-        (e) => e.value == stopFinderLocationType,
-      ) ??
+  return enums.StopFinderLocationType.values
+          .firstWhereOrNull((e) => e.value == stopFinderLocationType) ??
       defaultValue ??
       enums.StopFinderLocationType.swaggerGeneratedUnknown;
 }
@@ -6256,21 +5719,18 @@ enums.StopFinderLocationType? stopFinderLocationTypeNullableFromJson(
   if (stopFinderLocationType == null) {
     return null;
   }
-  return enums.StopFinderLocationType.values.firstWhereOrNull(
-        (e) => e.value == stopFinderLocationType,
-      ) ??
+  return enums.StopFinderLocationType.values
+          .firstWhereOrNull((e) => e.value == stopFinderLocationType) ??
       defaultValue;
 }
 
 String stopFinderLocationTypeExplodedListToJson(
-  List<enums.StopFinderLocationType>? stopFinderLocationType,
-) {
+    List<enums.StopFinderLocationType>? stopFinderLocationType) {
   return stopFinderLocationType?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> stopFinderLocationTypeListToJson(
-  List<enums.StopFinderLocationType>? stopFinderLocationType,
-) {
+    List<enums.StopFinderLocationType>? stopFinderLocationType) {
   if (stopFinderLocationType == null) {
     return [];
   }
@@ -6305,36 +5765,32 @@ List<enums.StopFinderLocationType>? stopFinderLocationTypeNullableListFromJson(
 }
 
 int? tripRequestResponseJourneyLegInterchangeTypeNullableToJson(
-  enums.TripRequestResponseJourneyLegInterchangeType?
-  tripRequestResponseJourneyLegInterchangeType,
-) {
+    enums.TripRequestResponseJourneyLegInterchangeType?
+        tripRequestResponseJourneyLegInterchangeType) {
   return tripRequestResponseJourneyLegInterchangeType?.value;
 }
 
 int? tripRequestResponseJourneyLegInterchangeTypeToJson(
-  enums.TripRequestResponseJourneyLegInterchangeType
-  tripRequestResponseJourneyLegInterchangeType,
-) {
+    enums.TripRequestResponseJourneyLegInterchangeType
+        tripRequestResponseJourneyLegInterchangeType) {
   return tripRequestResponseJourneyLegInterchangeType.value;
 }
 
 enums.TripRequestResponseJourneyLegInterchangeType
-tripRequestResponseJourneyLegInterchangeTypeFromJson(
+    tripRequestResponseJourneyLegInterchangeTypeFromJson(
   Object? tripRequestResponseJourneyLegInterchangeType, [
   enums.TripRequestResponseJourneyLegInterchangeType? defaultValue,
 ]) {
   return enums.TripRequestResponseJourneyLegInterchangeType.values
           .firstWhereOrNull(
-            (e) => e.value == tripRequestResponseJourneyLegInterchangeType,
-          ) ??
+              (e) => e.value == tripRequestResponseJourneyLegInterchangeType) ??
       defaultValue ??
       enums
-          .TripRequestResponseJourneyLegInterchangeType
-          .swaggerGeneratedUnknown;
+          .TripRequestResponseJourneyLegInterchangeType.swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegInterchangeType?
-tripRequestResponseJourneyLegInterchangeTypeNullableFromJson(
+    tripRequestResponseJourneyLegInterchangeTypeNullableFromJson(
   Object? tripRequestResponseJourneyLegInterchangeType, [
   enums.TripRequestResponseJourneyLegInterchangeType? defaultValue,
 ]) {
@@ -6343,15 +5799,13 @@ tripRequestResponseJourneyLegInterchangeTypeNullableFromJson(
   }
   return enums.TripRequestResponseJourneyLegInterchangeType.values
           .firstWhereOrNull(
-            (e) => e.value == tripRequestResponseJourneyLegInterchangeType,
-          ) ??
+              (e) => e.value == tripRequestResponseJourneyLegInterchangeType) ??
       defaultValue;
 }
 
 String tripRequestResponseJourneyLegInterchangeTypeExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegInterchangeType>?
-  tripRequestResponseJourneyLegInterchangeType,
-) {
+    List<enums.TripRequestResponseJourneyLegInterchangeType>?
+        tripRequestResponseJourneyLegInterchangeType) {
   return tripRequestResponseJourneyLegInterchangeType
           ?.map((e) => e.value!)
           .join(',') ??
@@ -6359,9 +5813,8 @@ String tripRequestResponseJourneyLegInterchangeTypeExplodedListToJson(
 }
 
 List<int> tripRequestResponseJourneyLegInterchangeTypeListToJson(
-  List<enums.TripRequestResponseJourneyLegInterchangeType>?
-  tripRequestResponseJourneyLegInterchangeType,
-) {
+    List<enums.TripRequestResponseJourneyLegInterchangeType>?
+        tripRequestResponseJourneyLegInterchangeType) {
   if (tripRequestResponseJourneyLegInterchangeType == null) {
     return [];
   }
@@ -6372,7 +5825,7 @@ List<int> tripRequestResponseJourneyLegInterchangeTypeListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegInterchangeType>
-tripRequestResponseJourneyLegInterchangeTypeListFromJson(
+    tripRequestResponseJourneyLegInterchangeTypeListFromJson(
   List? tripRequestResponseJourneyLegInterchangeType, [
   List<enums.TripRequestResponseJourneyLegInterchangeType>? defaultValue,
 ]) {
@@ -6381,15 +5834,13 @@ tripRequestResponseJourneyLegInterchangeTypeListFromJson(
   }
 
   return tripRequestResponseJourneyLegInterchangeType
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegInterchangeTypeFromJson(e.toString()),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegInterchangeTypeFromJson(e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegInterchangeType>?
-tripRequestResponseJourneyLegInterchangeTypeNullableListFromJson(
+    tripRequestResponseJourneyLegInterchangeTypeNullableListFromJson(
   List? tripRequestResponseJourneyLegInterchangeType, [
   List<enums.TripRequestResponseJourneyLegInterchangeType>? defaultValue,
 ]) {
@@ -6398,46 +5849,39 @@ tripRequestResponseJourneyLegInterchangeTypeNullableListFromJson(
   }
 
   return tripRequestResponseJourneyLegInterchangeType
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegInterchangeTypeFromJson(e.toString()),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegInterchangeTypeFromJson(e.toString()))
       .toList();
 }
 
 String? tripRequestResponseJourneyLegPathDescriptionManoeuvreNullableToJson(
-  enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre?
-  tripRequestResponseJourneyLegPathDescriptionManoeuvre,
-) {
+    enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre?
+        tripRequestResponseJourneyLegPathDescriptionManoeuvre) {
   return tripRequestResponseJourneyLegPathDescriptionManoeuvre?.value;
 }
 
 String? tripRequestResponseJourneyLegPathDescriptionManoeuvreToJson(
-  enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre
-  tripRequestResponseJourneyLegPathDescriptionManoeuvre,
-) {
+    enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre
+        tripRequestResponseJourneyLegPathDescriptionManoeuvre) {
   return tripRequestResponseJourneyLegPathDescriptionManoeuvre.value;
 }
 
 enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre
-tripRequestResponseJourneyLegPathDescriptionManoeuvreFromJson(
+    tripRequestResponseJourneyLegPathDescriptionManoeuvreFromJson(
   Object? tripRequestResponseJourneyLegPathDescriptionManoeuvre, [
   enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre? defaultValue,
 ]) {
   return enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegPathDescriptionManoeuvre,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegPathDescriptionManoeuvre) ??
       defaultValue ??
-      enums
-          .TripRequestResponseJourneyLegPathDescriptionManoeuvre
+      enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre
           .swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre?
-tripRequestResponseJourneyLegPathDescriptionManoeuvreNullableFromJson(
+    tripRequestResponseJourneyLegPathDescriptionManoeuvreNullableFromJson(
   Object? tripRequestResponseJourneyLegPathDescriptionManoeuvre, [
   enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre? defaultValue,
 ]) {
@@ -6445,18 +5889,15 @@ tripRequestResponseJourneyLegPathDescriptionManoeuvreNullableFromJson(
     return null;
   }
   return enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegPathDescriptionManoeuvre,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegPathDescriptionManoeuvre) ??
       defaultValue;
 }
 
 String tripRequestResponseJourneyLegPathDescriptionManoeuvreExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>?
-  tripRequestResponseJourneyLegPathDescriptionManoeuvre,
-) {
+    List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>?
+        tripRequestResponseJourneyLegPathDescriptionManoeuvre) {
   return tripRequestResponseJourneyLegPathDescriptionManoeuvre
           ?.map((e) => e.value!)
           .join(',') ??
@@ -6464,9 +5905,8 @@ String tripRequestResponseJourneyLegPathDescriptionManoeuvreExplodedListToJson(
 }
 
 List<String> tripRequestResponseJourneyLegPathDescriptionManoeuvreListToJson(
-  List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>?
-  tripRequestResponseJourneyLegPathDescriptionManoeuvre,
-) {
+    List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>?
+        tripRequestResponseJourneyLegPathDescriptionManoeuvre) {
   if (tripRequestResponseJourneyLegPathDescriptionManoeuvre == null) {
     return [];
   }
@@ -6477,76 +5917,65 @@ List<String> tripRequestResponseJourneyLegPathDescriptionManoeuvreListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>
-tripRequestResponseJourneyLegPathDescriptionManoeuvreListFromJson(
+    tripRequestResponseJourneyLegPathDescriptionManoeuvreListFromJson(
   List? tripRequestResponseJourneyLegPathDescriptionManoeuvre, [
   List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegPathDescriptionManoeuvre == null) {
     return defaultValue ?? [];
   }
 
   return tripRequestResponseJourneyLegPathDescriptionManoeuvre
-      .map(
-        (e) => tripRequestResponseJourneyLegPathDescriptionManoeuvreFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) => tripRequestResponseJourneyLegPathDescriptionManoeuvreFromJson(
+          e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>?
-tripRequestResponseJourneyLegPathDescriptionManoeuvreNullableListFromJson(
+    tripRequestResponseJourneyLegPathDescriptionManoeuvreNullableListFromJson(
   List? tripRequestResponseJourneyLegPathDescriptionManoeuvre, [
   List<enums.TripRequestResponseJourneyLegPathDescriptionManoeuvre>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegPathDescriptionManoeuvre == null) {
     return defaultValue;
   }
 
   return tripRequestResponseJourneyLegPathDescriptionManoeuvre
-      .map(
-        (e) => tripRequestResponseJourneyLegPathDescriptionManoeuvreFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) => tripRequestResponseJourneyLegPathDescriptionManoeuvreFromJson(
+          e.toString()))
       .toList();
 }
 
 String? tripRequestResponseJourneyLegPathDescriptionTurnDirectionNullableToJson(
-  enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?
-  tripRequestResponseJourneyLegPathDescriptionTurnDirection,
-) {
+    enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?
+        tripRequestResponseJourneyLegPathDescriptionTurnDirection) {
   return tripRequestResponseJourneyLegPathDescriptionTurnDirection?.value;
 }
 
 String? tripRequestResponseJourneyLegPathDescriptionTurnDirectionToJson(
-  enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection
-  tripRequestResponseJourneyLegPathDescriptionTurnDirection,
-) {
+    enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection
+        tripRequestResponseJourneyLegPathDescriptionTurnDirection) {
   return tripRequestResponseJourneyLegPathDescriptionTurnDirection.value;
 }
 
 enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection
-tripRequestResponseJourneyLegPathDescriptionTurnDirectionFromJson(
+    tripRequestResponseJourneyLegPathDescriptionTurnDirectionFromJson(
   Object? tripRequestResponseJourneyLegPathDescriptionTurnDirection, [
   enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection? defaultValue,
 ]) {
   return enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegPathDescriptionTurnDirection,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegPathDescriptionTurnDirection) ??
       defaultValue ??
-      enums
-          .TripRequestResponseJourneyLegPathDescriptionTurnDirection
+      enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection
           .swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection?
-tripRequestResponseJourneyLegPathDescriptionTurnDirectionNullableFromJson(
+    tripRequestResponseJourneyLegPathDescriptionTurnDirectionNullableFromJson(
   Object? tripRequestResponseJourneyLegPathDescriptionTurnDirection, [
   enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection? defaultValue,
 ]) {
@@ -6554,19 +5983,16 @@ tripRequestResponseJourneyLegPathDescriptionTurnDirectionNullableFromJson(
     return null;
   }
   return enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegPathDescriptionTurnDirection,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegPathDescriptionTurnDirection) ??
       defaultValue;
 }
 
 String
-tripRequestResponseJourneyLegPathDescriptionTurnDirectionExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>?
-  tripRequestResponseJourneyLegPathDescriptionTurnDirection,
-) {
+    tripRequestResponseJourneyLegPathDescriptionTurnDirectionExplodedListToJson(
+        List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>?
+            tripRequestResponseJourneyLegPathDescriptionTurnDirection) {
   return tripRequestResponseJourneyLegPathDescriptionTurnDirection
           ?.map((e) => e.value!)
           .join(',') ??
@@ -6574,10 +6000,9 @@ tripRequestResponseJourneyLegPathDescriptionTurnDirectionExplodedListToJson(
 }
 
 List<String>
-tripRequestResponseJourneyLegPathDescriptionTurnDirectionListToJson(
-  List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>?
-  tripRequestResponseJourneyLegPathDescriptionTurnDirection,
-) {
+    tripRequestResponseJourneyLegPathDescriptionTurnDirectionListToJson(
+        List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>?
+            tripRequestResponseJourneyLegPathDescriptionTurnDirection) {
   if (tripRequestResponseJourneyLegPathDescriptionTurnDirection == null) {
     return [];
   }
@@ -6588,105 +6013,91 @@ tripRequestResponseJourneyLegPathDescriptionTurnDirectionListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>
-tripRequestResponseJourneyLegPathDescriptionTurnDirectionListFromJson(
+    tripRequestResponseJourneyLegPathDescriptionTurnDirectionListFromJson(
   List? tripRequestResponseJourneyLegPathDescriptionTurnDirection, [
   List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegPathDescriptionTurnDirection == null) {
     return defaultValue ?? [];
   }
 
   return tripRequestResponseJourneyLegPathDescriptionTurnDirection
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegPathDescriptionTurnDirectionFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegPathDescriptionTurnDirectionFromJson(
+              e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>?
-tripRequestResponseJourneyLegPathDescriptionTurnDirectionNullableListFromJson(
+    tripRequestResponseJourneyLegPathDescriptionTurnDirectionNullableListFromJson(
   List? tripRequestResponseJourneyLegPathDescriptionTurnDirection, [
   List<enums.TripRequestResponseJourneyLegPathDescriptionTurnDirection>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegPathDescriptionTurnDirection == null) {
     return defaultValue;
   }
 
   return tripRequestResponseJourneyLegPathDescriptionTurnDirection
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegPathDescriptionTurnDirectionFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegPathDescriptionTurnDirectionFromJson(
+              e.toString()))
       .toList();
 }
 
 String?
-tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessNullableToJson(
-  enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
-  tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess,
-) {
+    tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessNullableToJson(
+        enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
+            tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess) {
   return tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?.value;
 }
 
 String? tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessToJson(
-  enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
-  tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess,
-) {
+    enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
+        tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess) {
   return tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess.value;
 }
 
 enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
-tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessFromJson(
+    tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessFromJson(
   Object? tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess, [
   enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
-  defaultValue,
+      defaultValue,
 ]) {
   return enums
-          .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
-          .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess,
-          ) ??
+          .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess.values
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess) ??
       defaultValue ??
-      enums
-          .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
+      enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
           .swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
-tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessNullableFromJson(
+    tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessNullableFromJson(
   Object? tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess, [
   enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess == null) {
     return null;
   }
   return enums
-          .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
-          .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess,
-          ) ??
+          .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess.values
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess) ??
       defaultValue;
 }
 
 String
-tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>?
-  tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess,
-) {
+    tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessExplodedListToJson(
+        List<
+                enums
+                .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>?
+            tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess) {
   return tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
           ?.map((e) => e.value!)
           .join(',') ??
@@ -6694,10 +6105,11 @@ tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessExplodedListToJson(
 }
 
 List<String>
-tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessListToJson(
-  List<enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>?
-  tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess,
-) {
+    tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessListToJson(
+        List<
+                enums
+                .TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>?
+            tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess) {
   if (tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess == null) {
     return [];
   }
@@ -6708,73 +6120,64 @@ tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>
-tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessListFromJson(
+    tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessListFromJson(
   List? tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess, [
   List<enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess == null) {
     return defaultValue ?? [];
   }
 
   return tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessFromJson(
+              e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>?
-tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessNullableListFromJson(
+    tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessNullableListFromJson(
   List? tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess, [
   List<enums.TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess == null) {
     return defaultValue;
   }
 
   return tripRequestResponseJourneyLegStop$PropertiesWheelchairAccess
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStop$PropertiesWheelchairAccessFromJson(
+              e.toString()))
       .toList();
 }
 
 String? tripRequestResponseJourneyLegStopTypeNullableToJson(
-  enums.TripRequestResponseJourneyLegStopType?
-  tripRequestResponseJourneyLegStopType,
-) {
+    enums.TripRequestResponseJourneyLegStopType?
+        tripRequestResponseJourneyLegStopType) {
   return tripRequestResponseJourneyLegStopType?.value;
 }
 
 String? tripRequestResponseJourneyLegStopTypeToJson(
-  enums.TripRequestResponseJourneyLegStopType
-  tripRequestResponseJourneyLegStopType,
-) {
+    enums.TripRequestResponseJourneyLegStopType
+        tripRequestResponseJourneyLegStopType) {
   return tripRequestResponseJourneyLegStopType.value;
 }
 
 enums.TripRequestResponseJourneyLegStopType
-tripRequestResponseJourneyLegStopTypeFromJson(
+    tripRequestResponseJourneyLegStopTypeFromJson(
   Object? tripRequestResponseJourneyLegStopType, [
   enums.TripRequestResponseJourneyLegStopType? defaultValue,
 ]) {
   return enums.TripRequestResponseJourneyLegStopType.values.firstWhereOrNull(
-        (e) => e.value == tripRequestResponseJourneyLegStopType,
-      ) ??
+          (e) => e.value == tripRequestResponseJourneyLegStopType) ??
       defaultValue ??
       enums.TripRequestResponseJourneyLegStopType.swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegStopType?
-tripRequestResponseJourneyLegStopTypeNullableFromJson(
+    tripRequestResponseJourneyLegStopTypeNullableFromJson(
   Object? tripRequestResponseJourneyLegStopType, [
   enums.TripRequestResponseJourneyLegStopType? defaultValue,
 ]) {
@@ -6782,15 +6185,13 @@ tripRequestResponseJourneyLegStopTypeNullableFromJson(
     return null;
   }
   return enums.TripRequestResponseJourneyLegStopType.values.firstWhereOrNull(
-        (e) => e.value == tripRequestResponseJourneyLegStopType,
-      ) ??
+          (e) => e.value == tripRequestResponseJourneyLegStopType) ??
       defaultValue;
 }
 
 String tripRequestResponseJourneyLegStopTypeExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegStopType>?
-  tripRequestResponseJourneyLegStopType,
-) {
+    List<enums.TripRequestResponseJourneyLegStopType>?
+        tripRequestResponseJourneyLegStopType) {
   return tripRequestResponseJourneyLegStopType
           ?.map((e) => e.value!)
           .join(',') ??
@@ -6798,9 +6199,8 @@ String tripRequestResponseJourneyLegStopTypeExplodedListToJson(
 }
 
 List<String> tripRequestResponseJourneyLegStopTypeListToJson(
-  List<enums.TripRequestResponseJourneyLegStopType>?
-  tripRequestResponseJourneyLegStopType,
-) {
+    List<enums.TripRequestResponseJourneyLegStopType>?
+        tripRequestResponseJourneyLegStopType) {
   if (tripRequestResponseJourneyLegStopType == null) {
     return [];
   }
@@ -6809,7 +6209,7 @@ List<String> tripRequestResponseJourneyLegStopTypeListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegStopType>
-tripRequestResponseJourneyLegStopTypeListFromJson(
+    tripRequestResponseJourneyLegStopTypeListFromJson(
   List? tripRequestResponseJourneyLegStopType, [
   List<enums.TripRequestResponseJourneyLegStopType>? defaultValue,
 ]) {
@@ -6823,7 +6223,7 @@ tripRequestResponseJourneyLegStopTypeListFromJson(
 }
 
 List<enums.TripRequestResponseJourneyLegStopType>?
-tripRequestResponseJourneyLegStopTypeNullableListFromJson(
+    tripRequestResponseJourneyLegStopTypeNullableListFromJson(
   List? tripRequestResponseJourneyLegStopType, [
   List<enums.TripRequestResponseJourneyLegStopType>? defaultValue,
 ]) {
@@ -6837,38 +6237,33 @@ tripRequestResponseJourneyLegStopTypeNullableListFromJson(
 }
 
 String? tripRequestResponseJourneyLegStopFootpathInfoPositionNullableToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoPosition?
-  tripRequestResponseJourneyLegStopFootpathInfoPosition,
-) {
+    enums.TripRequestResponseJourneyLegStopFootpathInfoPosition?
+        tripRequestResponseJourneyLegStopFootpathInfoPosition) {
   return tripRequestResponseJourneyLegStopFootpathInfoPosition?.value;
 }
 
 String? tripRequestResponseJourneyLegStopFootpathInfoPositionToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoPosition
-  tripRequestResponseJourneyLegStopFootpathInfoPosition,
-) {
+    enums.TripRequestResponseJourneyLegStopFootpathInfoPosition
+        tripRequestResponseJourneyLegStopFootpathInfoPosition) {
   return tripRequestResponseJourneyLegStopFootpathInfoPosition.value;
 }
 
 enums.TripRequestResponseJourneyLegStopFootpathInfoPosition
-tripRequestResponseJourneyLegStopFootpathInfoPositionFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoPositionFromJson(
   Object? tripRequestResponseJourneyLegStopFootpathInfoPosition, [
   enums.TripRequestResponseJourneyLegStopFootpathInfoPosition? defaultValue,
 ]) {
   return enums.TripRequestResponseJourneyLegStopFootpathInfoPosition.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoPosition,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoPosition) ??
       defaultValue ??
-      enums
-          .TripRequestResponseJourneyLegStopFootpathInfoPosition
+      enums.TripRequestResponseJourneyLegStopFootpathInfoPosition
           .swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegStopFootpathInfoPosition?
-tripRequestResponseJourneyLegStopFootpathInfoPositionNullableFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoPositionNullableFromJson(
   Object? tripRequestResponseJourneyLegStopFootpathInfoPosition, [
   enums.TripRequestResponseJourneyLegStopFootpathInfoPosition? defaultValue,
 ]) {
@@ -6876,18 +6271,15 @@ tripRequestResponseJourneyLegStopFootpathInfoPositionNullableFromJson(
     return null;
   }
   return enums.TripRequestResponseJourneyLegStopFootpathInfoPosition.values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoPosition,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoPosition) ??
       defaultValue;
 }
 
 String tripRequestResponseJourneyLegStopFootpathInfoPositionExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>?
-  tripRequestResponseJourneyLegStopFootpathInfoPosition,
-) {
+    List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>?
+        tripRequestResponseJourneyLegStopFootpathInfoPosition) {
   return tripRequestResponseJourneyLegStopFootpathInfoPosition
           ?.map((e) => e.value!)
           .join(',') ??
@@ -6895,9 +6287,8 @@ String tripRequestResponseJourneyLegStopFootpathInfoPositionExplodedListToJson(
 }
 
 List<String> tripRequestResponseJourneyLegStopFootpathInfoPositionListToJson(
-  List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>?
-  tripRequestResponseJourneyLegStopFootpathInfoPosition,
-) {
+    List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>?
+        tripRequestResponseJourneyLegStopFootpathInfoPosition) {
   if (tripRequestResponseJourneyLegStopFootpathInfoPosition == null) {
     return [];
   }
@@ -6908,103 +6299,89 @@ List<String> tripRequestResponseJourneyLegStopFootpathInfoPositionListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>
-tripRequestResponseJourneyLegStopFootpathInfoPositionListFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoPositionListFromJson(
   List? tripRequestResponseJourneyLegStopFootpathInfoPosition, [
   List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoPosition == null) {
     return defaultValue ?? [];
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoPosition
-      .map(
-        (e) => tripRequestResponseJourneyLegStopFootpathInfoPositionFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) => tripRequestResponseJourneyLegStopFootpathInfoPositionFromJson(
+          e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>?
-tripRequestResponseJourneyLegStopFootpathInfoPositionNullableListFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoPositionNullableListFromJson(
   List? tripRequestResponseJourneyLegStopFootpathInfoPosition, [
   List<enums.TripRequestResponseJourneyLegStopFootpathInfoPosition>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoPosition == null) {
     return defaultValue;
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoPosition
-      .map(
-        (e) => tripRequestResponseJourneyLegStopFootpathInfoPositionFromJson(
-          e.toString(),
-        ),
-      )
+      .map((e) => tripRequestResponseJourneyLegStopFootpathInfoPositionFromJson(
+          e.toString()))
       .toList();
 }
 
 String?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelNullableToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel,
-) {
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelNullableToJson(
+        enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
+            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?.value;
 }
 
 String? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel,
-) {
+    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
+        tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel.value;
 }
 
 enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelFromJson(
   Object? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel, [
   enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
-  defaultValue,
+      defaultValue,
 ]) {
   return enums
-          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
-          .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel,
-          ) ??
+          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel.values
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel) ??
       defaultValue ??
-      enums
-          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
+      enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
           .swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelNullableFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelNullableFromJson(
   Object? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel, [
   enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel == null) {
     return null;
   }
   return enums
-          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
-          .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel,
-          ) ??
+          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel.values
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel) ??
       defaultValue;
 }
 
 String
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel,
-) {
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelExplodedListToJson(
+        List<
+                enums
+                .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>?
+            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
           ?.map((e) => e.value!)
           .join(',') ??
@@ -7012,10 +6389,11 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelExplodedListToJson
 }
 
 List<String>
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelListToJson(
-  List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel,
-) {
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelListToJson(
+        List<
+                enums
+                .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>?
+            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel == null) {
     return [];
   }
@@ -7026,105 +6404,91 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelListFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelListFromJson(
   List? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel, [
   List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel == null) {
     return defaultValue ?? [];
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelFromJson(
+              e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelNullableListFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelNullableListFromJson(
   List? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel, [
   List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel == null) {
     return defaultValue;
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevelFromJson(
+              e.toString()))
       .toList();
 }
 
 String?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeNullableToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType,
-) {
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeNullableToJson(
+        enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
+            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?.value;
 }
 
 String? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType,
-) {
+    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
+        tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType.value;
 }
 
 enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeFromJson(
   Object? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType, [
   enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
-  defaultValue,
+      defaultValue,
 ]) {
   return enums
-          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
-          .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType,
-          ) ??
+          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType.values
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType) ??
       defaultValue ??
-      enums
-          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
+      enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
           .swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeNullableFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeNullableFromJson(
   Object? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType, [
   enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType == null) {
     return null;
   }
   return enums
-          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
-          .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType,
-          ) ??
+          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType.values
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType) ??
       defaultValue;
 }
 
 String
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType,
-) {
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeExplodedListToJson(
+        List<
+                enums
+                .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>?
+            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
           ?.map((e) => e.value!)
           .join(',') ??
@@ -7132,10 +6496,11 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeExplodedListToJson(
 }
 
 List<String>
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeListToJson(
-  List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType,
-) {
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeListToJson(
+        List<
+                enums
+                .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>?
+            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType == null) {
     return [];
   }
@@ -7146,90 +6511,84 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeListFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeListFromJson(
   List? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType, [
   List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType == null) {
     return defaultValue ?? [];
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeFromJson(
+              e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeNullableListFromJson(
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeNullableListFromJson(
   List? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType, [
   List<enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType>?
-  defaultValue,
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType == null) {
     return defaultValue;
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemType
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopFootpathInfoFootpathElemTypeFromJson(
+              e.toString()))
       .toList();
 }
 
-String?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNullableToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType,
-) {
+String? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNullableToJson(
+    enums
+        .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
+        tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
       ?.value;
 }
 
-String?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeToJson(
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType,
-) {
+String? tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeToJson(
+    enums
+        .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
+        tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
       .value;
 }
 
-enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeFromJson(
+enums
+    .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeFromJson(
   Object?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
-  defaultValue,
+      tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
+  enums
+      .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
+      defaultValue,
 ]) {
   return enums
           .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
           .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType) ??
       defaultValue ??
       enums
           .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
           .swaggerGeneratedUnknown;
 }
 
-enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNullableFromJson(
+enums
+    .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNullableFromJson(
   Object?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
-  defaultValue,
+      tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
+  enums
+      .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType?
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType ==
       null) {
@@ -7238,21 +6597,17 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNu
   return enums
           .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
           .values
-          .firstWhereOrNull(
-            (e) =>
-                e.value ==
-                tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value ==
+              tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType) ??
       defaultValue;
 }
 
-String
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeExplodedListToJson(
-  List<
-    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-  >?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType,
-) {
+String tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeExplodedListToJson(
+    List<
+            enums
+            .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType>?
+        tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType) {
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
           ?.map((e) => e.value!)
           .join(',') ??
@@ -7260,12 +6615,11 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeEx
 }
 
 List<String>
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeListToJson(
-  List<
-    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-  >?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType,
-) {
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeListToJson(
+        List<
+                enums
+                .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType>?
+            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType ==
       null) {
     return [];
@@ -7277,15 +6631,15 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeLi
 }
 
 List<
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
->
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeListFromJson(
+        enums
+        .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType>
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeListFromJson(
   List?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
+      tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
   List<
-    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-  >?
-  defaultValue,
+          enums
+          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType>?
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType ==
       null) {
@@ -7293,25 +6647,22 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeLi
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeFromJson(
+              e.toString()))
       .toList();
 }
 
 List<
-  enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
->?
-tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNullableListFromJson(
+        enums
+        .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType>?
+    tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNullableListFromJson(
   List?
-  tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
+      tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType, [
   List<
-    enums.TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-  >?
-  defaultValue,
+          enums
+          .TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType>?
+      defaultValue,
 ]) {
   if (tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType ==
       null) {
@@ -7319,46 +6670,39 @@ tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeNu
   }
 
   return tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeFromJson(
-              e.toString(),
-            ),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationTypeFromJson(
+              e.toString()))
       .toList();
 }
 
 String? tripRequestResponseJourneyLegStopInfoPriorityNullableToJson(
-  enums.TripRequestResponseJourneyLegStopInfoPriority?
-  tripRequestResponseJourneyLegStopInfoPriority,
-) {
+    enums.TripRequestResponseJourneyLegStopInfoPriority?
+        tripRequestResponseJourneyLegStopInfoPriority) {
   return tripRequestResponseJourneyLegStopInfoPriority?.value;
 }
 
 String? tripRequestResponseJourneyLegStopInfoPriorityToJson(
-  enums.TripRequestResponseJourneyLegStopInfoPriority
-  tripRequestResponseJourneyLegStopInfoPriority,
-) {
+    enums.TripRequestResponseJourneyLegStopInfoPriority
+        tripRequestResponseJourneyLegStopInfoPriority) {
   return tripRequestResponseJourneyLegStopInfoPriority.value;
 }
 
 enums.TripRequestResponseJourneyLegStopInfoPriority
-tripRequestResponseJourneyLegStopInfoPriorityFromJson(
+    tripRequestResponseJourneyLegStopInfoPriorityFromJson(
   Object? tripRequestResponseJourneyLegStopInfoPriority, [
   enums.TripRequestResponseJourneyLegStopInfoPriority? defaultValue,
 ]) {
   return enums.TripRequestResponseJourneyLegStopInfoPriority.values
-          .firstWhereOrNull(
-            (e) => e.value == tripRequestResponseJourneyLegStopInfoPriority,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value == tripRequestResponseJourneyLegStopInfoPriority) ??
       defaultValue ??
-      enums
-          .TripRequestResponseJourneyLegStopInfoPriority
+      enums.TripRequestResponseJourneyLegStopInfoPriority
           .swaggerGeneratedUnknown;
 }
 
 enums.TripRequestResponseJourneyLegStopInfoPriority?
-tripRequestResponseJourneyLegStopInfoPriorityNullableFromJson(
+    tripRequestResponseJourneyLegStopInfoPriorityNullableFromJson(
   Object? tripRequestResponseJourneyLegStopInfoPriority, [
   enums.TripRequestResponseJourneyLegStopInfoPriority? defaultValue,
 ]) {
@@ -7366,16 +6710,14 @@ tripRequestResponseJourneyLegStopInfoPriorityNullableFromJson(
     return null;
   }
   return enums.TripRequestResponseJourneyLegStopInfoPriority.values
-          .firstWhereOrNull(
-            (e) => e.value == tripRequestResponseJourneyLegStopInfoPriority,
-          ) ??
+          .firstWhereOrNull((e) =>
+              e.value == tripRequestResponseJourneyLegStopInfoPriority) ??
       defaultValue;
 }
 
 String tripRequestResponseJourneyLegStopInfoPriorityExplodedListToJson(
-  List<enums.TripRequestResponseJourneyLegStopInfoPriority>?
-  tripRequestResponseJourneyLegStopInfoPriority,
-) {
+    List<enums.TripRequestResponseJourneyLegStopInfoPriority>?
+        tripRequestResponseJourneyLegStopInfoPriority) {
   return tripRequestResponseJourneyLegStopInfoPriority
           ?.map((e) => e.value!)
           .join(',') ??
@@ -7383,9 +6725,8 @@ String tripRequestResponseJourneyLegStopInfoPriorityExplodedListToJson(
 }
 
 List<String> tripRequestResponseJourneyLegStopInfoPriorityListToJson(
-  List<enums.TripRequestResponseJourneyLegStopInfoPriority>?
-  tripRequestResponseJourneyLegStopInfoPriority,
-) {
+    List<enums.TripRequestResponseJourneyLegStopInfoPriority>?
+        tripRequestResponseJourneyLegStopInfoPriority) {
   if (tripRequestResponseJourneyLegStopInfoPriority == null) {
     return [];
   }
@@ -7396,7 +6737,7 @@ List<String> tripRequestResponseJourneyLegStopInfoPriorityListToJson(
 }
 
 List<enums.TripRequestResponseJourneyLegStopInfoPriority>
-tripRequestResponseJourneyLegStopInfoPriorityListFromJson(
+    tripRequestResponseJourneyLegStopInfoPriorityListFromJson(
   List? tripRequestResponseJourneyLegStopInfoPriority, [
   List<enums.TripRequestResponseJourneyLegStopInfoPriority>? defaultValue,
 ]) {
@@ -7405,15 +6746,13 @@ tripRequestResponseJourneyLegStopInfoPriorityListFromJson(
   }
 
   return tripRequestResponseJourneyLegStopInfoPriority
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopInfoPriorityFromJson(e.toString()),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopInfoPriorityFromJson(e.toString()))
       .toList();
 }
 
 List<enums.TripRequestResponseJourneyLegStopInfoPriority>?
-tripRequestResponseJourneyLegStopInfoPriorityNullableListFromJson(
+    tripRequestResponseJourneyLegStopInfoPriorityNullableListFromJson(
   List? tripRequestResponseJourneyLegStopInfoPriority, [
   List<enums.TripRequestResponseJourneyLegStopInfoPriority>? defaultValue,
 ]) {
@@ -7422,22 +6761,18 @@ tripRequestResponseJourneyLegStopInfoPriorityNullableListFromJson(
   }
 
   return tripRequestResponseJourneyLegStopInfoPriority
-      .map(
-        (e) =>
-            tripRequestResponseJourneyLegStopInfoPriorityFromJson(e.toString()),
-      )
+      .map((e) =>
+          tripRequestResponseJourneyLegStopInfoPriorityFromJson(e.toString()))
       .toList();
 }
 
 String? addInfoGetOutputFormatNullableToJson(
-  enums.AddInfoGetOutputFormat? addInfoGetOutputFormat,
-) {
+    enums.AddInfoGetOutputFormat? addInfoGetOutputFormat) {
   return addInfoGetOutputFormat?.value;
 }
 
 String? addInfoGetOutputFormatToJson(
-  enums.AddInfoGetOutputFormat addInfoGetOutputFormat,
-) {
+    enums.AddInfoGetOutputFormat addInfoGetOutputFormat) {
   return addInfoGetOutputFormat.value;
 }
 
@@ -7445,9 +6780,8 @@ enums.AddInfoGetOutputFormat addInfoGetOutputFormatFromJson(
   Object? addInfoGetOutputFormat, [
   enums.AddInfoGetOutputFormat? defaultValue,
 ]) {
-  return enums.AddInfoGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == addInfoGetOutputFormat,
-      ) ??
+  return enums.AddInfoGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == addInfoGetOutputFormat) ??
       defaultValue ??
       enums.AddInfoGetOutputFormat.swaggerGeneratedUnknown;
 }
@@ -7459,21 +6793,18 @@ enums.AddInfoGetOutputFormat? addInfoGetOutputFormatNullableFromJson(
   if (addInfoGetOutputFormat == null) {
     return null;
   }
-  return enums.AddInfoGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == addInfoGetOutputFormat,
-      ) ??
+  return enums.AddInfoGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == addInfoGetOutputFormat) ??
       defaultValue;
 }
 
 String addInfoGetOutputFormatExplodedListToJson(
-  List<enums.AddInfoGetOutputFormat>? addInfoGetOutputFormat,
-) {
+    List<enums.AddInfoGetOutputFormat>? addInfoGetOutputFormat) {
   return addInfoGetOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> addInfoGetOutputFormatListToJson(
-  List<enums.AddInfoGetOutputFormat>? addInfoGetOutputFormat,
-) {
+    List<enums.AddInfoGetOutputFormat>? addInfoGetOutputFormat) {
   if (addInfoGetOutputFormat == null) {
     return [];
   }
@@ -7508,14 +6839,12 @@ List<enums.AddInfoGetOutputFormat>? addInfoGetOutputFormatNullableListFromJson(
 }
 
 String? addInfoGetFilterMOTTypeNullableToJson(
-  enums.AddInfoGetFilterMOTType? addInfoGetFilterMOTType,
-) {
+    enums.AddInfoGetFilterMOTType? addInfoGetFilterMOTType) {
   return addInfoGetFilterMOTType?.value;
 }
 
 String? addInfoGetFilterMOTTypeToJson(
-  enums.AddInfoGetFilterMOTType addInfoGetFilterMOTType,
-) {
+    enums.AddInfoGetFilterMOTType addInfoGetFilterMOTType) {
   return addInfoGetFilterMOTType.value;
 }
 
@@ -7523,9 +6852,8 @@ enums.AddInfoGetFilterMOTType addInfoGetFilterMOTTypeFromJson(
   Object? addInfoGetFilterMOTType, [
   enums.AddInfoGetFilterMOTType? defaultValue,
 ]) {
-  return enums.AddInfoGetFilterMOTType.values.firstWhereOrNull(
-        (e) => e.value == addInfoGetFilterMOTType,
-      ) ??
+  return enums.AddInfoGetFilterMOTType.values
+          .firstWhereOrNull((e) => e.value == addInfoGetFilterMOTType) ??
       defaultValue ??
       enums.AddInfoGetFilterMOTType.swaggerGeneratedUnknown;
 }
@@ -7537,21 +6865,18 @@ enums.AddInfoGetFilterMOTType? addInfoGetFilterMOTTypeNullableFromJson(
   if (addInfoGetFilterMOTType == null) {
     return null;
   }
-  return enums.AddInfoGetFilterMOTType.values.firstWhereOrNull(
-        (e) => e.value == addInfoGetFilterMOTType,
-      ) ??
+  return enums.AddInfoGetFilterMOTType.values
+          .firstWhereOrNull((e) => e.value == addInfoGetFilterMOTType) ??
       defaultValue;
 }
 
 String addInfoGetFilterMOTTypeExplodedListToJson(
-  List<enums.AddInfoGetFilterMOTType>? addInfoGetFilterMOTType,
-) {
+    List<enums.AddInfoGetFilterMOTType>? addInfoGetFilterMOTType) {
   return addInfoGetFilterMOTType?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> addInfoGetFilterMOTTypeListToJson(
-  List<enums.AddInfoGetFilterMOTType>? addInfoGetFilterMOTType,
-) {
+    List<enums.AddInfoGetFilterMOTType>? addInfoGetFilterMOTType) {
   if (addInfoGetFilterMOTType == null) {
     return [];
   }
@@ -7573,7 +6898,7 @@ List<enums.AddInfoGetFilterMOTType> addInfoGetFilterMOTTypeListFromJson(
 }
 
 List<enums.AddInfoGetFilterMOTType>?
-addInfoGetFilterMOTTypeNullableListFromJson(
+    addInfoGetFilterMOTTypeNullableListFromJson(
   List? addInfoGetFilterMOTType, [
   List<enums.AddInfoGetFilterMOTType>? defaultValue,
 ]) {
@@ -7587,31 +6912,29 @@ addInfoGetFilterMOTTypeNullableListFromJson(
 }
 
 String? addInfoGetFilterPublicationStatusNullableToJson(
-  enums.AddInfoGetFilterPublicationStatus? addInfoGetFilterPublicationStatus,
-) {
+    enums.AddInfoGetFilterPublicationStatus?
+        addInfoGetFilterPublicationStatus) {
   return addInfoGetFilterPublicationStatus?.value;
 }
 
 String? addInfoGetFilterPublicationStatusToJson(
-  enums.AddInfoGetFilterPublicationStatus addInfoGetFilterPublicationStatus,
-) {
+    enums.AddInfoGetFilterPublicationStatus addInfoGetFilterPublicationStatus) {
   return addInfoGetFilterPublicationStatus.value;
 }
 
 enums.AddInfoGetFilterPublicationStatus
-addInfoGetFilterPublicationStatusFromJson(
+    addInfoGetFilterPublicationStatusFromJson(
   Object? addInfoGetFilterPublicationStatus, [
   enums.AddInfoGetFilterPublicationStatus? defaultValue,
 ]) {
   return enums.AddInfoGetFilterPublicationStatus.values.firstWhereOrNull(
-        (e) => e.value == addInfoGetFilterPublicationStatus,
-      ) ??
+          (e) => e.value == addInfoGetFilterPublicationStatus) ??
       defaultValue ??
       enums.AddInfoGetFilterPublicationStatus.swaggerGeneratedUnknown;
 }
 
 enums.AddInfoGetFilterPublicationStatus?
-addInfoGetFilterPublicationStatusNullableFromJson(
+    addInfoGetFilterPublicationStatusNullableFromJson(
   Object? addInfoGetFilterPublicationStatus, [
   enums.AddInfoGetFilterPublicationStatus? defaultValue,
 ]) {
@@ -7619,23 +6942,20 @@ addInfoGetFilterPublicationStatusNullableFromJson(
     return null;
   }
   return enums.AddInfoGetFilterPublicationStatus.values.firstWhereOrNull(
-        (e) => e.value == addInfoGetFilterPublicationStatus,
-      ) ??
+          (e) => e.value == addInfoGetFilterPublicationStatus) ??
       defaultValue;
 }
 
 String addInfoGetFilterPublicationStatusExplodedListToJson(
-  List<enums.AddInfoGetFilterPublicationStatus>?
-  addInfoGetFilterPublicationStatus,
-) {
+    List<enums.AddInfoGetFilterPublicationStatus>?
+        addInfoGetFilterPublicationStatus) {
   return addInfoGetFilterPublicationStatus?.map((e) => e.value!).join(',') ??
       '';
 }
 
 List<String> addInfoGetFilterPublicationStatusListToJson(
-  List<enums.AddInfoGetFilterPublicationStatus>?
-  addInfoGetFilterPublicationStatus,
-) {
+    List<enums.AddInfoGetFilterPublicationStatus>?
+        addInfoGetFilterPublicationStatus) {
   if (addInfoGetFilterPublicationStatus == null) {
     return [];
   }
@@ -7644,7 +6964,7 @@ List<String> addInfoGetFilterPublicationStatusListToJson(
 }
 
 List<enums.AddInfoGetFilterPublicationStatus>
-addInfoGetFilterPublicationStatusListFromJson(
+    addInfoGetFilterPublicationStatusListFromJson(
   List? addInfoGetFilterPublicationStatus, [
   List<enums.AddInfoGetFilterPublicationStatus>? defaultValue,
 ]) {
@@ -7658,7 +6978,7 @@ addInfoGetFilterPublicationStatusListFromJson(
 }
 
 List<enums.AddInfoGetFilterPublicationStatus>?
-addInfoGetFilterPublicationStatusNullableListFromJson(
+    addInfoGetFilterPublicationStatusNullableListFromJson(
   List? addInfoGetFilterPublicationStatus, [
   List<enums.AddInfoGetFilterPublicationStatus>? defaultValue,
 ]) {
@@ -7672,14 +6992,12 @@ addInfoGetFilterPublicationStatusNullableListFromJson(
 }
 
 String? coordGetOutputFormatNullableToJson(
-  enums.CoordGetOutputFormat? coordGetOutputFormat,
-) {
+    enums.CoordGetOutputFormat? coordGetOutputFormat) {
   return coordGetOutputFormat?.value;
 }
 
 String? coordGetOutputFormatToJson(
-  enums.CoordGetOutputFormat coordGetOutputFormat,
-) {
+    enums.CoordGetOutputFormat coordGetOutputFormat) {
   return coordGetOutputFormat.value;
 }
 
@@ -7687,9 +7005,8 @@ enums.CoordGetOutputFormat coordGetOutputFormatFromJson(
   Object? coordGetOutputFormat, [
   enums.CoordGetOutputFormat? defaultValue,
 ]) {
-  return enums.CoordGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == coordGetOutputFormat,
-      ) ??
+  return enums.CoordGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == coordGetOutputFormat) ??
       defaultValue ??
       enums.CoordGetOutputFormat.swaggerGeneratedUnknown;
 }
@@ -7701,21 +7018,18 @@ enums.CoordGetOutputFormat? coordGetOutputFormatNullableFromJson(
   if (coordGetOutputFormat == null) {
     return null;
   }
-  return enums.CoordGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == coordGetOutputFormat,
-      ) ??
+  return enums.CoordGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == coordGetOutputFormat) ??
       defaultValue;
 }
 
 String coordGetOutputFormatExplodedListToJson(
-  List<enums.CoordGetOutputFormat>? coordGetOutputFormat,
-) {
+    List<enums.CoordGetOutputFormat>? coordGetOutputFormat) {
   return coordGetOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> coordGetOutputFormatListToJson(
-  List<enums.CoordGetOutputFormat>? coordGetOutputFormat,
-) {
+    List<enums.CoordGetOutputFormat>? coordGetOutputFormat) {
   if (coordGetOutputFormat == null) {
     return [];
   }
@@ -7750,14 +7064,12 @@ List<enums.CoordGetOutputFormat>? coordGetOutputFormatNullableListFromJson(
 }
 
 String? coordGetCoordOutputFormatNullableToJson(
-  enums.CoordGetCoordOutputFormat? coordGetCoordOutputFormat,
-) {
+    enums.CoordGetCoordOutputFormat? coordGetCoordOutputFormat) {
   return coordGetCoordOutputFormat?.value;
 }
 
 String? coordGetCoordOutputFormatToJson(
-  enums.CoordGetCoordOutputFormat coordGetCoordOutputFormat,
-) {
+    enums.CoordGetCoordOutputFormat coordGetCoordOutputFormat) {
   return coordGetCoordOutputFormat.value;
 }
 
@@ -7765,9 +7077,8 @@ enums.CoordGetCoordOutputFormat coordGetCoordOutputFormatFromJson(
   Object? coordGetCoordOutputFormat, [
   enums.CoordGetCoordOutputFormat? defaultValue,
 ]) {
-  return enums.CoordGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == coordGetCoordOutputFormat,
-      ) ??
+  return enums.CoordGetCoordOutputFormat.values
+          .firstWhereOrNull((e) => e.value == coordGetCoordOutputFormat) ??
       defaultValue ??
       enums.CoordGetCoordOutputFormat.swaggerGeneratedUnknown;
 }
@@ -7779,21 +7090,18 @@ enums.CoordGetCoordOutputFormat? coordGetCoordOutputFormatNullableFromJson(
   if (coordGetCoordOutputFormat == null) {
     return null;
   }
-  return enums.CoordGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == coordGetCoordOutputFormat,
-      ) ??
+  return enums.CoordGetCoordOutputFormat.values
+          .firstWhereOrNull((e) => e.value == coordGetCoordOutputFormat) ??
       defaultValue;
 }
 
 String coordGetCoordOutputFormatExplodedListToJson(
-  List<enums.CoordGetCoordOutputFormat>? coordGetCoordOutputFormat,
-) {
+    List<enums.CoordGetCoordOutputFormat>? coordGetCoordOutputFormat) {
   return coordGetCoordOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> coordGetCoordOutputFormatListToJson(
-  List<enums.CoordGetCoordOutputFormat>? coordGetCoordOutputFormat,
-) {
+    List<enums.CoordGetCoordOutputFormat>? coordGetCoordOutputFormat) {
   if (coordGetCoordOutputFormat == null) {
     return [];
   }
@@ -7815,7 +7123,7 @@ List<enums.CoordGetCoordOutputFormat> coordGetCoordOutputFormatListFromJson(
 }
 
 List<enums.CoordGetCoordOutputFormat>?
-coordGetCoordOutputFormatNullableListFromJson(
+    coordGetCoordOutputFormatNullableListFromJson(
   List? coordGetCoordOutputFormat, [
   List<enums.CoordGetCoordOutputFormat>? defaultValue,
 ]) {
@@ -7829,8 +7137,7 @@ coordGetCoordOutputFormatNullableListFromJson(
 }
 
 String? coordGetInclFilterNullableToJson(
-  enums.CoordGetInclFilter? coordGetInclFilter,
-) {
+    enums.CoordGetInclFilter? coordGetInclFilter) {
   return coordGetInclFilter?.value;
 }
 
@@ -7842,9 +7149,8 @@ enums.CoordGetInclFilter coordGetInclFilterFromJson(
   Object? coordGetInclFilter, [
   enums.CoordGetInclFilter? defaultValue,
 ]) {
-  return enums.CoordGetInclFilter.values.firstWhereOrNull(
-        (e) => e.value == coordGetInclFilter,
-      ) ??
+  return enums.CoordGetInclFilter.values
+          .firstWhereOrNull((e) => e.value == coordGetInclFilter) ??
       defaultValue ??
       enums.CoordGetInclFilter.swaggerGeneratedUnknown;
 }
@@ -7856,21 +7162,18 @@ enums.CoordGetInclFilter? coordGetInclFilterNullableFromJson(
   if (coordGetInclFilter == null) {
     return null;
   }
-  return enums.CoordGetInclFilter.values.firstWhereOrNull(
-        (e) => e.value == coordGetInclFilter,
-      ) ??
+  return enums.CoordGetInclFilter.values
+          .firstWhereOrNull((e) => e.value == coordGetInclFilter) ??
       defaultValue;
 }
 
 String coordGetInclFilterExplodedListToJson(
-  List<enums.CoordGetInclFilter>? coordGetInclFilter,
-) {
+    List<enums.CoordGetInclFilter>? coordGetInclFilter) {
   return coordGetInclFilter?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> coordGetInclFilterListToJson(
-  List<enums.CoordGetInclFilter>? coordGetInclFilter,
-) {
+    List<enums.CoordGetInclFilter>? coordGetInclFilter) {
   if (coordGetInclFilter == null) {
     return [];
   }
@@ -7916,9 +7219,8 @@ enums.CoordGetType1 coordGetType1FromJson(
   Object? coordGetType1, [
   enums.CoordGetType1? defaultValue,
 ]) {
-  return enums.CoordGetType1.values.firstWhereOrNull(
-        (e) => e.value == coordGetType1,
-      ) ??
+  return enums.CoordGetType1.values
+          .firstWhereOrNull((e) => e.value == coordGetType1) ??
       defaultValue ??
       enums.CoordGetType1.swaggerGeneratedUnknown;
 }
@@ -7930,15 +7232,13 @@ enums.CoordGetType1? coordGetType1NullableFromJson(
   if (coordGetType1 == null) {
     return null;
   }
-  return enums.CoordGetType1.values.firstWhereOrNull(
-        (e) => e.value == coordGetType1,
-      ) ??
+  return enums.CoordGetType1.values
+          .firstWhereOrNull((e) => e.value == coordGetType1) ??
       defaultValue;
 }
 
 String coordGetType1ExplodedListToJson(
-  List<enums.CoordGetType1>? coordGetType1,
-) {
+    List<enums.CoordGetType1>? coordGetType1) {
   return coordGetType1?.map((e) => e.value!).join(',') ?? '';
 }
 
@@ -7973,14 +7273,12 @@ List<enums.CoordGetType1>? coordGetType1NullableListFromJson(
 }
 
 String? coordGetInclDrawClasses1NullableToJson(
-  enums.CoordGetInclDrawClasses1? coordGetInclDrawClasses1,
-) {
+    enums.CoordGetInclDrawClasses1? coordGetInclDrawClasses1) {
   return coordGetInclDrawClasses1?.value;
 }
 
 String? coordGetInclDrawClasses1ToJson(
-  enums.CoordGetInclDrawClasses1 coordGetInclDrawClasses1,
-) {
+    enums.CoordGetInclDrawClasses1 coordGetInclDrawClasses1) {
   return coordGetInclDrawClasses1.value;
 }
 
@@ -7988,9 +7286,8 @@ enums.CoordGetInclDrawClasses1 coordGetInclDrawClasses1FromJson(
   Object? coordGetInclDrawClasses1, [
   enums.CoordGetInclDrawClasses1? defaultValue,
 ]) {
-  return enums.CoordGetInclDrawClasses1.values.firstWhereOrNull(
-        (e) => e.value == coordGetInclDrawClasses1,
-      ) ??
+  return enums.CoordGetInclDrawClasses1.values
+          .firstWhereOrNull((e) => e.value == coordGetInclDrawClasses1) ??
       defaultValue ??
       enums.CoordGetInclDrawClasses1.swaggerGeneratedUnknown;
 }
@@ -8002,21 +7299,18 @@ enums.CoordGetInclDrawClasses1? coordGetInclDrawClasses1NullableFromJson(
   if (coordGetInclDrawClasses1 == null) {
     return null;
   }
-  return enums.CoordGetInclDrawClasses1.values.firstWhereOrNull(
-        (e) => e.value == coordGetInclDrawClasses1,
-      ) ??
+  return enums.CoordGetInclDrawClasses1.values
+          .firstWhereOrNull((e) => e.value == coordGetInclDrawClasses1) ??
       defaultValue;
 }
 
 String coordGetInclDrawClasses1ExplodedListToJson(
-  List<enums.CoordGetInclDrawClasses1>? coordGetInclDrawClasses1,
-) {
+    List<enums.CoordGetInclDrawClasses1>? coordGetInclDrawClasses1) {
   return coordGetInclDrawClasses1?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> coordGetInclDrawClasses1ListToJson(
-  List<enums.CoordGetInclDrawClasses1>? coordGetInclDrawClasses1,
-) {
+    List<enums.CoordGetInclDrawClasses1>? coordGetInclDrawClasses1) {
   if (coordGetInclDrawClasses1 == null) {
     return [];
   }
@@ -8038,7 +7332,7 @@ List<enums.CoordGetInclDrawClasses1> coordGetInclDrawClasses1ListFromJson(
 }
 
 List<enums.CoordGetInclDrawClasses1>?
-coordGetInclDrawClasses1NullableListFromJson(
+    coordGetInclDrawClasses1NullableListFromJson(
   List? coordGetInclDrawClasses1, [
   List<enums.CoordGetInclDrawClasses1>? defaultValue,
 ]) {
@@ -8052,14 +7346,12 @@ coordGetInclDrawClasses1NullableListFromJson(
 }
 
 String? coordGetPoisOnMapMacroNullableToJson(
-  enums.CoordGetPoisOnMapMacro? coordGetPoisOnMapMacro,
-) {
+    enums.CoordGetPoisOnMapMacro? coordGetPoisOnMapMacro) {
   return coordGetPoisOnMapMacro?.value;
 }
 
 String? coordGetPoisOnMapMacroToJson(
-  enums.CoordGetPoisOnMapMacro coordGetPoisOnMapMacro,
-) {
+    enums.CoordGetPoisOnMapMacro coordGetPoisOnMapMacro) {
   return coordGetPoisOnMapMacro.value;
 }
 
@@ -8067,9 +7359,8 @@ enums.CoordGetPoisOnMapMacro coordGetPoisOnMapMacroFromJson(
   Object? coordGetPoisOnMapMacro, [
   enums.CoordGetPoisOnMapMacro? defaultValue,
 ]) {
-  return enums.CoordGetPoisOnMapMacro.values.firstWhereOrNull(
-        (e) => e.value == coordGetPoisOnMapMacro,
-      ) ??
+  return enums.CoordGetPoisOnMapMacro.values
+          .firstWhereOrNull((e) => e.value == coordGetPoisOnMapMacro) ??
       defaultValue ??
       enums.CoordGetPoisOnMapMacro.swaggerGeneratedUnknown;
 }
@@ -8081,21 +7372,18 @@ enums.CoordGetPoisOnMapMacro? coordGetPoisOnMapMacroNullableFromJson(
   if (coordGetPoisOnMapMacro == null) {
     return null;
   }
-  return enums.CoordGetPoisOnMapMacro.values.firstWhereOrNull(
-        (e) => e.value == coordGetPoisOnMapMacro,
-      ) ??
+  return enums.CoordGetPoisOnMapMacro.values
+          .firstWhereOrNull((e) => e.value == coordGetPoisOnMapMacro) ??
       defaultValue;
 }
 
 String coordGetPoisOnMapMacroExplodedListToJson(
-  List<enums.CoordGetPoisOnMapMacro>? coordGetPoisOnMapMacro,
-) {
+    List<enums.CoordGetPoisOnMapMacro>? coordGetPoisOnMapMacro) {
   return coordGetPoisOnMapMacro?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> coordGetPoisOnMapMacroListToJson(
-  List<enums.CoordGetPoisOnMapMacro>? coordGetPoisOnMapMacro,
-) {
+    List<enums.CoordGetPoisOnMapMacro>? coordGetPoisOnMapMacro) {
   if (coordGetPoisOnMapMacro == null) {
     return [];
   }
@@ -8130,14 +7418,12 @@ List<enums.CoordGetPoisOnMapMacro>? coordGetPoisOnMapMacroNullableListFromJson(
 }
 
 String? departureMonGetOutputFormatNullableToJson(
-  enums.DepartureMonGetOutputFormat? departureMonGetOutputFormat,
-) {
+    enums.DepartureMonGetOutputFormat? departureMonGetOutputFormat) {
   return departureMonGetOutputFormat?.value;
 }
 
 String? departureMonGetOutputFormatToJson(
-  enums.DepartureMonGetOutputFormat departureMonGetOutputFormat,
-) {
+    enums.DepartureMonGetOutputFormat departureMonGetOutputFormat) {
   return departureMonGetOutputFormat.value;
 }
 
@@ -8145,9 +7431,8 @@ enums.DepartureMonGetOutputFormat departureMonGetOutputFormatFromJson(
   Object? departureMonGetOutputFormat, [
   enums.DepartureMonGetOutputFormat? defaultValue,
 ]) {
-  return enums.DepartureMonGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetOutputFormat,
-      ) ??
+  return enums.DepartureMonGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == departureMonGetOutputFormat) ??
       defaultValue ??
       enums.DepartureMonGetOutputFormat.swaggerGeneratedUnknown;
 }
@@ -8159,21 +7444,18 @@ enums.DepartureMonGetOutputFormat? departureMonGetOutputFormatNullableFromJson(
   if (departureMonGetOutputFormat == null) {
     return null;
   }
-  return enums.DepartureMonGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetOutputFormat,
-      ) ??
+  return enums.DepartureMonGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == departureMonGetOutputFormat) ??
       defaultValue;
 }
 
 String departureMonGetOutputFormatExplodedListToJson(
-  List<enums.DepartureMonGetOutputFormat>? departureMonGetOutputFormat,
-) {
+    List<enums.DepartureMonGetOutputFormat>? departureMonGetOutputFormat) {
   return departureMonGetOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetOutputFormatListToJson(
-  List<enums.DepartureMonGetOutputFormat>? departureMonGetOutputFormat,
-) {
+    List<enums.DepartureMonGetOutputFormat>? departureMonGetOutputFormat) {
   if (departureMonGetOutputFormat == null) {
     return [];
   }
@@ -8195,7 +7477,7 @@ List<enums.DepartureMonGetOutputFormat> departureMonGetOutputFormatListFromJson(
 }
 
 List<enums.DepartureMonGetOutputFormat>?
-departureMonGetOutputFormatNullableListFromJson(
+    departureMonGetOutputFormatNullableListFromJson(
   List? departureMonGetOutputFormat, [
   List<enums.DepartureMonGetOutputFormat>? defaultValue,
 ]) {
@@ -8209,14 +7491,12 @@ departureMonGetOutputFormatNullableListFromJson(
 }
 
 String? departureMonGetCoordOutputFormatNullableToJson(
-  enums.DepartureMonGetCoordOutputFormat? departureMonGetCoordOutputFormat,
-) {
+    enums.DepartureMonGetCoordOutputFormat? departureMonGetCoordOutputFormat) {
   return departureMonGetCoordOutputFormat?.value;
 }
 
 String? departureMonGetCoordOutputFormatToJson(
-  enums.DepartureMonGetCoordOutputFormat departureMonGetCoordOutputFormat,
-) {
+    enums.DepartureMonGetCoordOutputFormat departureMonGetCoordOutputFormat) {
   return departureMonGetCoordOutputFormat.value;
 }
 
@@ -8225,14 +7505,13 @@ enums.DepartureMonGetCoordOutputFormat departureMonGetCoordOutputFormatFromJson(
   enums.DepartureMonGetCoordOutputFormat? defaultValue,
 ]) {
   return enums.DepartureMonGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetCoordOutputFormat,
-      ) ??
+          (e) => e.value == departureMonGetCoordOutputFormat) ??
       defaultValue ??
       enums.DepartureMonGetCoordOutputFormat.swaggerGeneratedUnknown;
 }
 
 enums.DepartureMonGetCoordOutputFormat?
-departureMonGetCoordOutputFormatNullableFromJson(
+    departureMonGetCoordOutputFormatNullableFromJson(
   Object? departureMonGetCoordOutputFormat, [
   enums.DepartureMonGetCoordOutputFormat? defaultValue,
 ]) {
@@ -8240,22 +7519,19 @@ departureMonGetCoordOutputFormatNullableFromJson(
     return null;
   }
   return enums.DepartureMonGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetCoordOutputFormat,
-      ) ??
+          (e) => e.value == departureMonGetCoordOutputFormat) ??
       defaultValue;
 }
 
 String departureMonGetCoordOutputFormatExplodedListToJson(
-  List<enums.DepartureMonGetCoordOutputFormat>?
-  departureMonGetCoordOutputFormat,
-) {
+    List<enums.DepartureMonGetCoordOutputFormat>?
+        departureMonGetCoordOutputFormat) {
   return departureMonGetCoordOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetCoordOutputFormatListToJson(
-  List<enums.DepartureMonGetCoordOutputFormat>?
-  departureMonGetCoordOutputFormat,
-) {
+    List<enums.DepartureMonGetCoordOutputFormat>?
+        departureMonGetCoordOutputFormat) {
   if (departureMonGetCoordOutputFormat == null) {
     return [];
   }
@@ -8264,7 +7540,7 @@ List<String> departureMonGetCoordOutputFormatListToJson(
 }
 
 List<enums.DepartureMonGetCoordOutputFormat>
-departureMonGetCoordOutputFormatListFromJson(
+    departureMonGetCoordOutputFormatListFromJson(
   List? departureMonGetCoordOutputFormat, [
   List<enums.DepartureMonGetCoordOutputFormat>? defaultValue,
 ]) {
@@ -8278,7 +7554,7 @@ departureMonGetCoordOutputFormatListFromJson(
 }
 
 List<enums.DepartureMonGetCoordOutputFormat>?
-departureMonGetCoordOutputFormatNullableListFromJson(
+    departureMonGetCoordOutputFormatNullableListFromJson(
   List? departureMonGetCoordOutputFormat, [
   List<enums.DepartureMonGetCoordOutputFormat>? defaultValue,
 ]) {
@@ -8292,14 +7568,12 @@ departureMonGetCoordOutputFormatNullableListFromJson(
 }
 
 String? departureMonGetModeNullableToJson(
-  enums.DepartureMonGetMode? departureMonGetMode,
-) {
+    enums.DepartureMonGetMode? departureMonGetMode) {
   return departureMonGetMode?.value;
 }
 
 String? departureMonGetModeToJson(
-  enums.DepartureMonGetMode departureMonGetMode,
-) {
+    enums.DepartureMonGetMode departureMonGetMode) {
   return departureMonGetMode.value;
 }
 
@@ -8307,9 +7581,8 @@ enums.DepartureMonGetMode departureMonGetModeFromJson(
   Object? departureMonGetMode, [
   enums.DepartureMonGetMode? defaultValue,
 ]) {
-  return enums.DepartureMonGetMode.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetMode,
-      ) ??
+  return enums.DepartureMonGetMode.values
+          .firstWhereOrNull((e) => e.value == departureMonGetMode) ??
       defaultValue ??
       enums.DepartureMonGetMode.swaggerGeneratedUnknown;
 }
@@ -8321,21 +7594,18 @@ enums.DepartureMonGetMode? departureMonGetModeNullableFromJson(
   if (departureMonGetMode == null) {
     return null;
   }
-  return enums.DepartureMonGetMode.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetMode,
-      ) ??
+  return enums.DepartureMonGetMode.values
+          .firstWhereOrNull((e) => e.value == departureMonGetMode) ??
       defaultValue;
 }
 
 String departureMonGetModeExplodedListToJson(
-  List<enums.DepartureMonGetMode>? departureMonGetMode,
-) {
+    List<enums.DepartureMonGetMode>? departureMonGetMode) {
   return departureMonGetMode?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetModeListToJson(
-  List<enums.DepartureMonGetMode>? departureMonGetMode,
-) {
+    List<enums.DepartureMonGetMode>? departureMonGetMode) {
   if (departureMonGetMode == null) {
     return [];
   }
@@ -8370,14 +7640,12 @@ List<enums.DepartureMonGetMode>? departureMonGetModeNullableListFromJson(
 }
 
 String? departureMonGetTypeDmNullableToJson(
-  enums.DepartureMonGetTypeDm? departureMonGetTypeDm,
-) {
+    enums.DepartureMonGetTypeDm? departureMonGetTypeDm) {
   return departureMonGetTypeDm?.value;
 }
 
 String? departureMonGetTypeDmToJson(
-  enums.DepartureMonGetTypeDm departureMonGetTypeDm,
-) {
+    enums.DepartureMonGetTypeDm departureMonGetTypeDm) {
   return departureMonGetTypeDm.value;
 }
 
@@ -8385,9 +7653,8 @@ enums.DepartureMonGetTypeDm departureMonGetTypeDmFromJson(
   Object? departureMonGetTypeDm, [
   enums.DepartureMonGetTypeDm? defaultValue,
 ]) {
-  return enums.DepartureMonGetTypeDm.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetTypeDm,
-      ) ??
+  return enums.DepartureMonGetTypeDm.values
+          .firstWhereOrNull((e) => e.value == departureMonGetTypeDm) ??
       defaultValue ??
       enums.DepartureMonGetTypeDm.swaggerGeneratedUnknown;
 }
@@ -8399,21 +7666,18 @@ enums.DepartureMonGetTypeDm? departureMonGetTypeDmNullableFromJson(
   if (departureMonGetTypeDm == null) {
     return null;
   }
-  return enums.DepartureMonGetTypeDm.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetTypeDm,
-      ) ??
+  return enums.DepartureMonGetTypeDm.values
+          .firstWhereOrNull((e) => e.value == departureMonGetTypeDm) ??
       defaultValue;
 }
 
 String departureMonGetTypeDmExplodedListToJson(
-  List<enums.DepartureMonGetTypeDm>? departureMonGetTypeDm,
-) {
+    List<enums.DepartureMonGetTypeDm>? departureMonGetTypeDm) {
   return departureMonGetTypeDm?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetTypeDmListToJson(
-  List<enums.DepartureMonGetTypeDm>? departureMonGetTypeDm,
-) {
+    List<enums.DepartureMonGetTypeDm>? departureMonGetTypeDm) {
   if (departureMonGetTypeDm == null) {
     return [];
   }
@@ -8448,14 +7712,12 @@ List<enums.DepartureMonGetTypeDm>? departureMonGetTypeDmNullableListFromJson(
 }
 
 String? departureMonGetNameKeyDmNullableToJson(
-  enums.DepartureMonGetNameKeyDm? departureMonGetNameKeyDm,
-) {
+    enums.DepartureMonGetNameKeyDm? departureMonGetNameKeyDm) {
   return departureMonGetNameKeyDm?.value;
 }
 
 String? departureMonGetNameKeyDmToJson(
-  enums.DepartureMonGetNameKeyDm departureMonGetNameKeyDm,
-) {
+    enums.DepartureMonGetNameKeyDm departureMonGetNameKeyDm) {
   return departureMonGetNameKeyDm.value;
 }
 
@@ -8463,9 +7725,8 @@ enums.DepartureMonGetNameKeyDm departureMonGetNameKeyDmFromJson(
   Object? departureMonGetNameKeyDm, [
   enums.DepartureMonGetNameKeyDm? defaultValue,
 ]) {
-  return enums.DepartureMonGetNameKeyDm.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetNameKeyDm,
-      ) ??
+  return enums.DepartureMonGetNameKeyDm.values
+          .firstWhereOrNull((e) => e.value == departureMonGetNameKeyDm) ??
       defaultValue ??
       enums.DepartureMonGetNameKeyDm.swaggerGeneratedUnknown;
 }
@@ -8477,21 +7738,18 @@ enums.DepartureMonGetNameKeyDm? departureMonGetNameKeyDmNullableFromJson(
   if (departureMonGetNameKeyDm == null) {
     return null;
   }
-  return enums.DepartureMonGetNameKeyDm.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetNameKeyDm,
-      ) ??
+  return enums.DepartureMonGetNameKeyDm.values
+          .firstWhereOrNull((e) => e.value == departureMonGetNameKeyDm) ??
       defaultValue;
 }
 
 String departureMonGetNameKeyDmExplodedListToJson(
-  List<enums.DepartureMonGetNameKeyDm>? departureMonGetNameKeyDm,
-) {
+    List<enums.DepartureMonGetNameKeyDm>? departureMonGetNameKeyDm) {
   return departureMonGetNameKeyDm?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetNameKeyDmListToJson(
-  List<enums.DepartureMonGetNameKeyDm>? departureMonGetNameKeyDm,
-) {
+    List<enums.DepartureMonGetNameKeyDm>? departureMonGetNameKeyDm) {
   if (departureMonGetNameKeyDm == null) {
     return [];
   }
@@ -8513,7 +7771,7 @@ List<enums.DepartureMonGetNameKeyDm> departureMonGetNameKeyDmListFromJson(
 }
 
 List<enums.DepartureMonGetNameKeyDm>?
-departureMonGetNameKeyDmNullableListFromJson(
+    departureMonGetNameKeyDmNullableListFromJson(
   List? departureMonGetNameKeyDm, [
   List<enums.DepartureMonGetNameKeyDm>? defaultValue,
 ]) {
@@ -8527,33 +7785,30 @@ departureMonGetNameKeyDmNullableListFromJson(
 }
 
 String? departureMonGetDepartureMonitorMacroNullableToJson(
-  enums.DepartureMonGetDepartureMonitorMacro?
-  departureMonGetDepartureMonitorMacro,
-) {
+    enums.DepartureMonGetDepartureMonitorMacro?
+        departureMonGetDepartureMonitorMacro) {
   return departureMonGetDepartureMonitorMacro?.value;
 }
 
 String? departureMonGetDepartureMonitorMacroToJson(
-  enums.DepartureMonGetDepartureMonitorMacro
-  departureMonGetDepartureMonitorMacro,
-) {
+    enums.DepartureMonGetDepartureMonitorMacro
+        departureMonGetDepartureMonitorMacro) {
   return departureMonGetDepartureMonitorMacro.value;
 }
 
 enums.DepartureMonGetDepartureMonitorMacro
-departureMonGetDepartureMonitorMacroFromJson(
+    departureMonGetDepartureMonitorMacroFromJson(
   Object? departureMonGetDepartureMonitorMacro, [
   enums.DepartureMonGetDepartureMonitorMacro? defaultValue,
 ]) {
   return enums.DepartureMonGetDepartureMonitorMacro.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetDepartureMonitorMacro,
-      ) ??
+          (e) => e.value == departureMonGetDepartureMonitorMacro) ??
       defaultValue ??
       enums.DepartureMonGetDepartureMonitorMacro.swaggerGeneratedUnknown;
 }
 
 enums.DepartureMonGetDepartureMonitorMacro?
-departureMonGetDepartureMonitorMacroNullableFromJson(
+    departureMonGetDepartureMonitorMacroNullableFromJson(
   Object? departureMonGetDepartureMonitorMacro, [
   enums.DepartureMonGetDepartureMonitorMacro? defaultValue,
 ]) {
@@ -8561,23 +7816,20 @@ departureMonGetDepartureMonitorMacroNullableFromJson(
     return null;
   }
   return enums.DepartureMonGetDepartureMonitorMacro.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetDepartureMonitorMacro,
-      ) ??
+          (e) => e.value == departureMonGetDepartureMonitorMacro) ??
       defaultValue;
 }
 
 String departureMonGetDepartureMonitorMacroExplodedListToJson(
-  List<enums.DepartureMonGetDepartureMonitorMacro>?
-  departureMonGetDepartureMonitorMacro,
-) {
+    List<enums.DepartureMonGetDepartureMonitorMacro>?
+        departureMonGetDepartureMonitorMacro) {
   return departureMonGetDepartureMonitorMacro?.map((e) => e.value!).join(',') ??
       '';
 }
 
 List<String> departureMonGetDepartureMonitorMacroListToJson(
-  List<enums.DepartureMonGetDepartureMonitorMacro>?
-  departureMonGetDepartureMonitorMacro,
-) {
+    List<enums.DepartureMonGetDepartureMonitorMacro>?
+        departureMonGetDepartureMonitorMacro) {
   if (departureMonGetDepartureMonitorMacro == null) {
     return [];
   }
@@ -8586,7 +7838,7 @@ List<String> departureMonGetDepartureMonitorMacroListToJson(
 }
 
 List<enums.DepartureMonGetDepartureMonitorMacro>
-departureMonGetDepartureMonitorMacroListFromJson(
+    departureMonGetDepartureMonitorMacroListFromJson(
   List? departureMonGetDepartureMonitorMacro, [
   List<enums.DepartureMonGetDepartureMonitorMacro>? defaultValue,
 ]) {
@@ -8600,7 +7852,7 @@ departureMonGetDepartureMonitorMacroListFromJson(
 }
 
 List<enums.DepartureMonGetDepartureMonitorMacro>?
-departureMonGetDepartureMonitorMacroNullableListFromJson(
+    departureMonGetDepartureMonitorMacroNullableListFromJson(
   List? departureMonGetDepartureMonitorMacro, [
   List<enums.DepartureMonGetDepartureMonitorMacro>? defaultValue,
 ]) {
@@ -8614,14 +7866,12 @@ departureMonGetDepartureMonitorMacroNullableListFromJson(
 }
 
 String? departureMonGetExcludedMeansNullableToJson(
-  enums.DepartureMonGetExcludedMeans? departureMonGetExcludedMeans,
-) {
+    enums.DepartureMonGetExcludedMeans? departureMonGetExcludedMeans) {
   return departureMonGetExcludedMeans?.value;
 }
 
 String? departureMonGetExcludedMeansToJson(
-  enums.DepartureMonGetExcludedMeans departureMonGetExcludedMeans,
-) {
+    enums.DepartureMonGetExcludedMeans departureMonGetExcludedMeans) {
   return departureMonGetExcludedMeans.value;
 }
 
@@ -8629,36 +7879,32 @@ enums.DepartureMonGetExcludedMeans departureMonGetExcludedMeansFromJson(
   Object? departureMonGetExcludedMeans, [
   enums.DepartureMonGetExcludedMeans? defaultValue,
 ]) {
-  return enums.DepartureMonGetExcludedMeans.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExcludedMeans,
-      ) ??
+  return enums.DepartureMonGetExcludedMeans.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExcludedMeans) ??
       defaultValue ??
       enums.DepartureMonGetExcludedMeans.swaggerGeneratedUnknown;
 }
 
 enums.DepartureMonGetExcludedMeans?
-departureMonGetExcludedMeansNullableFromJson(
+    departureMonGetExcludedMeansNullableFromJson(
   Object? departureMonGetExcludedMeans, [
   enums.DepartureMonGetExcludedMeans? defaultValue,
 ]) {
   if (departureMonGetExcludedMeans == null) {
     return null;
   }
-  return enums.DepartureMonGetExcludedMeans.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExcludedMeans,
-      ) ??
+  return enums.DepartureMonGetExcludedMeans.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExcludedMeans) ??
       defaultValue;
 }
 
 String departureMonGetExcludedMeansExplodedListToJson(
-  List<enums.DepartureMonGetExcludedMeans>? departureMonGetExcludedMeans,
-) {
+    List<enums.DepartureMonGetExcludedMeans>? departureMonGetExcludedMeans) {
   return departureMonGetExcludedMeans?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExcludedMeansListToJson(
-  List<enums.DepartureMonGetExcludedMeans>? departureMonGetExcludedMeans,
-) {
+    List<enums.DepartureMonGetExcludedMeans>? departureMonGetExcludedMeans) {
   if (departureMonGetExcludedMeans == null) {
     return [];
   }
@@ -8667,7 +7913,7 @@ List<String> departureMonGetExcludedMeansListToJson(
 }
 
 List<enums.DepartureMonGetExcludedMeans>
-departureMonGetExcludedMeansListFromJson(
+    departureMonGetExcludedMeansListFromJson(
   List? departureMonGetExcludedMeans, [
   List<enums.DepartureMonGetExcludedMeans>? defaultValue,
 ]) {
@@ -8681,7 +7927,7 @@ departureMonGetExcludedMeansListFromJson(
 }
 
 List<enums.DepartureMonGetExcludedMeans>?
-departureMonGetExcludedMeansNullableListFromJson(
+    departureMonGetExcludedMeansNullableListFromJson(
   List? departureMonGetExcludedMeans, [
   List<enums.DepartureMonGetExcludedMeans>? defaultValue,
 ]) {
@@ -8695,14 +7941,12 @@ departureMonGetExcludedMeansNullableListFromJson(
 }
 
 String? departureMonGetExclMOT1NullableToJson(
-  enums.DepartureMonGetExclMOT1? departureMonGetExclMOT1,
-) {
+    enums.DepartureMonGetExclMOT1? departureMonGetExclMOT1) {
   return departureMonGetExclMOT1?.value;
 }
 
 String? departureMonGetExclMOT1ToJson(
-  enums.DepartureMonGetExclMOT1 departureMonGetExclMOT1,
-) {
+    enums.DepartureMonGetExclMOT1 departureMonGetExclMOT1) {
   return departureMonGetExclMOT1.value;
 }
 
@@ -8710,9 +7954,8 @@ enums.DepartureMonGetExclMOT1 departureMonGetExclMOT1FromJson(
   Object? departureMonGetExclMOT1, [
   enums.DepartureMonGetExclMOT1? defaultValue,
 ]) {
-  return enums.DepartureMonGetExclMOT1.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT1,
-      ) ??
+  return enums.DepartureMonGetExclMOT1.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT1) ??
       defaultValue ??
       enums.DepartureMonGetExclMOT1.swaggerGeneratedUnknown;
 }
@@ -8724,21 +7967,18 @@ enums.DepartureMonGetExclMOT1? departureMonGetExclMOT1NullableFromJson(
   if (departureMonGetExclMOT1 == null) {
     return null;
   }
-  return enums.DepartureMonGetExclMOT1.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT1,
-      ) ??
+  return enums.DepartureMonGetExclMOT1.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT1) ??
       defaultValue;
 }
 
 String departureMonGetExclMOT1ExplodedListToJson(
-  List<enums.DepartureMonGetExclMOT1>? departureMonGetExclMOT1,
-) {
+    List<enums.DepartureMonGetExclMOT1>? departureMonGetExclMOT1) {
   return departureMonGetExclMOT1?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExclMOT1ListToJson(
-  List<enums.DepartureMonGetExclMOT1>? departureMonGetExclMOT1,
-) {
+    List<enums.DepartureMonGetExclMOT1>? departureMonGetExclMOT1) {
   if (departureMonGetExclMOT1 == null) {
     return [];
   }
@@ -8760,7 +8000,7 @@ List<enums.DepartureMonGetExclMOT1> departureMonGetExclMOT1ListFromJson(
 }
 
 List<enums.DepartureMonGetExclMOT1>?
-departureMonGetExclMOT1NullableListFromJson(
+    departureMonGetExclMOT1NullableListFromJson(
   List? departureMonGetExclMOT1, [
   List<enums.DepartureMonGetExclMOT1>? defaultValue,
 ]) {
@@ -8774,14 +8014,12 @@ departureMonGetExclMOT1NullableListFromJson(
 }
 
 String? departureMonGetExclMOT2NullableToJson(
-  enums.DepartureMonGetExclMOT2? departureMonGetExclMOT2,
-) {
+    enums.DepartureMonGetExclMOT2? departureMonGetExclMOT2) {
   return departureMonGetExclMOT2?.value;
 }
 
 String? departureMonGetExclMOT2ToJson(
-  enums.DepartureMonGetExclMOT2 departureMonGetExclMOT2,
-) {
+    enums.DepartureMonGetExclMOT2 departureMonGetExclMOT2) {
   return departureMonGetExclMOT2.value;
 }
 
@@ -8789,9 +8027,8 @@ enums.DepartureMonGetExclMOT2 departureMonGetExclMOT2FromJson(
   Object? departureMonGetExclMOT2, [
   enums.DepartureMonGetExclMOT2? defaultValue,
 ]) {
-  return enums.DepartureMonGetExclMOT2.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT2,
-      ) ??
+  return enums.DepartureMonGetExclMOT2.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT2) ??
       defaultValue ??
       enums.DepartureMonGetExclMOT2.swaggerGeneratedUnknown;
 }
@@ -8803,21 +8040,18 @@ enums.DepartureMonGetExclMOT2? departureMonGetExclMOT2NullableFromJson(
   if (departureMonGetExclMOT2 == null) {
     return null;
   }
-  return enums.DepartureMonGetExclMOT2.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT2,
-      ) ??
+  return enums.DepartureMonGetExclMOT2.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT2) ??
       defaultValue;
 }
 
 String departureMonGetExclMOT2ExplodedListToJson(
-  List<enums.DepartureMonGetExclMOT2>? departureMonGetExclMOT2,
-) {
+    List<enums.DepartureMonGetExclMOT2>? departureMonGetExclMOT2) {
   return departureMonGetExclMOT2?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExclMOT2ListToJson(
-  List<enums.DepartureMonGetExclMOT2>? departureMonGetExclMOT2,
-) {
+    List<enums.DepartureMonGetExclMOT2>? departureMonGetExclMOT2) {
   if (departureMonGetExclMOT2 == null) {
     return [];
   }
@@ -8839,7 +8073,7 @@ List<enums.DepartureMonGetExclMOT2> departureMonGetExclMOT2ListFromJson(
 }
 
 List<enums.DepartureMonGetExclMOT2>?
-departureMonGetExclMOT2NullableListFromJson(
+    departureMonGetExclMOT2NullableListFromJson(
   List? departureMonGetExclMOT2, [
   List<enums.DepartureMonGetExclMOT2>? defaultValue,
 ]) {
@@ -8853,14 +8087,12 @@ departureMonGetExclMOT2NullableListFromJson(
 }
 
 String? departureMonGetExclMOT4NullableToJson(
-  enums.DepartureMonGetExclMOT4? departureMonGetExclMOT4,
-) {
+    enums.DepartureMonGetExclMOT4? departureMonGetExclMOT4) {
   return departureMonGetExclMOT4?.value;
 }
 
 String? departureMonGetExclMOT4ToJson(
-  enums.DepartureMonGetExclMOT4 departureMonGetExclMOT4,
-) {
+    enums.DepartureMonGetExclMOT4 departureMonGetExclMOT4) {
   return departureMonGetExclMOT4.value;
 }
 
@@ -8868,9 +8100,8 @@ enums.DepartureMonGetExclMOT4 departureMonGetExclMOT4FromJson(
   Object? departureMonGetExclMOT4, [
   enums.DepartureMonGetExclMOT4? defaultValue,
 ]) {
-  return enums.DepartureMonGetExclMOT4.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT4,
-      ) ??
+  return enums.DepartureMonGetExclMOT4.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT4) ??
       defaultValue ??
       enums.DepartureMonGetExclMOT4.swaggerGeneratedUnknown;
 }
@@ -8882,21 +8113,18 @@ enums.DepartureMonGetExclMOT4? departureMonGetExclMOT4NullableFromJson(
   if (departureMonGetExclMOT4 == null) {
     return null;
   }
-  return enums.DepartureMonGetExclMOT4.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT4,
-      ) ??
+  return enums.DepartureMonGetExclMOT4.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT4) ??
       defaultValue;
 }
 
 String departureMonGetExclMOT4ExplodedListToJson(
-  List<enums.DepartureMonGetExclMOT4>? departureMonGetExclMOT4,
-) {
+    List<enums.DepartureMonGetExclMOT4>? departureMonGetExclMOT4) {
   return departureMonGetExclMOT4?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExclMOT4ListToJson(
-  List<enums.DepartureMonGetExclMOT4>? departureMonGetExclMOT4,
-) {
+    List<enums.DepartureMonGetExclMOT4>? departureMonGetExclMOT4) {
   if (departureMonGetExclMOT4 == null) {
     return [];
   }
@@ -8918,7 +8146,7 @@ List<enums.DepartureMonGetExclMOT4> departureMonGetExclMOT4ListFromJson(
 }
 
 List<enums.DepartureMonGetExclMOT4>?
-departureMonGetExclMOT4NullableListFromJson(
+    departureMonGetExclMOT4NullableListFromJson(
   List? departureMonGetExclMOT4, [
   List<enums.DepartureMonGetExclMOT4>? defaultValue,
 ]) {
@@ -8932,14 +8160,12 @@ departureMonGetExclMOT4NullableListFromJson(
 }
 
 String? departureMonGetExclMOT5NullableToJson(
-  enums.DepartureMonGetExclMOT5? departureMonGetExclMOT5,
-) {
+    enums.DepartureMonGetExclMOT5? departureMonGetExclMOT5) {
   return departureMonGetExclMOT5?.value;
 }
 
 String? departureMonGetExclMOT5ToJson(
-  enums.DepartureMonGetExclMOT5 departureMonGetExclMOT5,
-) {
+    enums.DepartureMonGetExclMOT5 departureMonGetExclMOT5) {
   return departureMonGetExclMOT5.value;
 }
 
@@ -8947,9 +8173,8 @@ enums.DepartureMonGetExclMOT5 departureMonGetExclMOT5FromJson(
   Object? departureMonGetExclMOT5, [
   enums.DepartureMonGetExclMOT5? defaultValue,
 ]) {
-  return enums.DepartureMonGetExclMOT5.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT5,
-      ) ??
+  return enums.DepartureMonGetExclMOT5.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT5) ??
       defaultValue ??
       enums.DepartureMonGetExclMOT5.swaggerGeneratedUnknown;
 }
@@ -8961,21 +8186,18 @@ enums.DepartureMonGetExclMOT5? departureMonGetExclMOT5NullableFromJson(
   if (departureMonGetExclMOT5 == null) {
     return null;
   }
-  return enums.DepartureMonGetExclMOT5.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT5,
-      ) ??
+  return enums.DepartureMonGetExclMOT5.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT5) ??
       defaultValue;
 }
 
 String departureMonGetExclMOT5ExplodedListToJson(
-  List<enums.DepartureMonGetExclMOT5>? departureMonGetExclMOT5,
-) {
+    List<enums.DepartureMonGetExclMOT5>? departureMonGetExclMOT5) {
   return departureMonGetExclMOT5?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExclMOT5ListToJson(
-  List<enums.DepartureMonGetExclMOT5>? departureMonGetExclMOT5,
-) {
+    List<enums.DepartureMonGetExclMOT5>? departureMonGetExclMOT5) {
   if (departureMonGetExclMOT5 == null) {
     return [];
   }
@@ -8997,7 +8219,7 @@ List<enums.DepartureMonGetExclMOT5> departureMonGetExclMOT5ListFromJson(
 }
 
 List<enums.DepartureMonGetExclMOT5>?
-departureMonGetExclMOT5NullableListFromJson(
+    departureMonGetExclMOT5NullableListFromJson(
   List? departureMonGetExclMOT5, [
   List<enums.DepartureMonGetExclMOT5>? defaultValue,
 ]) {
@@ -9011,14 +8233,12 @@ departureMonGetExclMOT5NullableListFromJson(
 }
 
 String? departureMonGetExclMOT7NullableToJson(
-  enums.DepartureMonGetExclMOT7? departureMonGetExclMOT7,
-) {
+    enums.DepartureMonGetExclMOT7? departureMonGetExclMOT7) {
   return departureMonGetExclMOT7?.value;
 }
 
 String? departureMonGetExclMOT7ToJson(
-  enums.DepartureMonGetExclMOT7 departureMonGetExclMOT7,
-) {
+    enums.DepartureMonGetExclMOT7 departureMonGetExclMOT7) {
   return departureMonGetExclMOT7.value;
 }
 
@@ -9026,9 +8246,8 @@ enums.DepartureMonGetExclMOT7 departureMonGetExclMOT7FromJson(
   Object? departureMonGetExclMOT7, [
   enums.DepartureMonGetExclMOT7? defaultValue,
 ]) {
-  return enums.DepartureMonGetExclMOT7.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT7,
-      ) ??
+  return enums.DepartureMonGetExclMOT7.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT7) ??
       defaultValue ??
       enums.DepartureMonGetExclMOT7.swaggerGeneratedUnknown;
 }
@@ -9040,21 +8259,18 @@ enums.DepartureMonGetExclMOT7? departureMonGetExclMOT7NullableFromJson(
   if (departureMonGetExclMOT7 == null) {
     return null;
   }
-  return enums.DepartureMonGetExclMOT7.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT7,
-      ) ??
+  return enums.DepartureMonGetExclMOT7.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT7) ??
       defaultValue;
 }
 
 String departureMonGetExclMOT7ExplodedListToJson(
-  List<enums.DepartureMonGetExclMOT7>? departureMonGetExclMOT7,
-) {
+    List<enums.DepartureMonGetExclMOT7>? departureMonGetExclMOT7) {
   return departureMonGetExclMOT7?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExclMOT7ListToJson(
-  List<enums.DepartureMonGetExclMOT7>? departureMonGetExclMOT7,
-) {
+    List<enums.DepartureMonGetExclMOT7>? departureMonGetExclMOT7) {
   if (departureMonGetExclMOT7 == null) {
     return [];
   }
@@ -9076,7 +8292,7 @@ List<enums.DepartureMonGetExclMOT7> departureMonGetExclMOT7ListFromJson(
 }
 
 List<enums.DepartureMonGetExclMOT7>?
-departureMonGetExclMOT7NullableListFromJson(
+    departureMonGetExclMOT7NullableListFromJson(
   List? departureMonGetExclMOT7, [
   List<enums.DepartureMonGetExclMOT7>? defaultValue,
 ]) {
@@ -9090,14 +8306,12 @@ departureMonGetExclMOT7NullableListFromJson(
 }
 
 String? departureMonGetExclMOT9NullableToJson(
-  enums.DepartureMonGetExclMOT9? departureMonGetExclMOT9,
-) {
+    enums.DepartureMonGetExclMOT9? departureMonGetExclMOT9) {
   return departureMonGetExclMOT9?.value;
 }
 
 String? departureMonGetExclMOT9ToJson(
-  enums.DepartureMonGetExclMOT9 departureMonGetExclMOT9,
-) {
+    enums.DepartureMonGetExclMOT9 departureMonGetExclMOT9) {
   return departureMonGetExclMOT9.value;
 }
 
@@ -9105,9 +8319,8 @@ enums.DepartureMonGetExclMOT9 departureMonGetExclMOT9FromJson(
   Object? departureMonGetExclMOT9, [
   enums.DepartureMonGetExclMOT9? defaultValue,
 ]) {
-  return enums.DepartureMonGetExclMOT9.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT9,
-      ) ??
+  return enums.DepartureMonGetExclMOT9.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT9) ??
       defaultValue ??
       enums.DepartureMonGetExclMOT9.swaggerGeneratedUnknown;
 }
@@ -9119,21 +8332,18 @@ enums.DepartureMonGetExclMOT9? departureMonGetExclMOT9NullableFromJson(
   if (departureMonGetExclMOT9 == null) {
     return null;
   }
-  return enums.DepartureMonGetExclMOT9.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT9,
-      ) ??
+  return enums.DepartureMonGetExclMOT9.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT9) ??
       defaultValue;
 }
 
 String departureMonGetExclMOT9ExplodedListToJson(
-  List<enums.DepartureMonGetExclMOT9>? departureMonGetExclMOT9,
-) {
+    List<enums.DepartureMonGetExclMOT9>? departureMonGetExclMOT9) {
   return departureMonGetExclMOT9?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExclMOT9ListToJson(
-  List<enums.DepartureMonGetExclMOT9>? departureMonGetExclMOT9,
-) {
+    List<enums.DepartureMonGetExclMOT9>? departureMonGetExclMOT9) {
   if (departureMonGetExclMOT9 == null) {
     return [];
   }
@@ -9155,7 +8365,7 @@ List<enums.DepartureMonGetExclMOT9> departureMonGetExclMOT9ListFromJson(
 }
 
 List<enums.DepartureMonGetExclMOT9>?
-departureMonGetExclMOT9NullableListFromJson(
+    departureMonGetExclMOT9NullableListFromJson(
   List? departureMonGetExclMOT9, [
   List<enums.DepartureMonGetExclMOT9>? defaultValue,
 ]) {
@@ -9169,14 +8379,12 @@ departureMonGetExclMOT9NullableListFromJson(
 }
 
 String? departureMonGetExclMOT11NullableToJson(
-  enums.DepartureMonGetExclMOT11? departureMonGetExclMOT11,
-) {
+    enums.DepartureMonGetExclMOT11? departureMonGetExclMOT11) {
   return departureMonGetExclMOT11?.value;
 }
 
 String? departureMonGetExclMOT11ToJson(
-  enums.DepartureMonGetExclMOT11 departureMonGetExclMOT11,
-) {
+    enums.DepartureMonGetExclMOT11 departureMonGetExclMOT11) {
   return departureMonGetExclMOT11.value;
 }
 
@@ -9184,9 +8392,8 @@ enums.DepartureMonGetExclMOT11 departureMonGetExclMOT11FromJson(
   Object? departureMonGetExclMOT11, [
   enums.DepartureMonGetExclMOT11? defaultValue,
 ]) {
-  return enums.DepartureMonGetExclMOT11.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT11,
-      ) ??
+  return enums.DepartureMonGetExclMOT11.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT11) ??
       defaultValue ??
       enums.DepartureMonGetExclMOT11.swaggerGeneratedUnknown;
 }
@@ -9198,21 +8405,18 @@ enums.DepartureMonGetExclMOT11? departureMonGetExclMOT11NullableFromJson(
   if (departureMonGetExclMOT11 == null) {
     return null;
   }
-  return enums.DepartureMonGetExclMOT11.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetExclMOT11,
-      ) ??
+  return enums.DepartureMonGetExclMOT11.values
+          .firstWhereOrNull((e) => e.value == departureMonGetExclMOT11) ??
       defaultValue;
 }
 
 String departureMonGetExclMOT11ExplodedListToJson(
-  List<enums.DepartureMonGetExclMOT11>? departureMonGetExclMOT11,
-) {
+    List<enums.DepartureMonGetExclMOT11>? departureMonGetExclMOT11) {
   return departureMonGetExclMOT11?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetExclMOT11ListToJson(
-  List<enums.DepartureMonGetExclMOT11>? departureMonGetExclMOT11,
-) {
+    List<enums.DepartureMonGetExclMOT11>? departureMonGetExclMOT11) {
   if (departureMonGetExclMOT11 == null) {
     return [];
   }
@@ -9234,7 +8438,7 @@ List<enums.DepartureMonGetExclMOT11> departureMonGetExclMOT11ListFromJson(
 }
 
 List<enums.DepartureMonGetExclMOT11>?
-departureMonGetExclMOT11NullableListFromJson(
+    departureMonGetExclMOT11NullableListFromJson(
   List? departureMonGetExclMOT11, [
   List<enums.DepartureMonGetExclMOT11>? defaultValue,
 ]) {
@@ -9248,14 +8452,12 @@ departureMonGetExclMOT11NullableListFromJson(
 }
 
 String? departureMonGetTfNSWDMNullableToJson(
-  enums.DepartureMonGetTfNSWDM? departureMonGetTfNSWDM,
-) {
+    enums.DepartureMonGetTfNSWDM? departureMonGetTfNSWDM) {
   return departureMonGetTfNSWDM?.value;
 }
 
 String? departureMonGetTfNSWDMToJson(
-  enums.DepartureMonGetTfNSWDM departureMonGetTfNSWDM,
-) {
+    enums.DepartureMonGetTfNSWDM departureMonGetTfNSWDM) {
   return departureMonGetTfNSWDM.value;
 }
 
@@ -9263,9 +8465,8 @@ enums.DepartureMonGetTfNSWDM departureMonGetTfNSWDMFromJson(
   Object? departureMonGetTfNSWDM, [
   enums.DepartureMonGetTfNSWDM? defaultValue,
 ]) {
-  return enums.DepartureMonGetTfNSWDM.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetTfNSWDM,
-      ) ??
+  return enums.DepartureMonGetTfNSWDM.values
+          .firstWhereOrNull((e) => e.value == departureMonGetTfNSWDM) ??
       defaultValue ??
       enums.DepartureMonGetTfNSWDM.swaggerGeneratedUnknown;
 }
@@ -9277,21 +8478,18 @@ enums.DepartureMonGetTfNSWDM? departureMonGetTfNSWDMNullableFromJson(
   if (departureMonGetTfNSWDM == null) {
     return null;
   }
-  return enums.DepartureMonGetTfNSWDM.values.firstWhereOrNull(
-        (e) => e.value == departureMonGetTfNSWDM,
-      ) ??
+  return enums.DepartureMonGetTfNSWDM.values
+          .firstWhereOrNull((e) => e.value == departureMonGetTfNSWDM) ??
       defaultValue;
 }
 
 String departureMonGetTfNSWDMExplodedListToJson(
-  List<enums.DepartureMonGetTfNSWDM>? departureMonGetTfNSWDM,
-) {
+    List<enums.DepartureMonGetTfNSWDM>? departureMonGetTfNSWDM) {
   return departureMonGetTfNSWDM?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> departureMonGetTfNSWDMListToJson(
-  List<enums.DepartureMonGetTfNSWDM>? departureMonGetTfNSWDM,
-) {
+    List<enums.DepartureMonGetTfNSWDM>? departureMonGetTfNSWDM) {
   if (departureMonGetTfNSWDM == null) {
     return [];
   }
@@ -9326,14 +8524,12 @@ List<enums.DepartureMonGetTfNSWDM>? departureMonGetTfNSWDMNullableListFromJson(
 }
 
 String? stopFinderGetOutputFormatNullableToJson(
-  enums.StopFinderGetOutputFormat? stopFinderGetOutputFormat,
-) {
+    enums.StopFinderGetOutputFormat? stopFinderGetOutputFormat) {
   return stopFinderGetOutputFormat?.value;
 }
 
 String? stopFinderGetOutputFormatToJson(
-  enums.StopFinderGetOutputFormat stopFinderGetOutputFormat,
-) {
+    enums.StopFinderGetOutputFormat stopFinderGetOutputFormat) {
   return stopFinderGetOutputFormat.value;
 }
 
@@ -9341,9 +8537,8 @@ enums.StopFinderGetOutputFormat stopFinderGetOutputFormatFromJson(
   Object? stopFinderGetOutputFormat, [
   enums.StopFinderGetOutputFormat? defaultValue,
 ]) {
-  return enums.StopFinderGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetOutputFormat,
-      ) ??
+  return enums.StopFinderGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetOutputFormat) ??
       defaultValue ??
       enums.StopFinderGetOutputFormat.swaggerGeneratedUnknown;
 }
@@ -9355,21 +8550,18 @@ enums.StopFinderGetOutputFormat? stopFinderGetOutputFormatNullableFromJson(
   if (stopFinderGetOutputFormat == null) {
     return null;
   }
-  return enums.StopFinderGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetOutputFormat,
-      ) ??
+  return enums.StopFinderGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetOutputFormat) ??
       defaultValue;
 }
 
 String stopFinderGetOutputFormatExplodedListToJson(
-  List<enums.StopFinderGetOutputFormat>? stopFinderGetOutputFormat,
-) {
+    List<enums.StopFinderGetOutputFormat>? stopFinderGetOutputFormat) {
   return stopFinderGetOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> stopFinderGetOutputFormatListToJson(
-  List<enums.StopFinderGetOutputFormat>? stopFinderGetOutputFormat,
-) {
+    List<enums.StopFinderGetOutputFormat>? stopFinderGetOutputFormat) {
   if (stopFinderGetOutputFormat == null) {
     return [];
   }
@@ -9391,7 +8583,7 @@ List<enums.StopFinderGetOutputFormat> stopFinderGetOutputFormatListFromJson(
 }
 
 List<enums.StopFinderGetOutputFormat>?
-stopFinderGetOutputFormatNullableListFromJson(
+    stopFinderGetOutputFormatNullableListFromJson(
   List? stopFinderGetOutputFormat, [
   List<enums.StopFinderGetOutputFormat>? defaultValue,
 ]) {
@@ -9405,14 +8597,12 @@ stopFinderGetOutputFormatNullableListFromJson(
 }
 
 String? stopFinderGetTypeSfNullableToJson(
-  enums.StopFinderGetTypeSf? stopFinderGetTypeSf,
-) {
+    enums.StopFinderGetTypeSf? stopFinderGetTypeSf) {
   return stopFinderGetTypeSf?.value;
 }
 
 String? stopFinderGetTypeSfToJson(
-  enums.StopFinderGetTypeSf stopFinderGetTypeSf,
-) {
+    enums.StopFinderGetTypeSf stopFinderGetTypeSf) {
   return stopFinderGetTypeSf.value;
 }
 
@@ -9420,9 +8610,8 @@ enums.StopFinderGetTypeSf stopFinderGetTypeSfFromJson(
   Object? stopFinderGetTypeSf, [
   enums.StopFinderGetTypeSf? defaultValue,
 ]) {
-  return enums.StopFinderGetTypeSf.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetTypeSf,
-      ) ??
+  return enums.StopFinderGetTypeSf.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetTypeSf) ??
       defaultValue ??
       enums.StopFinderGetTypeSf.swaggerGeneratedUnknown;
 }
@@ -9434,21 +8623,18 @@ enums.StopFinderGetTypeSf? stopFinderGetTypeSfNullableFromJson(
   if (stopFinderGetTypeSf == null) {
     return null;
   }
-  return enums.StopFinderGetTypeSf.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetTypeSf,
-      ) ??
+  return enums.StopFinderGetTypeSf.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetTypeSf) ??
       defaultValue;
 }
 
 String stopFinderGetTypeSfExplodedListToJson(
-  List<enums.StopFinderGetTypeSf>? stopFinderGetTypeSf,
-) {
+    List<enums.StopFinderGetTypeSf>? stopFinderGetTypeSf) {
   return stopFinderGetTypeSf?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> stopFinderGetTypeSfListToJson(
-  List<enums.StopFinderGetTypeSf>? stopFinderGetTypeSf,
-) {
+    List<enums.StopFinderGetTypeSf>? stopFinderGetTypeSf) {
   if (stopFinderGetTypeSf == null) {
     return [];
   }
@@ -9483,14 +8669,12 @@ List<enums.StopFinderGetTypeSf>? stopFinderGetTypeSfNullableListFromJson(
 }
 
 String? stopFinderGetCoordOutputFormatNullableToJson(
-  enums.StopFinderGetCoordOutputFormat? stopFinderGetCoordOutputFormat,
-) {
+    enums.StopFinderGetCoordOutputFormat? stopFinderGetCoordOutputFormat) {
   return stopFinderGetCoordOutputFormat?.value;
 }
 
 String? stopFinderGetCoordOutputFormatToJson(
-  enums.StopFinderGetCoordOutputFormat stopFinderGetCoordOutputFormat,
-) {
+    enums.StopFinderGetCoordOutputFormat stopFinderGetCoordOutputFormat) {
   return stopFinderGetCoordOutputFormat.value;
 }
 
@@ -9498,36 +8682,34 @@ enums.StopFinderGetCoordOutputFormat stopFinderGetCoordOutputFormatFromJson(
   Object? stopFinderGetCoordOutputFormat, [
   enums.StopFinderGetCoordOutputFormat? defaultValue,
 ]) {
-  return enums.StopFinderGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetCoordOutputFormat,
-      ) ??
+  return enums.StopFinderGetCoordOutputFormat.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetCoordOutputFormat) ??
       defaultValue ??
       enums.StopFinderGetCoordOutputFormat.swaggerGeneratedUnknown;
 }
 
 enums.StopFinderGetCoordOutputFormat?
-stopFinderGetCoordOutputFormatNullableFromJson(
+    stopFinderGetCoordOutputFormatNullableFromJson(
   Object? stopFinderGetCoordOutputFormat, [
   enums.StopFinderGetCoordOutputFormat? defaultValue,
 ]) {
   if (stopFinderGetCoordOutputFormat == null) {
     return null;
   }
-  return enums.StopFinderGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetCoordOutputFormat,
-      ) ??
+  return enums.StopFinderGetCoordOutputFormat.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetCoordOutputFormat) ??
       defaultValue;
 }
 
 String stopFinderGetCoordOutputFormatExplodedListToJson(
-  List<enums.StopFinderGetCoordOutputFormat>? stopFinderGetCoordOutputFormat,
-) {
+    List<enums.StopFinderGetCoordOutputFormat>?
+        stopFinderGetCoordOutputFormat) {
   return stopFinderGetCoordOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> stopFinderGetCoordOutputFormatListToJson(
-  List<enums.StopFinderGetCoordOutputFormat>? stopFinderGetCoordOutputFormat,
-) {
+    List<enums.StopFinderGetCoordOutputFormat>?
+        stopFinderGetCoordOutputFormat) {
   if (stopFinderGetCoordOutputFormat == null) {
     return [];
   }
@@ -9536,7 +8718,7 @@ List<String> stopFinderGetCoordOutputFormatListToJson(
 }
 
 List<enums.StopFinderGetCoordOutputFormat>
-stopFinderGetCoordOutputFormatListFromJson(
+    stopFinderGetCoordOutputFormatListFromJson(
   List? stopFinderGetCoordOutputFormat, [
   List<enums.StopFinderGetCoordOutputFormat>? defaultValue,
 ]) {
@@ -9550,7 +8732,7 @@ stopFinderGetCoordOutputFormatListFromJson(
 }
 
 List<enums.StopFinderGetCoordOutputFormat>?
-stopFinderGetCoordOutputFormatNullableListFromJson(
+    stopFinderGetCoordOutputFormatNullableListFromJson(
   List? stopFinderGetCoordOutputFormat, [
   List<enums.StopFinderGetCoordOutputFormat>? defaultValue,
 ]) {
@@ -9564,14 +8746,12 @@ stopFinderGetCoordOutputFormatNullableListFromJson(
 }
 
 String? stopFinderGetTfNSWSFNullableToJson(
-  enums.StopFinderGetTfNSWSF? stopFinderGetTfNSWSF,
-) {
+    enums.StopFinderGetTfNSWSF? stopFinderGetTfNSWSF) {
   return stopFinderGetTfNSWSF?.value;
 }
 
 String? stopFinderGetTfNSWSFToJson(
-  enums.StopFinderGetTfNSWSF stopFinderGetTfNSWSF,
-) {
+    enums.StopFinderGetTfNSWSF stopFinderGetTfNSWSF) {
   return stopFinderGetTfNSWSF.value;
 }
 
@@ -9579,9 +8759,8 @@ enums.StopFinderGetTfNSWSF stopFinderGetTfNSWSFFromJson(
   Object? stopFinderGetTfNSWSF, [
   enums.StopFinderGetTfNSWSF? defaultValue,
 ]) {
-  return enums.StopFinderGetTfNSWSF.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetTfNSWSF,
-      ) ??
+  return enums.StopFinderGetTfNSWSF.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetTfNSWSF) ??
       defaultValue ??
       enums.StopFinderGetTfNSWSF.swaggerGeneratedUnknown;
 }
@@ -9593,21 +8772,18 @@ enums.StopFinderGetTfNSWSF? stopFinderGetTfNSWSFNullableFromJson(
   if (stopFinderGetTfNSWSF == null) {
     return null;
   }
-  return enums.StopFinderGetTfNSWSF.values.firstWhereOrNull(
-        (e) => e.value == stopFinderGetTfNSWSF,
-      ) ??
+  return enums.StopFinderGetTfNSWSF.values
+          .firstWhereOrNull((e) => e.value == stopFinderGetTfNSWSF) ??
       defaultValue;
 }
 
 String stopFinderGetTfNSWSFExplodedListToJson(
-  List<enums.StopFinderGetTfNSWSF>? stopFinderGetTfNSWSF,
-) {
+    List<enums.StopFinderGetTfNSWSF>? stopFinderGetTfNSWSF) {
   return stopFinderGetTfNSWSF?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> stopFinderGetTfNSWSFListToJson(
-  List<enums.StopFinderGetTfNSWSF>? stopFinderGetTfNSWSF,
-) {
+    List<enums.StopFinderGetTfNSWSF>? stopFinderGetTfNSWSF) {
   if (stopFinderGetTfNSWSF == null) {
     return [];
   }
@@ -9642,14 +8818,12 @@ List<enums.StopFinderGetTfNSWSF>? stopFinderGetTfNSWSFNullableListFromJson(
 }
 
 String? tripGetOutputFormatNullableToJson(
-  enums.TripGetOutputFormat? tripGetOutputFormat,
-) {
+    enums.TripGetOutputFormat? tripGetOutputFormat) {
   return tripGetOutputFormat?.value;
 }
 
 String? tripGetOutputFormatToJson(
-  enums.TripGetOutputFormat tripGetOutputFormat,
-) {
+    enums.TripGetOutputFormat tripGetOutputFormat) {
   return tripGetOutputFormat.value;
 }
 
@@ -9657,9 +8831,8 @@ enums.TripGetOutputFormat tripGetOutputFormatFromJson(
   Object? tripGetOutputFormat, [
   enums.TripGetOutputFormat? defaultValue,
 ]) {
-  return enums.TripGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == tripGetOutputFormat,
-      ) ??
+  return enums.TripGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == tripGetOutputFormat) ??
       defaultValue ??
       enums.TripGetOutputFormat.swaggerGeneratedUnknown;
 }
@@ -9671,21 +8844,18 @@ enums.TripGetOutputFormat? tripGetOutputFormatNullableFromJson(
   if (tripGetOutputFormat == null) {
     return null;
   }
-  return enums.TripGetOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == tripGetOutputFormat,
-      ) ??
+  return enums.TripGetOutputFormat.values
+          .firstWhereOrNull((e) => e.value == tripGetOutputFormat) ??
       defaultValue;
 }
 
 String tripGetOutputFormatExplodedListToJson(
-  List<enums.TripGetOutputFormat>? tripGetOutputFormat,
-) {
+    List<enums.TripGetOutputFormat>? tripGetOutputFormat) {
   return tripGetOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetOutputFormatListToJson(
-  List<enums.TripGetOutputFormat>? tripGetOutputFormat,
-) {
+    List<enums.TripGetOutputFormat>? tripGetOutputFormat) {
   if (tripGetOutputFormat == null) {
     return [];
   }
@@ -9720,14 +8890,12 @@ List<enums.TripGetOutputFormat>? tripGetOutputFormatNullableListFromJson(
 }
 
 String? tripGetCoordOutputFormatNullableToJson(
-  enums.TripGetCoordOutputFormat? tripGetCoordOutputFormat,
-) {
+    enums.TripGetCoordOutputFormat? tripGetCoordOutputFormat) {
   return tripGetCoordOutputFormat?.value;
 }
 
 String? tripGetCoordOutputFormatToJson(
-  enums.TripGetCoordOutputFormat tripGetCoordOutputFormat,
-) {
+    enums.TripGetCoordOutputFormat tripGetCoordOutputFormat) {
   return tripGetCoordOutputFormat.value;
 }
 
@@ -9735,9 +8903,8 @@ enums.TripGetCoordOutputFormat tripGetCoordOutputFormatFromJson(
   Object? tripGetCoordOutputFormat, [
   enums.TripGetCoordOutputFormat? defaultValue,
 ]) {
-  return enums.TripGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == tripGetCoordOutputFormat,
-      ) ??
+  return enums.TripGetCoordOutputFormat.values
+          .firstWhereOrNull((e) => e.value == tripGetCoordOutputFormat) ??
       defaultValue ??
       enums.TripGetCoordOutputFormat.swaggerGeneratedUnknown;
 }
@@ -9749,21 +8916,18 @@ enums.TripGetCoordOutputFormat? tripGetCoordOutputFormatNullableFromJson(
   if (tripGetCoordOutputFormat == null) {
     return null;
   }
-  return enums.TripGetCoordOutputFormat.values.firstWhereOrNull(
-        (e) => e.value == tripGetCoordOutputFormat,
-      ) ??
+  return enums.TripGetCoordOutputFormat.values
+          .firstWhereOrNull((e) => e.value == tripGetCoordOutputFormat) ??
       defaultValue;
 }
 
 String tripGetCoordOutputFormatExplodedListToJson(
-  List<enums.TripGetCoordOutputFormat>? tripGetCoordOutputFormat,
-) {
+    List<enums.TripGetCoordOutputFormat>? tripGetCoordOutputFormat) {
   return tripGetCoordOutputFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetCoordOutputFormatListToJson(
-  List<enums.TripGetCoordOutputFormat>? tripGetCoordOutputFormat,
-) {
+    List<enums.TripGetCoordOutputFormat>? tripGetCoordOutputFormat) {
   if (tripGetCoordOutputFormat == null) {
     return [];
   }
@@ -9785,7 +8949,7 @@ List<enums.TripGetCoordOutputFormat> tripGetCoordOutputFormatListFromJson(
 }
 
 List<enums.TripGetCoordOutputFormat>?
-tripGetCoordOutputFormatNullableListFromJson(
+    tripGetCoordOutputFormatNullableListFromJson(
   List? tripGetCoordOutputFormat, [
   List<enums.TripGetCoordOutputFormat>? defaultValue,
 ]) {
@@ -9799,8 +8963,7 @@ tripGetCoordOutputFormatNullableListFromJson(
 }
 
 String? tripGetDepArrMacroNullableToJson(
-  enums.TripGetDepArrMacro? tripGetDepArrMacro,
-) {
+    enums.TripGetDepArrMacro? tripGetDepArrMacro) {
   return tripGetDepArrMacro?.value;
 }
 
@@ -9812,9 +8975,8 @@ enums.TripGetDepArrMacro tripGetDepArrMacroFromJson(
   Object? tripGetDepArrMacro, [
   enums.TripGetDepArrMacro? defaultValue,
 ]) {
-  return enums.TripGetDepArrMacro.values.firstWhereOrNull(
-        (e) => e.value == tripGetDepArrMacro,
-      ) ??
+  return enums.TripGetDepArrMacro.values
+          .firstWhereOrNull((e) => e.value == tripGetDepArrMacro) ??
       defaultValue ??
       enums.TripGetDepArrMacro.swaggerGeneratedUnknown;
 }
@@ -9826,21 +8988,18 @@ enums.TripGetDepArrMacro? tripGetDepArrMacroNullableFromJson(
   if (tripGetDepArrMacro == null) {
     return null;
   }
-  return enums.TripGetDepArrMacro.values.firstWhereOrNull(
-        (e) => e.value == tripGetDepArrMacro,
-      ) ??
+  return enums.TripGetDepArrMacro.values
+          .firstWhereOrNull((e) => e.value == tripGetDepArrMacro) ??
       defaultValue;
 }
 
 String tripGetDepArrMacroExplodedListToJson(
-  List<enums.TripGetDepArrMacro>? tripGetDepArrMacro,
-) {
+    List<enums.TripGetDepArrMacro>? tripGetDepArrMacro) {
   return tripGetDepArrMacro?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetDepArrMacroListToJson(
-  List<enums.TripGetDepArrMacro>? tripGetDepArrMacro,
-) {
+    List<enums.TripGetDepArrMacro>? tripGetDepArrMacro) {
   if (tripGetDepArrMacro == null) {
     return [];
   }
@@ -9875,8 +9034,7 @@ List<enums.TripGetDepArrMacro>? tripGetDepArrMacroNullableListFromJson(
 }
 
 String? tripGetTypeOriginNullableToJson(
-  enums.TripGetTypeOrigin? tripGetTypeOrigin,
-) {
+    enums.TripGetTypeOrigin? tripGetTypeOrigin) {
   return tripGetTypeOrigin?.value;
 }
 
@@ -9888,9 +9046,8 @@ enums.TripGetTypeOrigin tripGetTypeOriginFromJson(
   Object? tripGetTypeOrigin, [
   enums.TripGetTypeOrigin? defaultValue,
 ]) {
-  return enums.TripGetTypeOrigin.values.firstWhereOrNull(
-        (e) => e.value == tripGetTypeOrigin,
-      ) ??
+  return enums.TripGetTypeOrigin.values
+          .firstWhereOrNull((e) => e.value == tripGetTypeOrigin) ??
       defaultValue ??
       enums.TripGetTypeOrigin.swaggerGeneratedUnknown;
 }
@@ -9902,21 +9059,18 @@ enums.TripGetTypeOrigin? tripGetTypeOriginNullableFromJson(
   if (tripGetTypeOrigin == null) {
     return null;
   }
-  return enums.TripGetTypeOrigin.values.firstWhereOrNull(
-        (e) => e.value == tripGetTypeOrigin,
-      ) ??
+  return enums.TripGetTypeOrigin.values
+          .firstWhereOrNull((e) => e.value == tripGetTypeOrigin) ??
       defaultValue;
 }
 
 String tripGetTypeOriginExplodedListToJson(
-  List<enums.TripGetTypeOrigin>? tripGetTypeOrigin,
-) {
+    List<enums.TripGetTypeOrigin>? tripGetTypeOrigin) {
   return tripGetTypeOrigin?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetTypeOriginListToJson(
-  List<enums.TripGetTypeOrigin>? tripGetTypeOrigin,
-) {
+    List<enums.TripGetTypeOrigin>? tripGetTypeOrigin) {
   if (tripGetTypeOrigin == null) {
     return [];
   }
@@ -9951,14 +9105,12 @@ List<enums.TripGetTypeOrigin>? tripGetTypeOriginNullableListFromJson(
 }
 
 String? tripGetTypeDestinationNullableToJson(
-  enums.TripGetTypeDestination? tripGetTypeDestination,
-) {
+    enums.TripGetTypeDestination? tripGetTypeDestination) {
   return tripGetTypeDestination?.value;
 }
 
 String? tripGetTypeDestinationToJson(
-  enums.TripGetTypeDestination tripGetTypeDestination,
-) {
+    enums.TripGetTypeDestination tripGetTypeDestination) {
   return tripGetTypeDestination.value;
 }
 
@@ -9966,9 +9118,8 @@ enums.TripGetTypeDestination tripGetTypeDestinationFromJson(
   Object? tripGetTypeDestination, [
   enums.TripGetTypeDestination? defaultValue,
 ]) {
-  return enums.TripGetTypeDestination.values.firstWhereOrNull(
-        (e) => e.value == tripGetTypeDestination,
-      ) ??
+  return enums.TripGetTypeDestination.values
+          .firstWhereOrNull((e) => e.value == tripGetTypeDestination) ??
       defaultValue ??
       enums.TripGetTypeDestination.swaggerGeneratedUnknown;
 }
@@ -9980,21 +9131,18 @@ enums.TripGetTypeDestination? tripGetTypeDestinationNullableFromJson(
   if (tripGetTypeDestination == null) {
     return null;
   }
-  return enums.TripGetTypeDestination.values.firstWhereOrNull(
-        (e) => e.value == tripGetTypeDestination,
-      ) ??
+  return enums.TripGetTypeDestination.values
+          .firstWhereOrNull((e) => e.value == tripGetTypeDestination) ??
       defaultValue;
 }
 
 String tripGetTypeDestinationExplodedListToJson(
-  List<enums.TripGetTypeDestination>? tripGetTypeDestination,
-) {
+    List<enums.TripGetTypeDestination>? tripGetTypeDestination) {
   return tripGetTypeDestination?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetTypeDestinationListToJson(
-  List<enums.TripGetTypeDestination>? tripGetTypeDestination,
-) {
+    List<enums.TripGetTypeDestination>? tripGetTypeDestination) {
   if (tripGetTypeDestination == null) {
     return [];
   }
@@ -10029,8 +9177,7 @@ List<enums.TripGetTypeDestination>? tripGetTypeDestinationNullableListFromJson(
 }
 
 String? tripGetWheelchairNullableToJson(
-  enums.TripGetWheelchair? tripGetWheelchair,
-) {
+    enums.TripGetWheelchair? tripGetWheelchair) {
   return tripGetWheelchair?.value;
 }
 
@@ -10042,9 +9189,8 @@ enums.TripGetWheelchair tripGetWheelchairFromJson(
   Object? tripGetWheelchair, [
   enums.TripGetWheelchair? defaultValue,
 ]) {
-  return enums.TripGetWheelchair.values.firstWhereOrNull(
-        (e) => e.value == tripGetWheelchair,
-      ) ??
+  return enums.TripGetWheelchair.values
+          .firstWhereOrNull((e) => e.value == tripGetWheelchair) ??
       defaultValue ??
       enums.TripGetWheelchair.swaggerGeneratedUnknown;
 }
@@ -10056,21 +9202,18 @@ enums.TripGetWheelchair? tripGetWheelchairNullableFromJson(
   if (tripGetWheelchair == null) {
     return null;
   }
-  return enums.TripGetWheelchair.values.firstWhereOrNull(
-        (e) => e.value == tripGetWheelchair,
-      ) ??
+  return enums.TripGetWheelchair.values
+          .firstWhereOrNull((e) => e.value == tripGetWheelchair) ??
       defaultValue;
 }
 
 String tripGetWheelchairExplodedListToJson(
-  List<enums.TripGetWheelchair>? tripGetWheelchair,
-) {
+    List<enums.TripGetWheelchair>? tripGetWheelchair) {
   return tripGetWheelchair?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetWheelchairListToJson(
-  List<enums.TripGetWheelchair>? tripGetWheelchair,
-) {
+    List<enums.TripGetWheelchair>? tripGetWheelchair) {
   if (tripGetWheelchair == null) {
     return [];
   }
@@ -10105,14 +9248,12 @@ List<enums.TripGetWheelchair>? tripGetWheelchairNullableListFromJson(
 }
 
 String? tripGetExcludedMeansNullableToJson(
-  enums.TripGetExcludedMeans? tripGetExcludedMeans,
-) {
+    enums.TripGetExcludedMeans? tripGetExcludedMeans) {
   return tripGetExcludedMeans?.value;
 }
 
 String? tripGetExcludedMeansToJson(
-  enums.TripGetExcludedMeans tripGetExcludedMeans,
-) {
+    enums.TripGetExcludedMeans tripGetExcludedMeans) {
   return tripGetExcludedMeans.value;
 }
 
@@ -10120,9 +9261,8 @@ enums.TripGetExcludedMeans tripGetExcludedMeansFromJson(
   Object? tripGetExcludedMeans, [
   enums.TripGetExcludedMeans? defaultValue,
 ]) {
-  return enums.TripGetExcludedMeans.values.firstWhereOrNull(
-        (e) => e.value == tripGetExcludedMeans,
-      ) ??
+  return enums.TripGetExcludedMeans.values
+          .firstWhereOrNull((e) => e.value == tripGetExcludedMeans) ??
       defaultValue ??
       enums.TripGetExcludedMeans.swaggerGeneratedUnknown;
 }
@@ -10134,21 +9274,18 @@ enums.TripGetExcludedMeans? tripGetExcludedMeansNullableFromJson(
   if (tripGetExcludedMeans == null) {
     return null;
   }
-  return enums.TripGetExcludedMeans.values.firstWhereOrNull(
-        (e) => e.value == tripGetExcludedMeans,
-      ) ??
+  return enums.TripGetExcludedMeans.values
+          .firstWhereOrNull((e) => e.value == tripGetExcludedMeans) ??
       defaultValue;
 }
 
 String tripGetExcludedMeansExplodedListToJson(
-  List<enums.TripGetExcludedMeans>? tripGetExcludedMeans,
-) {
+    List<enums.TripGetExcludedMeans>? tripGetExcludedMeans) {
   return tripGetExcludedMeans?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExcludedMeansListToJson(
-  List<enums.TripGetExcludedMeans>? tripGetExcludedMeans,
-) {
+    List<enums.TripGetExcludedMeans>? tripGetExcludedMeans) {
   if (tripGetExcludedMeans == null) {
     return [];
   }
@@ -10194,9 +9331,8 @@ enums.TripGetExclMOT1 tripGetExclMOT1FromJson(
   Object? tripGetExclMOT1, [
   enums.TripGetExclMOT1? defaultValue,
 ]) {
-  return enums.TripGetExclMOT1.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT1,
-      ) ??
+  return enums.TripGetExclMOT1.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT1) ??
       defaultValue ??
       enums.TripGetExclMOT1.swaggerGeneratedUnknown;
 }
@@ -10208,21 +9344,18 @@ enums.TripGetExclMOT1? tripGetExclMOT1NullableFromJson(
   if (tripGetExclMOT1 == null) {
     return null;
   }
-  return enums.TripGetExclMOT1.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT1,
-      ) ??
+  return enums.TripGetExclMOT1.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT1) ??
       defaultValue;
 }
 
 String tripGetExclMOT1ExplodedListToJson(
-  List<enums.TripGetExclMOT1>? tripGetExclMOT1,
-) {
+    List<enums.TripGetExclMOT1>? tripGetExclMOT1) {
   return tripGetExclMOT1?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExclMOT1ListToJson(
-  List<enums.TripGetExclMOT1>? tripGetExclMOT1,
-) {
+    List<enums.TripGetExclMOT1>? tripGetExclMOT1) {
   if (tripGetExclMOT1 == null) {
     return [];
   }
@@ -10268,9 +9401,8 @@ enums.TripGetExclMOT2 tripGetExclMOT2FromJson(
   Object? tripGetExclMOT2, [
   enums.TripGetExclMOT2? defaultValue,
 ]) {
-  return enums.TripGetExclMOT2.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT2,
-      ) ??
+  return enums.TripGetExclMOT2.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT2) ??
       defaultValue ??
       enums.TripGetExclMOT2.swaggerGeneratedUnknown;
 }
@@ -10282,21 +9414,18 @@ enums.TripGetExclMOT2? tripGetExclMOT2NullableFromJson(
   if (tripGetExclMOT2 == null) {
     return null;
   }
-  return enums.TripGetExclMOT2.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT2,
-      ) ??
+  return enums.TripGetExclMOT2.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT2) ??
       defaultValue;
 }
 
 String tripGetExclMOT2ExplodedListToJson(
-  List<enums.TripGetExclMOT2>? tripGetExclMOT2,
-) {
+    List<enums.TripGetExclMOT2>? tripGetExclMOT2) {
   return tripGetExclMOT2?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExclMOT2ListToJson(
-  List<enums.TripGetExclMOT2>? tripGetExclMOT2,
-) {
+    List<enums.TripGetExclMOT2>? tripGetExclMOT2) {
   if (tripGetExclMOT2 == null) {
     return [];
   }
@@ -10342,9 +9471,8 @@ enums.TripGetExclMOT4 tripGetExclMOT4FromJson(
   Object? tripGetExclMOT4, [
   enums.TripGetExclMOT4? defaultValue,
 ]) {
-  return enums.TripGetExclMOT4.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT4,
-      ) ??
+  return enums.TripGetExclMOT4.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT4) ??
       defaultValue ??
       enums.TripGetExclMOT4.swaggerGeneratedUnknown;
 }
@@ -10356,21 +9484,18 @@ enums.TripGetExclMOT4? tripGetExclMOT4NullableFromJson(
   if (tripGetExclMOT4 == null) {
     return null;
   }
-  return enums.TripGetExclMOT4.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT4,
-      ) ??
+  return enums.TripGetExclMOT4.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT4) ??
       defaultValue;
 }
 
 String tripGetExclMOT4ExplodedListToJson(
-  List<enums.TripGetExclMOT4>? tripGetExclMOT4,
-) {
+    List<enums.TripGetExclMOT4>? tripGetExclMOT4) {
   return tripGetExclMOT4?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExclMOT4ListToJson(
-  List<enums.TripGetExclMOT4>? tripGetExclMOT4,
-) {
+    List<enums.TripGetExclMOT4>? tripGetExclMOT4) {
   if (tripGetExclMOT4 == null) {
     return [];
   }
@@ -10416,9 +9541,8 @@ enums.TripGetExclMOT5 tripGetExclMOT5FromJson(
   Object? tripGetExclMOT5, [
   enums.TripGetExclMOT5? defaultValue,
 ]) {
-  return enums.TripGetExclMOT5.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT5,
-      ) ??
+  return enums.TripGetExclMOT5.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT5) ??
       defaultValue ??
       enums.TripGetExclMOT5.swaggerGeneratedUnknown;
 }
@@ -10430,21 +9554,18 @@ enums.TripGetExclMOT5? tripGetExclMOT5NullableFromJson(
   if (tripGetExclMOT5 == null) {
     return null;
   }
-  return enums.TripGetExclMOT5.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT5,
-      ) ??
+  return enums.TripGetExclMOT5.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT5) ??
       defaultValue;
 }
 
 String tripGetExclMOT5ExplodedListToJson(
-  List<enums.TripGetExclMOT5>? tripGetExclMOT5,
-) {
+    List<enums.TripGetExclMOT5>? tripGetExclMOT5) {
   return tripGetExclMOT5?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExclMOT5ListToJson(
-  List<enums.TripGetExclMOT5>? tripGetExclMOT5,
-) {
+    List<enums.TripGetExclMOT5>? tripGetExclMOT5) {
   if (tripGetExclMOT5 == null) {
     return [];
   }
@@ -10490,9 +9611,8 @@ enums.TripGetExclMOT7 tripGetExclMOT7FromJson(
   Object? tripGetExclMOT7, [
   enums.TripGetExclMOT7? defaultValue,
 ]) {
-  return enums.TripGetExclMOT7.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT7,
-      ) ??
+  return enums.TripGetExclMOT7.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT7) ??
       defaultValue ??
       enums.TripGetExclMOT7.swaggerGeneratedUnknown;
 }
@@ -10504,21 +9624,18 @@ enums.TripGetExclMOT7? tripGetExclMOT7NullableFromJson(
   if (tripGetExclMOT7 == null) {
     return null;
   }
-  return enums.TripGetExclMOT7.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT7,
-      ) ??
+  return enums.TripGetExclMOT7.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT7) ??
       defaultValue;
 }
 
 String tripGetExclMOT7ExplodedListToJson(
-  List<enums.TripGetExclMOT7>? tripGetExclMOT7,
-) {
+    List<enums.TripGetExclMOT7>? tripGetExclMOT7) {
   return tripGetExclMOT7?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExclMOT7ListToJson(
-  List<enums.TripGetExclMOT7>? tripGetExclMOT7,
-) {
+    List<enums.TripGetExclMOT7>? tripGetExclMOT7) {
   if (tripGetExclMOT7 == null) {
     return [];
   }
@@ -10564,9 +9681,8 @@ enums.TripGetExclMOT9 tripGetExclMOT9FromJson(
   Object? tripGetExclMOT9, [
   enums.TripGetExclMOT9? defaultValue,
 ]) {
-  return enums.TripGetExclMOT9.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT9,
-      ) ??
+  return enums.TripGetExclMOT9.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT9) ??
       defaultValue ??
       enums.TripGetExclMOT9.swaggerGeneratedUnknown;
 }
@@ -10578,21 +9694,18 @@ enums.TripGetExclMOT9? tripGetExclMOT9NullableFromJson(
   if (tripGetExclMOT9 == null) {
     return null;
   }
-  return enums.TripGetExclMOT9.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT9,
-      ) ??
+  return enums.TripGetExclMOT9.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT9) ??
       defaultValue;
 }
 
 String tripGetExclMOT9ExplodedListToJson(
-  List<enums.TripGetExclMOT9>? tripGetExclMOT9,
-) {
+    List<enums.TripGetExclMOT9>? tripGetExclMOT9) {
   return tripGetExclMOT9?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExclMOT9ListToJson(
-  List<enums.TripGetExclMOT9>? tripGetExclMOT9,
-) {
+    List<enums.TripGetExclMOT9>? tripGetExclMOT9) {
   if (tripGetExclMOT9 == null) {
     return [];
   }
@@ -10627,8 +9740,7 @@ List<enums.TripGetExclMOT9>? tripGetExclMOT9NullableListFromJson(
 }
 
 String? tripGetExclMOT11NullableToJson(
-  enums.TripGetExclMOT11? tripGetExclMOT11,
-) {
+    enums.TripGetExclMOT11? tripGetExclMOT11) {
   return tripGetExclMOT11?.value;
 }
 
@@ -10640,9 +9752,8 @@ enums.TripGetExclMOT11 tripGetExclMOT11FromJson(
   Object? tripGetExclMOT11, [
   enums.TripGetExclMOT11? defaultValue,
 ]) {
-  return enums.TripGetExclMOT11.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT11,
-      ) ??
+  return enums.TripGetExclMOT11.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT11) ??
       defaultValue ??
       enums.TripGetExclMOT11.swaggerGeneratedUnknown;
 }
@@ -10654,21 +9765,18 @@ enums.TripGetExclMOT11? tripGetExclMOT11NullableFromJson(
   if (tripGetExclMOT11 == null) {
     return null;
   }
-  return enums.TripGetExclMOT11.values.firstWhereOrNull(
-        (e) => e.value == tripGetExclMOT11,
-      ) ??
+  return enums.TripGetExclMOT11.values
+          .firstWhereOrNull((e) => e.value == tripGetExclMOT11) ??
       defaultValue;
 }
 
 String tripGetExclMOT11ExplodedListToJson(
-  List<enums.TripGetExclMOT11>? tripGetExclMOT11,
-) {
+    List<enums.TripGetExclMOT11>? tripGetExclMOT11) {
   return tripGetExclMOT11?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetExclMOT11ListToJson(
-  List<enums.TripGetExclMOT11>? tripGetExclMOT11,
-) {
+    List<enums.TripGetExclMOT11>? tripGetExclMOT11) {
   if (tripGetExclMOT11 == null) {
     return [];
   }
@@ -10714,9 +9822,8 @@ enums.TripGetTfNSWTR tripGetTfNSWTRFromJson(
   Object? tripGetTfNSWTR, [
   enums.TripGetTfNSWTR? defaultValue,
 ]) {
-  return enums.TripGetTfNSWTR.values.firstWhereOrNull(
-        (e) => e.value == tripGetTfNSWTR,
-      ) ??
+  return enums.TripGetTfNSWTR.values
+          .firstWhereOrNull((e) => e.value == tripGetTfNSWTR) ??
       defaultValue ??
       enums.TripGetTfNSWTR.swaggerGeneratedUnknown;
 }
@@ -10728,21 +9835,18 @@ enums.TripGetTfNSWTR? tripGetTfNSWTRNullableFromJson(
   if (tripGetTfNSWTR == null) {
     return null;
   }
-  return enums.TripGetTfNSWTR.values.firstWhereOrNull(
-        (e) => e.value == tripGetTfNSWTR,
-      ) ??
+  return enums.TripGetTfNSWTR.values
+          .firstWhereOrNull((e) => e.value == tripGetTfNSWTR) ??
       defaultValue;
 }
 
 String tripGetTfNSWTRExplodedListToJson(
-  List<enums.TripGetTfNSWTR>? tripGetTfNSWTR,
-) {
+    List<enums.TripGetTfNSWTR>? tripGetTfNSWTR) {
   return tripGetTfNSWTR?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetTfNSWTRListToJson(
-  List<enums.TripGetTfNSWTR>? tripGetTfNSWTR,
-) {
+    List<enums.TripGetTfNSWTR>? tripGetTfNSWTR) {
   if (tripGetTfNSWTR == null) {
     return [];
   }
@@ -10777,14 +9881,12 @@ List<enums.TripGetTfNSWTR>? tripGetTfNSWTRNullableListFromJson(
 }
 
 String? tripGetBikeProfSpeedNullableToJson(
-  enums.TripGetBikeProfSpeed? tripGetBikeProfSpeed,
-) {
+    enums.TripGetBikeProfSpeed? tripGetBikeProfSpeed) {
   return tripGetBikeProfSpeed?.value;
 }
 
 String? tripGetBikeProfSpeedToJson(
-  enums.TripGetBikeProfSpeed tripGetBikeProfSpeed,
-) {
+    enums.TripGetBikeProfSpeed tripGetBikeProfSpeed) {
   return tripGetBikeProfSpeed.value;
 }
 
@@ -10792,9 +9894,8 @@ enums.TripGetBikeProfSpeed tripGetBikeProfSpeedFromJson(
   Object? tripGetBikeProfSpeed, [
   enums.TripGetBikeProfSpeed? defaultValue,
 ]) {
-  return enums.TripGetBikeProfSpeed.values.firstWhereOrNull(
-        (e) => e.value == tripGetBikeProfSpeed,
-      ) ??
+  return enums.TripGetBikeProfSpeed.values
+          .firstWhereOrNull((e) => e.value == tripGetBikeProfSpeed) ??
       defaultValue ??
       enums.TripGetBikeProfSpeed.swaggerGeneratedUnknown;
 }
@@ -10806,21 +9907,18 @@ enums.TripGetBikeProfSpeed? tripGetBikeProfSpeedNullableFromJson(
   if (tripGetBikeProfSpeed == null) {
     return null;
   }
-  return enums.TripGetBikeProfSpeed.values.firstWhereOrNull(
-        (e) => e.value == tripGetBikeProfSpeed,
-      ) ??
+  return enums.TripGetBikeProfSpeed.values
+          .firstWhereOrNull((e) => e.value == tripGetBikeProfSpeed) ??
       defaultValue;
 }
 
 String tripGetBikeProfSpeedExplodedListToJson(
-  List<enums.TripGetBikeProfSpeed>? tripGetBikeProfSpeed,
-) {
+    List<enums.TripGetBikeProfSpeed>? tripGetBikeProfSpeed) {
   return tripGetBikeProfSpeed?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> tripGetBikeProfSpeedListToJson(
-  List<enums.TripGetBikeProfSpeed>? tripGetBikeProfSpeed,
-) {
+    List<enums.TripGetBikeProfSpeed>? tripGetBikeProfSpeed) {
   if (tripGetBikeProfSpeed == null) {
     return [];
   }
@@ -10901,8 +9999,7 @@ class $CustomJsonDecoder {
 class $JsonSerializableConverter extends chopper.JsonConverter {
   @override
   FutureOr<chopper.Response<ResultType>> convertResponse<ResultType, Item>(
-    chopper.Response response,
-  ) async {
+      chopper.Response response) async {
     if (response.bodyString.isEmpty) {
       // In rare cases, when let's say 204 (no content) is returned -
       // we cannot decode the missing json with the result type specified
@@ -10915,16 +10012,13 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body:
-            DateTime.parse((response.body as String).replaceAll('"', ''))
-                as ResultType,
-      );
+          body: DateTime.parse((response.body as String).replaceAll('"', ''))
+              as ResultType);
     }
 
     final jsonRes = await super.convertResponse(response);
     return jsonRes.copyWith<ResultType>(
-      body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType,
-    );
+        body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType);
   }
 }
 

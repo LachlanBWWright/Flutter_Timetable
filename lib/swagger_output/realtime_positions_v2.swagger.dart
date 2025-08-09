@@ -38,33 +38,29 @@ abstract class RealtimePositionsV2 extends ChopperService {
     }
 
     final newClient = ChopperClient(
-      services: [_$RealtimePositionsV2()],
-      converter: converter ?? $JsonSerializableConverter(),
-      interceptors: interceptors ?? [],
-      client: httpClient,
-      authenticator: authenticator,
-      errorConverter: errorConverter,
-      baseUrl:
-          baseUrl ??
-          Uri.parse('http://api.transport.nsw.gov.au/v2/gtfs/vehiclepos'),
-    );
+        services: [_$RealtimePositionsV2()],
+        converter: converter ?? $JsonSerializableConverter(),
+        interceptors: interceptors ?? [],
+        client: httpClient,
+        authenticator: authenticator,
+        errorConverter: errorConverter,
+        baseUrl: baseUrl ??
+            Uri.parse('http://api.transport.nsw.gov.au/v2/gtfs/vehiclepos'));
     return _$RealtimePositionsV2(newClient);
   }
 
   ///GTFS-realtime vehicle positions for Sydney Trains
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> sydneytrainsGet({
-    enums.SydneytrainsGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> sydneytrainsGet(
+      {enums.SydneytrainsGetDebug? debug}) {
     return _sydneytrainsGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime vehicle positions for Sydney Trains
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/sydneytrains')
-  Future<chopper.Response<List<int>>> _sydneytrainsGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/sydneytrains')
+  Future<chopper.Response<List<int>>> _sydneytrainsGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime vehicle positions for Sydney Trains
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
@@ -74,10 +70,9 @@ abstract class RealtimePositionsV2 extends ChopperService {
 
   ///GTFS-realtime vehicle positions for Sydney Trains
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/metro')
-  Future<chopper.Response<List<int>>> _metroGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/metro')
+  Future<chopper.Response<List<int>>> _metroGet(
+      {@Query('debug') String? debug});
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -113,30 +108,20 @@ class ErrorDetails {
     return identical(this, other) ||
         (other is ErrorDetails &&
             (identical(other.errorDateTime, errorDateTime) ||
-                const DeepCollectionEquality().equals(
-                  other.errorDateTime,
-                  errorDateTime,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.errorDateTime, errorDateTime)) &&
             (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(
-                  other.message,
-                  message,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
             (identical(other.requestedMethod, requestedMethod) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedMethod,
-                  requestedMethod,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedMethod, requestedMethod)) &&
             (identical(other.requestedUrl, requestedUrl) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedUrl,
-                  requestedUrl,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedUrl, requestedUrl)) &&
             (identical(other.transactionId, transactionId) ||
-                const DeepCollectionEquality().equals(
-                  other.transactionId,
-                  transactionId,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.transactionId, transactionId)));
   }
 
   @override
@@ -153,56 +138,47 @@ class ErrorDetails {
 }
 
 extension $ErrorDetailsExtension on ErrorDetails {
-  ErrorDetails copyWith({
-    String? errorDateTime,
-    String? message,
-    String? requestedMethod,
-    String? requestedUrl,
-    String? transactionId,
-  }) {
+  ErrorDetails copyWith(
+      {String? errorDateTime,
+      String? message,
+      String? requestedMethod,
+      String? requestedUrl,
+      String? transactionId}) {
     return ErrorDetails(
-      errorDateTime: errorDateTime ?? this.errorDateTime,
-      message: message ?? this.message,
-      requestedMethod: requestedMethod ?? this.requestedMethod,
-      requestedUrl: requestedUrl ?? this.requestedUrl,
-      transactionId: transactionId ?? this.transactionId,
-    );
+        errorDateTime: errorDateTime ?? this.errorDateTime,
+        message: message ?? this.message,
+        requestedMethod: requestedMethod ?? this.requestedMethod,
+        requestedUrl: requestedUrl ?? this.requestedUrl,
+        transactionId: transactionId ?? this.transactionId);
   }
 
-  ErrorDetails copyWithWrapped({
-    Wrapped<String>? errorDateTime,
-    Wrapped<String>? message,
-    Wrapped<String>? requestedMethod,
-    Wrapped<String>? requestedUrl,
-    Wrapped<String>? transactionId,
-  }) {
+  ErrorDetails copyWithWrapped(
+      {Wrapped<String>? errorDateTime,
+      Wrapped<String>? message,
+      Wrapped<String>? requestedMethod,
+      Wrapped<String>? requestedUrl,
+      Wrapped<String>? transactionId}) {
     return ErrorDetails(
-      errorDateTime: (errorDateTime != null
-          ? errorDateTime.value
-          : this.errorDateTime),
-      message: (message != null ? message.value : this.message),
-      requestedMethod: (requestedMethod != null
-          ? requestedMethod.value
-          : this.requestedMethod),
-      requestedUrl: (requestedUrl != null
-          ? requestedUrl.value
-          : this.requestedUrl),
-      transactionId: (transactionId != null
-          ? transactionId.value
-          : this.transactionId),
-    );
+        errorDateTime:
+            (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
+        message: (message != null ? message.value : this.message),
+        requestedMethod: (requestedMethod != null
+            ? requestedMethod.value
+            : this.requestedMethod),
+        requestedUrl:
+            (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
+        transactionId:
+            (transactionId != null ? transactionId.value : this.transactionId));
   }
 }
 
 String? sydneytrainsGetDebugNullableToJson(
-  enums.SydneytrainsGetDebug? sydneytrainsGetDebug,
-) {
+    enums.SydneytrainsGetDebug? sydneytrainsGetDebug) {
   return sydneytrainsGetDebug?.value;
 }
 
 String? sydneytrainsGetDebugToJson(
-  enums.SydneytrainsGetDebug sydneytrainsGetDebug,
-) {
+    enums.SydneytrainsGetDebug sydneytrainsGetDebug) {
   return sydneytrainsGetDebug.value;
 }
 
@@ -210,9 +186,8 @@ enums.SydneytrainsGetDebug sydneytrainsGetDebugFromJson(
   Object? sydneytrainsGetDebug, [
   enums.SydneytrainsGetDebug? defaultValue,
 ]) {
-  return enums.SydneytrainsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == sydneytrainsGetDebug,
-      ) ??
+  return enums.SydneytrainsGetDebug.values
+          .firstWhereOrNull((e) => e.value == sydneytrainsGetDebug) ??
       defaultValue ??
       enums.SydneytrainsGetDebug.swaggerGeneratedUnknown;
 }
@@ -224,21 +199,18 @@ enums.SydneytrainsGetDebug? sydneytrainsGetDebugNullableFromJson(
   if (sydneytrainsGetDebug == null) {
     return null;
   }
-  return enums.SydneytrainsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == sydneytrainsGetDebug,
-      ) ??
+  return enums.SydneytrainsGetDebug.values
+          .firstWhereOrNull((e) => e.value == sydneytrainsGetDebug) ??
       defaultValue;
 }
 
 String sydneytrainsGetDebugExplodedListToJson(
-  List<enums.SydneytrainsGetDebug>? sydneytrainsGetDebug,
-) {
+    List<enums.SydneytrainsGetDebug>? sydneytrainsGetDebug) {
   return sydneytrainsGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> sydneytrainsGetDebugListToJson(
-  List<enums.SydneytrainsGetDebug>? sydneytrainsGetDebug,
-) {
+    List<enums.SydneytrainsGetDebug>? sydneytrainsGetDebug) {
   if (sydneytrainsGetDebug == null) {
     return [];
   }
@@ -284,9 +256,8 @@ enums.MetroGetDebug metroGetDebugFromJson(
   Object? metroGetDebug, [
   enums.MetroGetDebug? defaultValue,
 ]) {
-  return enums.MetroGetDebug.values.firstWhereOrNull(
-        (e) => e.value == metroGetDebug,
-      ) ??
+  return enums.MetroGetDebug.values
+          .firstWhereOrNull((e) => e.value == metroGetDebug) ??
       defaultValue ??
       enums.MetroGetDebug.swaggerGeneratedUnknown;
 }
@@ -298,15 +269,13 @@ enums.MetroGetDebug? metroGetDebugNullableFromJson(
   if (metroGetDebug == null) {
     return null;
   }
-  return enums.MetroGetDebug.values.firstWhereOrNull(
-        (e) => e.value == metroGetDebug,
-      ) ??
+  return enums.MetroGetDebug.values
+          .firstWhereOrNull((e) => e.value == metroGetDebug) ??
       defaultValue;
 }
 
 String metroGetDebugExplodedListToJson(
-  List<enums.MetroGetDebug>? metroGetDebug,
-) {
+    List<enums.MetroGetDebug>? metroGetDebug) {
   return metroGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
@@ -387,8 +356,7 @@ class $CustomJsonDecoder {
 class $JsonSerializableConverter extends chopper.JsonConverter {
   @override
   FutureOr<chopper.Response<ResultType>> convertResponse<ResultType, Item>(
-    chopper.Response response,
-  ) async {
+      chopper.Response response) async {
     if (response.bodyString.isEmpty) {
       // In rare cases, when let's say 204 (no content) is returned -
       // we cannot decode the missing json with the result type specified
@@ -401,16 +369,13 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body:
-            DateTime.parse((response.body as String).replaceAll('"', ''))
-                as ResultType,
-      );
+          body: DateTime.parse((response.body as String).replaceAll('"', ''))
+              as ResultType);
     }
 
     final jsonRes = await super.convertResponse(response);
     return jsonRes.copyWith<ResultType>(
-      body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType,
-    );
+        body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType);
   }
 }
 

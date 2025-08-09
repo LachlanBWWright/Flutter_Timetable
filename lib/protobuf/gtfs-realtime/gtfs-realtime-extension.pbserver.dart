@@ -1,6 +1,6 @@
 //
 //  Generated code. Do not modify.
-//  source: gtfs-realtime.proto
+//  source: gtfs-realtime-extension.proto
 //
 // @dart = 3.3
 
@@ -10,5 +10,5 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
-export 'gtfs-realtime.pb.dart';
+export 'gtfs-realtime-extension.pb.dart';
 

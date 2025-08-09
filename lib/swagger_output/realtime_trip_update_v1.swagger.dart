@@ -38,15 +38,14 @@ abstract class RealtimeTripUpdateV1 extends ChopperService {
     }
 
     final newClient = ChopperClient(
-      services: [_$RealtimeTripUpdateV1()],
-      converter: converter ?? $JsonSerializableConverter(),
-      interceptors: interceptors ?? [],
-      client: httpClient,
-      authenticator: authenticator,
-      errorConverter: errorConverter,
-      baseUrl: baseUrl ??
-          Uri.parse('http://api.transport.nsw.gov.au/v1/gtfs/realtime'),
-    );
+        services: [_$RealtimeTripUpdateV1()],
+        converter: converter ?? $JsonSerializableConverter(),
+        interceptors: interceptors ?? [],
+        client: httpClient,
+        authenticator: authenticator,
+        errorConverter: errorConverter,
+        baseUrl: baseUrl ??
+            Uri.parse('http://api.transport.nsw.gov.au/v1/gtfs/realtime'));
     return _$RealtimeTripUpdateV1(newClient);
   }
 
@@ -58,310 +57,269 @@ abstract class RealtimeTripUpdateV1 extends ChopperService {
 
   ///GTFS-realtime stop time updates for Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/buses')
-  Future<chopper.Response<List<int>>> _busesGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/buses')
+  Future<chopper.Response<List<int>>> _busesGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Sydney Ferries
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> ferriesSydneyferriesGet({
-    enums.FerriesSydneyferriesGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> ferriesSydneyferriesGet(
+      {enums.FerriesSydneyferriesGetDebug? debug}) {
     return _ferriesSydneyferriesGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Sydney Ferries
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/ferries/sydneyferries')
-  Future<chopper.Response<List<int>>> _ferriesSydneyferriesGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/ferries/sydneyferries')
+  Future<chopper.Response<List<int>>> _ferriesSydneyferriesGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Manly Fast Ferry
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> ferriesMFFGet({
-    enums.FerriesMFFGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> ferriesMFFGet(
+      {enums.FerriesMffGetDebug? debug}) {
     return _ferriesMFFGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Manly Fast Ferry
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/ferries/MFF')
-  Future<chopper.Response<List<int>>> _ferriesMFFGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/ferries/MFF')
+  Future<chopper.Response<List<int>>> _ferriesMFFGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for CBD & South East Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> lightrailCbdandsoutheastGet({
-    enums.LightrailCbdandsoutheastGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> lightrailCbdandsoutheastGet(
+      {enums.LightrailCbdandsoutheastGetDebug? debug}) {
     return _lightrailCbdandsoutheastGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for CBD & South East Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/lightrail/cbdandsoutheast')
-  Future<chopper.Response<List<int>>> _lightrailCbdandsoutheastGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/lightrail/cbdandsoutheast')
+  Future<chopper.Response<List<int>>> _lightrailCbdandsoutheastGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Inner West Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> lightrailInnerwestGet({
-    enums.LightrailInnerwestGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> lightrailInnerwestGet(
+      {enums.LightrailInnerwestGetDebug? debug}) {
     return _lightrailInnerwestGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Inner West Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/lightrail/innerwest')
-  Future<chopper.Response<List<int>>> _lightrailInnerwestGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/lightrail/innerwest')
+  Future<chopper.Response<List<int>>> _lightrailInnerwestGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Newcastle Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> lightrailNewcastleGet({
-    enums.LightrailNewcastleGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> lightrailNewcastleGet(
+      {enums.LightrailNewcastleGetDebug? debug}) {
     return _lightrailNewcastleGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Newcastle Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/lightrail/newcastle')
-  Future<chopper.Response<List<int>>> _lightrailNewcastleGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/lightrail/newcastle')
+  Future<chopper.Response<List<int>>> _lightrailNewcastleGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Parramatta Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> lightrailParramattaGet({
-    enums.LightrailParramattaGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> lightrailParramattaGet(
+      {enums.LightrailParramattaGetDebug? debug}) {
     return _lightrailParramattaGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Parramatta Light Rail
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/lightrail/parramatta')
-  Future<chopper.Response<List<int>>> _lightrailParramattaGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/lightrail/parramatta')
+  Future<chopper.Response<List<int>>> _lightrailParramattaGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for NSW Trains
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> nswtrainsGet({
-    enums.NswtrainsGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> nswtrainsGet(
+      {enums.NswtrainsGetDebug? debug}) {
     return _nswtrainsGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for NSW Trains
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/nswtrains')
-  Future<chopper.Response<List<int>>> _nswtrainsGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/nswtrains')
+  Future<chopper.Response<List<int>>> _nswtrainsGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesCentralwestandoranaGet({
-    enums.RegionbusesCentralwestandoranaGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesCentralwestandoranaGet(
+      {enums.RegionbusesCentralwestandoranaGetDebug? debug}) {
     return _regionbusesCentralwestandoranaGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/centralwestandorana')
-  Future<chopper.Response<List<int>>> _regionbusesCentralwestandoranaGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/centralwestandorana')
+  Future<chopper.Response<List<int>>> _regionbusesCentralwestandoranaGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesCentralwestandorana2Get({
-    enums.RegionbusesCentralwestandorana2GetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesCentralwestandorana2Get(
+      {enums.RegionbusesCentralwestandorana2GetDebug? debug}) {
     return _regionbusesCentralwestandorana2Get(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/centralwestandorana2')
-  Future<chopper.Response<List<int>>> _regionbusesCentralwestandorana2Get({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/centralwestandorana2')
+  Future<chopper.Response<List<int>>> _regionbusesCentralwestandorana2Get(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesFarwestGet({
-    enums.RegionbusesFarwestGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesFarwestGet(
+      {enums.RegionbusesFarwestGetDebug? debug}) {
     return _regionbusesFarwestGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/farwest')
-  Future<chopper.Response<List<int>>> _regionbusesFarwestGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/farwest')
+  Future<chopper.Response<List<int>>> _regionbusesFarwestGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesNewcastlehunterGet({
-    enums.RegionbusesNewcastlehunterGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesNewcastlehunterGet(
+      {enums.RegionbusesNewcastlehunterGetDebug? debug}) {
     return _regionbusesNewcastlehunterGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/newcastlehunter')
-  Future<chopper.Response<List<int>>> _regionbusesNewcastlehunterGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/newcastlehunter')
+  Future<chopper.Response<List<int>>> _regionbusesNewcastlehunterGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesNewenglandnorthwestGet({
-    enums.RegionbusesNewenglandnorthwestGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesNewenglandnorthwestGet(
+      {enums.RegionbusesNewenglandnorthwestGetDebug? debug}) {
     return _regionbusesNewenglandnorthwestGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/newenglandnorthwest')
-  Future<chopper.Response<List<int>>> _regionbusesNewenglandnorthwestGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/newenglandnorthwest')
+  Future<chopper.Response<List<int>>> _regionbusesNewenglandnorthwestGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesNorthcoastGet({
-    enums.RegionbusesNorthcoastGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesNorthcoastGet(
+      {enums.RegionbusesNorthcoastGetDebug? debug}) {
     return _regionbusesNorthcoastGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/northcoast')
-  Future<chopper.Response<List<int>>> _regionbusesNorthcoastGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/northcoast')
+  Future<chopper.Response<List<int>>> _regionbusesNorthcoastGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesNorthcoast2Get({
-    enums.RegionbusesNorthcoast2GetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesNorthcoast2Get(
+      {enums.RegionbusesNorthcoast2GetDebug? debug}) {
     return _regionbusesNorthcoast2Get(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/northcoast2')
-  Future<chopper.Response<List<int>>> _regionbusesNorthcoast2Get({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/northcoast2')
+  Future<chopper.Response<List<int>>> _regionbusesNorthcoast2Get(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesNorthcoast3Get({
-    enums.RegionbusesNorthcoast3GetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesNorthcoast3Get(
+      {enums.RegionbusesNorthcoast3GetDebug? debug}) {
     return _regionbusesNorthcoast3Get(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/northcoast3')
-  Future<chopper.Response<List<int>>> _regionbusesNorthcoast3Get({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/northcoast3')
+  Future<chopper.Response<List<int>>> _regionbusesNorthcoast3Get(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesRiverinamurrayGet({
-    enums.RegionbusesRiverinamurrayGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesRiverinamurrayGet(
+      {enums.RegionbusesRiverinamurrayGetDebug? debug}) {
     return _regionbusesRiverinamurrayGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/riverinamurray')
-  Future<chopper.Response<List<int>>> _regionbusesRiverinamurrayGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/riverinamurray')
+  Future<chopper.Response<List<int>>> _regionbusesRiverinamurrayGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesRiverinamurray2Get({
-    enums.RegionbusesRiverinamurray2GetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesRiverinamurray2Get(
+      {enums.RegionbusesRiverinamurray2GetDebug? debug}) {
     return _regionbusesRiverinamurray2Get(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/riverinamurray2')
-  Future<chopper.Response<List<int>>> _regionbusesRiverinamurray2Get({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/riverinamurray2')
+  Future<chopper.Response<List<int>>> _regionbusesRiverinamurray2Get(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesSoutheasttablelandsGet({
-    enums.RegionbusesSoutheasttablelandsGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesSoutheasttablelandsGet(
+      {enums.RegionbusesSoutheasttablelandsGetDebug? debug}) {
     return _regionbusesSoutheasttablelandsGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/southeasttablelands')
-  Future<chopper.Response<List<int>>> _regionbusesSoutheasttablelandsGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/southeasttablelands')
+  Future<chopper.Response<List<int>>> _regionbusesSoutheasttablelandsGet(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesSoutheasttablelands2Get({
-    enums.RegionbusesSoutheasttablelands2GetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesSoutheasttablelands2Get(
+      {enums.RegionbusesSoutheasttablelands2GetDebug? debug}) {
     return _regionbusesSoutheasttablelands2Get(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/southeasttablelands2')
-  Future<chopper.Response<List<int>>> _regionbusesSoutheasttablelands2Get({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/southeasttablelands2')
+  Future<chopper.Response<List<int>>> _regionbusesSoutheasttablelands2Get(
+      {@Query('debug') String? debug});
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  Future<chopper.Response<List<int>>> regionbusesSydneysurroundsGet({
-    enums.RegionbusesSydneysurroundsGetDebug? debug,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesSydneysurroundsGet(
+      {enums.RegionbusesSydneysurroundsGetDebug? debug}) {
     return _regionbusesSydneysurroundsGet(debug: debug?.value?.toString());
   }
 
   ///GTFS-realtime stop time updates for Regional Buses
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
-  @GET(path: '/regionbuses/sydneysurrounds')
-  Future<chopper.Response<List<int>>> _regionbusesSydneysurroundsGet({
-    @Query('debug') String? debug,
-  });
+  @Get(path: '/regionbuses/sydneysurrounds')
+  Future<chopper.Response<List<int>>> _regionbusesSydneysurroundsGet(
+      {@Query('debug') String? debug});
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -397,30 +355,20 @@ class ErrorDetails {
     return identical(this, other) ||
         (other is ErrorDetails &&
             (identical(other.errorDateTime, errorDateTime) ||
-                const DeepCollectionEquality().equals(
-                  other.errorDateTime,
-                  errorDateTime,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.errorDateTime, errorDateTime)) &&
             (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(
-                  other.message,
-                  message,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
             (identical(other.requestedMethod, requestedMethod) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedMethod,
-                  requestedMethod,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedMethod, requestedMethod)) &&
             (identical(other.requestedUrl, requestedUrl) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedUrl,
-                  requestedUrl,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedUrl, requestedUrl)) &&
             (identical(other.transactionId, transactionId) ||
-                const DeepCollectionEquality().equals(
-                  other.transactionId,
-                  transactionId,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.transactionId, transactionId)));
   }
 
   @override
@@ -437,41 +385,37 @@ class ErrorDetails {
 }
 
 extension $ErrorDetailsExtension on ErrorDetails {
-  ErrorDetails copyWith({
-    String? errorDateTime,
-    String? message,
-    String? requestedMethod,
-    String? requestedUrl,
-    String? transactionId,
-  }) {
+  ErrorDetails copyWith(
+      {String? errorDateTime,
+      String? message,
+      String? requestedMethod,
+      String? requestedUrl,
+      String? transactionId}) {
     return ErrorDetails(
-      errorDateTime: errorDateTime ?? this.errorDateTime,
-      message: message ?? this.message,
-      requestedMethod: requestedMethod ?? this.requestedMethod,
-      requestedUrl: requestedUrl ?? this.requestedUrl,
-      transactionId: transactionId ?? this.transactionId,
-    );
+        errorDateTime: errorDateTime ?? this.errorDateTime,
+        message: message ?? this.message,
+        requestedMethod: requestedMethod ?? this.requestedMethod,
+        requestedUrl: requestedUrl ?? this.requestedUrl,
+        transactionId: transactionId ?? this.transactionId);
   }
 
-  ErrorDetails copyWithWrapped({
-    Wrapped<String>? errorDateTime,
-    Wrapped<String>? message,
-    Wrapped<String>? requestedMethod,
-    Wrapped<String>? requestedUrl,
-    Wrapped<String>? transactionId,
-  }) {
+  ErrorDetails copyWithWrapped(
+      {Wrapped<String>? errorDateTime,
+      Wrapped<String>? message,
+      Wrapped<String>? requestedMethod,
+      Wrapped<String>? requestedUrl,
+      Wrapped<String>? transactionId}) {
     return ErrorDetails(
-      errorDateTime:
-          (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
-      message: (message != null ? message.value : this.message),
-      requestedMethod: (requestedMethod != null
-          ? requestedMethod.value
-          : this.requestedMethod),
-      requestedUrl:
-          (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
-      transactionId:
-          (transactionId != null ? transactionId.value : this.transactionId),
-    );
+        errorDateTime:
+            (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
+        message: (message != null ? message.value : this.message),
+        requestedMethod: (requestedMethod != null
+            ? requestedMethod.value
+            : this.requestedMethod),
+        requestedUrl:
+            (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
+        transactionId:
+            (transactionId != null ? transactionId.value : this.transactionId));
   }
 }
 
@@ -487,9 +431,8 @@ enums.BusesGetDebug busesGetDebugFromJson(
   Object? busesGetDebug, [
   enums.BusesGetDebug? defaultValue,
 ]) {
-  return enums.BusesGetDebug.values.firstWhereOrNull(
-        (e) => e.value == busesGetDebug,
-      ) ??
+  return enums.BusesGetDebug.values
+          .firstWhereOrNull((e) => e.value == busesGetDebug) ??
       defaultValue ??
       enums.BusesGetDebug.swaggerGeneratedUnknown;
 }
@@ -501,15 +444,13 @@ enums.BusesGetDebug? busesGetDebugNullableFromJson(
   if (busesGetDebug == null) {
     return null;
   }
-  return enums.BusesGetDebug.values.firstWhereOrNull(
-        (e) => e.value == busesGetDebug,
-      ) ??
+  return enums.BusesGetDebug.values
+          .firstWhereOrNull((e) => e.value == busesGetDebug) ??
       defaultValue;
 }
 
 String busesGetDebugExplodedListToJson(
-  List<enums.BusesGetDebug>? busesGetDebug,
-) {
+    List<enums.BusesGetDebug>? busesGetDebug) {
   return busesGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
@@ -544,14 +485,12 @@ List<enums.BusesGetDebug>? busesGetDebugNullableListFromJson(
 }
 
 String? ferriesSydneyferriesGetDebugNullableToJson(
-  enums.FerriesSydneyferriesGetDebug? ferriesSydneyferriesGetDebug,
-) {
+    enums.FerriesSydneyferriesGetDebug? ferriesSydneyferriesGetDebug) {
   return ferriesSydneyferriesGetDebug?.value;
 }
 
 String? ferriesSydneyferriesGetDebugToJson(
-  enums.FerriesSydneyferriesGetDebug ferriesSydneyferriesGetDebug,
-) {
+    enums.FerriesSydneyferriesGetDebug ferriesSydneyferriesGetDebug) {
   return ferriesSydneyferriesGetDebug.value;
 }
 
@@ -559,9 +498,8 @@ enums.FerriesSydneyferriesGetDebug ferriesSydneyferriesGetDebugFromJson(
   Object? ferriesSydneyferriesGetDebug, [
   enums.FerriesSydneyferriesGetDebug? defaultValue,
 ]) {
-  return enums.FerriesSydneyferriesGetDebug.values.firstWhereOrNull(
-        (e) => e.value == ferriesSydneyferriesGetDebug,
-      ) ??
+  return enums.FerriesSydneyferriesGetDebug.values
+          .firstWhereOrNull((e) => e.value == ferriesSydneyferriesGetDebug) ??
       defaultValue ??
       enums.FerriesSydneyferriesGetDebug.swaggerGeneratedUnknown;
 }
@@ -574,21 +512,18 @@ enums.FerriesSydneyferriesGetDebug?
   if (ferriesSydneyferriesGetDebug == null) {
     return null;
   }
-  return enums.FerriesSydneyferriesGetDebug.values.firstWhereOrNull(
-        (e) => e.value == ferriesSydneyferriesGetDebug,
-      ) ??
+  return enums.FerriesSydneyferriesGetDebug.values
+          .firstWhereOrNull((e) => e.value == ferriesSydneyferriesGetDebug) ??
       defaultValue;
 }
 
 String ferriesSydneyferriesGetDebugExplodedListToJson(
-  List<enums.FerriesSydneyferriesGetDebug>? ferriesSydneyferriesGetDebug,
-) {
+    List<enums.FerriesSydneyferriesGetDebug>? ferriesSydneyferriesGetDebug) {
   return ferriesSydneyferriesGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> ferriesSydneyferriesGetDebugListToJson(
-  List<enums.FerriesSydneyferriesGetDebug>? ferriesSydneyferriesGetDebug,
-) {
+    List<enums.FerriesSydneyferriesGetDebug>? ferriesSydneyferriesGetDebug) {
   if (ferriesSydneyferriesGetDebug == null) {
     return [];
   }
@@ -625,8 +560,7 @@ List<enums.FerriesSydneyferriesGetDebug>?
 }
 
 String? ferriesMFFGetDebugNullableToJson(
-  enums.FerriesMFFGetDebug? ferriesMFFGetDebug,
-) {
+    enums.FerriesMFFGetDebug? ferriesMFFGetDebug) {
   return ferriesMFFGetDebug?.value;
 }
 
@@ -638,9 +572,8 @@ enums.FerriesMFFGetDebug ferriesMFFGetDebugFromJson(
   Object? ferriesMFFGetDebug, [
   enums.FerriesMFFGetDebug? defaultValue,
 ]) {
-  return enums.FerriesMFFGetDebug.values.firstWhereOrNull(
-        (e) => e.value == ferriesMFFGetDebug,
-      ) ??
+  return enums.FerriesMFFGetDebug.values
+          .firstWhereOrNull((e) => e.value == ferriesMFFGetDebug) ??
       defaultValue ??
       enums.FerriesMFFGetDebug.swaggerGeneratedUnknown;
 }
@@ -652,21 +585,18 @@ enums.FerriesMFFGetDebug? ferriesMFFGetDebugNullableFromJson(
   if (ferriesMFFGetDebug == null) {
     return null;
   }
-  return enums.FerriesMFFGetDebug.values.firstWhereOrNull(
-        (e) => e.value == ferriesMFFGetDebug,
-      ) ??
+  return enums.FerriesMFFGetDebug.values
+          .firstWhereOrNull((e) => e.value == ferriesMFFGetDebug) ??
       defaultValue;
 }
 
 String ferriesMFFGetDebugExplodedListToJson(
-  List<enums.FerriesMFFGetDebug>? ferriesMFFGetDebug,
-) {
+    List<enums.FerriesMFFGetDebug>? ferriesMFFGetDebug) {
   return ferriesMFFGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> ferriesMFFGetDebugListToJson(
-  List<enums.FerriesMFFGetDebug>? ferriesMFFGetDebug,
-) {
+    List<enums.FerriesMFFGetDebug>? ferriesMFFGetDebug) {
   if (ferriesMFFGetDebug == null) {
     return [];
   }
@@ -701,14 +631,12 @@ List<enums.FerriesMFFGetDebug>? ferriesMFFGetDebugNullableListFromJson(
 }
 
 String? lightrailCbdandsoutheastGetDebugNullableToJson(
-  enums.LightrailCbdandsoutheastGetDebug? lightrailCbdandsoutheastGetDebug,
-) {
+    enums.LightrailCbdandsoutheastGetDebug? lightrailCbdandsoutheastGetDebug) {
   return lightrailCbdandsoutheastGetDebug?.value;
 }
 
 String? lightrailCbdandsoutheastGetDebugToJson(
-  enums.LightrailCbdandsoutheastGetDebug lightrailCbdandsoutheastGetDebug,
-) {
+    enums.LightrailCbdandsoutheastGetDebug lightrailCbdandsoutheastGetDebug) {
   return lightrailCbdandsoutheastGetDebug.value;
 }
 
@@ -717,8 +645,7 @@ enums.LightrailCbdandsoutheastGetDebug lightrailCbdandsoutheastGetDebugFromJson(
   enums.LightrailCbdandsoutheastGetDebug? defaultValue,
 ]) {
   return enums.LightrailCbdandsoutheastGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailCbdandsoutheastGetDebug,
-      ) ??
+          (e) => e.value == lightrailCbdandsoutheastGetDebug) ??
       defaultValue ??
       enums.LightrailCbdandsoutheastGetDebug.swaggerGeneratedUnknown;
 }
@@ -732,22 +659,19 @@ enums.LightrailCbdandsoutheastGetDebug?
     return null;
   }
   return enums.LightrailCbdandsoutheastGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailCbdandsoutheastGetDebug,
-      ) ??
+          (e) => e.value == lightrailCbdandsoutheastGetDebug) ??
       defaultValue;
 }
 
 String lightrailCbdandsoutheastGetDebugExplodedListToJson(
-  List<enums.LightrailCbdandsoutheastGetDebug>?
-      lightrailCbdandsoutheastGetDebug,
-) {
+    List<enums.LightrailCbdandsoutheastGetDebug>?
+        lightrailCbdandsoutheastGetDebug) {
   return lightrailCbdandsoutheastGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> lightrailCbdandsoutheastGetDebugListToJson(
-  List<enums.LightrailCbdandsoutheastGetDebug>?
-      lightrailCbdandsoutheastGetDebug,
-) {
+    List<enums.LightrailCbdandsoutheastGetDebug>?
+        lightrailCbdandsoutheastGetDebug) {
   if (lightrailCbdandsoutheastGetDebug == null) {
     return [];
   }
@@ -784,14 +708,12 @@ List<enums.LightrailCbdandsoutheastGetDebug>?
 }
 
 String? lightrailInnerwestGetDebugNullableToJson(
-  enums.LightrailInnerwestGetDebug? lightrailInnerwestGetDebug,
-) {
+    enums.LightrailInnerwestGetDebug? lightrailInnerwestGetDebug) {
   return lightrailInnerwestGetDebug?.value;
 }
 
 String? lightrailInnerwestGetDebugToJson(
-  enums.LightrailInnerwestGetDebug lightrailInnerwestGetDebug,
-) {
+    enums.LightrailInnerwestGetDebug lightrailInnerwestGetDebug) {
   return lightrailInnerwestGetDebug.value;
 }
 
@@ -799,9 +721,8 @@ enums.LightrailInnerwestGetDebug lightrailInnerwestGetDebugFromJson(
   Object? lightrailInnerwestGetDebug, [
   enums.LightrailInnerwestGetDebug? defaultValue,
 ]) {
-  return enums.LightrailInnerwestGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailInnerwestGetDebug,
-      ) ??
+  return enums.LightrailInnerwestGetDebug.values
+          .firstWhereOrNull((e) => e.value == lightrailInnerwestGetDebug) ??
       defaultValue ??
       enums.LightrailInnerwestGetDebug.swaggerGeneratedUnknown;
 }
@@ -813,21 +734,18 @@ enums.LightrailInnerwestGetDebug? lightrailInnerwestGetDebugNullableFromJson(
   if (lightrailInnerwestGetDebug == null) {
     return null;
   }
-  return enums.LightrailInnerwestGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailInnerwestGetDebug,
-      ) ??
+  return enums.LightrailInnerwestGetDebug.values
+          .firstWhereOrNull((e) => e.value == lightrailInnerwestGetDebug) ??
       defaultValue;
 }
 
 String lightrailInnerwestGetDebugExplodedListToJson(
-  List<enums.LightrailInnerwestGetDebug>? lightrailInnerwestGetDebug,
-) {
+    List<enums.LightrailInnerwestGetDebug>? lightrailInnerwestGetDebug) {
   return lightrailInnerwestGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> lightrailInnerwestGetDebugListToJson(
-  List<enums.LightrailInnerwestGetDebug>? lightrailInnerwestGetDebug,
-) {
+    List<enums.LightrailInnerwestGetDebug>? lightrailInnerwestGetDebug) {
   if (lightrailInnerwestGetDebug == null) {
     return [];
   }
@@ -863,14 +781,12 @@ List<enums.LightrailInnerwestGetDebug>?
 }
 
 String? lightrailNewcastleGetDebugNullableToJson(
-  enums.LightrailNewcastleGetDebug? lightrailNewcastleGetDebug,
-) {
+    enums.LightrailNewcastleGetDebug? lightrailNewcastleGetDebug) {
   return lightrailNewcastleGetDebug?.value;
 }
 
 String? lightrailNewcastleGetDebugToJson(
-  enums.LightrailNewcastleGetDebug lightrailNewcastleGetDebug,
-) {
+    enums.LightrailNewcastleGetDebug lightrailNewcastleGetDebug) {
   return lightrailNewcastleGetDebug.value;
 }
 
@@ -878,9 +794,8 @@ enums.LightrailNewcastleGetDebug lightrailNewcastleGetDebugFromJson(
   Object? lightrailNewcastleGetDebug, [
   enums.LightrailNewcastleGetDebug? defaultValue,
 ]) {
-  return enums.LightrailNewcastleGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailNewcastleGetDebug,
-      ) ??
+  return enums.LightrailNewcastleGetDebug.values
+          .firstWhereOrNull((e) => e.value == lightrailNewcastleGetDebug) ??
       defaultValue ??
       enums.LightrailNewcastleGetDebug.swaggerGeneratedUnknown;
 }
@@ -892,21 +807,18 @@ enums.LightrailNewcastleGetDebug? lightrailNewcastleGetDebugNullableFromJson(
   if (lightrailNewcastleGetDebug == null) {
     return null;
   }
-  return enums.LightrailNewcastleGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailNewcastleGetDebug,
-      ) ??
+  return enums.LightrailNewcastleGetDebug.values
+          .firstWhereOrNull((e) => e.value == lightrailNewcastleGetDebug) ??
       defaultValue;
 }
 
 String lightrailNewcastleGetDebugExplodedListToJson(
-  List<enums.LightrailNewcastleGetDebug>? lightrailNewcastleGetDebug,
-) {
+    List<enums.LightrailNewcastleGetDebug>? lightrailNewcastleGetDebug) {
   return lightrailNewcastleGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> lightrailNewcastleGetDebugListToJson(
-  List<enums.LightrailNewcastleGetDebug>? lightrailNewcastleGetDebug,
-) {
+    List<enums.LightrailNewcastleGetDebug>? lightrailNewcastleGetDebug) {
   if (lightrailNewcastleGetDebug == null) {
     return [];
   }
@@ -942,14 +854,12 @@ List<enums.LightrailNewcastleGetDebug>?
 }
 
 String? lightrailParramattaGetDebugNullableToJson(
-  enums.LightrailParramattaGetDebug? lightrailParramattaGetDebug,
-) {
+    enums.LightrailParramattaGetDebug? lightrailParramattaGetDebug) {
   return lightrailParramattaGetDebug?.value;
 }
 
 String? lightrailParramattaGetDebugToJson(
-  enums.LightrailParramattaGetDebug lightrailParramattaGetDebug,
-) {
+    enums.LightrailParramattaGetDebug lightrailParramattaGetDebug) {
   return lightrailParramattaGetDebug.value;
 }
 
@@ -957,9 +867,8 @@ enums.LightrailParramattaGetDebug lightrailParramattaGetDebugFromJson(
   Object? lightrailParramattaGetDebug, [
   enums.LightrailParramattaGetDebug? defaultValue,
 ]) {
-  return enums.LightrailParramattaGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailParramattaGetDebug,
-      ) ??
+  return enums.LightrailParramattaGetDebug.values
+          .firstWhereOrNull((e) => e.value == lightrailParramattaGetDebug) ??
       defaultValue ??
       enums.LightrailParramattaGetDebug.swaggerGeneratedUnknown;
 }
@@ -971,21 +880,18 @@ enums.LightrailParramattaGetDebug? lightrailParramattaGetDebugNullableFromJson(
   if (lightrailParramattaGetDebug == null) {
     return null;
   }
-  return enums.LightrailParramattaGetDebug.values.firstWhereOrNull(
-        (e) => e.value == lightrailParramattaGetDebug,
-      ) ??
+  return enums.LightrailParramattaGetDebug.values
+          .firstWhereOrNull((e) => e.value == lightrailParramattaGetDebug) ??
       defaultValue;
 }
 
 String lightrailParramattaGetDebugExplodedListToJson(
-  List<enums.LightrailParramattaGetDebug>? lightrailParramattaGetDebug,
-) {
+    List<enums.LightrailParramattaGetDebug>? lightrailParramattaGetDebug) {
   return lightrailParramattaGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> lightrailParramattaGetDebugListToJson(
-  List<enums.LightrailParramattaGetDebug>? lightrailParramattaGetDebug,
-) {
+    List<enums.LightrailParramattaGetDebug>? lightrailParramattaGetDebug) {
   if (lightrailParramattaGetDebug == null) {
     return [];
   }
@@ -1021,8 +927,7 @@ List<enums.LightrailParramattaGetDebug>?
 }
 
 String? nswtrainsGetDebugNullableToJson(
-  enums.NswtrainsGetDebug? nswtrainsGetDebug,
-) {
+    enums.NswtrainsGetDebug? nswtrainsGetDebug) {
   return nswtrainsGetDebug?.value;
 }
 
@@ -1034,9 +939,8 @@ enums.NswtrainsGetDebug nswtrainsGetDebugFromJson(
   Object? nswtrainsGetDebug, [
   enums.NswtrainsGetDebug? defaultValue,
 ]) {
-  return enums.NswtrainsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == nswtrainsGetDebug,
-      ) ??
+  return enums.NswtrainsGetDebug.values
+          .firstWhereOrNull((e) => e.value == nswtrainsGetDebug) ??
       defaultValue ??
       enums.NswtrainsGetDebug.swaggerGeneratedUnknown;
 }
@@ -1048,21 +952,18 @@ enums.NswtrainsGetDebug? nswtrainsGetDebugNullableFromJson(
   if (nswtrainsGetDebug == null) {
     return null;
   }
-  return enums.NswtrainsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == nswtrainsGetDebug,
-      ) ??
+  return enums.NswtrainsGetDebug.values
+          .firstWhereOrNull((e) => e.value == nswtrainsGetDebug) ??
       defaultValue;
 }
 
 String nswtrainsGetDebugExplodedListToJson(
-  List<enums.NswtrainsGetDebug>? nswtrainsGetDebug,
-) {
+    List<enums.NswtrainsGetDebug>? nswtrainsGetDebug) {
   return nswtrainsGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> nswtrainsGetDebugListToJson(
-  List<enums.NswtrainsGetDebug>? nswtrainsGetDebug,
-) {
+    List<enums.NswtrainsGetDebug>? nswtrainsGetDebug) {
   if (nswtrainsGetDebug == null) {
     return [];
   }
@@ -1097,16 +998,14 @@ List<enums.NswtrainsGetDebug>? nswtrainsGetDebugNullableListFromJson(
 }
 
 String? regionbusesCentralwestandoranaGetDebugNullableToJson(
-  enums.RegionbusesCentralwestandoranaGetDebug?
-      regionbusesCentralwestandoranaGetDebug,
-) {
+    enums.RegionbusesCentralwestandoranaGetDebug?
+        regionbusesCentralwestandoranaGetDebug) {
   return regionbusesCentralwestandoranaGetDebug?.value;
 }
 
 String? regionbusesCentralwestandoranaGetDebugToJson(
-  enums.RegionbusesCentralwestandoranaGetDebug
-      regionbusesCentralwestandoranaGetDebug,
-) {
+    enums.RegionbusesCentralwestandoranaGetDebug
+        regionbusesCentralwestandoranaGetDebug) {
   return regionbusesCentralwestandoranaGetDebug.value;
 }
 
@@ -1116,8 +1015,7 @@ enums.RegionbusesCentralwestandoranaGetDebug
   enums.RegionbusesCentralwestandoranaGetDebug? defaultValue,
 ]) {
   return enums.RegionbusesCentralwestandoranaGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesCentralwestandoranaGetDebug,
-      ) ??
+          (e) => e.value == regionbusesCentralwestandoranaGetDebug) ??
       defaultValue ??
       enums.RegionbusesCentralwestandoranaGetDebug.swaggerGeneratedUnknown;
 }
@@ -1131,15 +1029,13 @@ enums.RegionbusesCentralwestandoranaGetDebug?
     return null;
   }
   return enums.RegionbusesCentralwestandoranaGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesCentralwestandoranaGetDebug,
-      ) ??
+          (e) => e.value == regionbusesCentralwestandoranaGetDebug) ??
       defaultValue;
 }
 
 String regionbusesCentralwestandoranaGetDebugExplodedListToJson(
-  List<enums.RegionbusesCentralwestandoranaGetDebug>?
-      regionbusesCentralwestandoranaGetDebug,
-) {
+    List<enums.RegionbusesCentralwestandoranaGetDebug>?
+        regionbusesCentralwestandoranaGetDebug) {
   return regionbusesCentralwestandoranaGetDebug
           ?.map((e) => e.value!)
           .join(',') ??
@@ -1147,9 +1043,8 @@ String regionbusesCentralwestandoranaGetDebugExplodedListToJson(
 }
 
 List<String> regionbusesCentralwestandoranaGetDebugListToJson(
-  List<enums.RegionbusesCentralwestandoranaGetDebug>?
-      regionbusesCentralwestandoranaGetDebug,
-) {
+    List<enums.RegionbusesCentralwestandoranaGetDebug>?
+        regionbusesCentralwestandoranaGetDebug) {
   if (regionbusesCentralwestandoranaGetDebug == null) {
     return [];
   }
@@ -1186,16 +1081,14 @@ List<enums.RegionbusesCentralwestandoranaGetDebug>?
 }
 
 String? regionbusesCentralwestandorana2GetDebugNullableToJson(
-  enums.RegionbusesCentralwestandorana2GetDebug?
-      regionbusesCentralwestandorana2GetDebug,
-) {
+    enums.RegionbusesCentralwestandorana2GetDebug?
+        regionbusesCentralwestandorana2GetDebug) {
   return regionbusesCentralwestandorana2GetDebug?.value;
 }
 
 String? regionbusesCentralwestandorana2GetDebugToJson(
-  enums.RegionbusesCentralwestandorana2GetDebug
-      regionbusesCentralwestandorana2GetDebug,
-) {
+    enums.RegionbusesCentralwestandorana2GetDebug
+        regionbusesCentralwestandorana2GetDebug) {
   return regionbusesCentralwestandorana2GetDebug.value;
 }
 
@@ -1205,8 +1098,7 @@ enums.RegionbusesCentralwestandorana2GetDebug
   enums.RegionbusesCentralwestandorana2GetDebug? defaultValue,
 ]) {
   return enums.RegionbusesCentralwestandorana2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesCentralwestandorana2GetDebug,
-      ) ??
+          (e) => e.value == regionbusesCentralwestandorana2GetDebug) ??
       defaultValue ??
       enums.RegionbusesCentralwestandorana2GetDebug.swaggerGeneratedUnknown;
 }
@@ -1220,15 +1112,13 @@ enums.RegionbusesCentralwestandorana2GetDebug?
     return null;
   }
   return enums.RegionbusesCentralwestandorana2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesCentralwestandorana2GetDebug,
-      ) ??
+          (e) => e.value == regionbusesCentralwestandorana2GetDebug) ??
       defaultValue;
 }
 
 String regionbusesCentralwestandorana2GetDebugExplodedListToJson(
-  List<enums.RegionbusesCentralwestandorana2GetDebug>?
-      regionbusesCentralwestandorana2GetDebug,
-) {
+    List<enums.RegionbusesCentralwestandorana2GetDebug>?
+        regionbusesCentralwestandorana2GetDebug) {
   return regionbusesCentralwestandorana2GetDebug
           ?.map((e) => e.value!)
           .join(',') ??
@@ -1236,9 +1126,8 @@ String regionbusesCentralwestandorana2GetDebugExplodedListToJson(
 }
 
 List<String> regionbusesCentralwestandorana2GetDebugListToJson(
-  List<enums.RegionbusesCentralwestandorana2GetDebug>?
-      regionbusesCentralwestandorana2GetDebug,
-) {
+    List<enums.RegionbusesCentralwestandorana2GetDebug>?
+        regionbusesCentralwestandorana2GetDebug) {
   if (regionbusesCentralwestandorana2GetDebug == null) {
     return [];
   }
@@ -1275,14 +1164,12 @@ List<enums.RegionbusesCentralwestandorana2GetDebug>?
 }
 
 String? regionbusesFarwestGetDebugNullableToJson(
-  enums.RegionbusesFarwestGetDebug? regionbusesFarwestGetDebug,
-) {
+    enums.RegionbusesFarwestGetDebug? regionbusesFarwestGetDebug) {
   return regionbusesFarwestGetDebug?.value;
 }
 
 String? regionbusesFarwestGetDebugToJson(
-  enums.RegionbusesFarwestGetDebug regionbusesFarwestGetDebug,
-) {
+    enums.RegionbusesFarwestGetDebug regionbusesFarwestGetDebug) {
   return regionbusesFarwestGetDebug.value;
 }
 
@@ -1290,9 +1177,8 @@ enums.RegionbusesFarwestGetDebug regionbusesFarwestGetDebugFromJson(
   Object? regionbusesFarwestGetDebug, [
   enums.RegionbusesFarwestGetDebug? defaultValue,
 ]) {
-  return enums.RegionbusesFarwestGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesFarwestGetDebug,
-      ) ??
+  return enums.RegionbusesFarwestGetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesFarwestGetDebug) ??
       defaultValue ??
       enums.RegionbusesFarwestGetDebug.swaggerGeneratedUnknown;
 }
@@ -1304,21 +1190,18 @@ enums.RegionbusesFarwestGetDebug? regionbusesFarwestGetDebugNullableFromJson(
   if (regionbusesFarwestGetDebug == null) {
     return null;
   }
-  return enums.RegionbusesFarwestGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesFarwestGetDebug,
-      ) ??
+  return enums.RegionbusesFarwestGetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesFarwestGetDebug) ??
       defaultValue;
 }
 
 String regionbusesFarwestGetDebugExplodedListToJson(
-  List<enums.RegionbusesFarwestGetDebug>? regionbusesFarwestGetDebug,
-) {
+    List<enums.RegionbusesFarwestGetDebug>? regionbusesFarwestGetDebug) {
   return regionbusesFarwestGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> regionbusesFarwestGetDebugListToJson(
-  List<enums.RegionbusesFarwestGetDebug>? regionbusesFarwestGetDebug,
-) {
+    List<enums.RegionbusesFarwestGetDebug>? regionbusesFarwestGetDebug) {
   if (regionbusesFarwestGetDebug == null) {
     return [];
   }
@@ -1354,14 +1237,14 @@ List<enums.RegionbusesFarwestGetDebug>?
 }
 
 String? regionbusesNewcastlehunterGetDebugNullableToJson(
-  enums.RegionbusesNewcastlehunterGetDebug? regionbusesNewcastlehunterGetDebug,
-) {
+    enums.RegionbusesNewcastlehunterGetDebug?
+        regionbusesNewcastlehunterGetDebug) {
   return regionbusesNewcastlehunterGetDebug?.value;
 }
 
 String? regionbusesNewcastlehunterGetDebugToJson(
-  enums.RegionbusesNewcastlehunterGetDebug regionbusesNewcastlehunterGetDebug,
-) {
+    enums.RegionbusesNewcastlehunterGetDebug
+        regionbusesNewcastlehunterGetDebug) {
   return regionbusesNewcastlehunterGetDebug.value;
 }
 
@@ -1371,8 +1254,7 @@ enums.RegionbusesNewcastlehunterGetDebug
   enums.RegionbusesNewcastlehunterGetDebug? defaultValue,
 ]) {
   return enums.RegionbusesNewcastlehunterGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNewcastlehunterGetDebug,
-      ) ??
+          (e) => e.value == regionbusesNewcastlehunterGetDebug) ??
       defaultValue ??
       enums.RegionbusesNewcastlehunterGetDebug.swaggerGeneratedUnknown;
 }
@@ -1386,23 +1268,20 @@ enums.RegionbusesNewcastlehunterGetDebug?
     return null;
   }
   return enums.RegionbusesNewcastlehunterGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNewcastlehunterGetDebug,
-      ) ??
+          (e) => e.value == regionbusesNewcastlehunterGetDebug) ??
       defaultValue;
 }
 
 String regionbusesNewcastlehunterGetDebugExplodedListToJson(
-  List<enums.RegionbusesNewcastlehunterGetDebug>?
-      regionbusesNewcastlehunterGetDebug,
-) {
+    List<enums.RegionbusesNewcastlehunterGetDebug>?
+        regionbusesNewcastlehunterGetDebug) {
   return regionbusesNewcastlehunterGetDebug?.map((e) => e.value!).join(',') ??
       '';
 }
 
 List<String> regionbusesNewcastlehunterGetDebugListToJson(
-  List<enums.RegionbusesNewcastlehunterGetDebug>?
-      regionbusesNewcastlehunterGetDebug,
-) {
+    List<enums.RegionbusesNewcastlehunterGetDebug>?
+        regionbusesNewcastlehunterGetDebug) {
   if (regionbusesNewcastlehunterGetDebug == null) {
     return [];
   }
@@ -1439,16 +1318,14 @@ List<enums.RegionbusesNewcastlehunterGetDebug>?
 }
 
 String? regionbusesNewenglandnorthwestGetDebugNullableToJson(
-  enums.RegionbusesNewenglandnorthwestGetDebug?
-      regionbusesNewenglandnorthwestGetDebug,
-) {
+    enums.RegionbusesNewenglandnorthwestGetDebug?
+        regionbusesNewenglandnorthwestGetDebug) {
   return regionbusesNewenglandnorthwestGetDebug?.value;
 }
 
 String? regionbusesNewenglandnorthwestGetDebugToJson(
-  enums.RegionbusesNewenglandnorthwestGetDebug
-      regionbusesNewenglandnorthwestGetDebug,
-) {
+    enums.RegionbusesNewenglandnorthwestGetDebug
+        regionbusesNewenglandnorthwestGetDebug) {
   return regionbusesNewenglandnorthwestGetDebug.value;
 }
 
@@ -1458,8 +1335,7 @@ enums.RegionbusesNewenglandnorthwestGetDebug
   enums.RegionbusesNewenglandnorthwestGetDebug? defaultValue,
 ]) {
   return enums.RegionbusesNewenglandnorthwestGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNewenglandnorthwestGetDebug,
-      ) ??
+          (e) => e.value == regionbusesNewenglandnorthwestGetDebug) ??
       defaultValue ??
       enums.RegionbusesNewenglandnorthwestGetDebug.swaggerGeneratedUnknown;
 }
@@ -1473,15 +1349,13 @@ enums.RegionbusesNewenglandnorthwestGetDebug?
     return null;
   }
   return enums.RegionbusesNewenglandnorthwestGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNewenglandnorthwestGetDebug,
-      ) ??
+          (e) => e.value == regionbusesNewenglandnorthwestGetDebug) ??
       defaultValue;
 }
 
 String regionbusesNewenglandnorthwestGetDebugExplodedListToJson(
-  List<enums.RegionbusesNewenglandnorthwestGetDebug>?
-      regionbusesNewenglandnorthwestGetDebug,
-) {
+    List<enums.RegionbusesNewenglandnorthwestGetDebug>?
+        regionbusesNewenglandnorthwestGetDebug) {
   return regionbusesNewenglandnorthwestGetDebug
           ?.map((e) => e.value!)
           .join(',') ??
@@ -1489,9 +1363,8 @@ String regionbusesNewenglandnorthwestGetDebugExplodedListToJson(
 }
 
 List<String> regionbusesNewenglandnorthwestGetDebugListToJson(
-  List<enums.RegionbusesNewenglandnorthwestGetDebug>?
-      regionbusesNewenglandnorthwestGetDebug,
-) {
+    List<enums.RegionbusesNewenglandnorthwestGetDebug>?
+        regionbusesNewenglandnorthwestGetDebug) {
   if (regionbusesNewenglandnorthwestGetDebug == null) {
     return [];
   }
@@ -1528,14 +1401,12 @@ List<enums.RegionbusesNewenglandnorthwestGetDebug>?
 }
 
 String? regionbusesNorthcoastGetDebugNullableToJson(
-  enums.RegionbusesNorthcoastGetDebug? regionbusesNorthcoastGetDebug,
-) {
+    enums.RegionbusesNorthcoastGetDebug? regionbusesNorthcoastGetDebug) {
   return regionbusesNorthcoastGetDebug?.value;
 }
 
 String? regionbusesNorthcoastGetDebugToJson(
-  enums.RegionbusesNorthcoastGetDebug regionbusesNorthcoastGetDebug,
-) {
+    enums.RegionbusesNorthcoastGetDebug regionbusesNorthcoastGetDebug) {
   return regionbusesNorthcoastGetDebug.value;
 }
 
@@ -1543,9 +1414,8 @@ enums.RegionbusesNorthcoastGetDebug regionbusesNorthcoastGetDebugFromJson(
   Object? regionbusesNorthcoastGetDebug, [
   enums.RegionbusesNorthcoastGetDebug? defaultValue,
 ]) {
-  return enums.RegionbusesNorthcoastGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNorthcoastGetDebug,
-      ) ??
+  return enums.RegionbusesNorthcoastGetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesNorthcoastGetDebug) ??
       defaultValue ??
       enums.RegionbusesNorthcoastGetDebug.swaggerGeneratedUnknown;
 }
@@ -1558,21 +1428,18 @@ enums.RegionbusesNorthcoastGetDebug?
   if (regionbusesNorthcoastGetDebug == null) {
     return null;
   }
-  return enums.RegionbusesNorthcoastGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNorthcoastGetDebug,
-      ) ??
+  return enums.RegionbusesNorthcoastGetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesNorthcoastGetDebug) ??
       defaultValue;
 }
 
 String regionbusesNorthcoastGetDebugExplodedListToJson(
-  List<enums.RegionbusesNorthcoastGetDebug>? regionbusesNorthcoastGetDebug,
-) {
+    List<enums.RegionbusesNorthcoastGetDebug>? regionbusesNorthcoastGetDebug) {
   return regionbusesNorthcoastGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> regionbusesNorthcoastGetDebugListToJson(
-  List<enums.RegionbusesNorthcoastGetDebug>? regionbusesNorthcoastGetDebug,
-) {
+    List<enums.RegionbusesNorthcoastGetDebug>? regionbusesNorthcoastGetDebug) {
   if (regionbusesNorthcoastGetDebug == null) {
     return [];
   }
@@ -1609,14 +1476,12 @@ List<enums.RegionbusesNorthcoastGetDebug>?
 }
 
 String? regionbusesNorthcoast2GetDebugNullableToJson(
-  enums.RegionbusesNorthcoast2GetDebug? regionbusesNorthcoast2GetDebug,
-) {
+    enums.RegionbusesNorthcoast2GetDebug? regionbusesNorthcoast2GetDebug) {
   return regionbusesNorthcoast2GetDebug?.value;
 }
 
 String? regionbusesNorthcoast2GetDebugToJson(
-  enums.RegionbusesNorthcoast2GetDebug regionbusesNorthcoast2GetDebug,
-) {
+    enums.RegionbusesNorthcoast2GetDebug regionbusesNorthcoast2GetDebug) {
   return regionbusesNorthcoast2GetDebug.value;
 }
 
@@ -1624,9 +1489,8 @@ enums.RegionbusesNorthcoast2GetDebug regionbusesNorthcoast2GetDebugFromJson(
   Object? regionbusesNorthcoast2GetDebug, [
   enums.RegionbusesNorthcoast2GetDebug? defaultValue,
 ]) {
-  return enums.RegionbusesNorthcoast2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNorthcoast2GetDebug,
-      ) ??
+  return enums.RegionbusesNorthcoast2GetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesNorthcoast2GetDebug) ??
       defaultValue ??
       enums.RegionbusesNorthcoast2GetDebug.swaggerGeneratedUnknown;
 }
@@ -1639,21 +1503,20 @@ enums.RegionbusesNorthcoast2GetDebug?
   if (regionbusesNorthcoast2GetDebug == null) {
     return null;
   }
-  return enums.RegionbusesNorthcoast2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNorthcoast2GetDebug,
-      ) ??
+  return enums.RegionbusesNorthcoast2GetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesNorthcoast2GetDebug) ??
       defaultValue;
 }
 
 String regionbusesNorthcoast2GetDebugExplodedListToJson(
-  List<enums.RegionbusesNorthcoast2GetDebug>? regionbusesNorthcoast2GetDebug,
-) {
+    List<enums.RegionbusesNorthcoast2GetDebug>?
+        regionbusesNorthcoast2GetDebug) {
   return regionbusesNorthcoast2GetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> regionbusesNorthcoast2GetDebugListToJson(
-  List<enums.RegionbusesNorthcoast2GetDebug>? regionbusesNorthcoast2GetDebug,
-) {
+    List<enums.RegionbusesNorthcoast2GetDebug>?
+        regionbusesNorthcoast2GetDebug) {
   if (regionbusesNorthcoast2GetDebug == null) {
     return [];
   }
@@ -1690,14 +1553,12 @@ List<enums.RegionbusesNorthcoast2GetDebug>?
 }
 
 String? regionbusesNorthcoast3GetDebugNullableToJson(
-  enums.RegionbusesNorthcoast3GetDebug? regionbusesNorthcoast3GetDebug,
-) {
+    enums.RegionbusesNorthcoast3GetDebug? regionbusesNorthcoast3GetDebug) {
   return regionbusesNorthcoast3GetDebug?.value;
 }
 
 String? regionbusesNorthcoast3GetDebugToJson(
-  enums.RegionbusesNorthcoast3GetDebug regionbusesNorthcoast3GetDebug,
-) {
+    enums.RegionbusesNorthcoast3GetDebug regionbusesNorthcoast3GetDebug) {
   return regionbusesNorthcoast3GetDebug.value;
 }
 
@@ -1705,9 +1566,8 @@ enums.RegionbusesNorthcoast3GetDebug regionbusesNorthcoast3GetDebugFromJson(
   Object? regionbusesNorthcoast3GetDebug, [
   enums.RegionbusesNorthcoast3GetDebug? defaultValue,
 ]) {
-  return enums.RegionbusesNorthcoast3GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNorthcoast3GetDebug,
-      ) ??
+  return enums.RegionbusesNorthcoast3GetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesNorthcoast3GetDebug) ??
       defaultValue ??
       enums.RegionbusesNorthcoast3GetDebug.swaggerGeneratedUnknown;
 }
@@ -1720,21 +1580,20 @@ enums.RegionbusesNorthcoast3GetDebug?
   if (regionbusesNorthcoast3GetDebug == null) {
     return null;
   }
-  return enums.RegionbusesNorthcoast3GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesNorthcoast3GetDebug,
-      ) ??
+  return enums.RegionbusesNorthcoast3GetDebug.values
+          .firstWhereOrNull((e) => e.value == regionbusesNorthcoast3GetDebug) ??
       defaultValue;
 }
 
 String regionbusesNorthcoast3GetDebugExplodedListToJson(
-  List<enums.RegionbusesNorthcoast3GetDebug>? regionbusesNorthcoast3GetDebug,
-) {
+    List<enums.RegionbusesNorthcoast3GetDebug>?
+        regionbusesNorthcoast3GetDebug) {
   return regionbusesNorthcoast3GetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> regionbusesNorthcoast3GetDebugListToJson(
-  List<enums.RegionbusesNorthcoast3GetDebug>? regionbusesNorthcoast3GetDebug,
-) {
+    List<enums.RegionbusesNorthcoast3GetDebug>?
+        regionbusesNorthcoast3GetDebug) {
   if (regionbusesNorthcoast3GetDebug == null) {
     return [];
   }
@@ -1771,14 +1630,13 @@ List<enums.RegionbusesNorthcoast3GetDebug>?
 }
 
 String? regionbusesRiverinamurrayGetDebugNullableToJson(
-  enums.RegionbusesRiverinamurrayGetDebug? regionbusesRiverinamurrayGetDebug,
-) {
+    enums.RegionbusesRiverinamurrayGetDebug?
+        regionbusesRiverinamurrayGetDebug) {
   return regionbusesRiverinamurrayGetDebug?.value;
 }
 
 String? regionbusesRiverinamurrayGetDebugToJson(
-  enums.RegionbusesRiverinamurrayGetDebug regionbusesRiverinamurrayGetDebug,
-) {
+    enums.RegionbusesRiverinamurrayGetDebug regionbusesRiverinamurrayGetDebug) {
   return regionbusesRiverinamurrayGetDebug.value;
 }
 
@@ -1788,8 +1646,7 @@ enums.RegionbusesRiverinamurrayGetDebug
   enums.RegionbusesRiverinamurrayGetDebug? defaultValue,
 ]) {
   return enums.RegionbusesRiverinamurrayGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesRiverinamurrayGetDebug,
-      ) ??
+          (e) => e.value == regionbusesRiverinamurrayGetDebug) ??
       defaultValue ??
       enums.RegionbusesRiverinamurrayGetDebug.swaggerGeneratedUnknown;
 }
@@ -1803,23 +1660,20 @@ enums.RegionbusesRiverinamurrayGetDebug?
     return null;
   }
   return enums.RegionbusesRiverinamurrayGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesRiverinamurrayGetDebug,
-      ) ??
+          (e) => e.value == regionbusesRiverinamurrayGetDebug) ??
       defaultValue;
 }
 
 String regionbusesRiverinamurrayGetDebugExplodedListToJson(
-  List<enums.RegionbusesRiverinamurrayGetDebug>?
-      regionbusesRiverinamurrayGetDebug,
-) {
+    List<enums.RegionbusesRiverinamurrayGetDebug>?
+        regionbusesRiverinamurrayGetDebug) {
   return regionbusesRiverinamurrayGetDebug?.map((e) => e.value!).join(',') ??
       '';
 }
 
 List<String> regionbusesRiverinamurrayGetDebugListToJson(
-  List<enums.RegionbusesRiverinamurrayGetDebug>?
-      regionbusesRiverinamurrayGetDebug,
-) {
+    List<enums.RegionbusesRiverinamurrayGetDebug>?
+        regionbusesRiverinamurrayGetDebug) {
   if (regionbusesRiverinamurrayGetDebug == null) {
     return [];
   }
@@ -1856,14 +1710,14 @@ List<enums.RegionbusesRiverinamurrayGetDebug>?
 }
 
 String? regionbusesRiverinamurray2GetDebugNullableToJson(
-  enums.RegionbusesRiverinamurray2GetDebug? regionbusesRiverinamurray2GetDebug,
-) {
+    enums.RegionbusesRiverinamurray2GetDebug?
+        regionbusesRiverinamurray2GetDebug) {
   return regionbusesRiverinamurray2GetDebug?.value;
 }
 
 String? regionbusesRiverinamurray2GetDebugToJson(
-  enums.RegionbusesRiverinamurray2GetDebug regionbusesRiverinamurray2GetDebug,
-) {
+    enums.RegionbusesRiverinamurray2GetDebug
+        regionbusesRiverinamurray2GetDebug) {
   return regionbusesRiverinamurray2GetDebug.value;
 }
 
@@ -1873,8 +1727,7 @@ enums.RegionbusesRiverinamurray2GetDebug
   enums.RegionbusesRiverinamurray2GetDebug? defaultValue,
 ]) {
   return enums.RegionbusesRiverinamurray2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesRiverinamurray2GetDebug,
-      ) ??
+          (e) => e.value == regionbusesRiverinamurray2GetDebug) ??
       defaultValue ??
       enums.RegionbusesRiverinamurray2GetDebug.swaggerGeneratedUnknown;
 }
@@ -1888,23 +1741,20 @@ enums.RegionbusesRiverinamurray2GetDebug?
     return null;
   }
   return enums.RegionbusesRiverinamurray2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesRiverinamurray2GetDebug,
-      ) ??
+          (e) => e.value == regionbusesRiverinamurray2GetDebug) ??
       defaultValue;
 }
 
 String regionbusesRiverinamurray2GetDebugExplodedListToJson(
-  List<enums.RegionbusesRiverinamurray2GetDebug>?
-      regionbusesRiverinamurray2GetDebug,
-) {
+    List<enums.RegionbusesRiverinamurray2GetDebug>?
+        regionbusesRiverinamurray2GetDebug) {
   return regionbusesRiverinamurray2GetDebug?.map((e) => e.value!).join(',') ??
       '';
 }
 
 List<String> regionbusesRiverinamurray2GetDebugListToJson(
-  List<enums.RegionbusesRiverinamurray2GetDebug>?
-      regionbusesRiverinamurray2GetDebug,
-) {
+    List<enums.RegionbusesRiverinamurray2GetDebug>?
+        regionbusesRiverinamurray2GetDebug) {
   if (regionbusesRiverinamurray2GetDebug == null) {
     return [];
   }
@@ -1941,16 +1791,14 @@ List<enums.RegionbusesRiverinamurray2GetDebug>?
 }
 
 String? regionbusesSoutheasttablelandsGetDebugNullableToJson(
-  enums.RegionbusesSoutheasttablelandsGetDebug?
-      regionbusesSoutheasttablelandsGetDebug,
-) {
+    enums.RegionbusesSoutheasttablelandsGetDebug?
+        regionbusesSoutheasttablelandsGetDebug) {
   return regionbusesSoutheasttablelandsGetDebug?.value;
 }
 
 String? regionbusesSoutheasttablelandsGetDebugToJson(
-  enums.RegionbusesSoutheasttablelandsGetDebug
-      regionbusesSoutheasttablelandsGetDebug,
-) {
+    enums.RegionbusesSoutheasttablelandsGetDebug
+        regionbusesSoutheasttablelandsGetDebug) {
   return regionbusesSoutheasttablelandsGetDebug.value;
 }
 
@@ -1960,8 +1808,7 @@ enums.RegionbusesSoutheasttablelandsGetDebug
   enums.RegionbusesSoutheasttablelandsGetDebug? defaultValue,
 ]) {
   return enums.RegionbusesSoutheasttablelandsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesSoutheasttablelandsGetDebug,
-      ) ??
+          (e) => e.value == regionbusesSoutheasttablelandsGetDebug) ??
       defaultValue ??
       enums.RegionbusesSoutheasttablelandsGetDebug.swaggerGeneratedUnknown;
 }
@@ -1975,15 +1822,13 @@ enums.RegionbusesSoutheasttablelandsGetDebug?
     return null;
   }
   return enums.RegionbusesSoutheasttablelandsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesSoutheasttablelandsGetDebug,
-      ) ??
+          (e) => e.value == regionbusesSoutheasttablelandsGetDebug) ??
       defaultValue;
 }
 
 String regionbusesSoutheasttablelandsGetDebugExplodedListToJson(
-  List<enums.RegionbusesSoutheasttablelandsGetDebug>?
-      regionbusesSoutheasttablelandsGetDebug,
-) {
+    List<enums.RegionbusesSoutheasttablelandsGetDebug>?
+        regionbusesSoutheasttablelandsGetDebug) {
   return regionbusesSoutheasttablelandsGetDebug
           ?.map((e) => e.value!)
           .join(',') ??
@@ -1991,9 +1836,8 @@ String regionbusesSoutheasttablelandsGetDebugExplodedListToJson(
 }
 
 List<String> regionbusesSoutheasttablelandsGetDebugListToJson(
-  List<enums.RegionbusesSoutheasttablelandsGetDebug>?
-      regionbusesSoutheasttablelandsGetDebug,
-) {
+    List<enums.RegionbusesSoutheasttablelandsGetDebug>?
+        regionbusesSoutheasttablelandsGetDebug) {
   if (regionbusesSoutheasttablelandsGetDebug == null) {
     return [];
   }
@@ -2030,16 +1874,14 @@ List<enums.RegionbusesSoutheasttablelandsGetDebug>?
 }
 
 String? regionbusesSoutheasttablelands2GetDebugNullableToJson(
-  enums.RegionbusesSoutheasttablelands2GetDebug?
-      regionbusesSoutheasttablelands2GetDebug,
-) {
+    enums.RegionbusesSoutheasttablelands2GetDebug?
+        regionbusesSoutheasttablelands2GetDebug) {
   return regionbusesSoutheasttablelands2GetDebug?.value;
 }
 
 String? regionbusesSoutheasttablelands2GetDebugToJson(
-  enums.RegionbusesSoutheasttablelands2GetDebug
-      regionbusesSoutheasttablelands2GetDebug,
-) {
+    enums.RegionbusesSoutheasttablelands2GetDebug
+        regionbusesSoutheasttablelands2GetDebug) {
   return regionbusesSoutheasttablelands2GetDebug.value;
 }
 
@@ -2049,8 +1891,7 @@ enums.RegionbusesSoutheasttablelands2GetDebug
   enums.RegionbusesSoutheasttablelands2GetDebug? defaultValue,
 ]) {
   return enums.RegionbusesSoutheasttablelands2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesSoutheasttablelands2GetDebug,
-      ) ??
+          (e) => e.value == regionbusesSoutheasttablelands2GetDebug) ??
       defaultValue ??
       enums.RegionbusesSoutheasttablelands2GetDebug.swaggerGeneratedUnknown;
 }
@@ -2064,15 +1905,13 @@ enums.RegionbusesSoutheasttablelands2GetDebug?
     return null;
   }
   return enums.RegionbusesSoutheasttablelands2GetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesSoutheasttablelands2GetDebug,
-      ) ??
+          (e) => e.value == regionbusesSoutheasttablelands2GetDebug) ??
       defaultValue;
 }
 
 String regionbusesSoutheasttablelands2GetDebugExplodedListToJson(
-  List<enums.RegionbusesSoutheasttablelands2GetDebug>?
-      regionbusesSoutheasttablelands2GetDebug,
-) {
+    List<enums.RegionbusesSoutheasttablelands2GetDebug>?
+        regionbusesSoutheasttablelands2GetDebug) {
   return regionbusesSoutheasttablelands2GetDebug
           ?.map((e) => e.value!)
           .join(',') ??
@@ -2080,9 +1919,8 @@ String regionbusesSoutheasttablelands2GetDebugExplodedListToJson(
 }
 
 List<String> regionbusesSoutheasttablelands2GetDebugListToJson(
-  List<enums.RegionbusesSoutheasttablelands2GetDebug>?
-      regionbusesSoutheasttablelands2GetDebug,
-) {
+    List<enums.RegionbusesSoutheasttablelands2GetDebug>?
+        regionbusesSoutheasttablelands2GetDebug) {
   if (regionbusesSoutheasttablelands2GetDebug == null) {
     return [];
   }
@@ -2119,14 +1957,14 @@ List<enums.RegionbusesSoutheasttablelands2GetDebug>?
 }
 
 String? regionbusesSydneysurroundsGetDebugNullableToJson(
-  enums.RegionbusesSydneysurroundsGetDebug? regionbusesSydneysurroundsGetDebug,
-) {
+    enums.RegionbusesSydneysurroundsGetDebug?
+        regionbusesSydneysurroundsGetDebug) {
   return regionbusesSydneysurroundsGetDebug?.value;
 }
 
 String? regionbusesSydneysurroundsGetDebugToJson(
-  enums.RegionbusesSydneysurroundsGetDebug regionbusesSydneysurroundsGetDebug,
-) {
+    enums.RegionbusesSydneysurroundsGetDebug
+        regionbusesSydneysurroundsGetDebug) {
   return regionbusesSydneysurroundsGetDebug.value;
 }
 
@@ -2136,8 +1974,7 @@ enums.RegionbusesSydneysurroundsGetDebug
   enums.RegionbusesSydneysurroundsGetDebug? defaultValue,
 ]) {
   return enums.RegionbusesSydneysurroundsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesSydneysurroundsGetDebug,
-      ) ??
+          (e) => e.value == regionbusesSydneysurroundsGetDebug) ??
       defaultValue ??
       enums.RegionbusesSydneysurroundsGetDebug.swaggerGeneratedUnknown;
 }
@@ -2151,23 +1988,20 @@ enums.RegionbusesSydneysurroundsGetDebug?
     return null;
   }
   return enums.RegionbusesSydneysurroundsGetDebug.values.firstWhereOrNull(
-        (e) => e.value == regionbusesSydneysurroundsGetDebug,
-      ) ??
+          (e) => e.value == regionbusesSydneysurroundsGetDebug) ??
       defaultValue;
 }
 
 String regionbusesSydneysurroundsGetDebugExplodedListToJson(
-  List<enums.RegionbusesSydneysurroundsGetDebug>?
-      regionbusesSydneysurroundsGetDebug,
-) {
+    List<enums.RegionbusesSydneysurroundsGetDebug>?
+        regionbusesSydneysurroundsGetDebug) {
   return regionbusesSydneysurroundsGetDebug?.map((e) => e.value!).join(',') ??
       '';
 }
 
 List<String> regionbusesSydneysurroundsGetDebugListToJson(
-  List<enums.RegionbusesSydneysurroundsGetDebug>?
-      regionbusesSydneysurroundsGetDebug,
-) {
+    List<enums.RegionbusesSydneysurroundsGetDebug>?
+        regionbusesSydneysurroundsGetDebug) {
   if (regionbusesSydneysurroundsGetDebug == null) {
     return [];
   }
@@ -2250,8 +2084,7 @@ class $CustomJsonDecoder {
 class $JsonSerializableConverter extends chopper.JsonConverter {
   @override
   FutureOr<chopper.Response<ResultType>> convertResponse<ResultType, Item>(
-    chopper.Response response,
-  ) async {
+      chopper.Response response) async {
     if (response.bodyString.isEmpty) {
       // In rare cases, when let's say 204 (no content) is returned -
       // we cannot decode the missing json with the result type specified
@@ -2264,15 +2097,13 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body: DateTime.parse((response.body as String).replaceAll('"', ''))
-            as ResultType,
-      );
+          body: DateTime.parse((response.body as String).replaceAll('"', ''))
+              as ResultType);
     }
 
     final jsonRes = await super.convertResponse(response);
     return jsonRes.copyWith<ResultType>(
-      body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType,
-    );
+        body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType);
   }
 }
 

@@ -36,16 +36,14 @@ abstract class RealtimeTimetablesV2 extends ChopperService {
     }
 
     final newClient = ChopperClient(
-      services: [_$RealtimeTimetablesV2()],
-      converter: converter ?? $JsonSerializableConverter(),
-      interceptors: interceptors ?? [],
-      client: httpClient,
-      authenticator: authenticator,
-      errorConverter: errorConverter,
-      baseUrl:
-          baseUrl ??
-          Uri.parse('http://api.transport.nsw.gov.au/v2/gtfs/schedule'),
-    );
+        services: [_$RealtimeTimetablesV2()],
+        converter: converter ?? $JsonSerializableConverter(),
+        interceptors: interceptors ?? [],
+        client: httpClient,
+        authenticator: authenticator,
+        errorConverter: errorConverter,
+        baseUrl: baseUrl ??
+            Uri.parse('http://api.transport.nsw.gov.au/v2/gtfs/schedule'));
     return _$RealtimeTimetablesV2(newClient);
   }
 
@@ -55,7 +53,7 @@ abstract class RealtimeTimetablesV2 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Sydney Metro
-  @GET(path: '/metro')
+  @Get(path: '/metro')
   Future<chopper.Response<List<int>>> _metroGet();
 }
 
@@ -92,30 +90,20 @@ class ErrorDetails {
     return identical(this, other) ||
         (other is ErrorDetails &&
             (identical(other.transactionId, transactionId) ||
-                const DeepCollectionEquality().equals(
-                  other.transactionId,
-                  transactionId,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.transactionId, transactionId)) &&
             (identical(other.errorDateTime, errorDateTime) ||
-                const DeepCollectionEquality().equals(
-                  other.errorDateTime,
-                  errorDateTime,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.errorDateTime, errorDateTime)) &&
             (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(
-                  other.message,
-                  message,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
             (identical(other.requestedUrl, requestedUrl) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedUrl,
-                  requestedUrl,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedUrl, requestedUrl)) &&
             (identical(other.requestedMethod, requestedMethod) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedMethod,
-                  requestedMethod,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.requestedMethod, requestedMethod)));
   }
 
   @override
@@ -132,44 +120,37 @@ class ErrorDetails {
 }
 
 extension $ErrorDetailsExtension on ErrorDetails {
-  ErrorDetails copyWith({
-    String? transactionId,
-    String? errorDateTime,
-    String? message,
-    String? requestedUrl,
-    String? requestedMethod,
-  }) {
+  ErrorDetails copyWith(
+      {String? transactionId,
+      String? errorDateTime,
+      String? message,
+      String? requestedUrl,
+      String? requestedMethod}) {
     return ErrorDetails(
-      transactionId: transactionId ?? this.transactionId,
-      errorDateTime: errorDateTime ?? this.errorDateTime,
-      message: message ?? this.message,
-      requestedUrl: requestedUrl ?? this.requestedUrl,
-      requestedMethod: requestedMethod ?? this.requestedMethod,
-    );
+        transactionId: transactionId ?? this.transactionId,
+        errorDateTime: errorDateTime ?? this.errorDateTime,
+        message: message ?? this.message,
+        requestedUrl: requestedUrl ?? this.requestedUrl,
+        requestedMethod: requestedMethod ?? this.requestedMethod);
   }
 
-  ErrorDetails copyWithWrapped({
-    Wrapped<String>? transactionId,
-    Wrapped<String>? errorDateTime,
-    Wrapped<String>? message,
-    Wrapped<String>? requestedUrl,
-    Wrapped<String>? requestedMethod,
-  }) {
+  ErrorDetails copyWithWrapped(
+      {Wrapped<String>? transactionId,
+      Wrapped<String>? errorDateTime,
+      Wrapped<String>? message,
+      Wrapped<String>? requestedUrl,
+      Wrapped<String>? requestedMethod}) {
     return ErrorDetails(
-      transactionId: (transactionId != null
-          ? transactionId.value
-          : this.transactionId),
-      errorDateTime: (errorDateTime != null
-          ? errorDateTime.value
-          : this.errorDateTime),
-      message: (message != null ? message.value : this.message),
-      requestedUrl: (requestedUrl != null
-          ? requestedUrl.value
-          : this.requestedUrl),
-      requestedMethod: (requestedMethod != null
-          ? requestedMethod.value
-          : this.requestedMethod),
-    );
+        transactionId:
+            (transactionId != null ? transactionId.value : this.transactionId),
+        errorDateTime:
+            (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
+        message: (message != null ? message.value : this.message),
+        requestedUrl:
+            (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
+        requestedMethod: (requestedMethod != null
+            ? requestedMethod.value
+            : this.requestedMethod));
   }
 }
 
@@ -220,8 +201,7 @@ class $CustomJsonDecoder {
 class $JsonSerializableConverter extends chopper.JsonConverter {
   @override
   FutureOr<chopper.Response<ResultType>> convertResponse<ResultType, Item>(
-    chopper.Response response,
-  ) async {
+      chopper.Response response) async {
     if (response.bodyString.isEmpty) {
       // In rare cases, when let's say 204 (no content) is returned -
       // we cannot decode the missing json with the result type specified
@@ -234,16 +214,13 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body:
-            DateTime.parse((response.body as String).replaceAll('"', ''))
-                as ResultType,
-      );
+          body: DateTime.parse((response.body as String).replaceAll('"', ''))
+              as ResultType);
     }
 
     final jsonRes = await super.convertResponse(response);
     return jsonRes.copyWith<ResultType>(
-      body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType,
-    );
+        body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType);
   }
 }
 

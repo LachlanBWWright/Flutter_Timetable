@@ -38,16 +38,14 @@ abstract class RealtimeAlertsV2 extends ChopperService {
     }
 
     final newClient = ChopperClient(
-      services: [_$RealtimeAlertsV2()],
-      converter: converter ?? $JsonSerializableConverter(),
-      interceptors: interceptors ?? [],
-      client: httpClient,
-      authenticator: authenticator,
-      errorConverter: errorConverter,
-      baseUrl:
-          baseUrl ??
-          Uri.parse('http://api.transport.nsw.gov.au/v2/gtfs/alerts'),
-    );
+        services: [_$RealtimeAlertsV2()],
+        converter: converter ?? $JsonSerializableConverter(),
+        interceptors: interceptors ?? [],
+        client: httpClient,
+        authenticator: authenticator,
+        errorConverter: errorConverter,
+        baseUrl: baseUrl ??
+            Uri.parse('http://api.transport.nsw.gov.au/v2/gtfs/alerts'));
     return _$RealtimeAlertsV2(newClient);
   }
 
@@ -59,10 +57,9 @@ abstract class RealtimeAlertsV2 extends ChopperService {
 
   ///GTFS-realtime alerts for all Transport for NSW operators
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  @GET(path: '/all')
-  Future<chopper.Response<List<int>>> _allGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/all')
+  Future<chopper.Response<List<int>>> _allGet(
+      {@Query('format') String? format});
 
   ///GTFS-realtime alerts for Buses
   ///@param format Retrieve protocol messages in a text-based, JSON format.
@@ -72,40 +69,35 @@ abstract class RealtimeAlertsV2 extends ChopperService {
 
   ///GTFS-realtime alerts for Buses
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  @GET(path: '/buses')
-  Future<chopper.Response<List<int>>> _busesGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/buses')
+  Future<chopper.Response<List<int>>> _busesGet(
+      {@Query('format') String? format});
 
   ///GTFS-realtime alerts for Ferries
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  Future<chopper.Response<List<int>>> ferriesGet({
-    enums.FerriesGetFormat? format,
-  }) {
+  Future<chopper.Response<List<int>>> ferriesGet(
+      {enums.FerriesGetFormat? format}) {
     return _ferriesGet(format: format?.value?.toString());
   }
 
   ///GTFS-realtime alerts for Ferries
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  @GET(path: '/ferries')
-  Future<chopper.Response<List<int>>> _ferriesGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/ferries')
+  Future<chopper.Response<List<int>>> _ferriesGet(
+      {@Query('format') String? format});
 
   ///GTFS-realtime alerts for Light Rail
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  Future<chopper.Response<List<int>>> lightrailGet({
-    enums.LightrailGetFormat? format,
-  }) {
+  Future<chopper.Response<List<int>>> lightrailGet(
+      {enums.LightrailGetFormat? format}) {
     return _lightrailGet(format: format?.value?.toString());
   }
 
   ///GTFS-realtime alerts for Light Rail
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  @GET(path: '/lightrail')
-  Future<chopper.Response<List<int>>> _lightrailGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/lightrail')
+  Future<chopper.Response<List<int>>> _lightrailGet(
+      {@Query('format') String? format});
 
   ///GTFS-realtime alerts for Sydney Metro
   ///@param format Retrieve protocol messages in a text-based, JSON format.
@@ -115,55 +107,48 @@ abstract class RealtimeAlertsV2 extends ChopperService {
 
   ///GTFS-realtime alerts for Sydney Metro
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  @GET(path: '/metro')
-  Future<chopper.Response<List<int>>> _metroGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/metro')
+  Future<chopper.Response<List<int>>> _metroGet(
+      {@Query('format') String? format});
 
   ///GTFS-realtime alerts for NSW Trains
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  Future<chopper.Response<List<int>>> nswtrainsGet({
-    enums.NswtrainsGetFormat? format,
-  }) {
+  Future<chopper.Response<List<int>>> nswtrainsGet(
+      {enums.NswtrainsGetFormat? format}) {
     return _nswtrainsGet(format: format?.value?.toString());
   }
 
   ///GTFS-realtime alerts for NSW Trains
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  @GET(path: '/nswtrains')
-  Future<chopper.Response<List<int>>> _nswtrainsGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/nswtrains')
+  Future<chopper.Response<List<int>>> _nswtrainsGet(
+      {@Query('format') String? format});
 
   ///GTFS-realtime alerts for Regional Buses
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  Future<chopper.Response<List<int>>> regionbusesGet({
-    enums.RegionbusesGetFormat? format,
-  }) {
+  Future<chopper.Response<List<int>>> regionbusesGet(
+      {enums.RegionbusesGetFormat? format}) {
     return _regionbusesGet(format: format?.value?.toString());
   }
 
   ///GTFS-realtime alerts for Regional Buses
   ///@param format Retrieve protocol messages in a text-based, JSON format.
-  @GET(path: '/regionbuses')
-  Future<chopper.Response<List<int>>> _regionbusesGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/regionbuses')
+  Future<chopper.Response<List<int>>> _regionbusesGet(
+      {@Query('format') String? format});
 
   ///GTFS-realtime alerts for Sydney Trains
   ///@param format Retrieve protocol messages in a text-based, JSON format
-  Future<chopper.Response<List<int>>> sydneytrainsGet({
-    enums.SydneytrainsGetFormat? format,
-  }) {
+  Future<chopper.Response<List<int>>> sydneytrainsGet(
+      {enums.SydneytrainsGetFormat? format}) {
     return _sydneytrainsGet(format: format?.value?.toString());
   }
 
   ///GTFS-realtime alerts for Sydney Trains
   ///@param format Retrieve protocol messages in a text-based, JSON format
-  @GET(path: '/sydneytrains')
-  Future<chopper.Response<List<int>>> _sydneytrainsGet({
-    @Query('format') String? format,
-  });
+  @Get(path: '/sydneytrains')
+  Future<chopper.Response<List<int>>> _sydneytrainsGet(
+      {@Query('format') String? format});
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -199,30 +184,20 @@ class ErrorDetails {
     return identical(this, other) ||
         (other is ErrorDetails &&
             (identical(other.errorDateTime, errorDateTime) ||
-                const DeepCollectionEquality().equals(
-                  other.errorDateTime,
-                  errorDateTime,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.errorDateTime, errorDateTime)) &&
             (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(
-                  other.message,
-                  message,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
             (identical(other.requestedMethod, requestedMethod) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedMethod,
-                  requestedMethod,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedMethod, requestedMethod)) &&
             (identical(other.requestedUrl, requestedUrl) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedUrl,
-                  requestedUrl,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedUrl, requestedUrl)) &&
             (identical(other.transactionId, transactionId) ||
-                const DeepCollectionEquality().equals(
-                  other.transactionId,
-                  transactionId,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.transactionId, transactionId)));
   }
 
   @override
@@ -239,44 +214,37 @@ class ErrorDetails {
 }
 
 extension $ErrorDetailsExtension on ErrorDetails {
-  ErrorDetails copyWith({
-    String? errorDateTime,
-    String? message,
-    String? requestedMethod,
-    String? requestedUrl,
-    String? transactionId,
-  }) {
+  ErrorDetails copyWith(
+      {String? errorDateTime,
+      String? message,
+      String? requestedMethod,
+      String? requestedUrl,
+      String? transactionId}) {
     return ErrorDetails(
-      errorDateTime: errorDateTime ?? this.errorDateTime,
-      message: message ?? this.message,
-      requestedMethod: requestedMethod ?? this.requestedMethod,
-      requestedUrl: requestedUrl ?? this.requestedUrl,
-      transactionId: transactionId ?? this.transactionId,
-    );
+        errorDateTime: errorDateTime ?? this.errorDateTime,
+        message: message ?? this.message,
+        requestedMethod: requestedMethod ?? this.requestedMethod,
+        requestedUrl: requestedUrl ?? this.requestedUrl,
+        transactionId: transactionId ?? this.transactionId);
   }
 
-  ErrorDetails copyWithWrapped({
-    Wrapped<String>? errorDateTime,
-    Wrapped<String>? message,
-    Wrapped<String>? requestedMethod,
-    Wrapped<String>? requestedUrl,
-    Wrapped<String>? transactionId,
-  }) {
+  ErrorDetails copyWithWrapped(
+      {Wrapped<String>? errorDateTime,
+      Wrapped<String>? message,
+      Wrapped<String>? requestedMethod,
+      Wrapped<String>? requestedUrl,
+      Wrapped<String>? transactionId}) {
     return ErrorDetails(
-      errorDateTime: (errorDateTime != null
-          ? errorDateTime.value
-          : this.errorDateTime),
-      message: (message != null ? message.value : this.message),
-      requestedMethod: (requestedMethod != null
-          ? requestedMethod.value
-          : this.requestedMethod),
-      requestedUrl: (requestedUrl != null
-          ? requestedUrl.value
-          : this.requestedUrl),
-      transactionId: (transactionId != null
-          ? transactionId.value
-          : this.transactionId),
-    );
+        errorDateTime:
+            (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
+        message: (message != null ? message.value : this.message),
+        requestedMethod: (requestedMethod != null
+            ? requestedMethod.value
+            : this.requestedMethod),
+        requestedUrl:
+            (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
+        transactionId:
+            (transactionId != null ? transactionId.value : this.transactionId));
   }
 }
 
@@ -292,9 +260,8 @@ enums.AllGetFormat allGetFormatFromJson(
   Object? allGetFormat, [
   enums.AllGetFormat? defaultValue,
 ]) {
-  return enums.AllGetFormat.values.firstWhereOrNull(
-        (e) => e.value == allGetFormat,
-      ) ??
+  return enums.AllGetFormat.values
+          .firstWhereOrNull((e) => e.value == allGetFormat) ??
       defaultValue ??
       enums.AllGetFormat.swaggerGeneratedUnknown;
 }
@@ -306,9 +273,8 @@ enums.AllGetFormat? allGetFormatNullableFromJson(
   if (allGetFormat == null) {
     return null;
   }
-  return enums.AllGetFormat.values.firstWhereOrNull(
-        (e) => e.value == allGetFormat,
-      ) ??
+  return enums.AllGetFormat.values
+          .firstWhereOrNull((e) => e.value == allGetFormat) ??
       defaultValue;
 }
 
@@ -358,9 +324,8 @@ enums.BusesGetFormat busesGetFormatFromJson(
   Object? busesGetFormat, [
   enums.BusesGetFormat? defaultValue,
 ]) {
-  return enums.BusesGetFormat.values.firstWhereOrNull(
-        (e) => e.value == busesGetFormat,
-      ) ??
+  return enums.BusesGetFormat.values
+          .firstWhereOrNull((e) => e.value == busesGetFormat) ??
       defaultValue ??
       enums.BusesGetFormat.swaggerGeneratedUnknown;
 }
@@ -372,21 +337,18 @@ enums.BusesGetFormat? busesGetFormatNullableFromJson(
   if (busesGetFormat == null) {
     return null;
   }
-  return enums.BusesGetFormat.values.firstWhereOrNull(
-        (e) => e.value == busesGetFormat,
-      ) ??
+  return enums.BusesGetFormat.values
+          .firstWhereOrNull((e) => e.value == busesGetFormat) ??
       defaultValue;
 }
 
 String busesGetFormatExplodedListToJson(
-  List<enums.BusesGetFormat>? busesGetFormat,
-) {
+    List<enums.BusesGetFormat>? busesGetFormat) {
   return busesGetFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> busesGetFormatListToJson(
-  List<enums.BusesGetFormat>? busesGetFormat,
-) {
+    List<enums.BusesGetFormat>? busesGetFormat) {
   if (busesGetFormat == null) {
     return [];
   }
@@ -421,8 +383,7 @@ List<enums.BusesGetFormat>? busesGetFormatNullableListFromJson(
 }
 
 String? ferriesGetFormatNullableToJson(
-  enums.FerriesGetFormat? ferriesGetFormat,
-) {
+    enums.FerriesGetFormat? ferriesGetFormat) {
   return ferriesGetFormat?.value;
 }
 
@@ -434,9 +395,8 @@ enums.FerriesGetFormat ferriesGetFormatFromJson(
   Object? ferriesGetFormat, [
   enums.FerriesGetFormat? defaultValue,
 ]) {
-  return enums.FerriesGetFormat.values.firstWhereOrNull(
-        (e) => e.value == ferriesGetFormat,
-      ) ??
+  return enums.FerriesGetFormat.values
+          .firstWhereOrNull((e) => e.value == ferriesGetFormat) ??
       defaultValue ??
       enums.FerriesGetFormat.swaggerGeneratedUnknown;
 }
@@ -448,21 +408,18 @@ enums.FerriesGetFormat? ferriesGetFormatNullableFromJson(
   if (ferriesGetFormat == null) {
     return null;
   }
-  return enums.FerriesGetFormat.values.firstWhereOrNull(
-        (e) => e.value == ferriesGetFormat,
-      ) ??
+  return enums.FerriesGetFormat.values
+          .firstWhereOrNull((e) => e.value == ferriesGetFormat) ??
       defaultValue;
 }
 
 String ferriesGetFormatExplodedListToJson(
-  List<enums.FerriesGetFormat>? ferriesGetFormat,
-) {
+    List<enums.FerriesGetFormat>? ferriesGetFormat) {
   return ferriesGetFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> ferriesGetFormatListToJson(
-  List<enums.FerriesGetFormat>? ferriesGetFormat,
-) {
+    List<enums.FerriesGetFormat>? ferriesGetFormat) {
   if (ferriesGetFormat == null) {
     return [];
   }
@@ -497,8 +454,7 @@ List<enums.FerriesGetFormat>? ferriesGetFormatNullableListFromJson(
 }
 
 String? lightrailGetFormatNullableToJson(
-  enums.LightrailGetFormat? lightrailGetFormat,
-) {
+    enums.LightrailGetFormat? lightrailGetFormat) {
   return lightrailGetFormat?.value;
 }
 
@@ -510,9 +466,8 @@ enums.LightrailGetFormat lightrailGetFormatFromJson(
   Object? lightrailGetFormat, [
   enums.LightrailGetFormat? defaultValue,
 ]) {
-  return enums.LightrailGetFormat.values.firstWhereOrNull(
-        (e) => e.value == lightrailGetFormat,
-      ) ??
+  return enums.LightrailGetFormat.values
+          .firstWhereOrNull((e) => e.value == lightrailGetFormat) ??
       defaultValue ??
       enums.LightrailGetFormat.swaggerGeneratedUnknown;
 }
@@ -524,21 +479,18 @@ enums.LightrailGetFormat? lightrailGetFormatNullableFromJson(
   if (lightrailGetFormat == null) {
     return null;
   }
-  return enums.LightrailGetFormat.values.firstWhereOrNull(
-        (e) => e.value == lightrailGetFormat,
-      ) ??
+  return enums.LightrailGetFormat.values
+          .firstWhereOrNull((e) => e.value == lightrailGetFormat) ??
       defaultValue;
 }
 
 String lightrailGetFormatExplodedListToJson(
-  List<enums.LightrailGetFormat>? lightrailGetFormat,
-) {
+    List<enums.LightrailGetFormat>? lightrailGetFormat) {
   return lightrailGetFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> lightrailGetFormatListToJson(
-  List<enums.LightrailGetFormat>? lightrailGetFormat,
-) {
+    List<enums.LightrailGetFormat>? lightrailGetFormat) {
   if (lightrailGetFormat == null) {
     return [];
   }
@@ -584,9 +536,8 @@ enums.MetroGetFormat metroGetFormatFromJson(
   Object? metroGetFormat, [
   enums.MetroGetFormat? defaultValue,
 ]) {
-  return enums.MetroGetFormat.values.firstWhereOrNull(
-        (e) => e.value == metroGetFormat,
-      ) ??
+  return enums.MetroGetFormat.values
+          .firstWhereOrNull((e) => e.value == metroGetFormat) ??
       defaultValue ??
       enums.MetroGetFormat.swaggerGeneratedUnknown;
 }
@@ -598,21 +549,18 @@ enums.MetroGetFormat? metroGetFormatNullableFromJson(
   if (metroGetFormat == null) {
     return null;
   }
-  return enums.MetroGetFormat.values.firstWhereOrNull(
-        (e) => e.value == metroGetFormat,
-      ) ??
+  return enums.MetroGetFormat.values
+          .firstWhereOrNull((e) => e.value == metroGetFormat) ??
       defaultValue;
 }
 
 String metroGetFormatExplodedListToJson(
-  List<enums.MetroGetFormat>? metroGetFormat,
-) {
+    List<enums.MetroGetFormat>? metroGetFormat) {
   return metroGetFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> metroGetFormatListToJson(
-  List<enums.MetroGetFormat>? metroGetFormat,
-) {
+    List<enums.MetroGetFormat>? metroGetFormat) {
   if (metroGetFormat == null) {
     return [];
   }
@@ -647,8 +595,7 @@ List<enums.MetroGetFormat>? metroGetFormatNullableListFromJson(
 }
 
 String? nswtrainsGetFormatNullableToJson(
-  enums.NswtrainsGetFormat? nswtrainsGetFormat,
-) {
+    enums.NswtrainsGetFormat? nswtrainsGetFormat) {
   return nswtrainsGetFormat?.value;
 }
 
@@ -660,9 +607,8 @@ enums.NswtrainsGetFormat nswtrainsGetFormatFromJson(
   Object? nswtrainsGetFormat, [
   enums.NswtrainsGetFormat? defaultValue,
 ]) {
-  return enums.NswtrainsGetFormat.values.firstWhereOrNull(
-        (e) => e.value == nswtrainsGetFormat,
-      ) ??
+  return enums.NswtrainsGetFormat.values
+          .firstWhereOrNull((e) => e.value == nswtrainsGetFormat) ??
       defaultValue ??
       enums.NswtrainsGetFormat.swaggerGeneratedUnknown;
 }
@@ -674,21 +620,18 @@ enums.NswtrainsGetFormat? nswtrainsGetFormatNullableFromJson(
   if (nswtrainsGetFormat == null) {
     return null;
   }
-  return enums.NswtrainsGetFormat.values.firstWhereOrNull(
-        (e) => e.value == nswtrainsGetFormat,
-      ) ??
+  return enums.NswtrainsGetFormat.values
+          .firstWhereOrNull((e) => e.value == nswtrainsGetFormat) ??
       defaultValue;
 }
 
 String nswtrainsGetFormatExplodedListToJson(
-  List<enums.NswtrainsGetFormat>? nswtrainsGetFormat,
-) {
+    List<enums.NswtrainsGetFormat>? nswtrainsGetFormat) {
   return nswtrainsGetFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> nswtrainsGetFormatListToJson(
-  List<enums.NswtrainsGetFormat>? nswtrainsGetFormat,
-) {
+    List<enums.NswtrainsGetFormat>? nswtrainsGetFormat) {
   if (nswtrainsGetFormat == null) {
     return [];
   }
@@ -723,14 +666,12 @@ List<enums.NswtrainsGetFormat>? nswtrainsGetFormatNullableListFromJson(
 }
 
 String? regionbusesGetFormatNullableToJson(
-  enums.RegionbusesGetFormat? regionbusesGetFormat,
-) {
+    enums.RegionbusesGetFormat? regionbusesGetFormat) {
   return regionbusesGetFormat?.value;
 }
 
 String? regionbusesGetFormatToJson(
-  enums.RegionbusesGetFormat regionbusesGetFormat,
-) {
+    enums.RegionbusesGetFormat regionbusesGetFormat) {
   return regionbusesGetFormat.value;
 }
 
@@ -738,9 +679,8 @@ enums.RegionbusesGetFormat regionbusesGetFormatFromJson(
   Object? regionbusesGetFormat, [
   enums.RegionbusesGetFormat? defaultValue,
 ]) {
-  return enums.RegionbusesGetFormat.values.firstWhereOrNull(
-        (e) => e.value == regionbusesGetFormat,
-      ) ??
+  return enums.RegionbusesGetFormat.values
+          .firstWhereOrNull((e) => e.value == regionbusesGetFormat) ??
       defaultValue ??
       enums.RegionbusesGetFormat.swaggerGeneratedUnknown;
 }
@@ -752,21 +692,18 @@ enums.RegionbusesGetFormat? regionbusesGetFormatNullableFromJson(
   if (regionbusesGetFormat == null) {
     return null;
   }
-  return enums.RegionbusesGetFormat.values.firstWhereOrNull(
-        (e) => e.value == regionbusesGetFormat,
-      ) ??
+  return enums.RegionbusesGetFormat.values
+          .firstWhereOrNull((e) => e.value == regionbusesGetFormat) ??
       defaultValue;
 }
 
 String regionbusesGetFormatExplodedListToJson(
-  List<enums.RegionbusesGetFormat>? regionbusesGetFormat,
-) {
+    List<enums.RegionbusesGetFormat>? regionbusesGetFormat) {
   return regionbusesGetFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> regionbusesGetFormatListToJson(
-  List<enums.RegionbusesGetFormat>? regionbusesGetFormat,
-) {
+    List<enums.RegionbusesGetFormat>? regionbusesGetFormat) {
   if (regionbusesGetFormat == null) {
     return [];
   }
@@ -801,14 +738,12 @@ List<enums.RegionbusesGetFormat>? regionbusesGetFormatNullableListFromJson(
 }
 
 String? sydneytrainsGetFormatNullableToJson(
-  enums.SydneytrainsGetFormat? sydneytrainsGetFormat,
-) {
+    enums.SydneytrainsGetFormat? sydneytrainsGetFormat) {
   return sydneytrainsGetFormat?.value;
 }
 
 String? sydneytrainsGetFormatToJson(
-  enums.SydneytrainsGetFormat sydneytrainsGetFormat,
-) {
+    enums.SydneytrainsGetFormat sydneytrainsGetFormat) {
   return sydneytrainsGetFormat.value;
 }
 
@@ -816,9 +751,8 @@ enums.SydneytrainsGetFormat sydneytrainsGetFormatFromJson(
   Object? sydneytrainsGetFormat, [
   enums.SydneytrainsGetFormat? defaultValue,
 ]) {
-  return enums.SydneytrainsGetFormat.values.firstWhereOrNull(
-        (e) => e.value == sydneytrainsGetFormat,
-      ) ??
+  return enums.SydneytrainsGetFormat.values
+          .firstWhereOrNull((e) => e.value == sydneytrainsGetFormat) ??
       defaultValue ??
       enums.SydneytrainsGetFormat.swaggerGeneratedUnknown;
 }
@@ -830,21 +764,18 @@ enums.SydneytrainsGetFormat? sydneytrainsGetFormatNullableFromJson(
   if (sydneytrainsGetFormat == null) {
     return null;
   }
-  return enums.SydneytrainsGetFormat.values.firstWhereOrNull(
-        (e) => e.value == sydneytrainsGetFormat,
-      ) ??
+  return enums.SydneytrainsGetFormat.values
+          .firstWhereOrNull((e) => e.value == sydneytrainsGetFormat) ??
       defaultValue;
 }
 
 String sydneytrainsGetFormatExplodedListToJson(
-  List<enums.SydneytrainsGetFormat>? sydneytrainsGetFormat,
-) {
+    List<enums.SydneytrainsGetFormat>? sydneytrainsGetFormat) {
   return sydneytrainsGetFormat?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> sydneytrainsGetFormatListToJson(
-  List<enums.SydneytrainsGetFormat>? sydneytrainsGetFormat,
-) {
+    List<enums.SydneytrainsGetFormat>? sydneytrainsGetFormat) {
   if (sydneytrainsGetFormat == null) {
     return [];
   }
@@ -925,8 +856,7 @@ class $CustomJsonDecoder {
 class $JsonSerializableConverter extends chopper.JsonConverter {
   @override
   FutureOr<chopper.Response<ResultType>> convertResponse<ResultType, Item>(
-    chopper.Response response,
-  ) async {
+      chopper.Response response) async {
     if (response.bodyString.isEmpty) {
       // In rare cases, when let's say 204 (no content) is returned -
       // we cannot decode the missing json with the result type specified
@@ -939,16 +869,13 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body:
-            DateTime.parse((response.body as String).replaceAll('"', ''))
-                as ResultType,
-      );
+          body: DateTime.parse((response.body as String).replaceAll('"', ''))
+              as ResultType);
     }
 
     final jsonRes = await super.convertResponse(response);
     return jsonRes.copyWith<ResultType>(
-      body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType,
-    );
+        body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType);
   }
 }
 
