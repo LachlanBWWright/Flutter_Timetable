@@ -301,8 +301,7 @@ enum TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess {
   final String? value;
 
   const TripRequestResponseJourneyLegStop$PropertiesWheelchairAccess(
-    this.value,
-  );
+      this.value);
 }
 
 enum TripRequestResponseJourneyLegStopType {
@@ -361,8 +360,7 @@ enum TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel {
   final String? value;
 
   const TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLevel(
-    this.value,
-  );
+      this.value);
 }
 
 enum TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType {
@@ -383,8 +381,7 @@ enum TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType {
   final String? value;
 
   const TripRequestResponseJourneyLegStopFootpathInfoFootpathElemType(
-    this.value,
-  );
+      this.value);
 }
 
 enum TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType {
@@ -411,8 +408,7 @@ enum TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationT
   final String? value;
 
   const TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation$LocationType(
-    this.value,
-  );
+      this.value);
 }
 
 enum TripRequestResponseJourneyLegStopInfoPriority {

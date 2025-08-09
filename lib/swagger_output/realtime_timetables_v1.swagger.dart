@@ -36,16 +36,14 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
     }
 
     final newClient = ChopperClient(
-      services: [_$RealtimeTimetablesV1()],
-      converter: converter ?? $JsonSerializableConverter(),
-      interceptors: interceptors ?? [],
-      client: httpClient,
-      authenticator: authenticator,
-      errorConverter: errorConverter,
-      baseUrl:
-          baseUrl ??
-          Uri.parse('http://api.transport.nsw.gov.au/v1/gtfs/schedule'),
-    );
+        services: [_$RealtimeTimetablesV1()],
+        converter: converter ?? $JsonSerializableConverter(),
+        interceptors: interceptors ?? [],
+        client: httpClient,
+        authenticator: authenticator,
+        errorConverter: errorConverter,
+        baseUrl: baseUrl ??
+            Uri.parse('http://api.transport.nsw.gov.au/v1/gtfs/schedule'));
     return _$RealtimeTimetablesV1(newClient);
   }
 
@@ -55,7 +53,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Buses
-  @GET(path: '/buses')
+  @Get(path: '/buses')
   Future<chopper.Response<List<int>>> _busesGet();
 
   ///GTFS timetables, stops, and route shapes for Transit Systems
@@ -64,7 +62,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Transit Systems
-  @GET(path: '/buses/SBSC006')
+  @Get(path: '/buses/SBSC006')
   Future<chopper.Response<List<int>>> _busesSBSC006Get();
 
   ///GTFS timetables, stops, and route shapes for Busways R1
@@ -73,7 +71,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Busways R1
-  @GET(path: '/buses/GSBC001')
+  @Get(path: '/buses/GSBC001')
   Future<chopper.Response<List<int>>> _busesGSBC001Get();
 
   ///GTFS timetables, stops, and route shapes for Transit Systems NSW SW
@@ -82,7 +80,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Transit Systems NSW SW
-  @GET(path: '/buses/GSBC002')
+  @Get(path: '/buses/GSBC002')
   Future<chopper.Response<List<int>>> _busesGSBC002Get();
 
   ///GTFS timetables, stops, and route shapes for Transit Systems NSW
@@ -91,7 +89,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Transit Systems NSW
-  @GET(path: '/buses/GSBC003')
+  @Get(path: '/buses/GSBC003')
   Future<chopper.Response<List<int>>> _busesGSBC003Get();
 
   ///GTFS timetables, stops, and route shapes for CDC NSW R4
@@ -100,7 +98,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for CDC NSW R4
-  @GET(path: '/buses/GSBC004')
+  @Get(path: '/buses/GSBC004')
   Future<chopper.Response<List<int>>> _busesGSBC004Get();
 
   ///GTFS timetables, stops, and route shapes for Busways North West
@@ -109,7 +107,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Busways North West
-  @GET(path: '/buses/GSBC007')
+  @Get(path: '/buses/GSBC007')
   Future<chopper.Response<List<int>>> _busesGSBC007Get();
 
   ///GTFS timetables, stops, and route shapes for Keolis Downer Northern Beaches
@@ -118,7 +116,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Keolis Downer Northern Beaches
-  @GET(path: '/buses/GSBC008')
+  @Get(path: '/buses/GSBC008')
   Future<chopper.Response<List<int>>> _busesGSBC008Get();
 
   ///GTFS timetables, stops, and route shapes for Transdev John Holland
@@ -127,7 +125,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Transdev John Holland
-  @GET(path: '/buses/GSBC009')
+  @Get(path: '/buses/GSBC009')
   Future<chopper.Response<List<int>>> _busesGSBC009Get();
 
   ///GTFS timetables, stops, and route shapes for U-Go Mobility
@@ -136,7 +134,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for U-Go Mobility
-  @GET(path: '/buses/GSBC010')
+  @Get(path: '/buses/GSBC010')
   Future<chopper.Response<List<int>>> _busesGSBC010Get();
 
   ///GTFS timetables, stops, and route shapes for CDC NSW R14
@@ -145,7 +143,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for CDC NSW R14
-  @GET(path: '/buses/GSBC014')
+  @Get(path: '/buses/GSBC014')
   Future<chopper.Response<List<int>>> _busesGSBC014Get();
 
   ///GTFS timetables, stops, and route shapes for Rover Coaches
@@ -154,7 +152,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Rover Coaches
-  @GET(path: '/buses/OSMBSC001')
+  @Get(path: '/buses/OSMBSC001')
   Future<chopper.Response<List<int>>> _busesOSMBSC001Get();
 
   ///GTFS timetables, stops, and route shapes for Hunter Valley Buses
@@ -163,7 +161,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Hunter Valley Buses
-  @GET(path: '/buses/OSMBSC002')
+  @Get(path: '/buses/OSMBSC002')
   Future<chopper.Response<List<int>>> _busesOSMBSC002Get();
 
   ///GTFS timetables, stops, and route shapes for Port Stephens Coaches
@@ -172,7 +170,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Port Stephens Coaches
-  @GET(path: '/buses/OSMBSC003')
+  @Get(path: '/buses/OSMBSC003')
   Future<chopper.Response<List<int>>> _busesOSMBSC003Get();
 
   ///GTFS timetables, stops, and route shapes for Hunter Valley Buses
@@ -181,7 +179,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Hunter Valley Buses
-  @GET(path: '/buses/OSMBSC004')
+  @Get(path: '/buses/OSMBSC004')
   Future<chopper.Response<List<int>>> _busesOSMBSC004Get();
 
   ///GTFS timetables, stops, and route shapes for Busways OMR6
@@ -190,7 +188,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Busways OMR6
-  @GET(path: '/buses/OMBSC006')
+  @Get(path: '/buses/OMBSC006')
   Future<chopper.Response<List<int>>> _busesOMBSC006Get();
 
   ///GTFS timetables, stops, and route shapes for RedBus CDC NSW
@@ -199,7 +197,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for RedBus CDC NSW
-  @GET(path: '/buses/OMBSC007')
+  @Get(path: '/buses/OMBSC007')
   Future<chopper.Response<List<int>>> _busesOMBSC007Get();
 
   ///GTFS timetables, stops, and route shapes for Blue Mountains Transit
@@ -208,7 +206,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Blue Mountains Transit
-  @GET(path: '/buses/OSMBSC008')
+  @Get(path: '/buses/OSMBSC008')
   Future<chopper.Response<List<int>>> _busesOSMBSC008Get();
 
   ///GTFS timetables, stops, and route shapes for Premier Charters
@@ -217,7 +215,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Premier Charters
-  @GET(path: '/buses/OSMBSC009')
+  @Get(path: '/buses/OSMBSC009')
   Future<chopper.Response<List<int>>> _busesOSMBSC009Get();
 
   ///GTFS timetables, stops, and route shapes for Premier Illawarra
@@ -226,7 +224,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Premier Illawarra
-  @GET(path: '/buses/OSMBSC010')
+  @Get(path: '/buses/OSMBSC010')
   Future<chopper.Response<List<int>>> _busesOSMBSC010Get();
 
   ///GTFS timetables, stops, and route shapes for Coastal Liner
@@ -235,7 +233,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Coastal Liner
-  @GET(path: '/buses/OSMBSC011')
+  @Get(path: '/buses/OSMBSC011')
   Future<chopper.Response<List<int>>> _busesOSMBSC011Get();
 
   ///GTFS timetables, stops, and route shapes for Dions Bus Service
@@ -244,7 +242,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Dions Bus Service
-  @GET(path: '/buses/OSMBSC012')
+  @Get(path: '/buses/OSMBSC012')
   Future<chopper.Response<List<int>>> _busesOSMBSC012Get();
 
   ///GTFS timetables, stops, and route shapes for Newcastle Transport Buses
@@ -253,7 +251,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Newcastle Transport Buses
-  @GET(path: '/buses/NISC001')
+  @Get(path: '/buses/NISC001')
   Future<chopper.Response<List<int>>> _busesNISC001Get();
 
   ///GTFS timetables, stops, and route shapes for Planned Replacement Buses
@@ -262,7 +260,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Planned Replacement Buses
-  @GET(path: '/buses/ReplacementBus')
+  @Get(path: '/buses/ReplacementBus')
   Future<chopper.Response<List<int>>> _busesReplacementBusGet();
 
   ///GTFS timetables, stops, and route shapes for Sydney Ferries
@@ -271,7 +269,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Sydney Ferries
-  @GET(path: '/ferries/sydneyferries')
+  @Get(path: '/ferries/sydneyferries')
   Future<chopper.Response<List<int>>> _ferriesSydneyferriesGet();
 
   ///GTFS timetables, stops, and route shapes for Manly Fast Ferry
@@ -280,7 +278,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Manly Fast Ferry
-  @GET(path: '/ferries/MFF')
+  @Get(path: '/ferries/MFF')
   Future<chopper.Response<List<int>>> _ferriesMFFGet();
 
   ///GTFS timetables, stops, and route shapes for Inner West Light Rail
@@ -289,7 +287,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Inner West Light Rail
-  @GET(path: '/lightrail/innerwest')
+  @Get(path: '/lightrail/innerwest')
   Future<chopper.Response<List<int>>> _lightrailInnerwestGet();
 
   ///GTFS timetables, stops, and route shapes for Newcastle Light Rail
@@ -298,7 +296,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Newcastle Light Rail
-  @GET(path: '/lightrail/newcastle')
+  @Get(path: '/lightrail/newcastle')
   Future<chopper.Response<List<int>>> _lightrailNewcastleGet();
 
   ///GTFS timetables, stops, and route shapes for CBD & South East Light Rail
@@ -307,7 +305,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for CBD & South East Light Rail
-  @GET(path: '/lightrail/cbdandsoutheast')
+  @Get(path: '/lightrail/cbdandsoutheast')
   Future<chopper.Response<List<int>>> _lightrailCbdandsoutheastGet();
 
   ///GTFS timetables, stops, and route shapes for Parramatta Light Rail
@@ -316,7 +314,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Parramatta Light Rail
-  @GET(path: '/lightrail/parramatta')
+  @Get(path: '/lightrail/parramatta')
   Future<chopper.Response<List<int>>> _lightrailParramattaGet();
 
   ///GTFS timetables, stops, and route shapes for NSW Trains
@@ -325,7 +323,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for NSW Trains
-  @GET(path: '/nswtrains')
+  @Get(path: '/nswtrains')
   Future<chopper.Response<List<int>>> _nswtrainsGet();
 
   ///GTFS timetables, stops, and route shapes for Sydney Trains
@@ -334,7 +332,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Sydney Trains
-  @GET(path: '/sydneytrains')
+  @Get(path: '/sydneytrains')
   Future<chopper.Response<List<int>>> _sydneytrainsGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -343,7 +341,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/southeasttablelands')
+  @Get(path: '/regionbuses/southeasttablelands')
   Future<chopper.Response<List<int>>> _regionbusesSoutheasttablelandsGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -352,7 +350,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/southeasttablelands2')
+  @Get(path: '/regionbuses/southeasttablelands2')
   Future<chopper.Response<List<int>>> _regionbusesSoutheasttablelands2Get();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -361,7 +359,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/northcoast')
+  @Get(path: '/regionbuses/northcoast')
   Future<chopper.Response<List<int>>> _regionbusesNorthcoastGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -370,7 +368,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/northcoast2')
+  @Get(path: '/regionbuses/northcoast2')
   Future<chopper.Response<List<int>>> _regionbusesNorthcoast2Get();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -379,7 +377,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/centralwestandorana')
+  @Get(path: '/regionbuses/centralwestandorana')
   Future<chopper.Response<List<int>>> _regionbusesCentralwestandoranaGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -388,7 +386,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/centralwestandorana2')
+  @Get(path: '/regionbuses/centralwestandorana2')
   Future<chopper.Response<List<int>>> _regionbusesCentralwestandorana2Get();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -397,7 +395,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/riverinamurray')
+  @Get(path: '/regionbuses/riverinamurray')
   Future<chopper.Response<List<int>>> _regionbusesRiverinamurrayGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -406,7 +404,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/newenglandnorthwest')
+  @Get(path: '/regionbuses/newenglandnorthwest')
   Future<chopper.Response<List<int>>> _regionbusesNewenglandnorthwestGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -415,7 +413,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/riverinamurray2')
+  @Get(path: '/regionbuses/riverinamurray2')
   Future<chopper.Response<List<int>>> _regionbusesRiverinamurray2Get();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -424,7 +422,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/northcoast3')
+  @Get(path: '/regionbuses/northcoast3')
   Future<chopper.Response<List<int>>> _regionbusesNorthcoast3Get();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -433,7 +431,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/sydneysurrounds')
+  @Get(path: '/regionbuses/sydneysurrounds')
   Future<chopper.Response<List<int>>> _regionbusesSydneysurroundsGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -442,7 +440,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/newcastlehunter')
+  @Get(path: '/regionbuses/newcastlehunter')
   Future<chopper.Response<List<int>>> _regionbusesNewcastlehunterGet();
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
@@ -451,7 +449,7 @@ abstract class RealtimeTimetablesV1 extends ChopperService {
   }
 
   ///GTFS timetables, stops, and route shapes for Regional Buses
-  @GET(path: '/regionbuses/farwest')
+  @Get(path: '/regionbuses/farwest')
   Future<chopper.Response<List<int>>> _regionbusesFarwestGet();
 }
 
@@ -488,30 +486,20 @@ class ErrorDetails {
     return identical(this, other) ||
         (other is ErrorDetails &&
             (identical(other.transactionId, transactionId) ||
-                const DeepCollectionEquality().equals(
-                  other.transactionId,
-                  transactionId,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.transactionId, transactionId)) &&
             (identical(other.errorDateTime, errorDateTime) ||
-                const DeepCollectionEquality().equals(
-                  other.errorDateTime,
-                  errorDateTime,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.errorDateTime, errorDateTime)) &&
             (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(
-                  other.message,
-                  message,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
             (identical(other.requestedUrl, requestedUrl) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedUrl,
-                  requestedUrl,
-                )) &&
+                const DeepCollectionEquality()
+                    .equals(other.requestedUrl, requestedUrl)) &&
             (identical(other.requestedMethod, requestedMethod) ||
-                const DeepCollectionEquality().equals(
-                  other.requestedMethod,
-                  requestedMethod,
-                )));
+                const DeepCollectionEquality()
+                    .equals(other.requestedMethod, requestedMethod)));
   }
 
   @override
@@ -528,44 +516,37 @@ class ErrorDetails {
 }
 
 extension $ErrorDetailsExtension on ErrorDetails {
-  ErrorDetails copyWith({
-    String? transactionId,
-    String? errorDateTime,
-    String? message,
-    String? requestedUrl,
-    String? requestedMethod,
-  }) {
+  ErrorDetails copyWith(
+      {String? transactionId,
+      String? errorDateTime,
+      String? message,
+      String? requestedUrl,
+      String? requestedMethod}) {
     return ErrorDetails(
-      transactionId: transactionId ?? this.transactionId,
-      errorDateTime: errorDateTime ?? this.errorDateTime,
-      message: message ?? this.message,
-      requestedUrl: requestedUrl ?? this.requestedUrl,
-      requestedMethod: requestedMethod ?? this.requestedMethod,
-    );
+        transactionId: transactionId ?? this.transactionId,
+        errorDateTime: errorDateTime ?? this.errorDateTime,
+        message: message ?? this.message,
+        requestedUrl: requestedUrl ?? this.requestedUrl,
+        requestedMethod: requestedMethod ?? this.requestedMethod);
   }
 
-  ErrorDetails copyWithWrapped({
-    Wrapped<String>? transactionId,
-    Wrapped<String>? errorDateTime,
-    Wrapped<String>? message,
-    Wrapped<String>? requestedUrl,
-    Wrapped<String>? requestedMethod,
-  }) {
+  ErrorDetails copyWithWrapped(
+      {Wrapped<String>? transactionId,
+      Wrapped<String>? errorDateTime,
+      Wrapped<String>? message,
+      Wrapped<String>? requestedUrl,
+      Wrapped<String>? requestedMethod}) {
     return ErrorDetails(
-      transactionId: (transactionId != null
-          ? transactionId.value
-          : this.transactionId),
-      errorDateTime: (errorDateTime != null
-          ? errorDateTime.value
-          : this.errorDateTime),
-      message: (message != null ? message.value : this.message),
-      requestedUrl: (requestedUrl != null
-          ? requestedUrl.value
-          : this.requestedUrl),
-      requestedMethod: (requestedMethod != null
-          ? requestedMethod.value
-          : this.requestedMethod),
-    );
+        transactionId:
+            (transactionId != null ? transactionId.value : this.transactionId),
+        errorDateTime:
+            (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
+        message: (message != null ? message.value : this.message),
+        requestedUrl:
+            (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
+        requestedMethod: (requestedMethod != null
+            ? requestedMethod.value
+            : this.requestedMethod));
   }
 }
 
@@ -616,8 +597,7 @@ class $CustomJsonDecoder {
 class $JsonSerializableConverter extends chopper.JsonConverter {
   @override
   FutureOr<chopper.Response<ResultType>> convertResponse<ResultType, Item>(
-    chopper.Response response,
-  ) async {
+      chopper.Response response) async {
     if (response.bodyString.isEmpty) {
       // In rare cases, when let's say 204 (no content) is returned -
       // we cannot decode the missing json with the result type specified
@@ -630,16 +610,13 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body:
-            DateTime.parse((response.body as String).replaceAll('"', ''))
-                as ResultType,
-      );
+          body: DateTime.parse((response.body as String).replaceAll('"', ''))
+              as ResultType);
     }
 
     final jsonRes = await super.convertResponse(response);
     return jsonRes.copyWith<ResultType>(
-      body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType,
-    );
+        body: $jsonDecoder.decode<Item>(jsonRes.body) as ResultType);
   }
 }
 
