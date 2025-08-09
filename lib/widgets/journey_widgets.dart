@@ -38,7 +38,7 @@ class JourneyCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border(
                     left: BorderSide(
-                      color: TransportColors.getColorByMode('train'),
+                      color: TransportColors.train,
                       width: 4.0,
                     ),
                     right: BorderSide(
@@ -71,7 +71,7 @@ class JourneyCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border(
                     right: BorderSide(
-                      color: TransportColors.getColorByMode('bus'),
+                      color: TransportColors.train,
                       width: 4.0,
                     ),
                   ),

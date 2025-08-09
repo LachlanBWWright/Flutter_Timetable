@@ -12,13 +12,23 @@ class TripLegScreen extends StatefulWidget {
 class _TripLegScreenState extends State<TripLegScreen> {
   @override
   Widget build(BuildContext context) {
+    final legs = widget.trip['legs'] as List;
+    
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Legs')),
-      body: ListView.builder(
+      body: ListView.separated(
         itemBuilder: (context, index) {
-          return TripLegCard(leg: widget.trip['legs'][index]);
+          return TripLegCard(leg: legs[index]);
         },
-        itemCount: widget.trip['legs'].length,
+        separatorBuilder: (context, index) {
+          return const Divider(
+            height: 20,
+            thickness: 1,
+            indent: 16,
+            endIndent: 16,
+          );
+        },
+        itemCount: legs.length,
       ),
     );
   }
