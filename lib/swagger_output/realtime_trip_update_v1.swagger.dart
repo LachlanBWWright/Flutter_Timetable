@@ -44,8 +44,7 @@ abstract class RealtimeTripUpdateV1 extends ChopperService {
       client: httpClient,
       authenticator: authenticator,
       errorConverter: errorConverter,
-      baseUrl:
-          baseUrl ??
+      baseUrl: baseUrl ??
           Uri.parse('http://api.transport.nsw.gov.au/v1/gtfs/realtime'),
     );
     return _$RealtimeTripUpdateV1(newClient);
@@ -82,7 +81,7 @@ abstract class RealtimeTripUpdateV1 extends ChopperService {
   ///GTFS-realtime stop time updates for Manly Fast Ferry
   ///@param debug Retrieve protocol messages in a text, text-based format.  <br> Note return message may be truncated
   Future<chopper.Response<List<int>>> ferriesMFFGet({
-    enums.FerriesMffGetDebug? debug,
+    enums.FerriesMFFGetDebug? debug,
   }) {
     return _ferriesMFFGet(debug: debug?.value?.toString());
   }
@@ -462,19 +461,16 @@ extension $ErrorDetailsExtension on ErrorDetails {
     Wrapped<String>? transactionId,
   }) {
     return ErrorDetails(
-      errorDateTime: (errorDateTime != null
-          ? errorDateTime.value
-          : this.errorDateTime),
+      errorDateTime:
+          (errorDateTime != null ? errorDateTime.value : this.errorDateTime),
       message: (message != null ? message.value : this.message),
       requestedMethod: (requestedMethod != null
           ? requestedMethod.value
           : this.requestedMethod),
-      requestedUrl: (requestedUrl != null
-          ? requestedUrl.value
-          : this.requestedUrl),
-      transactionId: (transactionId != null
-          ? transactionId.value
-          : this.transactionId),
+      requestedUrl:
+          (requestedUrl != null ? requestedUrl.value : this.requestedUrl),
+      transactionId:
+          (transactionId != null ? transactionId.value : this.transactionId),
     );
   }
 }
@@ -571,7 +567,7 @@ enums.FerriesSydneyferriesGetDebug ferriesSydneyferriesGetDebugFromJson(
 }
 
 enums.FerriesSydneyferriesGetDebug?
-ferriesSydneyferriesGetDebugNullableFromJson(
+    ferriesSydneyferriesGetDebugNullableFromJson(
   Object? ferriesSydneyferriesGetDebug, [
   enums.FerriesSydneyferriesGetDebug? defaultValue,
 ]) {
@@ -601,7 +597,7 @@ List<String> ferriesSydneyferriesGetDebugListToJson(
 }
 
 List<enums.FerriesSydneyferriesGetDebug>
-ferriesSydneyferriesGetDebugListFromJson(
+    ferriesSydneyferriesGetDebugListFromJson(
   List? ferriesSydneyferriesGetDebug, [
   List<enums.FerriesSydneyferriesGetDebug>? defaultValue,
 ]) {
@@ -615,7 +611,7 @@ ferriesSydneyferriesGetDebugListFromJson(
 }
 
 List<enums.FerriesSydneyferriesGetDebug>?
-ferriesSydneyferriesGetDebugNullableListFromJson(
+    ferriesSydneyferriesGetDebugNullableListFromJson(
   List? ferriesSydneyferriesGetDebug, [
   List<enums.FerriesSydneyferriesGetDebug>? defaultValue,
 ]) {
@@ -728,7 +724,7 @@ enums.LightrailCbdandsoutheastGetDebug lightrailCbdandsoutheastGetDebugFromJson(
 }
 
 enums.LightrailCbdandsoutheastGetDebug?
-lightrailCbdandsoutheastGetDebugNullableFromJson(
+    lightrailCbdandsoutheastGetDebugNullableFromJson(
   Object? lightrailCbdandsoutheastGetDebug, [
   enums.LightrailCbdandsoutheastGetDebug? defaultValue,
 ]) {
@@ -743,14 +739,14 @@ lightrailCbdandsoutheastGetDebugNullableFromJson(
 
 String lightrailCbdandsoutheastGetDebugExplodedListToJson(
   List<enums.LightrailCbdandsoutheastGetDebug>?
-  lightrailCbdandsoutheastGetDebug,
+      lightrailCbdandsoutheastGetDebug,
 ) {
   return lightrailCbdandsoutheastGetDebug?.map((e) => e.value!).join(',') ?? '';
 }
 
 List<String> lightrailCbdandsoutheastGetDebugListToJson(
   List<enums.LightrailCbdandsoutheastGetDebug>?
-  lightrailCbdandsoutheastGetDebug,
+      lightrailCbdandsoutheastGetDebug,
 ) {
   if (lightrailCbdandsoutheastGetDebug == null) {
     return [];
@@ -760,7 +756,7 @@ List<String> lightrailCbdandsoutheastGetDebugListToJson(
 }
 
 List<enums.LightrailCbdandsoutheastGetDebug>
-lightrailCbdandsoutheastGetDebugListFromJson(
+    lightrailCbdandsoutheastGetDebugListFromJson(
   List? lightrailCbdandsoutheastGetDebug, [
   List<enums.LightrailCbdandsoutheastGetDebug>? defaultValue,
 ]) {
@@ -774,7 +770,7 @@ lightrailCbdandsoutheastGetDebugListFromJson(
 }
 
 List<enums.LightrailCbdandsoutheastGetDebug>?
-lightrailCbdandsoutheastGetDebugNullableListFromJson(
+    lightrailCbdandsoutheastGetDebugNullableListFromJson(
   List? lightrailCbdandsoutheastGetDebug, [
   List<enums.LightrailCbdandsoutheastGetDebug>? defaultValue,
 ]) {
@@ -853,7 +849,7 @@ List<enums.LightrailInnerwestGetDebug> lightrailInnerwestGetDebugListFromJson(
 }
 
 List<enums.LightrailInnerwestGetDebug>?
-lightrailInnerwestGetDebugNullableListFromJson(
+    lightrailInnerwestGetDebugNullableListFromJson(
   List? lightrailInnerwestGetDebug, [
   List<enums.LightrailInnerwestGetDebug>? defaultValue,
 ]) {
@@ -932,7 +928,7 @@ List<enums.LightrailNewcastleGetDebug> lightrailNewcastleGetDebugListFromJson(
 }
 
 List<enums.LightrailNewcastleGetDebug>?
-lightrailNewcastleGetDebugNullableListFromJson(
+    lightrailNewcastleGetDebugNullableListFromJson(
   List? lightrailNewcastleGetDebug, [
   List<enums.LightrailNewcastleGetDebug>? defaultValue,
 ]) {
@@ -1011,7 +1007,7 @@ List<enums.LightrailParramattaGetDebug> lightrailParramattaGetDebugListFromJson(
 }
 
 List<enums.LightrailParramattaGetDebug>?
-lightrailParramattaGetDebugNullableListFromJson(
+    lightrailParramattaGetDebugNullableListFromJson(
   List? lightrailParramattaGetDebug, [
   List<enums.LightrailParramattaGetDebug>? defaultValue,
 ]) {
@@ -1102,20 +1098,20 @@ List<enums.NswtrainsGetDebug>? nswtrainsGetDebugNullableListFromJson(
 
 String? regionbusesCentralwestandoranaGetDebugNullableToJson(
   enums.RegionbusesCentralwestandoranaGetDebug?
-  regionbusesCentralwestandoranaGetDebug,
+      regionbusesCentralwestandoranaGetDebug,
 ) {
   return regionbusesCentralwestandoranaGetDebug?.value;
 }
 
 String? regionbusesCentralwestandoranaGetDebugToJson(
   enums.RegionbusesCentralwestandoranaGetDebug
-  regionbusesCentralwestandoranaGetDebug,
+      regionbusesCentralwestandoranaGetDebug,
 ) {
   return regionbusesCentralwestandoranaGetDebug.value;
 }
 
 enums.RegionbusesCentralwestandoranaGetDebug
-regionbusesCentralwestandoranaGetDebugFromJson(
+    regionbusesCentralwestandoranaGetDebugFromJson(
   Object? regionbusesCentralwestandoranaGetDebug, [
   enums.RegionbusesCentralwestandoranaGetDebug? defaultValue,
 ]) {
@@ -1127,7 +1123,7 @@ regionbusesCentralwestandoranaGetDebugFromJson(
 }
 
 enums.RegionbusesCentralwestandoranaGetDebug?
-regionbusesCentralwestandoranaGetDebugNullableFromJson(
+    regionbusesCentralwestandoranaGetDebugNullableFromJson(
   Object? regionbusesCentralwestandoranaGetDebug, [
   enums.RegionbusesCentralwestandoranaGetDebug? defaultValue,
 ]) {
@@ -1142,7 +1138,7 @@ regionbusesCentralwestandoranaGetDebugNullableFromJson(
 
 String regionbusesCentralwestandoranaGetDebugExplodedListToJson(
   List<enums.RegionbusesCentralwestandoranaGetDebug>?
-  regionbusesCentralwestandoranaGetDebug,
+      regionbusesCentralwestandoranaGetDebug,
 ) {
   return regionbusesCentralwestandoranaGetDebug
           ?.map((e) => e.value!)
@@ -1152,7 +1148,7 @@ String regionbusesCentralwestandoranaGetDebugExplodedListToJson(
 
 List<String> regionbusesCentralwestandoranaGetDebugListToJson(
   List<enums.RegionbusesCentralwestandoranaGetDebug>?
-  regionbusesCentralwestandoranaGetDebug,
+      regionbusesCentralwestandoranaGetDebug,
 ) {
   if (regionbusesCentralwestandoranaGetDebug == null) {
     return [];
@@ -1162,7 +1158,7 @@ List<String> regionbusesCentralwestandoranaGetDebugListToJson(
 }
 
 List<enums.RegionbusesCentralwestandoranaGetDebug>
-regionbusesCentralwestandoranaGetDebugListFromJson(
+    regionbusesCentralwestandoranaGetDebugListFromJson(
   List? regionbusesCentralwestandoranaGetDebug, [
   List<enums.RegionbusesCentralwestandoranaGetDebug>? defaultValue,
 ]) {
@@ -1176,7 +1172,7 @@ regionbusesCentralwestandoranaGetDebugListFromJson(
 }
 
 List<enums.RegionbusesCentralwestandoranaGetDebug>?
-regionbusesCentralwestandoranaGetDebugNullableListFromJson(
+    regionbusesCentralwestandoranaGetDebugNullableListFromJson(
   List? regionbusesCentralwestandoranaGetDebug, [
   List<enums.RegionbusesCentralwestandoranaGetDebug>? defaultValue,
 ]) {
@@ -1191,20 +1187,20 @@ regionbusesCentralwestandoranaGetDebugNullableListFromJson(
 
 String? regionbusesCentralwestandorana2GetDebugNullableToJson(
   enums.RegionbusesCentralwestandorana2GetDebug?
-  regionbusesCentralwestandorana2GetDebug,
+      regionbusesCentralwestandorana2GetDebug,
 ) {
   return regionbusesCentralwestandorana2GetDebug?.value;
 }
 
 String? regionbusesCentralwestandorana2GetDebugToJson(
   enums.RegionbusesCentralwestandorana2GetDebug
-  regionbusesCentralwestandorana2GetDebug,
+      regionbusesCentralwestandorana2GetDebug,
 ) {
   return regionbusesCentralwestandorana2GetDebug.value;
 }
 
 enums.RegionbusesCentralwestandorana2GetDebug
-regionbusesCentralwestandorana2GetDebugFromJson(
+    regionbusesCentralwestandorana2GetDebugFromJson(
   Object? regionbusesCentralwestandorana2GetDebug, [
   enums.RegionbusesCentralwestandorana2GetDebug? defaultValue,
 ]) {
@@ -1216,7 +1212,7 @@ regionbusesCentralwestandorana2GetDebugFromJson(
 }
 
 enums.RegionbusesCentralwestandorana2GetDebug?
-regionbusesCentralwestandorana2GetDebugNullableFromJson(
+    regionbusesCentralwestandorana2GetDebugNullableFromJson(
   Object? regionbusesCentralwestandorana2GetDebug, [
   enums.RegionbusesCentralwestandorana2GetDebug? defaultValue,
 ]) {
@@ -1231,7 +1227,7 @@ regionbusesCentralwestandorana2GetDebugNullableFromJson(
 
 String regionbusesCentralwestandorana2GetDebugExplodedListToJson(
   List<enums.RegionbusesCentralwestandorana2GetDebug>?
-  regionbusesCentralwestandorana2GetDebug,
+      regionbusesCentralwestandorana2GetDebug,
 ) {
   return regionbusesCentralwestandorana2GetDebug
           ?.map((e) => e.value!)
@@ -1241,7 +1237,7 @@ String regionbusesCentralwestandorana2GetDebugExplodedListToJson(
 
 List<String> regionbusesCentralwestandorana2GetDebugListToJson(
   List<enums.RegionbusesCentralwestandorana2GetDebug>?
-  regionbusesCentralwestandorana2GetDebug,
+      regionbusesCentralwestandorana2GetDebug,
 ) {
   if (regionbusesCentralwestandorana2GetDebug == null) {
     return [];
@@ -1251,7 +1247,7 @@ List<String> regionbusesCentralwestandorana2GetDebugListToJson(
 }
 
 List<enums.RegionbusesCentralwestandorana2GetDebug>
-regionbusesCentralwestandorana2GetDebugListFromJson(
+    regionbusesCentralwestandorana2GetDebugListFromJson(
   List? regionbusesCentralwestandorana2GetDebug, [
   List<enums.RegionbusesCentralwestandorana2GetDebug>? defaultValue,
 ]) {
@@ -1265,7 +1261,7 @@ regionbusesCentralwestandorana2GetDebugListFromJson(
 }
 
 List<enums.RegionbusesCentralwestandorana2GetDebug>?
-regionbusesCentralwestandorana2GetDebugNullableListFromJson(
+    regionbusesCentralwestandorana2GetDebugNullableListFromJson(
   List? regionbusesCentralwestandorana2GetDebug, [
   List<enums.RegionbusesCentralwestandorana2GetDebug>? defaultValue,
 ]) {
@@ -1344,7 +1340,7 @@ List<enums.RegionbusesFarwestGetDebug> regionbusesFarwestGetDebugListFromJson(
 }
 
 List<enums.RegionbusesFarwestGetDebug>?
-regionbusesFarwestGetDebugNullableListFromJson(
+    regionbusesFarwestGetDebugNullableListFromJson(
   List? regionbusesFarwestGetDebug, [
   List<enums.RegionbusesFarwestGetDebug>? defaultValue,
 ]) {
@@ -1370,7 +1366,7 @@ String? regionbusesNewcastlehunterGetDebugToJson(
 }
 
 enums.RegionbusesNewcastlehunterGetDebug
-regionbusesNewcastlehunterGetDebugFromJson(
+    regionbusesNewcastlehunterGetDebugFromJson(
   Object? regionbusesNewcastlehunterGetDebug, [
   enums.RegionbusesNewcastlehunterGetDebug? defaultValue,
 ]) {
@@ -1382,7 +1378,7 @@ regionbusesNewcastlehunterGetDebugFromJson(
 }
 
 enums.RegionbusesNewcastlehunterGetDebug?
-regionbusesNewcastlehunterGetDebugNullableFromJson(
+    regionbusesNewcastlehunterGetDebugNullableFromJson(
   Object? regionbusesNewcastlehunterGetDebug, [
   enums.RegionbusesNewcastlehunterGetDebug? defaultValue,
 ]) {
@@ -1397,7 +1393,7 @@ regionbusesNewcastlehunterGetDebugNullableFromJson(
 
 String regionbusesNewcastlehunterGetDebugExplodedListToJson(
   List<enums.RegionbusesNewcastlehunterGetDebug>?
-  regionbusesNewcastlehunterGetDebug,
+      regionbusesNewcastlehunterGetDebug,
 ) {
   return regionbusesNewcastlehunterGetDebug?.map((e) => e.value!).join(',') ??
       '';
@@ -1405,7 +1401,7 @@ String regionbusesNewcastlehunterGetDebugExplodedListToJson(
 
 List<String> regionbusesNewcastlehunterGetDebugListToJson(
   List<enums.RegionbusesNewcastlehunterGetDebug>?
-  regionbusesNewcastlehunterGetDebug,
+      regionbusesNewcastlehunterGetDebug,
 ) {
   if (regionbusesNewcastlehunterGetDebug == null) {
     return [];
@@ -1415,7 +1411,7 @@ List<String> regionbusesNewcastlehunterGetDebugListToJson(
 }
 
 List<enums.RegionbusesNewcastlehunterGetDebug>
-regionbusesNewcastlehunterGetDebugListFromJson(
+    regionbusesNewcastlehunterGetDebugListFromJson(
   List? regionbusesNewcastlehunterGetDebug, [
   List<enums.RegionbusesNewcastlehunterGetDebug>? defaultValue,
 ]) {
@@ -1429,7 +1425,7 @@ regionbusesNewcastlehunterGetDebugListFromJson(
 }
 
 List<enums.RegionbusesNewcastlehunterGetDebug>?
-regionbusesNewcastlehunterGetDebugNullableListFromJson(
+    regionbusesNewcastlehunterGetDebugNullableListFromJson(
   List? regionbusesNewcastlehunterGetDebug, [
   List<enums.RegionbusesNewcastlehunterGetDebug>? defaultValue,
 ]) {
@@ -1444,20 +1440,20 @@ regionbusesNewcastlehunterGetDebugNullableListFromJson(
 
 String? regionbusesNewenglandnorthwestGetDebugNullableToJson(
   enums.RegionbusesNewenglandnorthwestGetDebug?
-  regionbusesNewenglandnorthwestGetDebug,
+      regionbusesNewenglandnorthwestGetDebug,
 ) {
   return regionbusesNewenglandnorthwestGetDebug?.value;
 }
 
 String? regionbusesNewenglandnorthwestGetDebugToJson(
   enums.RegionbusesNewenglandnorthwestGetDebug
-  regionbusesNewenglandnorthwestGetDebug,
+      regionbusesNewenglandnorthwestGetDebug,
 ) {
   return regionbusesNewenglandnorthwestGetDebug.value;
 }
 
 enums.RegionbusesNewenglandnorthwestGetDebug
-regionbusesNewenglandnorthwestGetDebugFromJson(
+    regionbusesNewenglandnorthwestGetDebugFromJson(
   Object? regionbusesNewenglandnorthwestGetDebug, [
   enums.RegionbusesNewenglandnorthwestGetDebug? defaultValue,
 ]) {
@@ -1469,7 +1465,7 @@ regionbusesNewenglandnorthwestGetDebugFromJson(
 }
 
 enums.RegionbusesNewenglandnorthwestGetDebug?
-regionbusesNewenglandnorthwestGetDebugNullableFromJson(
+    regionbusesNewenglandnorthwestGetDebugNullableFromJson(
   Object? regionbusesNewenglandnorthwestGetDebug, [
   enums.RegionbusesNewenglandnorthwestGetDebug? defaultValue,
 ]) {
@@ -1484,7 +1480,7 @@ regionbusesNewenglandnorthwestGetDebugNullableFromJson(
 
 String regionbusesNewenglandnorthwestGetDebugExplodedListToJson(
   List<enums.RegionbusesNewenglandnorthwestGetDebug>?
-  regionbusesNewenglandnorthwestGetDebug,
+      regionbusesNewenglandnorthwestGetDebug,
 ) {
   return regionbusesNewenglandnorthwestGetDebug
           ?.map((e) => e.value!)
@@ -1494,7 +1490,7 @@ String regionbusesNewenglandnorthwestGetDebugExplodedListToJson(
 
 List<String> regionbusesNewenglandnorthwestGetDebugListToJson(
   List<enums.RegionbusesNewenglandnorthwestGetDebug>?
-  regionbusesNewenglandnorthwestGetDebug,
+      regionbusesNewenglandnorthwestGetDebug,
 ) {
   if (regionbusesNewenglandnorthwestGetDebug == null) {
     return [];
@@ -1504,7 +1500,7 @@ List<String> regionbusesNewenglandnorthwestGetDebugListToJson(
 }
 
 List<enums.RegionbusesNewenglandnorthwestGetDebug>
-regionbusesNewenglandnorthwestGetDebugListFromJson(
+    regionbusesNewenglandnorthwestGetDebugListFromJson(
   List? regionbusesNewenglandnorthwestGetDebug, [
   List<enums.RegionbusesNewenglandnorthwestGetDebug>? defaultValue,
 ]) {
@@ -1518,7 +1514,7 @@ regionbusesNewenglandnorthwestGetDebugListFromJson(
 }
 
 List<enums.RegionbusesNewenglandnorthwestGetDebug>?
-regionbusesNewenglandnorthwestGetDebugNullableListFromJson(
+    regionbusesNewenglandnorthwestGetDebugNullableListFromJson(
   List? regionbusesNewenglandnorthwestGetDebug, [
   List<enums.RegionbusesNewenglandnorthwestGetDebug>? defaultValue,
 ]) {
@@ -1555,7 +1551,7 @@ enums.RegionbusesNorthcoastGetDebug regionbusesNorthcoastGetDebugFromJson(
 }
 
 enums.RegionbusesNorthcoastGetDebug?
-regionbusesNorthcoastGetDebugNullableFromJson(
+    regionbusesNorthcoastGetDebugNullableFromJson(
   Object? regionbusesNorthcoastGetDebug, [
   enums.RegionbusesNorthcoastGetDebug? defaultValue,
 ]) {
@@ -1585,7 +1581,7 @@ List<String> regionbusesNorthcoastGetDebugListToJson(
 }
 
 List<enums.RegionbusesNorthcoastGetDebug>
-regionbusesNorthcoastGetDebugListFromJson(
+    regionbusesNorthcoastGetDebugListFromJson(
   List? regionbusesNorthcoastGetDebug, [
   List<enums.RegionbusesNorthcoastGetDebug>? defaultValue,
 ]) {
@@ -1599,7 +1595,7 @@ regionbusesNorthcoastGetDebugListFromJson(
 }
 
 List<enums.RegionbusesNorthcoastGetDebug>?
-regionbusesNorthcoastGetDebugNullableListFromJson(
+    regionbusesNorthcoastGetDebugNullableListFromJson(
   List? regionbusesNorthcoastGetDebug, [
   List<enums.RegionbusesNorthcoastGetDebug>? defaultValue,
 ]) {
@@ -1636,7 +1632,7 @@ enums.RegionbusesNorthcoast2GetDebug regionbusesNorthcoast2GetDebugFromJson(
 }
 
 enums.RegionbusesNorthcoast2GetDebug?
-regionbusesNorthcoast2GetDebugNullableFromJson(
+    regionbusesNorthcoast2GetDebugNullableFromJson(
   Object? regionbusesNorthcoast2GetDebug, [
   enums.RegionbusesNorthcoast2GetDebug? defaultValue,
 ]) {
@@ -1666,7 +1662,7 @@ List<String> regionbusesNorthcoast2GetDebugListToJson(
 }
 
 List<enums.RegionbusesNorthcoast2GetDebug>
-regionbusesNorthcoast2GetDebugListFromJson(
+    regionbusesNorthcoast2GetDebugListFromJson(
   List? regionbusesNorthcoast2GetDebug, [
   List<enums.RegionbusesNorthcoast2GetDebug>? defaultValue,
 ]) {
@@ -1680,7 +1676,7 @@ regionbusesNorthcoast2GetDebugListFromJson(
 }
 
 List<enums.RegionbusesNorthcoast2GetDebug>?
-regionbusesNorthcoast2GetDebugNullableListFromJson(
+    regionbusesNorthcoast2GetDebugNullableListFromJson(
   List? regionbusesNorthcoast2GetDebug, [
   List<enums.RegionbusesNorthcoast2GetDebug>? defaultValue,
 ]) {
@@ -1717,7 +1713,7 @@ enums.RegionbusesNorthcoast3GetDebug regionbusesNorthcoast3GetDebugFromJson(
 }
 
 enums.RegionbusesNorthcoast3GetDebug?
-regionbusesNorthcoast3GetDebugNullableFromJson(
+    regionbusesNorthcoast3GetDebugNullableFromJson(
   Object? regionbusesNorthcoast3GetDebug, [
   enums.RegionbusesNorthcoast3GetDebug? defaultValue,
 ]) {
@@ -1747,7 +1743,7 @@ List<String> regionbusesNorthcoast3GetDebugListToJson(
 }
 
 List<enums.RegionbusesNorthcoast3GetDebug>
-regionbusesNorthcoast3GetDebugListFromJson(
+    regionbusesNorthcoast3GetDebugListFromJson(
   List? regionbusesNorthcoast3GetDebug, [
   List<enums.RegionbusesNorthcoast3GetDebug>? defaultValue,
 ]) {
@@ -1761,7 +1757,7 @@ regionbusesNorthcoast3GetDebugListFromJson(
 }
 
 List<enums.RegionbusesNorthcoast3GetDebug>?
-regionbusesNorthcoast3GetDebugNullableListFromJson(
+    regionbusesNorthcoast3GetDebugNullableListFromJson(
   List? regionbusesNorthcoast3GetDebug, [
   List<enums.RegionbusesNorthcoast3GetDebug>? defaultValue,
 ]) {
@@ -1787,7 +1783,7 @@ String? regionbusesRiverinamurrayGetDebugToJson(
 }
 
 enums.RegionbusesRiverinamurrayGetDebug
-regionbusesRiverinamurrayGetDebugFromJson(
+    regionbusesRiverinamurrayGetDebugFromJson(
   Object? regionbusesRiverinamurrayGetDebug, [
   enums.RegionbusesRiverinamurrayGetDebug? defaultValue,
 ]) {
@@ -1799,7 +1795,7 @@ regionbusesRiverinamurrayGetDebugFromJson(
 }
 
 enums.RegionbusesRiverinamurrayGetDebug?
-regionbusesRiverinamurrayGetDebugNullableFromJson(
+    regionbusesRiverinamurrayGetDebugNullableFromJson(
   Object? regionbusesRiverinamurrayGetDebug, [
   enums.RegionbusesRiverinamurrayGetDebug? defaultValue,
 ]) {
@@ -1814,7 +1810,7 @@ regionbusesRiverinamurrayGetDebugNullableFromJson(
 
 String regionbusesRiverinamurrayGetDebugExplodedListToJson(
   List<enums.RegionbusesRiverinamurrayGetDebug>?
-  regionbusesRiverinamurrayGetDebug,
+      regionbusesRiverinamurrayGetDebug,
 ) {
   return regionbusesRiverinamurrayGetDebug?.map((e) => e.value!).join(',') ??
       '';
@@ -1822,7 +1818,7 @@ String regionbusesRiverinamurrayGetDebugExplodedListToJson(
 
 List<String> regionbusesRiverinamurrayGetDebugListToJson(
   List<enums.RegionbusesRiverinamurrayGetDebug>?
-  regionbusesRiverinamurrayGetDebug,
+      regionbusesRiverinamurrayGetDebug,
 ) {
   if (regionbusesRiverinamurrayGetDebug == null) {
     return [];
@@ -1832,7 +1828,7 @@ List<String> regionbusesRiverinamurrayGetDebugListToJson(
 }
 
 List<enums.RegionbusesRiverinamurrayGetDebug>
-regionbusesRiverinamurrayGetDebugListFromJson(
+    regionbusesRiverinamurrayGetDebugListFromJson(
   List? regionbusesRiverinamurrayGetDebug, [
   List<enums.RegionbusesRiverinamurrayGetDebug>? defaultValue,
 ]) {
@@ -1846,7 +1842,7 @@ regionbusesRiverinamurrayGetDebugListFromJson(
 }
 
 List<enums.RegionbusesRiverinamurrayGetDebug>?
-regionbusesRiverinamurrayGetDebugNullableListFromJson(
+    regionbusesRiverinamurrayGetDebugNullableListFromJson(
   List? regionbusesRiverinamurrayGetDebug, [
   List<enums.RegionbusesRiverinamurrayGetDebug>? defaultValue,
 ]) {
@@ -1872,7 +1868,7 @@ String? regionbusesRiverinamurray2GetDebugToJson(
 }
 
 enums.RegionbusesRiverinamurray2GetDebug
-regionbusesRiverinamurray2GetDebugFromJson(
+    regionbusesRiverinamurray2GetDebugFromJson(
   Object? regionbusesRiverinamurray2GetDebug, [
   enums.RegionbusesRiverinamurray2GetDebug? defaultValue,
 ]) {
@@ -1884,7 +1880,7 @@ regionbusesRiverinamurray2GetDebugFromJson(
 }
 
 enums.RegionbusesRiverinamurray2GetDebug?
-regionbusesRiverinamurray2GetDebugNullableFromJson(
+    regionbusesRiverinamurray2GetDebugNullableFromJson(
   Object? regionbusesRiverinamurray2GetDebug, [
   enums.RegionbusesRiverinamurray2GetDebug? defaultValue,
 ]) {
@@ -1899,7 +1895,7 @@ regionbusesRiverinamurray2GetDebugNullableFromJson(
 
 String regionbusesRiverinamurray2GetDebugExplodedListToJson(
   List<enums.RegionbusesRiverinamurray2GetDebug>?
-  regionbusesRiverinamurray2GetDebug,
+      regionbusesRiverinamurray2GetDebug,
 ) {
   return regionbusesRiverinamurray2GetDebug?.map((e) => e.value!).join(',') ??
       '';
@@ -1907,7 +1903,7 @@ String regionbusesRiverinamurray2GetDebugExplodedListToJson(
 
 List<String> regionbusesRiverinamurray2GetDebugListToJson(
   List<enums.RegionbusesRiverinamurray2GetDebug>?
-  regionbusesRiverinamurray2GetDebug,
+      regionbusesRiverinamurray2GetDebug,
 ) {
   if (regionbusesRiverinamurray2GetDebug == null) {
     return [];
@@ -1917,7 +1913,7 @@ List<String> regionbusesRiverinamurray2GetDebugListToJson(
 }
 
 List<enums.RegionbusesRiverinamurray2GetDebug>
-regionbusesRiverinamurray2GetDebugListFromJson(
+    regionbusesRiverinamurray2GetDebugListFromJson(
   List? regionbusesRiverinamurray2GetDebug, [
   List<enums.RegionbusesRiverinamurray2GetDebug>? defaultValue,
 ]) {
@@ -1931,7 +1927,7 @@ regionbusesRiverinamurray2GetDebugListFromJson(
 }
 
 List<enums.RegionbusesRiverinamurray2GetDebug>?
-regionbusesRiverinamurray2GetDebugNullableListFromJson(
+    regionbusesRiverinamurray2GetDebugNullableListFromJson(
   List? regionbusesRiverinamurray2GetDebug, [
   List<enums.RegionbusesRiverinamurray2GetDebug>? defaultValue,
 ]) {
@@ -1946,20 +1942,20 @@ regionbusesRiverinamurray2GetDebugNullableListFromJson(
 
 String? regionbusesSoutheasttablelandsGetDebugNullableToJson(
   enums.RegionbusesSoutheasttablelandsGetDebug?
-  regionbusesSoutheasttablelandsGetDebug,
+      regionbusesSoutheasttablelandsGetDebug,
 ) {
   return regionbusesSoutheasttablelandsGetDebug?.value;
 }
 
 String? regionbusesSoutheasttablelandsGetDebugToJson(
   enums.RegionbusesSoutheasttablelandsGetDebug
-  regionbusesSoutheasttablelandsGetDebug,
+      regionbusesSoutheasttablelandsGetDebug,
 ) {
   return regionbusesSoutheasttablelandsGetDebug.value;
 }
 
 enums.RegionbusesSoutheasttablelandsGetDebug
-regionbusesSoutheasttablelandsGetDebugFromJson(
+    regionbusesSoutheasttablelandsGetDebugFromJson(
   Object? regionbusesSoutheasttablelandsGetDebug, [
   enums.RegionbusesSoutheasttablelandsGetDebug? defaultValue,
 ]) {
@@ -1971,7 +1967,7 @@ regionbusesSoutheasttablelandsGetDebugFromJson(
 }
 
 enums.RegionbusesSoutheasttablelandsGetDebug?
-regionbusesSoutheasttablelandsGetDebugNullableFromJson(
+    regionbusesSoutheasttablelandsGetDebugNullableFromJson(
   Object? regionbusesSoutheasttablelandsGetDebug, [
   enums.RegionbusesSoutheasttablelandsGetDebug? defaultValue,
 ]) {
@@ -1986,7 +1982,7 @@ regionbusesSoutheasttablelandsGetDebugNullableFromJson(
 
 String regionbusesSoutheasttablelandsGetDebugExplodedListToJson(
   List<enums.RegionbusesSoutheasttablelandsGetDebug>?
-  regionbusesSoutheasttablelandsGetDebug,
+      regionbusesSoutheasttablelandsGetDebug,
 ) {
   return regionbusesSoutheasttablelandsGetDebug
           ?.map((e) => e.value!)
@@ -1996,7 +1992,7 @@ String regionbusesSoutheasttablelandsGetDebugExplodedListToJson(
 
 List<String> regionbusesSoutheasttablelandsGetDebugListToJson(
   List<enums.RegionbusesSoutheasttablelandsGetDebug>?
-  regionbusesSoutheasttablelandsGetDebug,
+      regionbusesSoutheasttablelandsGetDebug,
 ) {
   if (regionbusesSoutheasttablelandsGetDebug == null) {
     return [];
@@ -2006,7 +2002,7 @@ List<String> regionbusesSoutheasttablelandsGetDebugListToJson(
 }
 
 List<enums.RegionbusesSoutheasttablelandsGetDebug>
-regionbusesSoutheasttablelandsGetDebugListFromJson(
+    regionbusesSoutheasttablelandsGetDebugListFromJson(
   List? regionbusesSoutheasttablelandsGetDebug, [
   List<enums.RegionbusesSoutheasttablelandsGetDebug>? defaultValue,
 ]) {
@@ -2020,7 +2016,7 @@ regionbusesSoutheasttablelandsGetDebugListFromJson(
 }
 
 List<enums.RegionbusesSoutheasttablelandsGetDebug>?
-regionbusesSoutheasttablelandsGetDebugNullableListFromJson(
+    regionbusesSoutheasttablelandsGetDebugNullableListFromJson(
   List? regionbusesSoutheasttablelandsGetDebug, [
   List<enums.RegionbusesSoutheasttablelandsGetDebug>? defaultValue,
 ]) {
@@ -2035,20 +2031,20 @@ regionbusesSoutheasttablelandsGetDebugNullableListFromJson(
 
 String? regionbusesSoutheasttablelands2GetDebugNullableToJson(
   enums.RegionbusesSoutheasttablelands2GetDebug?
-  regionbusesSoutheasttablelands2GetDebug,
+      regionbusesSoutheasttablelands2GetDebug,
 ) {
   return regionbusesSoutheasttablelands2GetDebug?.value;
 }
 
 String? regionbusesSoutheasttablelands2GetDebugToJson(
   enums.RegionbusesSoutheasttablelands2GetDebug
-  regionbusesSoutheasttablelands2GetDebug,
+      regionbusesSoutheasttablelands2GetDebug,
 ) {
   return regionbusesSoutheasttablelands2GetDebug.value;
 }
 
 enums.RegionbusesSoutheasttablelands2GetDebug
-regionbusesSoutheasttablelands2GetDebugFromJson(
+    regionbusesSoutheasttablelands2GetDebugFromJson(
   Object? regionbusesSoutheasttablelands2GetDebug, [
   enums.RegionbusesSoutheasttablelands2GetDebug? defaultValue,
 ]) {
@@ -2060,7 +2056,7 @@ regionbusesSoutheasttablelands2GetDebugFromJson(
 }
 
 enums.RegionbusesSoutheasttablelands2GetDebug?
-regionbusesSoutheasttablelands2GetDebugNullableFromJson(
+    regionbusesSoutheasttablelands2GetDebugNullableFromJson(
   Object? regionbusesSoutheasttablelands2GetDebug, [
   enums.RegionbusesSoutheasttablelands2GetDebug? defaultValue,
 ]) {
@@ -2075,7 +2071,7 @@ regionbusesSoutheasttablelands2GetDebugNullableFromJson(
 
 String regionbusesSoutheasttablelands2GetDebugExplodedListToJson(
   List<enums.RegionbusesSoutheasttablelands2GetDebug>?
-  regionbusesSoutheasttablelands2GetDebug,
+      regionbusesSoutheasttablelands2GetDebug,
 ) {
   return regionbusesSoutheasttablelands2GetDebug
           ?.map((e) => e.value!)
@@ -2085,7 +2081,7 @@ String regionbusesSoutheasttablelands2GetDebugExplodedListToJson(
 
 List<String> regionbusesSoutheasttablelands2GetDebugListToJson(
   List<enums.RegionbusesSoutheasttablelands2GetDebug>?
-  regionbusesSoutheasttablelands2GetDebug,
+      regionbusesSoutheasttablelands2GetDebug,
 ) {
   if (regionbusesSoutheasttablelands2GetDebug == null) {
     return [];
@@ -2095,7 +2091,7 @@ List<String> regionbusesSoutheasttablelands2GetDebugListToJson(
 }
 
 List<enums.RegionbusesSoutheasttablelands2GetDebug>
-regionbusesSoutheasttablelands2GetDebugListFromJson(
+    regionbusesSoutheasttablelands2GetDebugListFromJson(
   List? regionbusesSoutheasttablelands2GetDebug, [
   List<enums.RegionbusesSoutheasttablelands2GetDebug>? defaultValue,
 ]) {
@@ -2109,7 +2105,7 @@ regionbusesSoutheasttablelands2GetDebugListFromJson(
 }
 
 List<enums.RegionbusesSoutheasttablelands2GetDebug>?
-regionbusesSoutheasttablelands2GetDebugNullableListFromJson(
+    regionbusesSoutheasttablelands2GetDebugNullableListFromJson(
   List? regionbusesSoutheasttablelands2GetDebug, [
   List<enums.RegionbusesSoutheasttablelands2GetDebug>? defaultValue,
 ]) {
@@ -2135,7 +2131,7 @@ String? regionbusesSydneysurroundsGetDebugToJson(
 }
 
 enums.RegionbusesSydneysurroundsGetDebug
-regionbusesSydneysurroundsGetDebugFromJson(
+    regionbusesSydneysurroundsGetDebugFromJson(
   Object? regionbusesSydneysurroundsGetDebug, [
   enums.RegionbusesSydneysurroundsGetDebug? defaultValue,
 ]) {
@@ -2147,7 +2143,7 @@ regionbusesSydneysurroundsGetDebugFromJson(
 }
 
 enums.RegionbusesSydneysurroundsGetDebug?
-regionbusesSydneysurroundsGetDebugNullableFromJson(
+    regionbusesSydneysurroundsGetDebugNullableFromJson(
   Object? regionbusesSydneysurroundsGetDebug, [
   enums.RegionbusesSydneysurroundsGetDebug? defaultValue,
 ]) {
@@ -2162,7 +2158,7 @@ regionbusesSydneysurroundsGetDebugNullableFromJson(
 
 String regionbusesSydneysurroundsGetDebugExplodedListToJson(
   List<enums.RegionbusesSydneysurroundsGetDebug>?
-  regionbusesSydneysurroundsGetDebug,
+      regionbusesSydneysurroundsGetDebug,
 ) {
   return regionbusesSydneysurroundsGetDebug?.map((e) => e.value!).join(',') ??
       '';
@@ -2170,7 +2166,7 @@ String regionbusesSydneysurroundsGetDebugExplodedListToJson(
 
 List<String> regionbusesSydneysurroundsGetDebugListToJson(
   List<enums.RegionbusesSydneysurroundsGetDebug>?
-  regionbusesSydneysurroundsGetDebug,
+      regionbusesSydneysurroundsGetDebug,
 ) {
   if (regionbusesSydneysurroundsGetDebug == null) {
     return [];
@@ -2180,7 +2176,7 @@ List<String> regionbusesSydneysurroundsGetDebugListToJson(
 }
 
 List<enums.RegionbusesSydneysurroundsGetDebug>
-regionbusesSydneysurroundsGetDebugListFromJson(
+    regionbusesSydneysurroundsGetDebugListFromJson(
   List? regionbusesSydneysurroundsGetDebug, [
   List<enums.RegionbusesSydneysurroundsGetDebug>? defaultValue,
 ]) {
@@ -2194,7 +2190,7 @@ regionbusesSydneysurroundsGetDebugListFromJson(
 }
 
 List<enums.RegionbusesSydneysurroundsGetDebug>?
-regionbusesSydneysurroundsGetDebugNullableListFromJson(
+    regionbusesSydneysurroundsGetDebugNullableListFromJson(
   List? regionbusesSydneysurroundsGetDebug, [
   List<enums.RegionbusesSydneysurroundsGetDebug>? defaultValue,
 ]) {
@@ -2268,9 +2264,8 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body:
-            DateTime.parse((response.body as String).replaceAll('"', ''))
-                as ResultType,
+        body: DateTime.parse((response.body as String).replaceAll('"', ''))
+            as ResultType,
       );
     }
 
