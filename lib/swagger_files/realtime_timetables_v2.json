@@ -1,0 +1,129 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0",
+        "title": "Get GTFS timetables, stops, and route shapes"
+    },
+    "host": "api.transport.nsw.gov.au",
+    "basePath": "/v2/gtfs/schedule",
+    "schemes": [
+        "https"
+    ],
+    "consumes": [
+        "*/*"
+    ],
+    "produces": [
+        "application/octet-stream"
+    ],
+    "tags": [
+        {
+            "name": "sydneymetro"
+        }
+    ],
+    "security": [
+        {
+            "APIKey": []
+        }
+    ],
+    "paths": {
+        "/metro": {
+            "get": {
+                "tags": [
+                    "sydneymetro"
+                ],
+                "summary": "GTFS timetables, stops, and route shapes for Sydney Metro",
+                "operationId": "GetSydneyMetro",
+                "description": "Please see the General Transit Feed Specification (GTFS) documentation here: https://gtfs.org/\n\nReturns ZIP file containing CSV files.\n\nThe HEAD operation can be used to tell you if the content has changed (as GET may not return an HTTP 304 when no content has changed.)\n\nFor example, you may compare the Last-Modified header retrieved during a HEAD operation with the Last-Modified header retrieved during a previous GET operation. If the headers are the same, the content has not changed since the previous GET operation. If the headers are different, the content has changed since the previous GET operation.",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "consumes": [],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "The request has been processed successfully.",
+                        "schema": {
+                            "type": "file"
+                        },
+                        "examples": {}
+                    },
+                    "401": {
+                        "description": "The application calling the API has not been authenticated.",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        },
+                        "examples": {}
+                    },
+                    "404": {
+                        "description": "The requested resource could not be found.",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        },
+                        "examples": {}
+                    },
+                    "500": {
+                        "description": "An internal error has occurred.",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        },
+                        "examples": {}
+                    },
+                    "503": {
+                        "description": "The server is currently unavailable.",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        },
+                        "examples": {}
+                    }
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "APIKey": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Expected Format: apikey [TOKEN]"
+        }
+    },
+    "definitions": {
+        "ErrorDetails": {
+            "type": "object",
+            "required": [
+                "TransactionId",
+                "ErrorDateTime",
+                "Message",
+                "RequestedUrl",
+                "RequestedMethod"
+            ],
+            "description": "Error response",
+            "properties": {
+                "TransactionId": {
+                    "type": "string"
+                },
+                "ErrorDateTime": {
+                    "type": "string"
+                },
+                "Message": {
+                    "type": "string"
+                },
+                "RequestedUrl": {
+                    "type": "string"
+                },
+                "RequestedMethod": {
+                    "type": "string"
+                }
+            },
+            "example": {
+                "ErrorDetails": {
+                    "TransactionId": "XXXXXXXXXX",
+                    "ErrorDateTime": "XXXXXXXXXX",
+                    "Message": "XXXXXXXXXX",
+                    "RequestedUrl": "XXXXXXXXXX",
+                    "RequestedMethod": "XXXXXXXXXX"
+                }
+            }
+        }
+    }
+}

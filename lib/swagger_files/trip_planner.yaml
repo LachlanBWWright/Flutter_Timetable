@@ -1,0 +1,3492 @@
+basePath: /v1/tp
+definitions:
+    AdditionalInfoResponse:
+        description: 'This is the response data returned when performing an `add_info`
+            request.
+
+            '
+        properties:
+            error:
+                $ref: '#/definitions/ApiErrorResponse'
+                description: 'If an error has occurred, this element contains information
+                    about the error.
+
+                    '
+            infos:
+                description: 'Contains each of the returned service alerts.
+
+                    '
+                properties:
+                    affected:
+                        description: 'This specifies the list of affected stops and
+                            lines. It is an aggregate of each of the affected
+
+                            stops and lines listed in the alerts.
+
+                            '
+                        properties:
+                            lines:
+                                description: The specifies all of the lines that are
+                                    listed as affected in the alert information.
+                                items:
+                                    $ref: '#/definitions/AdditionalInfoResponseAffectedLine'
+                                type: array
+                            stops:
+                                description: The specifies all of the stops that are
+                                    listed as affected in the alert information.
+                                items:
+                                    $ref: '#/definitions/AdditionalInfoResponseAffectedStop'
+                                type: array
+                        type: object
+                    current:
+                        description: This specifies the list of current service alerts
+                            based on the specified filters.
+                        items:
+                            $ref: '#/definitions/AdditionalInfoResponseMessage'
+                        type: array
+                    historic:
+                        description: This specifies the list of previous service alerts
+                            based on the specified filters.
+                        items:
+                            $ref: '#/definitions/AdditionalInfoResponseMessage'
+                        type: array
+                type: object
+            timestamp:
+                description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format
+                format: dateTime
+                type: string
+            version:
+                description: 'The version of the API that provided the response. Note
+                    that if this value is different to above, then the returned data
+                    may be
+
+                    different than expected. You can set the expected version using
+                    the `version` request parameter.
+
+                    '
+                type: string
+        type: object
+    AdditionalInfoResponseAffectedLine:
+        description: This element describes a single route that is affected by a service
+            alert.
+        properties:
+            destination:
+                description: This element describes the destination of trips fulfilled
+                    by the given line.
+                properties:
+                    name:
+                        description: This is the name of the destination.
+                        type: string
+                    type:
+                        description: The type of the location the destination is.
+                        enum:
+                        - poi
+                        - singlehouse
+                        - stop
+                        - platform
+                        - street
+                        - locality
+                        - suburb
+                        - gisPoint
+                        - unknown
+                        type: string
+                type: object
+            id:
+                description: This is the unique ID that identifies the given line.
+                type: string
+            name:
+                description: This is the full name of the route.
+                type: string
+            number:
+                description: This is the short name or code of the route.
+                type: string
+            product:
+                $ref: '#/definitions/RouteProduct'
+                description: This element contains additional properties about the
+                    route.
+        type: object
+    AdditionalInfoResponseAffectedStop:
+        description: This element describes a single stop that is affected by a service
+            alert.
+        properties:
+            id:
+                description: 'This the unique ID of the stop that is affected. It
+                    is the same ID that is
+
+                    used elsewhere in the system, such as in `trip` or
+
+                    `stop_finder`.
+
+                    '
+                type: string
+            name:
+                description: This is the title of the affected stop.
+                type: string
+            parent:
+                $ref: '#/definitions/ParentLocation'
+                description: 'If available, contains information about this location''s
+                    parent location. For example, if the
+
+                    stop has a type of `platform`, then this field may contain information
+                    about the station in which
+
+                    the platform is located.
+
+                    '
+            type:
+                description: The type of the location that is affected.
+                enum:
+                - poi
+                - singlehouse
+                - stop
+                - platform
+                - street
+                - locality
+                - suburb
+                - gisPoint
+                - unknown
+                type: string
+        type: object
+    AdditionalInfoResponseMessage:
+        description: This element describes a single service alert.
+        properties:
+            affected:
+                description: 'This contains details about the lines and stops that
+                    are impacted by the described alert.
+
+                    '
+                properties:
+                    lines:
+                        description: This element contains a list of lines affected
+                            by this alert.
+                        items:
+                            $ref: '#/definitions/AdditionalInfoResponseAffectedLine'
+                        type: array
+                    stops:
+                        description: This element contains a list of stops affected
+                            by this alert.
+                        items:
+                            $ref: '#/definitions/AdditionalInfoResponseAffectedStop'
+                        type: array
+                type: object
+            content:
+                description: 'This is the descriptive alert content. It may contain
+                    HTML tags and/or HTML entities.
+
+                    '
+                type: string
+            id:
+                description: 'This is a unique identifier for this particular service
+                    alert.
+
+                    '
+                type: string
+            priority:
+                description: 'This value indicates how important the service alert
+                    is. A value of `high` or `veryHigh` likely indicates that
+
+                    the alert will correspond to an event that impacts the ability
+                    to travel for relevant users, while `low` or `veryLow`
+
+                    might be more of an informational message.
+
+                    '
+                enum:
+                - veryLow
+                - low
+                - normal
+                - high
+                - veryHigh
+                type: string
+            properties:
+                description: 'This element contains a additional information about
+                    the alert.
+
+                    '
+                properties:
+                    providerCode:
+                        description: 'This field uniquely identifies which operator
+                            or organisation entered the alert into the system.
+
+                            '
+                        type: string
+                    smsText:
+                        description: 'This is a plaintext summary of the alert content,
+                            although note that it may contain HTML entities such as
+                            &nbsp;.
+
+                            '
+                        type: string
+                    source:
+                        description: Contains information about who created this alert.
+                        properties:
+                            id:
+                                description: A unique identifier for the creator of
+                                    this alert.
+                                type: string
+                            name:
+                                description: The name of the creator of this alert.
+                                type: string
+                            type:
+                                description: The type of system of the alert creator.
+                                type: string
+                        type: object
+                type: object
+            subtitle:
+                description: 'This is short summary that can be used as a heading
+                    for the alert content. It may contain HTML tags and/or HTML entities.
+
+                    '
+                type: string
+            timestamps:
+                $ref: '#/definitions/AdditionalInfoResponseTimestamps'
+                description: 'This contains a number of timestamps that describe when
+                    the alert was created, and when the described alert actually
+
+                    takes place and/or is relevant.
+
+                    '
+            type:
+                description: 'This indicates the category of the service alert. For
+                    example, if this value is `stopInfo`, then the alert is
+
+                    related to an issue affecting a stop. It is then likely that the
+                    affected lines would be those that stop at
+
+                    the affected stop.
+
+
+                    * `routeInfo`: The alert is related to a specific route
+
+                    * `stopInfo`: The alert is related to a specific stop
+
+                    * `stopBlocking`: This alert is related to a stop closure
+
+                    * `lineInfo`: The alert is related to a specific journey
+
+                    * `bannerInfo`: The alert of high importance and potentially has
+                    a network-wide impact.
+
+                    '
+                enum:
+                - routeInfo
+                - stopInfo
+                - lineInfo
+                - bannerInfo
+                - stopBlocking
+                type: string
+            url:
+                description: This field contains a URL that contains additional information
+                    about the alert.
+                type: string
+            urlText:
+                description: This field contains a title that can be used when displaying
+                    the `infoLinkURL` URL.
+                type: string
+            version:
+                description: 'This number indicates the version of this alert. Initially
+                    when it is created it has version `1`, but if it is then
+
+                    updated it will have a new `lastModification` value and the version
+                    will now be `2`.
+
+                    '
+                type: integer
+        type: object
+    AdditionalInfoResponseTimestamps:
+        description: This element describes timestamps for a service alert.
+        properties:
+            availability:
+                description: 'This describes when the alert should published. Note
+                    that this is used as guidance only and your own
+
+                    needs may vary.
+
+                    '
+                properties:
+                    from:
+                        description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format
+                        format: dateTime
+                        type: string
+                    to:
+                        description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format
+                        format: dateTime
+                        type: string
+                type: object
+            creation:
+                description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format that indicates
+                    when the alert was created.
+                format: dateTime
+                type: string
+            lastModification:
+                description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format that indicates
+                    when the alert was last modified.
+                format: dateTime
+                type: string
+            validity:
+                description: 'This describes when the incident is actually occurring.
+
+                    '
+                items:
+                    properties:
+                        from:
+                            description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format
+                                that indicates the starting date and time of this
+                                date range.
+                            format: dateTime
+                            type: string
+                        to:
+                            description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format
+                                that indicates the ending date and time of this date
+                                range.
+                            format: dateTime
+                            type: string
+                    type: object
+                type: array
+        type: object
+    ApiErrorResponse:
+        description: 'This element contains information about an error that may have
+            occurred when handling an API request.
+
+            '
+        properties:
+            message:
+                description: Describes the error that went wrong
+                type: string
+            versions:
+                description: 'If the error was related to the API version, this element
+                    contains version information.
+
+                    '
+                properties:
+                    controller:
+                        description: The version of the API handling the request
+                        type: string
+                    interfaceMax:
+                        description: The maximum version number that can be requested
+                            in the `version` request parameter.
+                        type: string
+                    interfaceMin:
+                        description: The minimum version number that can be requested
+                            in the `version` request parameter.
+                        type: string
+                type: object
+        type: object
+    CoordRequestResponse:
+        description: 'This is the response data returned when performing an `coord`
+            request.
+
+            '
+        properties:
+            error:
+                $ref: '#/definitions/ApiErrorResponse'
+                description: 'If an error has occurred, this element contains information
+                    about the error.
+
+                    '
+            locations:
+                description: 'This contains a list of all of the stops, reload points
+                    and places of interest found based on the given request.
+
+                    '
+                items:
+                    $ref: '#/definitions/CoordRequestResponseLocation'
+                type: array
+            version:
+                description: 'The version of the API that provided the response. Note
+                    that if this value is different to above, then the returned data
+                    may be
+
+                    different than expected. You can set the expected version using
+                    the `version` request parameter.
+
+                    '
+                type: string
+        type: object
+    CoordRequestResponseLocation:
+        description: 'Describes a single point that is returned based on the given
+            request.
+
+            '
+        properties:
+            coord:
+                description: 'Contains exactly two values: the first value is the
+                    latitude, the second value is the longitude.
+
+                    '
+                items:
+                    format: double
+                    type: number
+                type: array
+            disassembledName:
+                description: 'This is the short version of the location name, which
+                    does not include the suburb or other information.
+
+                    '
+                type: string
+            id:
+                description: 'This is a unique ID for the returned location. Certain
+                    types of ID can be used for subsequent searches performed with
+                    `stop_finder`,
+
+                    or can be used as the origin or destination in an `trip` request.
+                    The format of a location ID differs greatly, depending
+
+                    on the type of location it is.
+
+                    '
+                type: string
+            name:
+                description: 'Contains a human-readable title for the location.
+
+                    '
+                type: string
+            parent:
+                $ref: '#/definitions/ParentLocation'
+                description: 'If available, contains information about this location''s
+                    parent location. For example, if the
+
+                    stop has a type of `platform`, then this field may contain information
+                    about the station in which
+
+                    the platform is located.
+
+                    '
+            properties:
+                description: 'This data contains additional information about each
+                    location, mainly related to how
+
+                    it can be categorised or displayed on a map.
+
+                    '
+                properties:
+                    GIS_DRAW_CLASS:
+                        description: 'This value indicates how the given point can
+                            be represented on a map. For example,
+
+                            if you have different icons for different categories,
+                            use this to determine which icon to use.
+
+
+                            * `CityL`
+
+                            * `CityM`
+
+                            * `CityS`
+
+                            * `CityXL`
+
+                            * `CityXS`
+
+                            * `Generic7`
+
+                            * `Generic8`
+
+                            * `Generic9`
+
+                            * `Generic20`
+
+                            * `PoiAirportPublic`
+
+                            * `PoiCemetry`
+
+                            * `PoiCulture`
+
+                            * `PoiGastro`
+
+                            * `PoiGeneral`
+
+                            * `PoiGovernment`
+
+                            * `PoiHistoric`
+
+                            * `PoiHotel`
+
+                            * `PoiMedicine`
+
+                            * `PoiOthers`
+
+                            * `PoiPark`
+
+                            * `PoiParking`
+
+                            * `PoiPublicBuilding`
+
+                            * `PoiReligion`
+
+                            * `PoiSchool`
+
+                            * `PoiSport`
+
+                            * `PoiSwimming`
+
+                            * `PoiTrafficSpecial`
+
+                            '
+                        type: string
+                    GIS_DRAW_CLASS_TYPE:
+                        description: This value typically either empty or `POINT`.
+                        enum:
+                        - POINT
+                        type: string
+                    GIS_NIVEAU:
+                        description: This data is not used at this time.
+                        type: string
+                    POI_DRAW_CLASS:
+                        description: 'This value indicates how the given point can
+                            be represented on a map. For example,
+
+                            if you have different icons for different categories,
+                            use this to determine which icon to use.
+
+
+                            * `PoiCemetry`
+
+                            * `PoiCulture`
+
+                            * `PoiGastro`
+
+                            * `PoiGeneral`
+
+                            * `PoiGovernment`
+
+                            * `PoiHotel`
+
+                            * `PoiMedicine`
+
+                            * `PoiOthers`
+
+                            * `PoiPark`
+
+                            * `PoiParking`
+
+                            * `PoiPublicBuilding`
+
+                            * `PoiReligion`
+
+                            * `PoiSchool`
+
+                            * `PoiSport`
+
+                            * `PoiSwimming`
+
+                            * `PoiTrafficSpecial`
+
+                            '
+                        type: string
+                    POI_DRAW_CLASS_TYPE:
+                        description: This value typically either empty or `POINT`.
+                        enum:
+                        - POINT
+                        type: string
+                    POI_HIERARCHY_0:
+                        description: 'This field contains a human-readable description
+                            of the category to which this
+
+                            location belongs. See the description for `POI_HIERARCHY_KEY`
+                            for example values that
+
+                            correspond to the given keys.
+
+                            '
+                        type: string
+                    POI_HIERARCHY_KEY:
+                        description: 'This field contains a constant value for the
+                            category to which this category belongs.
+
+
+                            * `A`: Accommodation
+
+                            * `B`: Caravan and Camping
+
+                            * `C`: Cemetary
+
+                            * `D`: Education
+
+                            * `E`: Emergency or Defence
+
+                            * `F`: Entertainment
+
+                            * `G`: Gardens or Parklands
+
+                            * `H`: Golf Clubs
+
+                            * `I`: Historical or Religious
+
+                            * `K`: Local Government
+
+                            * `L`: Medical and Care
+
+                            * `O`: Sporting or Recreation
+
+                            * `Q`: Tourist Attraction
+
+                            * `R`: Transport
+
+                            * `S`: Utilities and Facilities
+
+                            * `T`: Others
+
+                            '
+                        type: string
+                    distance:
+                        description: This is the distance in metres to this location
+                            from the search location.
+                        type: string
+                type: object
+            type:
+                description: 'This specifies the type of the returned item. If you
+                    search with a type of `GIS_POINT`,
+
+                    a returned item has a type of `gisPoint`.
+
+                    '
+                enum:
+                - poi
+                - singlehouse
+                - stop
+                - platform
+                - street
+                - locality
+                - suburb
+                - gisPoint
+                - unknown
+                type: string
+        type: object
+    DepartureMonitorResponse:
+        description: 'This is the response data returned when performing an `departure_mon`
+            request.
+
+            '
+        properties:
+            error:
+                $ref: '#/definitions/ApiErrorResponse'
+                description: 'If an error has occurred, this element contains information
+                    about the error.
+
+                    '
+            locations:
+                description: 'Contains a list of stops that were matched based on
+                    the supplied `type_dm` and `name_dm` request values. There must
+                    be exactly
+
+                    one location present for the `stopEvents` response data to be
+                    populated. Additionally, the `mode` request value must be set
+
+                    to `direct`.
+
+                    '
+                items:
+                    $ref: '#/definitions/StopFinderLocation'
+                type: array
+            stopEvents:
+                description: 'Contains a list of departures/arrivals for the stop
+                    included in the `location` property of the response.
+
+                    '
+                items:
+                    $ref: '#/definitions/DepartureMonitorResponseStopEvent'
+                type: array
+            version:
+                description: 'The version of the API that provided the response. Note
+                    that if this value is different to above, then the returned data
+                    may be
+
+                    different than expected. You can set the expected version using
+                    the `version` request parameter.
+
+                    '
+                type: string
+        type: object
+    DepartureMonitorResponseStopEvent:
+        description: 'Corresponds to a single departure or arrival for the given stop.
+
+            '
+        properties:
+            departureTimePlanned:
+                description: A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format
+                format: dateTime
+                type: string
+            infos:
+                description: 'Contains a number of service alert messages relating
+                    to this stop event.
+
+                    Information returned here is also available using the `add_info`
+                    API endpoint.
+
+                    '
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourneyLegStopInfo'
+                type: array
+            location:
+                $ref: '#/definitions/StopFinderLocation'
+                description: 'This element contains a single location associated with
+                    this stop time.
+
+                    '
+            transportation:
+                $ref: '#/definitions/TripTransportation'
+                description: 'This element describes the mode of transportation and/or
+                    the specific route or trip
+
+                    used for this stop time.
+
+                    '
+        type: object
+    HttpErrorResponse:
+        description: 'This element contains information about a HTTP error that occurred.
+
+            '
+        properties:
+            ErrorDateTime:
+                description: The date and time that the error occurred.
+                type: string
+            Message:
+                description: A detailed message about the error.
+                type: string
+            RequestedMethod:
+                description: The HTTP request method used for the current request.
+                type: string
+            RequestedUrl:
+                description: The URL for the current request.
+                type: string
+            TransactionId:
+                description: A unique identifier for the current request.
+                type: string
+        type: object
+    ParentLocation:
+        description: 'Describes a parent location. Locations are hierarchical, mean
+            a location has a parent, and
+
+            a location may have any number of child locations. A parent location is
+            often included with locations,
+
+            which can help traverse the location tree.
+
+            '
+        properties:
+            disassembledName:
+                description: 'This is the short version of the location name, which
+                    does not include the suburb or other information.
+
+                    '
+                type: string
+            id:
+                description: 'This is a unique ID for the returned location. Certain
+                    types of ID can be used for subsequent searches performed with
+                    `stop_finder`,
+
+                    or can be used as the origin or destination in an `trip` request.
+                    The format of a location ID differs greatly, depending
+
+                    on the type of location it is.
+
+                    '
+                type: string
+            name:
+                description: 'This is the long version of the location name, which
+                    may include the suburb or other information.
+
+                    '
+                type: string
+            parent:
+                $ref: '#/definitions/ParentLocation'
+                description: 'In some cases, a parent location will also contain its
+                    parent (in other words, the grandparent of the initial location)
+
+                    '
+            type:
+                description: 'This is the type of location being returned. It may
+                    represent a stop or platform that a public transport service physically
+
+                    stops at for passenger boarding, or it may represent somebody''s
+                    house.
+
+                    A value of `unknown` likely indicates bad data coming from the
+                    server. If a location is returned with this type, you can safely
+                    ignore it.
+
+                    '
+                enum:
+                - poi
+                - singlehouse
+                - stop
+                - platform
+                - street
+                - locality
+                - suburb
+                - unknown
+                type: string
+        type: object
+    RouteProduct:
+        description: This element contains additional properties about the route.
+        properties:
+            class:
+                description: 'This field indicates the type of the route, using the
+                    same values
+
+                    as elsewhere in this API.
+
+
+                    * `1`: Train
+                    
+                    * `2`: Metro
+
+                    * `4`: Light Rail
+
+                    * `5`: Bus
+
+                    * `7`: Coach
+
+                    * `9`: Ferry
+
+                    * `11`: School Bus
+
+                    * `99`: Walking
+
+                    * `100`: Walking (Footpath)
+
+                    * `101`: Bicycle
+
+                    * `102`: Take Bicycle On Public Transport
+
+                    * `103`: Kiss & Ride
+
+                    * `104`: Park & Ride
+
+                    * `105`: Taxi
+
+                    * `106`: Car
+
+                    '
+                type: integer
+            iconId:
+                description: 'This field is used by to determine which icon to use
+                    when displaying
+
+                    this affected route. It will typically match up with the `class`
+                    value.
+
+                    '
+                type: integer
+            name:
+                description: Name of the product
+                type: string
+        type: object
+    StopFinderAssignedStop:
+        description: 'An assigned stop is a location that public transport stops at.
+            Locations / places of interest that aren''t stops may have one
+
+            or more stops "assigned" to it as being "the stop(s) you would use if
+            you were in this location".
+
+            '
+        properties:
+            connectingMode:
+                description: 'This is the mode of transport that is used to connect
+                    to this stop. The following values are available:
+
+
+                    * `1`: Train
+                    
+                    * `2`: Metro
+
+                    * `4`: Light Rail
+
+                    * `5`: Bus
+
+                    * `7`: Coach
+
+                    * `9`: Ferry
+
+                    * `11`: School Bus
+
+                    * `97`: Remain On-Board
+
+                    * `99`: Walking
+
+                    * `100`: Walking (Footpath)
+
+                    * `101`: Bicycle
+
+                    * `102`: Take Bicycle On Public Transport
+
+                    * `103`: Kiss & Ride
+
+                    * `104`: Park & Ride
+
+                    * `105`: Taxi
+
+                    * `106`: Car
+
+                    '
+                type: integer
+            coord:
+                description: 'Contains exactly two values: the first value is the
+                    latitude, the second value is the longitude.
+
+                    '
+                items:
+                    format: double
+                    type: number
+                type: array
+            disassembledName:
+                description: 'This is the short version of the location name, which
+                    does not include the suburb or other information.
+
+                    '
+                type: string
+            distance:
+                description: This is the distance in metres to this stop from the
+                    location to which it is assigned.
+                type: integer
+            duration:
+                description: This is the number of minutes it would take to reach
+                    this stop from the location to which it is assigned.
+                type: integer
+            id:
+                description: 'This is a unique ID for the returned location. Certain
+                    types of ID can be used for subsequent searches performed with
+                    `stop_finder`,
+
+                    or can be used as the origin or destination in an `trip` request.
+                    The format of a location ID differs greatly, depending
+
+                    on the type of location it is.
+
+                    '
+                type: string
+            modes:
+                description: 'This is included only if the `type` value is set to
+                    `stop`. Contains a list of modes of transport
+
+                    that service this stop. This can be useful for showing relevant
+                    wayfinding icons when presenting users
+
+                    with a list of matching stops to choose from.
+
+
+                    The following values may be present:
+
+
+                    * `1`: Train
+                    
+                    * `2`: Metro
+
+                    * `4`: Light Rail
+
+                    * `5`: Bus
+
+                    * `7`: Coach
+
+                    * `9`: Ferry
+
+                    * `11`: School Bus
+
+                    '
+                items:
+                    type: integer
+                type: array
+            name:
+                description: 'This is the long version of the location name, which
+                    may include the suburb or other information.
+
+                    '
+                type: string
+            parent:
+                $ref: '#/definitions/ParentLocation'
+                description: 'If available, contains information about this location''s
+                    parent location. For example, if the
+
+                    stop has a type of `platform`, then this field may contain information
+                    about the station in which
+
+                    the platform is located.
+
+                    '
+            type:
+                description: 'A value of `unknown` likely indicates bad data. If a
+                    location is returned with this type, you can safely ignore it.
+
+                    '
+                enum:
+                - poi
+                - singlehouse
+                - stop
+                - platform
+                - street
+                - locality
+                - suburb
+                - unknown
+                type: string
+        type: object
+    StopFinderLocation:
+        description: This element describes a single location that is returned in
+            an `stop_finder` request.
+        properties:
+            assignedStops:
+                description: 'This is a list of stops that are assigned to this location.
+                    This means if you''re in the current location and want to catch
+
+                    public transport, these assigned stops are directly available
+                    to you.
+
+                    '
+                items:
+                    $ref: '#/definitions/StopFinderAssignedStop'
+                type: array
+            buildingNumber:
+                description: 'This is the number of the property, included only if
+                    the `type` value is set to `singlehouse`. Note that it is a string,
+                    as it may include non-numeric characters.
+
+                    '
+                type: string
+            coord:
+                description: 'Contains exactly two values: the first value is the
+                    latitude, the second value is the longitude.
+
+                    '
+                items:
+                    format: double
+                    type: number
+                type: array
+            disassembledName:
+                description: 'This is the short version of the location name, which
+                    does not include the suburb or other information.
+
+                    '
+                type: string
+            id:
+                description: 'This is a unique ID for the returned location. Certain
+                    types of ID can be used for subsequent searches performed with
+                    `stop_finder`,
+
+                    or can be used as the origin or destination in an `trip` request.
+                    The format of a location ID differs greatly, depending
+
+                    on the type of location it is.
+
+                    '
+                type: string
+            isBest:
+                description: Indicates whether or not this is the best match out of
+                    all the returned locations.
+                type: boolean
+            isGlobalId:
+                description: 'This determines whether the id property is a global
+                    stop id or not
+
+                    '
+                type: boolean
+            matchQuality:
+                description: This value indicates how well the returned stop matches
+                    the search query. A higher number indicates a better match.
+                type: integer
+            modes:
+                description: 'This is included only if the `type` value is set to
+                    `stop`. Contains a list of modes of transport
+
+                    that service this stop. This can be useful for showing relevant
+                    wayfinding icons when presenting users
+
+                    with a list of matching stops to choose from.
+
+
+                    The following values may be present:
+
+
+                    * `1`: Train
+                    
+                    * `2`: Metro
+
+                    * `4`: Light Rail
+
+                    * `5`: Bus
+
+                    * `7`: Coach
+
+                    * `9`: Ferry
+
+                    * `11`: School Bus
+
+                    '
+                items:
+                    type: integer
+                type: array
+            name:
+                description: 'This is the long version of the location name, which
+                    may include the suburb or other information.
+
+                    '
+                type: string
+            parent:
+                $ref: '#/definitions/ParentLocation'
+                description: 'If available, contains information about this location''s
+                    parent location. For example, if the
+
+                    stop has a type of `platform`, then this field may contain information
+                    about the station in which
+
+                    the platform is located.
+
+                    '
+            streetName:
+                description: This is included only if the `type` value is set to `street`
+                    or `singlehouse`.
+                type: string
+            type:
+                description: 'This is the type of location being returned. It may
+                    represent a stop or platform that a public transport service physically
+
+                    stops at for passenger boarding, or it may represent somebody''s
+                    house.
+
+                    A value of `unknown` likely indicates bad data coming from the
+                    server. If a location is returned with this type, you can safely
+                    ignore it.
+
+                    '
+                enum:
+                - poi
+                - singlehouse
+                - stop
+                - platform
+                - street
+                - locality
+                - suburb
+                - address
+                - unknown
+                type: string
+        type: object
+    StopFinderResponse:
+        description: This element contains the response for an `stop_finder` request.
+        properties:
+            error:
+                $ref: '#/definitions/ApiErrorResponse'
+                description: 'If an error has occurred, this element contains information
+                    about the error.
+
+                    '
+            locations:
+                description: 'An array of all locations that were found using the
+                    specified search input. To display the results in a way that makes
+                    sense to
+
+                    the end user, you can sort this list by `matchQuality`. Alternatively,
+                    you can group the results by their type and/or sort them
+
+                    alphabetically.
+
+                    '
+                items:
+                    $ref: '#/definitions/StopFinderLocation'
+                type: array
+            version:
+                description: 'The version of the API that provided the response. Note
+                    that if this value is different to above, then the returned data
+                    may be
+
+                    different than expected. You can set the expected version using
+                    the `version` request parameter.
+
+                    '
+                type: string
+        type: object
+    TripRequestResponse:
+        description: This element contains the response from an `trip` request.
+        properties:
+            error:
+                $ref: '#/definitions/ApiErrorResponse'
+                description: 'If an error has occurred, this element contains information
+                    about the error.
+
+                    '
+            journeys:
+                description: Contains zero or more journeys found based on the input
+                    parameters.
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourney'
+                type: array
+            systemMessages:
+                description: Includes system messages that may be relevant to this
+                    particular request.
+                properties:
+                    responseMessages:
+                        description: Contains zero or more messages.
+                        items:
+                            $ref: '#/definitions/TripRequestResponseMessage'
+                        type: array
+                type: object
+            version:
+                description: 'The version of the API that provided the response. Note
+                    that if this value is different to above, then the returned data
+                    may be
+
+                    different than expected. You can set the expected version using
+                    the `version` request parameter.
+
+                    '
+                type: string
+        type: object
+    TripRequestResponseJourney:
+        description: This element describes a single journey returned by `trip`
+        properties:
+            isAdditional:
+                description: XXX
+                type: boolean
+            legs:
+                description: This element contains one or more legs that constitute
+                    the trip.
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourneyLeg'
+                type: array
+            rating:
+                description: XXX
+                type: integer
+        type: object
+    TripRequestResponseJourneyFareZone:
+        description: Not currently used.
+        properties:
+            fromLeg:
+                description: Not currently used.
+                type: integer
+            net:
+                description: Not currently used.
+                type: string
+            neutralZone:
+                description: Not currently used.
+                type: string
+            toLeg:
+                description: Not currently used.
+                type: integer
+        type: object
+    TripRequestResponseJourneyLeg:
+        description: This element describes a single leg of a journey. A journey is
+            made up of one or more legs.
+        properties:
+            coords:
+                description: 'This elements contains a list of coordinates that this
+                    journey leg follows. A line between
+
+                    can be plotted between these coordinates in order when representing
+                    the journey on a map
+
+                    in order to show where the vehicle travels (or for a walking leg,
+                    the path to be walked).
+
+                    '
+                items:
+                    description: 'Contains exactly two values: the first value is
+                        the latitude, the second value is the longitude.
+
+                        '
+                    items:
+                        format: double
+                        type: number
+                    type: array
+                type: array
+            destination:
+                $ref: '#/definitions/TripRequestResponseJourneyLegStop'
+                description: This is the finishing location of the leg.
+            distance:
+                description: The approximate distance in metres travelled to complete
+                    this journey leg.
+                type: integer
+            duration:
+                description: The approximate amount of time in seconds required to
+                    complete this journey leg.
+                type: integer
+            footPathInfo:
+                description: 'If the leg corresponds to a walking leg, this element
+                    contains walking directions.
+
+                    '
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourneyLegStopFootpathInfo'
+                type: array
+            hints:
+                description: Contains a number of additional informational messages
+                    that may be useful for travellers.
+                items:
+                    properties:
+                        infoText:
+                            description: 'Contains additional information that may
+                                be useful for travellers.
+
+                                '
+                            type: string
+                    type: object
+                type: array
+            infos:
+                description: 'Contains a number of service alert messages relating
+                    to this journey leg.
+
+                    Information returned here is also available using the `add_info`
+                    API endpoint.
+
+                    '
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourneyLegStopInfo'
+                type: array
+            interchange:
+                $ref: '#/definitions/TripRequestResponseJourneyLegInterchange'
+                description: 'Contains information for how to interchange between
+                    the end of one leg to the next journey leg.
+
+                    '
+            isRealtimeControlled:
+                description: This indicates whether or not real-time data has been
+                    used to calculate the departure/arrival timestamps
+                type: boolean
+            origin:
+                $ref: '#/definitions/TripRequestResponseJourneyLegStop'
+                description: This is the starting location of the leg.
+            pathDescriptions:
+                description: Contains walking information for completing this journey
+                    leg.
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourneyLegPathDescription'
+                type: array
+            properties:
+                description: 'Contains additional information about this journey leg,
+                    such as wheelchair accessibility information.
+
+                    '
+                properties:
+                    DIFFERENT_FARES:
+                        description: XXX
+                        type: string
+                    PlanLowFloorVehicle:
+                        description: This indicates whether or not the vehicle is
+                            wheelchair accessible.
+                        type: string
+                    PlanWheelChairAccess:
+                        description: This indicates whether or not the stop is wheelchair
+                            accessible.
+                        type: string
+                    lineType:
+                        description: 'XXX seen a value of SUPPLEMENT for ferry route
+
+                            '
+                        type: string
+                    vehicleAccess:
+                        description: This value is not currently in use.
+                        items:
+                            type: string
+                        type: array
+                type: object
+            stopSequence:
+                description: 'This is a list of all stops that are made for this leg.
+                    It is sorted in order of its
+
+                    stopping sequence. If the leg is a walking leg between two stops,
+                    then this will contain
+
+                    these two stops in order.
+
+                    '
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourneyLegStop'
+                type: array
+            transportation:
+                $ref: '#/definitions/TripTransportation'
+                description: 'This element contains information about the mode of
+                    transport and/or route
+
+                    used to complete this journey leg.
+
+                    '
+        type: object
+    TripRequestResponseJourneyLegInterchange:
+        description: 'This object describes walking directions for interchanging between
+            two consecutive legs. This
+
+            occurs in the case when there''s only a small distance between two transit
+            legs, not enough
+
+            to constitute a standalone walking leg.
+
+            '
+        properties:
+            coords:
+                description: 'This is a list of coordinates that makes up the path
+                    of the interchange.
+
+                    '
+                items:
+                    description: 'Contains exactly two values: the first value is
+                        the latitude, the second value is the longitude.
+
+                        '
+                    items:
+                        format: double
+                        type: number
+                    type: array
+                type: array
+            desc:
+                description: 'This is a description of the interchange.
+
+                    '
+                type: string
+            type:
+                description: 'This indicates the mode of travel for the interchange.
+                    Both `99` and `100` indicate walking.
+
+                    '
+                enum:
+                - 99
+                - 100
+                type: integer
+        type: object
+    TripRequestResponseJourneyLegPathDescription:
+        description: Contains a single instruction for completing a walking leg associated
+            with a journey leg.
+        properties:
+            coord:
+                description: 'Contains exactly two values: the first value is the
+                    latitude, the second value is the longitude. This is the
+
+                    location where the instruction occurs.
+
+                    '
+                items:
+                    format: double
+                    type: number
+                type: array
+            cumDistance:
+                description: This is the cumulative distance travelled in metres at
+                    the point of this step.
+                type: integer
+            cumDuration:
+                description: 'This is the cumulative duration in seconds at the point
+                    of this step.
+
+                    '
+                type: integer
+            distance:
+                description: 'This is the distance travelled in this step in metres.
+
+                    '
+                type: integer
+            distanceDown:
+                description: 'This is the distance travelled downward in this step
+                    in metres
+
+                    '
+                type: integer
+            distanceUp:
+                description: 'This is the distance travelled upward in this step in
+                    metres
+
+                    '
+                type: integer
+            duration:
+                description: 'This is the duration of this step in seconds.
+
+                    '
+                type: integer
+            fromCoordsIndex:
+                description: 'This field enables you to retrieve multiple coordinates
+                    from the `coords` property, starting from this index.
+
+                    '
+                type: integer
+            manoeuvre:
+                description: 'Indicates what you have to do (in addition the turn
+                    `turnDirection`) to execute this step of the path description.
+
+                    '
+                enum:
+                - LEAVE
+                - KEEP
+                - TURN
+                - ENTER
+                - CONTINUE
+                type: string
+            name:
+                description: 'This is a specific description of what to do. In some
+                    cases, this information is required in addition to the
+
+                    other properties provided in this step.
+
+                    '
+                type: string
+            skyDirection:
+                description: The direction in degrees (0-359) of the skyDirection
+                type: integer
+            toCoordsIndex:
+                description: 'This field enables you to retrieve multiple coordinates
+                    from the `coords` property, ending at this index.
+
+                    '
+                type: integer
+            turnDirection:
+                description: 'Indicates the way you need to turn to execute this step
+                    of the path description.
+
+                    '
+                enum:
+                - UNKNOWN
+                - STRAIGHT
+                - RIGHT
+                - LEFT
+                - SLIGHT_RIGHT
+                - SLIGHT_LEFT
+                - SHARP_LEFT
+                - SHARP_RIGHT
+                type: string
+        type: object
+    TripRequestResponseJourneyLegStop:
+        description: 'Contains information about a single stop in the journey leg.
+
+            Typically, the first stop in a journey leg will only include departure
+            time information,
+
+            while the last stop in a journey leg will only include arrival time information.
+            Stops in between
+
+            will include both arrival and departure time information.
+
+            '
+        properties:
+            arrivalTimeEstimated:
+                description: 'A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format that indicates
+                    the estimated arrival time. If real-time
+
+                    information is available then this timestamp is the real-time
+                    estimate, otherwise it is the same as the
+
+                    value in `arrivalTimePlanned`.
+
+                    '
+                format: dateTime
+                type: string
+            arrivalTimePlanned:
+                description: 'A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format that indicates
+                    the planned arrival time. This is
+
+                    the original scheduled time.
+
+                    '
+                format: dateTime
+                type: string
+            coord:
+                description: 'Contains exactly two values: the first value is the
+                    latitude, the second value is the longitude.
+
+                    '
+                items:
+                    format: double
+                    type: number
+                type: array
+            departureTimeEstimated:
+                description: 'A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format that indicates
+                    the estimated departure time. If real-time
+
+                    information is available then this timestamp is the real-time
+                    estimate, otherwise it is the same as the
+
+                    value in `departureTimePlanned`.
+
+                    '
+                format: dateTime
+                type: string
+            departureTimePlanned:
+                description: 'A timestamp in `YYYY-MM-DDTHH:MM:SSZ` format that indicates
+                    the planned departure time. This is
+
+                    the original scheduled time.
+
+                    '
+                format: dateTime
+                type: string
+            disassembledName:
+                description: 'This is the short version of the location name, which
+                    does not include the suburb or other information.
+
+                    '
+                type: string
+            id:
+                description: 'This is a unique ID for the returned location. Certain
+                    types of ID can be used for subsequent searches performed with
+                    `stop_finder`,
+
+                    or can be used as the origin or destination in an `trip` request.
+                    The format of a location ID differs greatly, depending
+
+                    on the type of location it is.
+
+                    '
+                type: string
+            name:
+                description: 'This is the long version of the location name, which
+                    may include the suburb or other information.
+
+                    '
+                type: string
+            parent:
+                $ref: '#/definitions/ParentLocation'
+                description: 'If available, contains information about this location''s
+                    parent location. For example, if the
+
+                    stop has a type of `platform`, then this field may contain information
+                    about the station in which
+
+                    the platform is located.
+
+                    '
+            properties:
+                description: 'Contains additional information about this stop, such
+                    as wheelchair accessibility information.
+
+                    '
+                properties:
+                    WheelchairAccess:
+                        description: 'Indicates if there is wheelchair access available
+                            at this stop.
+
+                            '
+                        enum:
+                        - 'true'
+                        - 'false'
+                        type: string
+                    downloads:
+                        description: 'Describes a list of downloadable files relevant
+                            to this location.
+
+                            '
+                        items:
+                            $ref: '#/definitions/TripRequestResponseJourneyLegStopDownload'
+                        type: array
+                type: object
+            type:
+                description: 'This is the type of location being returned. It will
+                    typically represent a specific stop or platform.
+
+                    '
+                enum:
+                - poi
+                - singlehouse
+                - stop
+                - platform
+                - street
+                - locality
+                - suburb
+                - unknown
+                type: string
+        type: object
+    TripRequestResponseJourneyLegStopDownload:
+        description: Describes a single download available for this journey stop.
+        properties:
+            type:
+                description: 'This indicates what type of download this is. For example,
+                    `RM` refers to Route Map.
+
+                    '
+                type: string
+            url:
+                description: 'This is the URL for the download.
+
+                    '
+                type: string
+        type: object
+    TripRequestResponseJourneyLegStopFootpathInfo:
+        description: Contains walking directions for a walking leg.
+        properties:
+            duration:
+                description: 'This is approximately how long in seconds the walking
+                    instructions contained in this element take to perform.
+
+                    '
+                type: integer
+            footPathElem:
+                description: 'This describes the specific instructions for the walking
+                    leg.
+
+                    '
+                items:
+                    $ref: '#/definitions/TripRequestResponseJourneyLegStopFootpathInfoFootpathElem'
+                type: array
+            position:
+                description: 'This indicates where in the leg the walking part of
+                    this legs occurs, since for some legs this
+
+                    is included with transportation on a vehicle.
+
+                    '
+                enum:
+                - BEFORE
+                - AFTER
+                - IDEST
+                type: string
+        type: object
+    TripRequestResponseJourneyLegStopFootpathInfoFootpathElem:
+        description: The element describes a single walking instruction.
+        properties:
+            description:
+                description: 'Contains additional information about this instruction,
+                    but is generally unused.
+
+                    '
+                type: string
+            destination:
+                $ref: '#/definitions/TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation'
+                description: 'Indicates the starting location for this leg, in terms
+                    of locations in the system
+
+                    such as stops or places of interest. Typically, since these instructions
+                    indicate
+
+                    how to travel within a stop or station, the `origin` and `destination`
+                    will both
+
+                    reference the same stop, but the coordinate will be specific to
+                    this instruction.
+
+                    '
+            level:
+                description: 'Indicates the direction of travel for this instruction.
+                    Generally a ramp, escalator
+
+                    or stairs will go `UP` or `DOWN` to a different floor. This value
+                    will be `LEVEL` when
+
+                    the `type` field is also `LEVEL`.
+
+                    '
+                enum:
+                - DOWN
+                - LEVEL
+                - UP
+                type: string
+            levelFrom:
+                description: 'Indicates the floor number the instruction is starting
+                    from. If the `type` is `LEVEL`,
+
+                    then the `levelFrom` and `levelTo` values should be the same.
+
+                    '
+                type: integer
+            levelTo:
+                description: 'Indicates the floor number the instruction ends of.
+                    If the `type` is `LEVEL`,
+
+                    then the `levelFrom` and `levelTo` values should be the same.
+
+                    '
+                type: integer
+            origin:
+                $ref: '#/definitions/TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation'
+                description: 'Indicates the starting location for this leg, in terms
+                    of locations in the system
+
+                    such as stops or places of interest. Typically, since these instructions
+                    indicate
+
+                    how to travel within a stop or station, the `origin` and `destination`
+                    will both
+
+                    reference the same stop, but the coordinate will be specific to
+                    this instruction.
+
+                    '
+            type:
+                description: 'This indicates the type of "terrain" for this instruction.
+                    `LEVEL` indicates a normal
+
+                    flat surface.
+
+                    '
+                enum:
+                - ESCALATOR
+                - ELEVATOR
+                - STAIRS
+                - LEVEL
+                - RAMP
+                type: string
+        type: object
+    TripRequestResponseJourneyLegStopFootpathInfoFootpathElemLocation:
+        description: This element describes a starting or finishing point for a walking
+            instruction.
+        properties:
+            area:
+                description: This is an internal value used to group stops together.
+                type: integer
+            georef:
+                description: 'This is an identifier for this particular instruction
+                    / location, based on its location.
+
+                    '
+                type: string
+            location:
+                description: 'This includes information about the location in which
+                    this instruction takes place.
+
+                    '
+                properties:
+                    coord:
+                        description: 'Contains exactly two values: the first value
+                            is the latitude, the second value is the longitude.
+
+                            Although multiple instructions may reference the same
+                            location, this coordinate is specific
+
+                            to this particular instruction.
+
+                            '
+                        items:
+                            format: double
+                            type: number
+                        type: array
+                    id:
+                        description: This the unique ID for the stop in which this
+                            instruction occurs.
+                        type: string
+                    type:
+                        description: This is the type of location in which this instruction
+                            occurs.
+                        enum:
+                        - poi
+                        - singlehouse
+                        - stop
+                        - platform
+                        - street
+                        - locality
+                        - suburb
+                        - unknown
+                        type: string
+                type: object
+            platform:
+                description: 'If available, this is a platform number that relates
+                    to this instruction. It defaults to `0` if
+
+                    there is no such information available.
+
+                    '
+                type: integer
+        type: object
+    TripRequestResponseJourneyLegStopInfo:
+        description: 'This element describes a single information message that may
+            be associated with a journey leg.
+
+            The data in this is similar to that from `add_info`, but is presented
+            differently.
+
+            '
+        properties:
+            content:
+                description: 'This is the descriptive alert content. It may contain
+                    HTML tags and/or HTML entities.
+
+                    '
+                type: string
+            id:
+                description: 'This is a unique identifier for this particular service
+                    alert. Note that this same ID is used in
+
+                    `add_info` for the same alert.
+
+                    '
+                type: string
+            priority:
+                description: 'This value indicates how important the service alert
+                    is. A value of `high` or `veryHigh` likely indicates that
+
+                    the alert will correspond to an event that impacts the ability
+                    to travel for relevant users, while `low` or `veryLow`
+
+                    might be more of an informational message.
+
+                    '
+                enum:
+                - veryLow
+                - low
+                - normal
+                - high
+                - veryHigh
+                type: string
+            subtitle:
+                description: 'This is short summary that can be used as a heading
+                    for the alert content. It may contain HTML tags and/or HTML entities.
+
+                    '
+                type: string
+            timestamps:
+                $ref: '#/definitions/AdditionalInfoResponseTimestamps'
+                description: 'This contains a number of timestamps that describe when
+                    the alert was created, and when the described alert actually
+
+                    takes place and/or is relevant.
+
+                    '
+            url:
+                description: 'This field contains a URL that contains additional information
+                    about the alert. This value is equivalent to
+
+                    the `infoLinkURL` value in `add_info`.
+
+                    '
+                type: string
+            urlText:
+                description: 'This field contains a title that can be used when displaying
+                    the `url` URL. This value is equivalent to
+
+                    the `infoLinkText` value in `add_info`.
+
+                    '
+                type: string
+            version:
+                description: 'This number indicates the version of this alert. Initially
+                    when it is created it has version `1`, but if it is then
+
+                    updated it will have a new `lastModification` value and the version
+                    will now be `2`.
+
+                    '
+                type: integer
+        type: object
+    TripRequestResponseMessage:
+        description: This element describes a single message that may be included
+            with an `trip` request.
+        properties:
+            code:
+                description: 'This is an error/warning code for the message. Note
+                    that the same code may be returned
+
+                    with a different meaning, depending on the context. The following
+                    error codes are possible:
+
+
+                    * `-1000` (`PLACE_INVALID`) - Invalid locality input
+
+                    * `-1001` (`PLACE_WITHOUT_STOPS`) - Verified locality does not
+                    have stops
+
+                    * `-1010` (`PLACE_UNKNOWN_POOL`) - Locality not in locality tree
+
+                    * `-1020` (`PLACE_ALPHA_INVALID`) - Invalid alpha list
+
+
+                    * `-2000` (`STOP_INVALID`) - Invalid stop input
+
+                    * `-2001` (`STOP_PLACE_ID_INVALID`) - Stop number not in locality
+
+
+                    * `-3000` (`ADDRESS_INVALID`) - Invalid address input
+
+                    * `-3001` (`ADDRESS_PLACE_WITHOUT_ADDR`) - Locality does not have
+                    any addresses
+
+
+                    * `-1000` (`IT_COORD_UNKNOWN`) - Transferred coordinate not supported
+                    (incorrect coordinate system)
+
+                    * `-1001` (`IT_COORD_OUT_OF_REGION`) - Transferred coordinates
+                    not supported (outside of region)
+
+                    * `-1002` (`IT_COORD_FORMAT_UNKNOWN`) - Transferred coordinate
+                    is ok, but the format does not match the value
+
+                    * `-200` (`IT_GEOREF_UNKNOWN`) - Invalid georeference
+
+                    * `-201` (`IT_GEOREF_OUT_OF_REGION`) - Invalid georeference section
+                    < 0 or > length of route section
+
+                    * `-300` (`IT_NO_START`) - No origin entered
+
+                    * `-301` (`IT_NO_DESTINATION`) - No destination entered
+
+                    * `-302` (`IT_NO_CONNECTION`) - No journey found
+
+                    * `-303` (`IT_NO_TRANSITIONS`) - No transition point
+
+
+                    * `-3000` (`IT_ADDRESS_INVALID`) - Address invalid
+
+                    * `-3001` (`IT_ADDRESS_PLACE_WITHOUT_ADDR`) - Locality does not
+                    have any addresses
+
+                    * `-3002` (`IT_ADDRESS_EMPTY`) - Empty address input
+
+
+                    * `-5000` (`IT_LOCATOR_INVALID`) - Input locality is invalid
+
+                    * `-5001` (`IT_LOCATOR_INVALID_POOL`) - Input locality not available
+                    in locality tree
+
+                    * `-5002` (`IT_LOCATOR_BULK_POSTCODE`) - Bulk postcode, postcode
+                    with addresses
+
+
+                    * `-4000` (`IT_STREET_INVALID`) - Input street is invalid
+
+                    * `-4001` (`IT_STREE_PLACE_WITHOUT_ADDR`) - Locality does not
+                    have any streets
+
+
+                    * `-8010` (`ANY_UNIQUE`) - Any input uniquely verified
+
+                    * `-8011` (`ANY_LIST`) - Any list verified
+
+                    * `-8012` (`ANY_INVALID`) - Any input invalid
+
+                    * `-8013` (`ANY_PLACE_WITHOUT_MATCHES`) - Any location found,
+                    but cannot be verified
+
+                    * `-8014` (`ANY_TOO_MANY_MATCHES`) - Any input has too many matches
+
+                    * `-8020` (`ANY_MATCH_NONE`) - No matches
+
+                    * `-8031` (`ANY_MATCH`) - Matches (e.g. buildings) found for a
+                    street
+
+                    * `-8032` (`ANY_NO_MATCH`) - No matches found (e.g. buildings)
+                    for a street
+
+
+                    * `-4000` (`NO_CONNECTION`) - No journey found for the time entered
+
+                    * `-4001` (`DATE_INVALID`) - Date not possible in the current
+                    timetable period
+
+                    * `-4002` (`NO_ORIGIN`) - No origin verified
+
+                    * `-4003` (`NO_DESTINATION`) - No destination verified
+
+                    * `-4004` (`ORIGIN_UNKNOWN`) - Origin exists, but cannot be identified
+
+                    * `-4005` (`DESTINATION_UNKNOWN`) - Destination exists, but cannot
+                    be identified
+
+                    * `-4006` (`JUST_WALK`) - Only a walk has been found
+
+                    * `-4007` (`ORIGIN_EQUI_DEST`) - Origin and destination are identical
+
+                    * `-4008` (`VIA_UNKNOWN`) - Unknown via-point
+
+                    * `-4009` (`TIMESPAN_INVALID`) - Time interval is invalid
+
+                    * `-4010` (`VIA_NOINTERCHANGE`) - Via stop point is not an interchange
+                    stop
+
+                    * `-4011` (`VIA_INVALID`) - Invalid via input
+
+                    * `+4011` (`TRIPSTATUS_ALREADYFOUND`) - Moved journey already
+                    exists
+
+                    * `-4012` (`ORIGIN_OUTOFPERMITTEDAREA`) - Origin outside the valid
+                    zone (e.g. fare zone)
+
+                    * `-4013` (`DESTINATION_OUTOFPERMITTEDAREA`) - Destination outside
+                    the valid zone (e.g. fare zone)
+
+                    * `-4014` (`VIA_OUTOFPERMITTEDAREA`) - Via outside the valid zone
+                    (e.g. fare zone)
+
+                    * `-4020` (`NO_TRANSITION`) - No transition point found
+
+                    * `-4030` (`NO_DEPARTURE`) - No departures found
+
+                    * `-4040` (`NO_ARRIVAL`) - No arrivals found
+
+                    * `-4050` (`NO_SERVINGLINES`) - No services found at this stop
+
+                    * `-4060` (`NO_MATCHINGOPERATORS`) - No matching operators
+
+
+                    * `-4100` (`NO_CONNECTION_BECAUSE_OF_RULE`) - No journey because
+                    of a rule
+
+                    * `-4101` (`RULE_CHANGED_OPTIONS`) - Rule changed the options
+
+                    * `-4102` (`RULE_CHANGED_USEONLY`) - Rule chagned the permitted
+                    vehicles
+
+                    * `-4103` (`RECOMPUTE_BECAUSE_OF_RULE`) - Journey has been recalculated
+                    due to a rule with different parameters
+
+                    * `-4104` (`RULE_CHANGED_WITHOUTVIA`) - Rule removed the via point
+
+                    * `-4300` (`NO_CONNECTION_BECAUSE_OF_PREFERTOEXCLUDE_SETTINGS`)
+                    - Invalid prefer-to-exclude parameter
+
+                    * `-4301` (`NO_CONNECTION_BECAUSE_OF_PREFERTOINCLUDE_SETTINGS`)
+                    - Invalid prefer-to-include parameter
+
+                    * `-4302` (`NO_CONNECTION_BECAUSE_OF_MIXEDSETTING_SETTINGS`) -
+                    Invalid mixing of prefer-to-exclude/include parameters
+
+                    * `-4303` (`NO_CONNECTION_BECAUSE_OF_WALKING_SETTINGS`) - Invalid
+                    footpath parameter
+
+                    * `-9999` (`TRIP_CANCELLED`) - Trip has been cancelled
+
+                    * `-10015` (`ERROR_ITROUTER_NO_IT_CONN`) - No journey found
+
+                    '
+                type: integer
+            error:
+                description: This is the error summary for the given message.
+                type: string
+            module:
+                description: Indicates the server module that provided this system
+                    message.
+                type: string
+            type:
+                description: Indicates the type of system message.
+                type: string
+        type: object
+    TripTransportation:
+        description: 'This element describes a route, including information about
+            its route number, usual destination,
+
+            route type and operator.
+
+            '
+        properties:
+            description:
+                description: 'Contains a description of this route.
+
+                    '
+                type: string
+            destination:
+                description: 'This element contains information about where vehicles
+                    on this route terminate.
+
+                    '
+                properties:
+                    id:
+                        description: 'Contains a unique identifier (if available)
+                            of the destination for this route.
+
+                            '
+                        type: string
+                    name:
+                        description: 'This is the name of the destination for this
+                            route.
+
+                            '
+                        type: string
+                type: object
+            disassembledName:
+                description: 'Contains a very short name for the route.
+
+                    '
+                type: string
+            iconId:
+                description: 'Contains an ID for the icon that can be used for this
+                    route. Different values here are
+
+                    used to differentiate differents types of the same route type.
+                    For example, private ferries
+
+                    have a different wayfinding icon to ferries operated by Sydney
+                    Ferries.
+
+
+                    * `1`: Sydney Trains (product class `1`)
+
+                    * `2`: Intercity Trains (product class `1`)
+
+                    * `3`: Regional Trains (product class `1`)
+
+                    * `19`: Temporary Trains (product class `1`)
+                    
+                    
+                    * `24`: Sydney Metro (product class `2`)
+
+
+                    * `13`: Sydney Light Rail (product class `4`)
+
+                    * `20`: Temporary Light Rail (product class `4`)
+
+                    * `21`: Newcastle Light Rail (product class `4`)
+
+
+                    * `4`: Blue Mountains Buses (product class `5`)
+
+                    * `5`: Sydney Buses (product class `5`)
+
+                    * `6`: Central Coast Buses (product class `5`)
+
+                    * `14`: Temporary Buses (product class `5`)
+
+                    * `15`: Hunter Buses (product class `5`)
+
+                    * `23`: On Demand (product class `5`)
+                    
+                    * `31`: Central West and Orana (product class `5`)
+                    
+                    * `32`: Far West (product class `5`)
+                    
+                    * `33`: New England North West (product class `5`)
+                    
+                    * `34`: Newcastle and Hunter (product class `5`)
+
+                    * `35`: North Coast (product class `5`)
+                    
+                    * `36`: Riverina Murray (product class `5`)
+                    
+                    * `37`: South East and Tablelands (product class `5`)
+                    
+                    * `38`: Sydney and Surrounds (product class `5`)
+                    
+
+                    * `9`: Private Buses (product class `5`)
+
+                    * `17`: Private Coaches (product class `5`)
+
+
+                    * `7`: Regional Coaches (product class `7`)
+
+                    * `22`: Temporary Coaches (product class `7`)
+
+
+                    * `10`: Sydney Ferries (product class `9`)
+
+                    * `11`: Newcastle Ferries (product class `9`)
+
+                    * `12`: Private Ferries (product class `9`)
+
+                    * `18`: Temporary Ferries (product class `9`)
+
+
+                    * `8`: School Buses (product class `11`)
+
+                    '
+                type: integer
+            id:
+                description: 'This is an ID that uniquely identifies this route.
+
+                    '
+                type: string
+            name:
+                description: 'This contains the full name of the route.
+
+                    '
+                type: string
+            number:
+                description: 'Contains a short name for the route.
+
+                    '
+                type: string
+            operator:
+                description: 'This element describes the operator of this route.
+
+                    '
+                properties:
+                    id:
+                        description: 'Contains a unique identifier for the given operator.
+
+                            '
+                        type: string
+                    name:
+                        description: 'Contains the name of the operator of the route.
+
+                            '
+                        type: string
+                type: object
+            product:
+                $ref: '#/definitions/RouteProduct'
+                description: This element contains additional properties about the
+                    route.
+            properties:
+                description: 'Contains additional properties about this route.
+
+                    '
+                properties:
+                    isTTB:
+                        description: XXX
+                        type: boolean
+                    tripCode:
+                        description: This is an ID for this journey option.
+                        type: integer
+                type: object
+        type: object
+host: api.transport.nsw.gov.au
+info:
+    title: Trip Planner
+    version: 10.2.1.42
+paths:
+    /add_info:
+        get:
+            description: 'This endpoint returns a list of service alerts or additional
+                information about travelling on the public transport
+
+                network. This list can be filtered by date, route type, route, operator
+                or stop.
+
+                '
+            operationId: tfnsw_addinfo_request
+            parameters:
+            -   description: 'Used to set the response data type. This documentation
+                    only covers responses that use the JSON format.
+
+                    Setting the `outputFormat` value to `rapidJSON` is required to
+                    enable JSON output.
+
+                    '
+                enum:
+                - rapidJSON
+                in: query
+                name: outputFormat
+                required: true
+                type: string
+            -   default: 01-10-2016
+                description: 'This parameter allows you to filter the returned items
+                    that are only valid on the specified date. The format of
+
+                    this field is `DD-MM-YYYY`. For example, 12 September 2016 would
+                    be represented by `12-09-2016`.
+
+                    '
+                in: query
+                name: filterDateValid
+                required: false
+                type: string
+            -   description: 'This parameter allows you to filter the returned items
+                    by the modes of transport they affected. Available modes include:
+
+
+                    * `1`: Train
+                    
+                    * `2`: Metro
+
+                    * `4`: Light Rail
+
+                    * `5`: Bus
+
+                    * `7`: Coach
+
+                    * `9`: Ferry
+
+                    * `11`: School Bus
+
+
+                    To search for more than one mode, include the parameter multiple
+                    times.
+
+                    '
+                enum:
+                - 1
+                - 2
+                - 4
+                - 5
+                - 7
+                - 9
+                - 11
+                in: query
+                name: filterMOTType
+                required: false
+                type: integer
+            -   description: 'This field can be used so only current alerts are returned,
+                    and not historic alerts.
+
+                    '
+                enum:
+                - current
+                in: query
+                name: filterPublicationStatus
+                required: false
+                type: string
+            -   description: 'This parameter allows you to filter the returned items
+                    by its stop ID or global stop ID. For example, to retrieve items
+                    that are only
+
+                    relevant to Central Station, you would set this value to `10111010`
+                    (stop ID) or `200060` (global stop ID). You can use the `stop_finder`
+                    API call
+
+                    to determine the ID for a particular stop.
+
+                    '
+                in: query
+                name: itdLPxx_selStop
+                required: false
+                type: string
+            -   description: 'This parameter allows you to filter the returned items
+                    by line number. For example, `020T1`. You can use this parameter
+
+                    multiple times if you want to search for more than one line number.
+
+                    '
+                in: query
+                name: itdLPxx_selLine
+                required: false
+                type: string
+            -   description: 'This parameter allows you to filter the returned items
+                    by operator ID. You can use this parameter
+
+                    multiple times if you want to search for more than one line number.
+
+                    '
+                in: query
+                name: itdLPxx_selOperator
+                required: false
+                type: string
+            -   description: 'This parameter allows you to filter the returned items
+                    by specific routes. The route is provided in the format `NNN:LLLLL:D`,
+
+                    (NNN: subnet, LLLLL: Route number, D: direction `H`/`R`). You
+                    can use this parameter
+
+                    multiple times if you want to search for more than one line number.
+
+                    '
+                in: query
+                name: filterPNLineDir
+                required: false
+                type: string
+            -   description: 'This parameter allows you to filter the returned items
+                    by specific routes. The route is provided in the format `NNN:LLLLL:E`,
+
+                    (NNN: subnet, LLLLL: Route number, E: supplement). You can use
+                    this parameter
+
+                    multiple times if you want to search for more than one line number.
+
+                    '
+                in: query
+                name: filterPNLineSub
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 10.2.1.42
+                description: 'Indicates which version of the API the caller is expecting
+                    for both request and response data. Note that if this version
+                    differs
+
+                    from the version listed above then the returned data may not be
+                    as expected.
+
+                    '
+                in: query
+                name: version
+                required: false
+                type: string
+            responses:
+                200:
+                    description: A list of informational messages related to current
+                        or previous outages.
+                    schema:
+                        $ref: '#/definitions/AdditionalInfoResponse'
+                401:
+                    description: The application calling the API has not been authenticated.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                500:
+                    description: An internal error has occurred.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                503:
+                    description: The server is currently unavailable.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+            summary: Provides capability to display all public transport service status
+                and incident information (as published from the Service Alert Messaging System).
+    /coord:
+        get:
+            description: 'This endpoint returns places of interest based on the given
+                coordinate and a radius. The types of POIs can be controlled, so if,
+                for example,
+
+                you only want Opal resellers returned, you can do so.
+
+                '
+            operationId: tfnsw_coord_request
+            parameters:
+            -   description: 'Used to set the response data type. This documentation
+                    only covers responses that use the JSON format.
+
+                    Setting the `outputFormat` value to `rapidJSON` is required to
+                    enable JSON output.
+
+                    '
+                enum:
+                - rapidJSON
+                in: query
+                name: outputFormat
+                required: true
+                type: string
+            -   default: 151.206290:-33.884080:EPSG:4326
+                description: 'The coordinate is in the format `LONGITUDE:LATITUDE:EPSG:4326`
+                    (Note that longitude is first).
+
+                    For example, the following `coord` value can be used to search
+                    around Central Station: `151.206290:-33.884080:EPSG:4326`.
+
+                    '
+                in: query
+                name: coord
+                required: true
+                type: string
+            -   description: 'This specifies the format the coordinates are returned
+                    in. While other variations are available, the `EPSG:4326` format
+                    will return the widely-used format.
+
+                    '
+                enum:
+                - EPSG:4326
+                in: query
+                name: coordOutputFormat
+                required: true
+                type: string
+            -   default: 1
+                description: 'This enables "advanced filter mode" on the server, which
+                    is required to enable searching using coordinates.
+
+                    '
+                enum:
+                - 1
+                in: query
+                name: inclFilter
+                required: true
+                type: integer
+            -   default: GIS_POINT
+                description: 'This specifies the type of items to return.
+
+
+                    * `GIS_POINT`: GIS points, including Opal resellers (see `inclDrawClasses_1`)
+
+                    * `BUS_POINT`: Stops/stations
+
+                    * `POI_POINT`: Places of interest
+
+
+                    The `_1` suffix is an index for this particular filter. You can
+                    specify multiple filters by incrementing the suffix
+
+                    for each combination of `type`, `radius` and `inclDrawClasses`.
+                    For example, `type_1` means the first filter, `type_2`
+
+                    refers to the second, and so on.
+
+                    '
+                enum:
+                - GIS_POINT
+                - BUS_POINT
+                - POI_POINT
+                in: query
+                name: type_1
+                required: true
+                type: string
+            -   default: 1000
+                description: 'This indicates the maximum number of metres to search
+                    in all directions from the location specified in `coord`. For
+                    example,
+
+                    if you use a value of `500`, a `type_1` value of `GIS_POINT` and
+                    `inclDrawClasses_1` with a value of `74`, all Opal resellers
+
+                    within 500 metres will be returned. The suffix of `_1` indicates
+                    this radius value corresponds to the `type_1` value. If multiple
+
+                    filters are to be included, the appropriate suffix should be updated
+                    accordingly.
+
+                    '
+                in: query
+                name: radius_1
+                required: true
+                type: integer
+            -   description: 'This flag changes the list of POIs that are returned.
+                    To return Opal resellers, set this value to `74`
+
+                    and `type_1` to `GIS_POINT`.The suffix of `_1` indicates this
+                    radius value corresponds to the `type_1` value.
+
+                    If multiple filters are to be included, the appropriate suffix
+                    should be updated accordingly.
+
+                    '
+                enum:
+                - 74
+                in: query
+                name: inclDrawClasses_1
+                required: false
+                type: integer
+            -   default: 'true'
+                description: 'This field indicates how the returned data is to be
+                    used, which in turn impacts whether or not certain locations are
+                    returned.
+
+                    '
+                enum:
+                - 'true'
+                in: query
+                name: PoisOnMapMacro
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 10.2.1.42
+                description: 'Indicates which version of the API the caller is expecting
+                    for both request and response data. Note that if this version
+                    differs
+
+                    from the version listed above then the returned data may not be
+                    as expected.
+
+                    '
+                in: query
+                name: version
+                required: false
+                type: string
+            responses:
+                200:
+                    description: A list of places of interest.
+                    schema:
+                        $ref: '#/definitions/CoordRequestResponse'
+                401:
+                    description: The application calling the API has not been authenticated.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                500:
+                    description: An internal error has occurred.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                503:
+                    description: The server is currently unavailable.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+            summary: When given a specific geographical location, this API finds public
+                transport stops, stations, wharfs and points of interest around that
+                location.
+    /departure_mon:
+        get:
+            description: 'This endpoint returns a list of departures for a given location
+                based on the date and time specified. This data can be used to
+
+                display a "upcoming departures" board for a stop.
+
+                '
+            operationId: tfnsw_dm_request
+            parameters:
+            -   description: 'Used to set the response data type. This documentation
+                    only covers responses that use the JSON format.
+
+                    Setting the `outputFormat` value to `rapidJSON` is required to
+                    enable JSON output.
+
+                    '
+                enum:
+                - rapidJSON
+                in: query
+                name: outputFormat
+                required: true
+                type: string
+            -   description: This specifies the format the coordinates are returned
+                    in. While other variations are available, the `EPSG:4326` format
+                    will return the widely-used format.
+                enum:
+                - EPSG:4326
+                in: query
+                name: coordOutputFormat
+                required: true
+                type: string
+            -   default: direct
+                description: 'This allows the departure board to display directly
+                    without going through the stop verification process. Use this
+                    when the stop is known.
+
+                    This relies on the given combination of `type_dm` and `name_dm`
+                    returning only a single result, otherwise a list of stops and
+                    no departures
+
+                    shall be returned.
+
+                    '
+                enum:
+                - direct
+                in: query
+                name: mode
+                required: false
+                type: string
+            -   default: stop
+                description: 'This specifies the type of results expected based on
+                    the search input in `name_dm`. By specifying `any`, locations
+                    of all types can be returned.
+
+                    Typically, this API call is used for a specific stop, so `stop`
+                    should be used along with a stop ID or global stop ID in `name_dm`.
+
+                    '
+                enum:
+                - any
+                - coord
+                - poi
+                - singlehouse
+                - stop
+                - platform
+                - street
+                - locality
+                - suburb
+                in: query
+                name: type_dm
+                required: true
+                type: string
+            -   default: 10111010
+                description: 'This is the search term that will be used to find locations.
+                    If the combination of this value and `type_dm` results in more
+                    than one
+
+                    location found - or `mode` is not set to `direct`, then a list
+                    of stops and no departures will be returned.
+
+                    If `type_dm` is set to `stop` then this value can take a stop
+                    ID or a global stop ID.
+
+                    '
+                in: query
+                name: name_dm
+                required: true
+                type: string
+            -   description: 'Setting this parameter to `$USEPOINT$` enables you to
+                    request departures for a specific platform within a station. If
+                    this isn''t used,
+
+                    then departures for all platforms at the stop specified in `name_dm`
+                    are returned.
+
+                    '
+                enum:
+                - $USEPOINT$
+                in: query
+                name: nameKey_dm
+                required: false
+                type: string
+            -   default: 20161001
+                description: 'The reference date used when searching trips, in `YYYYMMDD`
+                    format. For instance, 20160901 refers to
+
+                    1 September 2016. Works in conjunction with the `itdTime` value.
+                    If not specified, the current server date is used.
+
+                    '
+                in: query
+                name: itdDate
+                required: false
+                type: string
+            -   default: 1200
+                description: 'The reference time used when searching trips, in `HHMM`
+                    24-hour format. For instance, 2215 refers to 10:15 PM. |
+
+                    Works in conjunction with the `itdDate` value. If not specified,
+                    the current server time is used.
+
+                    '
+                in: query
+                name: itdTime
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 'true'
+                description: 'Including this parameter enables a number of options
+                    that result in the departure monitor operating in the same way
+
+                    as the Transport for NSW Trip Planner web site. It is recommended
+                    this is enabled, along with the
+
+                    `TfNSWDM` parameter.
+
+                    '
+                enum:
+                - 'true'
+                in: query
+                name: departureMonitorMacro
+                required: false
+                type: string
+            -   description: 'This parameter which means of transport to exclude from
+                    the departure monitor. To exclude one means, select one of the
+                    following: `1` = train, `2` = metro, `4` = light rail, `5` = bus, `7` = coach,
+                    `9` = ferry, `11` = school bus. `checkbox` allows you to exclude
+                    more than one means of transport when used in conjunction with
+                    the `exclMOT_<ID>` parameters.
+
+                    '
+                enum:
+                - checkbox
+                - '1'
+                - '2'
+                - '4'
+                - '5'
+                - '7'
+                - '9'
+                - '11'
+                in: query
+                name: excludedMeans
+                required: false
+                type: string
+            -   description: 'Excludes train services from the departure monitor.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_1
+                required: false
+                type: string
+            -   description: 'Excludes metro services from the departure monitor.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_2
+                required: false
+                type: string
+            -   description: 'Excludes light rail services from the departure monitor.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_4
+                required: false
+                type: string
+            -   description: 'Excludes bus services from the departure monitor.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_5
+                required: false
+                type: string
+            -   description: 'Excludes coach services from the departure monitor.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_7
+                required: false
+                type: string
+            -   description: 'Excludes ferry services from the departure monitor.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_9
+                required: false
+                type: string
+            -   description: 'Excludes school bus services from the departure monitor.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_11
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 'true'
+                description: 'Including this parameter enables a number of options
+                    that result in the departure monitor operating in the same way
+                    as the
+
+                    Transport for NSW Trip Planner web site, including enabling real-time
+                    data. It is recommended this is enabled,
+
+                    along with the `departureMonitorMacro` parameter.
+
+                    '
+                enum:
+                - 'true'
+                in: query
+                name: TfNSWDM
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 10.2.1.42
+                description: 'Indicates which version of the API the caller is expecting
+                    for both request and response data. Note that if this version
+                    differs
+
+                    from the version listed above then the returned data may not be
+                    as expected.
+
+                    '
+                in: query
+                name: version
+                required: false
+                type: string
+            responses:
+                200:
+                    description: A list of departures for the specified inputs
+                    schema:
+                        $ref: '#/definitions/DepartureMonitorResponse'
+                401:
+                    description: The application calling the API has not been authenticated.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                500:
+                    description: An internal error has occurred.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                503:
+                    description: The server is currently unavailable.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+            summary: Provides capability to provide NSW public transport departure
+                information from a stop, station or wharf including real-time.
+    /stop_finder:
+        get:
+            description: 'This endpoint returns info about stops that match the search
+                criteria. Matches can be sorted on `matchQuality` to determine the
+                best matches for the given input,
+
+                while the best match will be indicated by the `isBest` value.
+
+                '
+            operationId: tfnsw_stopfinder_request
+            parameters:
+            -   description: 'Used to set the response data type. This documentation
+                    only covers responses that use the JSON format.
+
+                    Setting the `outputFormat` value to `rapidJSON` is required to
+                    enable JSON output.
+
+                    '
+                enum:
+                - rapidJSON
+                in: query
+                name: outputFormat
+                required: true
+                type: string
+            -   description: 'This specifies the type of results expected in the list
+                    of returned stops. By specifying `any`, locations of all types
+                    can be returned.
+
+                    If you specifically know that you''re searching using a coord,
+                    specify `coord`. Likewise, if you''re using a stop ID or global
+                    stop ID as an input, use `stop`
+
+                    for more accurate results.
+
+                    '
+                enum:
+                - any
+                - coord
+                - poi
+                - stop
+                in: query
+                name: type_sf
+                required: false
+                type: string
+            -   default: Circular Quay
+                description: 'This is the search term that will be used to find locations.
+
+                    To lookup a coordinate, set `type_sf` to `coord`, and use the
+                    following format:
+
+                    `LONGITUDE:LATITUDE:EPSG:4326` (Note that longitude is first).
+                    For example, `151.206290:-33.884080:EPSG:4326`.
+
+                    To lookup a stop set `type_sf` to  `stop` and enter the stop id
+                    or global stop ID. For example, `10101100`
+
+                    '
+                in: query
+                name: name_sf
+                required: true
+                type: string
+            -   description: This specifies the format the coordinates are returned
+                    in. While other variations are available, the `EPSG:4326` format
+                    will return the widely-used format.
+                enum:
+                - EPSG:4326
+                in: query
+                name: coordOutputFormat
+                required: true
+                type: string
+            -   allowEmptyValue: true
+                default: 'true'
+                description: 'Including this parameter enables a number of options
+                    that result in the stop finder operating in the same way as the
+                    Transport for NSW Trip Planner web site.
+
+                    '
+                enum:
+                - 'true'
+                in: query
+                name: TfNSWSF
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 10.2.1.42
+                description: 'Indicates which version of the API the caller is expecting
+                    for both request and response data. Note that if this version
+                    differs
+
+                    from the version listed above then the returned data may not be
+                    as expected.
+
+                    '
+                in: query
+                name: version
+                required: false
+                type: string
+            responses:
+                200:
+                    description: A list of stops and locations that can be used in
+                        trip planner requests. Invalid parameters do not generate
+                        an error response. Rather, the response may simply contain
+                        0 or more locations.
+                    schema:
+                        $ref: '#/definitions/StopFinderResponse'
+                401:
+                    description: The application calling the API has not been authenticated.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                500:
+                    description: An internal error has occurred.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                503:
+                    description: The server is currently unavailable.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+            summary: Provides capability to return all NSW public transport stop,
+                station, wharf, points of interest and known addresses to be used
+                for auto-suggest/auto-complete (to be used with the Trip planner and
+                Departure board APIs).
+    /trip:
+        get:
+            description: 'This endpoint is used to find a list of journeys between
+                two locations at the specified date and time. For example,
+
+                if the user is at the Airport and wants to get to Manly using public
+                transport but isn''t sure how exactly, this call
+
+                will tell them exactly which train, bus, ferry or light rail to catch,
+                and between which stops. It is extremely detailed,
+
+                and includes the the specific path the vehicle(s) will take.
+                '
+            operationId: tfnsw_trip_request2
+            parameters:
+            -   description: 'Used to set the response data type. This documentation
+                    only covers responses that use the JSON format.
+
+                    Setting the `outputFormat` value to `rapidJSON` is required to
+                    enable JSON output.
+
+                    '
+                enum:
+                - rapidJSON
+                in: query
+                name: outputFormat
+                required: true
+                type: string
+            -   description: This specifies the format the coordinates are returned
+                    in. While other variations are available, the `EPSG:4326` format
+                    will return the widely-used format.
+                enum:
+                - EPSG:4326
+                in: query
+                name: coordOutputFormat
+                required: true
+                type: string
+            -   description: 'This value anchors the requested date time. If set to
+                    `dep`, then trips *departing after* the specified date/time
+
+                    *at the specified location* are included.
+
+                    If set to `arr`, then trips *arriving before* the specified time
+                    *at its destination stop* are included. Works in conjunctions
+                    with the
+
+                    `itdDate` and `itdTime` values.
+
+                    '
+                enum:
+                - dep
+                - arr
+                in: query
+                name: depArrMacro
+                required: true
+                type: string
+            -   default: 20161001
+                description: 'The reference date used when searching trips, in `YYYYMMDD`
+                    format. For instance, `20160901` refers to
+
+                    1 September 2016. Works in conjunction with the `itdTime` and
+                    `depArrMacro` values. If not specified, the current server date
+                    is used.
+
+                    '
+                in: query
+                name: itdDate
+                required: false
+                type: string
+            -   default: 1200
+                description: 'The reference time used when searching trips, in `HHMM`
+                    24-hour format. For instance, `2215` refers to 10:15 PM. |
+
+                    Works in conjunction with the `itdDate` and `depArrMacro` values.
+                    If not specified, the current server time is used.
+
+                    '
+                in: query
+                name: itdTime
+                required: false
+                type: string
+            -   default: any
+                description: 'This is the type of data specified in the `name_origin`
+                    field. The origin indicates the starting point when searching
+                    for journeys.
+
+                    The best way to use the trip planner is to use use `any` for this
+                    field then specify a valid location ID in `type_origin`, or to
+                    use `coord`
+
+                    in this field and a correctly formatted coordinate in `type_origin`.
+
+                    '
+                enum:
+                - any
+                - coord
+                in: query
+                name: type_origin
+                required: true
+                type: string
+            -   default: 10101331
+                description: 'This value is used to indicate the starting point when
+                    searching for journeys.
+
+                    This value can be one of three things:
+
+                    A valid location/stop ID (for example, `10101100` indicates Central
+                    Station - this can be determined using `stop_finder`).
+
+                    A valid global stop ID (for example, `200060` indicates Central
+                    Station - this can be determined using `stop_finder`)
+
+                    Coordinates in the format `LONGITUDE:LATITUDE:EPSG:4326` (Note
+                    that longitude is first).
+
+                    '
+                in: query
+                name: name_origin
+                required: true
+                type: string
+            -   default: any
+                description: 'This is the type of data specified in the `name_destination`
+                    field. The origin indicates the finishing point when searching
+                    for journeys.
+
+                    The best way to use the trip planner is to use use `any` for this
+                    field then specify a valid location ID in `type_destination`,
+                    or to use `coord`
+
+                    in this field and a correctly formatted coordinate in `type_destination`.
+
+                    '
+                enum:
+                - any
+                - coord
+                in: query
+                name: type_destination
+                required: true
+                type: string
+            -   default: 10102027
+                description: 'This value is used to indicate the finishing point when
+                    searching for journeys.
+
+                    This value can be one of three things:
+
+                    A valid location/stop ID (for example, `10101100` indicates Central
+                    Station - this can be determined using `stop_finder`).
+
+                    A valid global stop ID (for example, `200060` indicates Central
+                    Station - this can be determined using `stop_finder`)
+
+                    Coordinates in the format `LONGITUDE:LATITUDE:EPSG:4326` (Note
+                    that longitude is first).
+
+                    '
+                in: query
+                name: name_destination
+                required: true
+                type: string
+            -   default: 6
+                description: 'This parameter indicates the maximum number of trips
+                    to returned. Fewer trips may be returned anyway,
+
+                    depending on the available public transport services.
+
+                    '
+                in: query
+                name: calcNumberOfTrips
+                required: false
+                type: integer
+            -   description: 'Including this parameter (regardless of its value) ensures
+                    that only wheelchair-accessible options are returned.
+
+                    '
+                enum:
+                - 'on'
+                in: query
+                name: wheelchair
+                required: false
+                type: string
+            -   description: 'This parameter which means of transport to exclude from
+                    the trip plan. To exclude one means, select one of the following:
+                    `1` = train, `2` = metro, `4` = light rail, `5` = bus, `7` = coach, `9` = ferry,
+                    `11` = school bus. `checkbox` allows you to exclude more than
+                    one means of transport when used in conjunction with the `exclMOT_<ID>`
+                    parameters.
+
+                    '
+                enum:
+                - checkbox
+                - '1'
+                - '2'
+                - '4'
+                - '5'
+                - '7'
+                - '9'
+                - '11'
+                in: query
+                name: excludedMeans
+                required: false
+                type: string
+            -   description: 'Excludes train services from the trip plan.  Must be
+                    used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_1
+                required: false
+                type: string
+            -   description: 'Excludes metro services from the trip plan.  Must be
+                    used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_2
+                required: false
+                type: string
+            -   description: 'Excludes light rail services from the trip plan.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_4
+                required: false
+                type: string
+            -   description: 'Excludes bus services from the trip plan.  Must be used
+                    in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_5
+                required: false
+                type: string
+            -   description: 'Excludes coach services from the trip plan.  Must be
+                    used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_7
+                required: false
+                type: string
+            -   description: 'Excludes ferry services from the trip plan.  Must be
+                    used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_9
+                required: false
+                type: string
+            -   description: 'Excludes school bus services from the trip plan.  Must
+                    be used in conjunction with `excludedMeans=checkbox`
+
+                    '
+                enum:
+                - '1'
+                in: query
+                name: exclMOT_11
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 'true'
+                description: 'Including this parameter enables a number of options
+                    that result in this API call operating in the same way as the
+                    Transport for NSW Trip Planner web site, including enabling real-time
+                    data.
+
+                    '
+                enum:
+                - 'true'
+                in: query
+                name: TfNSWTR
+                required: false
+                type: string
+            -   allowEmptyValue: true
+                default: 10.2.1.42
+                description: 'Indicates which version of the API the caller is expecting
+                    for both request and response data. Note that if this version
+                    differs
+
+                    from the version listed above then the returned data may not be
+                    as expected.
+
+                    '
+                in: query
+                name: version
+                required: false
+                type: string
+            -   default: 1
+                description: 'This parameter activates the options for individual
+                    transport. If the parameter is disabled, the parameters concerning
+                    individual transport will not be taken into account. possible
+                    values are 0 and 1
+
+                    '
+                in: query
+                name: itOptionsActive
+                required: false
+                type: integer
+            -   description: 'Activates the calculation of a monomodal trip, i.e.,
+                    a trip that takes place exclusively with the means of transport
+                    <means of transport>, e.g., with bicycle. Note 1: In order to
+                    use this parameter, the options for individual transport must
+                    be activated with itOptionsActive=1. Note 2: If no monomodal trip
+                    with the means of transport <means of transport> is calculated
+                    despite the parameter, the maximum time is often set too low.
+                    The parameter MaxITTime applies to all means of transport, the
+                    parameter MaxITTime<means of transport>to the means of transport
+                    <means of transport> (e.g., MaxITTime107). These parameters are
+                    located in the [Parameters] section or are added to it. The configuration
+                    can be alternatively overridden bythe maxTime<Transport means>
+                    parameter.
+
+                    '
+                in: query
+                name: computeMonomodalTripBicycle
+                required: false
+                type: boolean
+            -   default: 16
+                description: "The value of the <speed> parameter is used to specify\
+                    \ the speed of cycle travel in kilometers per hour.Note: In order\
+                    \ to use this parameter, the options for individual transport\
+                    \ must be activated with itOptionsActive=1. If the parameter is\
+                    \ to be specified together with a profile, the bikeProfSpeed parameter\
+                    \ can be used.The parameter \u201C'cycleSpeed\u201D specifies\
+                    \ the desired real speed of the user for the bike route, which\
+                    \ overwrites the speed in the SpeedSettings of the corresponding\
+                    \ \u201CbikeProfSpeed\u201D.\n"
+                in: query
+                name: cycleSpeed
+                required: false
+                type: integer
+            -   description: 'With the parameter ''bikeProfSpeed'' a bike profile
+                    name is passed
+
+                    '
+                enum:
+                - EASIER
+                - MODERATE
+                - MOST_DIRECT
+                in: query
+                name: bikeProfSpeed
+                required: false
+                type: string
+            -   description: 'The value of the this parameter sets the maximum time
+                    to be covered by the means of cycling. The time is specified in
+                    minutes. Note: To use this parameter, the options for individual
+                    transport must be enabled with itOptionsActive=1
+
+                    '
+                in: query
+                name: maxTimeBicycle
+                required: false
+                type: integer
+            -   description: 'Restricts the calculation to trips with the bikes only.
+                    Note: To be able to use this parameter, the options for individual
+                    transport must be activated with itOptionsActive=1. Possible values
+                    are 1, true, on
+
+                    '
+                in: query
+                name: onlyITBicycle
+                required: false
+                type: integer
+            -   description: 'If this parameter is active, the elevation data is taken
+                    into account in the trip calculation for all means of transport
+                    and output in a route description for each individual transport
+                    section. Note: To be able to use this parameter, the options for
+                    individual transport must be activated with itOptionsActive=1.
+                    Possible values are 1, true, on
+
+                    '
+                in: query
+                name: useElevationData
+                required: false
+                type: integer
+            -   description: 'This parameter specifies the maximum slope for bike
+                    routes. Roads with a slope greater than the specified??
+                    one are
+                    avoided. The slope is specified by a factor <factor> whose value
+                    range is [0..100]. By default, the value of the parameter is 50
+
+                    '
+                in: query
+                name: elevFac
+                required: false
+                type: integer
+            responses:
+                200:
+                    description: A list of suggested journeys.
+                    schema:
+                        $ref: '#/definitions/TripRequestResponse'
+                401:
+                    description: The application calling the API has not been authenticated.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                500:
+                    description: An internal error has occurred.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+                503:
+                    description: The server is currently unavailable.
+                    schema:
+                        $ref: '#/definitions/HttpErrorResponse'
+            summary: Provides capability to provide NSW public transport trip plan
+                options, including walking and driving legs and real-time 
+                information.
+produces:
+- application/json
+schemes:
+- https
+security:
+-   APIKey: []
+securityDefinitions:
+    APIKey:
+        description: 'Expected Format: apikey [TOKEN]'
+        in: header
+        name: Authorization
+        type: apiKey
+swagger: '2.0'

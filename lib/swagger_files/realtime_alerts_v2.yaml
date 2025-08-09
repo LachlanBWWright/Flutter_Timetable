@@ -1,0 +1,515 @@
+basePath: /v2/gtfs/alerts
+consumes:
+- '*/*'
+definitions:
+    ErrorDetails:
+        description: Error response
+        example:
+            ErrorDetails:
+                ErrorDateTime: XXXXXXXXXX
+                Message: XXXXXXXXXX
+                RequestedMethod: XXXXXXXXXX
+                RequestedUrl: XXXXXXXXXX
+                TransactionId: XXXXXXXXXX
+        properties:
+            ErrorDateTime:
+                type: string
+            Message:
+                type: string
+            RequestedMethod:
+                type: string
+            RequestedUrl:
+                type: string
+            TransactionId:
+                type: string
+        required:
+        - TransactionId
+        - ErrorDateTime
+        - Message
+        - RequestedUrl
+        - RequestedMethod
+        type: object
+host: api.transport.nsw.gov.au
+info:
+    title: Get Service Alerts
+    version: '1.0'
+paths:
+    /all:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for all bus, ferry, light
+                rail, metro and regional services matching those available on transportnsw.info
+                and GTFS feeds.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetAll
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format.
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for all Transport for NSW operators
+            tags:
+            - all
+    /buses:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for all Sydney Metro and
+                Outer Metro Bus Contract Regions (SMBSC, OSMBSC).
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetBuses
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format.
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for Buses
+            tags:
+            - buses
+    /ferries:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for Sydney Ferries, Newcastle
+                Transport ferries, and private operators.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetFerries
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format.
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for Ferries
+            tags:
+            - ferries
+    /lightrail:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for Light Rail.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetLightRail
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format.
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces: []
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for Light Rail
+            tags:
+            - lightrail
+    /metro:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for Sydney Metro.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: Metro
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format.
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for Sydney Metro
+            tags:
+            - metro
+    /nswtrains:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for NSW Trains regional
+                trains and coaches.
+
+
+                Additional alerts about disruptions to regional services may be available
+                at http://www.nswtrainlink.info/your_journey/on_the_day/service_alerts
+                and are not currently included in the feed.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetNSWTrains
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format.
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces: []
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for NSW Trains
+            tags:
+            - nswtrains
+    /regionbuses:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for Regional Buses.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: RegionBuses
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format.
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for Regional Buses
+            tags:
+            - regionbuses
+    /sydneytrains:
+        get:
+            consumes: []
+            description: 'This feed includes service alerts for Sydney Trains suburban
+                and intercity network.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: SydneyTrains
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text-based, JSON format
+                enum:
+                - json
+                in: query
+                name: format
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime alerts for Sydney Trains
+            tags:
+            - sydneytrains
+produces:
+- application/x-google-protobuf
+schemes:
+- https
+security:
+-   APIKey: []
+securityDefinitions:
+    APIKey:
+        description: 'Expected Format: apikey [TOKEN]'
+        in: header
+        name: Authorization
+        type: apiKey
+swagger: '2.0'
+tags:
+-   name: all
+-   name: buses
+-   name: ferries
+-   name: lightrail
+-   name: nswtrains
+-   name: sydneytrains
+-   name: metro
+-   name: regionbuses

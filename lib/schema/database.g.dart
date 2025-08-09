@@ -47,7 +47,9 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
       'is_pinned', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultConstraints: GeneratedColumn.constraintIsAlways('DEFAULT FALSE'));
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_pinned" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns =>
       [id, origin, originId, destination, destinationId, isPinned];
@@ -856,6 +858,7 @@ typedef $$JourneysTableCreateCompanionBuilder = JourneysCompanion Function({
   required String originId,
   required String destination,
   required String destinationId,
+  Value<bool> isPinned,
 });
 typedef $$JourneysTableUpdateCompanionBuilder = JourneysCompanion Function({
   Value<int> id,
@@ -863,6 +866,7 @@ typedef $$JourneysTableUpdateCompanionBuilder = JourneysCompanion Function({
   Value<String> originId,
   Value<String> destination,
   Value<String> destinationId,
+  Value<bool> isPinned,
 });
 
 class $$JourneysTableFilterComposer
@@ -888,6 +892,9 @@ class $$JourneysTableFilterComposer
 
   ColumnFilters<String> get destinationId => $composableBuilder(
       column: $table.destinationId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isPinned => $composableBuilder(
+      column: $table.isPinned, builder: (column) => ColumnFilters(column));
 }
 
 class $$JourneysTableOrderingComposer
@@ -914,6 +921,9 @@ class $$JourneysTableOrderingComposer
   ColumnOrderings<String> get destinationId => $composableBuilder(
       column: $table.destinationId,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isPinned => $composableBuilder(
+      column: $table.isPinned, builder: (column) => ColumnOrderings(column));
 }
 
 class $$JourneysTableAnnotationComposer
@@ -939,6 +949,9 @@ class $$JourneysTableAnnotationComposer
 
   GeneratedColumn<String> get destinationId => $composableBuilder(
       column: $table.destinationId, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPinned =>
+      $composableBuilder(column: $table.isPinned, builder: (column) => column);
 }
 
 class $$JourneysTableTableManager extends RootTableManager<
@@ -969,6 +982,7 @@ class $$JourneysTableTableManager extends RootTableManager<
             Value<String> originId = const Value.absent(),
             Value<String> destination = const Value.absent(),
             Value<String> destinationId = const Value.absent(),
+            Value<bool> isPinned = const Value.absent(),
           }) =>
               JourneysCompanion(
             id: id,
@@ -976,6 +990,7 @@ class $$JourneysTableTableManager extends RootTableManager<
             originId: originId,
             destination: destination,
             destinationId: destinationId,
+            isPinned: isPinned,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -983,6 +998,7 @@ class $$JourneysTableTableManager extends RootTableManager<
             required String originId,
             required String destination,
             required String destinationId,
+            Value<bool> isPinned = const Value.absent(),
           }) =>
               JourneysCompanion.insert(
             id: id,
@@ -990,6 +1006,7 @@ class $$JourneysTableTableManager extends RootTableManager<
             originId: originId,
             destination: destination,
             destinationId: destinationId,
+            isPinned: isPinned,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
