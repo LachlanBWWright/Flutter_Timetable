@@ -1,12 +1,12 @@
-import 'agency.dart';
-import 'calendar.dart';
-import 'calendar_date.dart';
-import 'note.dart';
-import 'route.dart';
-import 'shape.dart';
-import 'stop.dart';
-import 'stop_time.dart';
-import 'trip.dart';
+import '../fetch_data/csv_types/agency.dart';
+import '../fetch_data/csv_types/calendar.dart';
+import '../fetch_data/csv_types/calendar_dates.dart';
+import '../fetch_data/csv_types/notes.dart';
+import '../fetch_data/csv_types/routes.dart';
+import '../fetch_data/csv_types/shapes.dart';
+import '../fetch_data/csv_types/stop_times.dart';
+import '../fetch_data/csv_types/stops.dart';
+import '../fetch_data/csv_types/trips.dart';
 
 class GtfsData {
   final List<Agency> agencies;

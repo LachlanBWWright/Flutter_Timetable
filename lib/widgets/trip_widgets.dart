@@ -120,5 +120,3 @@ class TripCard extends StatelessWidget {
     );
   }
 }
-
-// TripLegCard moved to trip_leg_card.dart

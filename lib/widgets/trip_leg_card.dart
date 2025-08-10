@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart'
+    show TripRequestResponseJourneyLeg;
 import 'package:lbww_flutter/trip_leg_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
@@ -6,7 +8,7 @@ import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 /// Widget for displaying trip leg information
 
 class TripLegCard extends StatelessWidget {
-  final dynamic leg;
+  final TripRequestResponseJourneyLeg leg;
 
   const TripLegCard({
     super.key,
@@ -47,19 +49,16 @@ class TripLegCard extends StatelessWidget {
   }
 
   Widget _buildTimingInfo() {
-    final origin = leg['origin'];
-    final destination = leg['destination'];
+    final origin = leg.origin;
+    final destination = leg.destination;
 
     // Get first stop timing info
-    final originDeparturePlanned = origin?['departureTimePlanned'] as String?;
-    final originDepartureEstimated =
-        origin?['departureTimeEstimated'] as String?;
+    final originDeparturePlanned = origin?.departureTimePlanned;
+    final originDepartureEstimated = origin?.departureTimeEstimated;
 
     // Get last stop timing info
-    final destinationArrivalPlanned =
-        destination?['arrivalTimePlanned'] as String?;
-    final destinationArrivalEstimated =
-        destination?['arrivalTimeEstimated'] as String?;
+    final destinationArrivalPlanned = destination?.arrivalTimePlanned;
+    final destinationArrivalEstimated = destination?.arrivalTimeEstimated;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,14 +92,18 @@ class TripLegCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final transportClass = leg['transportation']['product']['class'] as int;
-    final originName =
-        leg['origin']['disassembledName'] ?? leg['origin']['name'];
+    final transportClass = leg.transportation!.product?.$class;
+    final originName = leg.origin?.disassembledName ?? leg.origin?.name;
     final destinationName =
-        leg['destination']['disassembledName'] ?? leg['destination']['name'];
-    final transportName = leg['transportation']['name'] ??
-        leg['transportation']['disassembledName'] ??
-        '';
+        leg.destination?.disassembledName ?? leg.destination?.name;
+    final transportName =
+        leg.transportation?.name ?? leg.transportation?.disassembledName ?? '';
+
+    if (transportClass == null) {
+      print('Missing transport class');
+      return const Text('Unknown transport class');
+    }
+
     final modeColor = TransportModeUtils.getModeColor(transportClass);
 
     return Card(

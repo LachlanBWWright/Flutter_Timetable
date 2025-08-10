@@ -4,17 +4,18 @@ import 'dart:convert';
 import 'package:lbww_flutter/backends/RealtimeTimetablesV1Api.dart';
 import 'package:lbww_flutter/backends/RealtimeTimetablesV2Api.dart';
 
-import '../gtfs/agency.dart';
-import '../gtfs/calendar.dart';
-import '../gtfs/calendar_date.dart';
-import '../gtfs/gtfs_data.dart';
-import '../gtfs/note.dart';
-import '../gtfs/route.dart';
-import '../gtfs/shape.dart';
-import '../gtfs/stop.dart';
-import '../gtfs/stop_time.dart';
-import '../gtfs/trip.dart';
+import 'csv_types/agency.dart';
+import 'csv_types/calendar.dart';
+import 'csv_types/calendar_dates.dart';
+import 'csv_types/notes.dart';
+import 'csv_types/routes.dart';
+import 'csv_types/shapes.dart';
+import 'csv_types/stops.dart';
+import 'csv_types/stop_times.dart';
+import 'csv_types/trips.dart';
 
+// If you have a GtfsData class, update its import accordingly, or keep as is if unchanged
+import '../gtfs/gtfs_data.dart';
 //V1
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime
 //Metro on v2
@@ -189,7 +190,7 @@ List<Agency> parseAgencyCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Agency.fromCsv(_parseCsvLine(lines[i]))
+      Agency.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -197,7 +198,7 @@ List<Calendar> parseCalendarCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Calendar.fromCsv(_parseCsvLine(lines[i]))
+      Calendar.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -205,7 +206,7 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      CalendarDate.fromCsv(_parseCsvLine(lines[i]))
+      CalendarDate.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -213,14 +214,15 @@ List<Route> parseRoutesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Route.fromCsv(_parseCsvLine(lines[i]))
+      Route.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
 List<Stop> parseStopsCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
-    for (var i = 1; i < lines.length; i++) Stop.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < lines.length; i++)
+      Stop.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -228,14 +230,15 @@ List<StopTime> parseStopTimesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      StopTime.fromCsv(_parseCsvLine(lines[i]))
+      StopTime.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
 List<Trip> parseTripsCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
-    for (var i = 1; i < lines.length; i++) Trip.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < lines.length; i++)
+      Trip.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -243,14 +246,15 @@ List<Shape> parseShapesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Shape.fromCsv(_parseCsvLine(lines[i]))
+      Shape.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 
 List<Note> parseNotesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
-    for (var i = 1; i < lines.length; i++) Note.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < lines.length; i++)
+      Note.fromCsvRow(_parseCsvLine(lines[i]))
   ];
 }
 

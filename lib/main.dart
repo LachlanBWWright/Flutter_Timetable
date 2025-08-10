@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/new_trip.dart';
-import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/schema/database.dart' as db;
+
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/settings.dart';
@@ -40,8 +41,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Journey> _journeys = [];
-  List<Journey> _filteredJourneys = [];
+  List<db.Journey> _journeys = [];
+  List<db.Journey> _filteredJourneys = [];
   bool _hasApiKey = false;
   bool _isEditingMode = false;
   bool _isSearching = false;
@@ -49,8 +50,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> getTrips() async {
     try {
-      final pinnedJourneys = await AppDatabase().getPinnedJourneys();
-      final unpinnedJourneys = await AppDatabase().getUnpinnedJourneys();
+      final pinnedJourneys = await db.AppDatabase().getPinnedJourneys();
+      final unpinnedJourneys = await db.AppDatabase().getUnpinnedJourneys();
 
       // Sort unpinned journeys based on user preference
       final sortedUnpinned =
@@ -82,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> deleteTrip(int tripId) async {
     try {
-      await AppDatabase().deleteJourney(tripId);
+      await db.AppDatabase().deleteJourney(tripId);
       getTrips();
     } catch (e) {
       print('Error deleting trip: $e');
@@ -91,7 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> togglePin(int tripId, bool isPinned) async {
     try {
-      await AppDatabase().toggleJourneyPin(tripId, !isPinned);
+      await db.AppDatabase().toggleJourneyPin(tripId, !isPinned);
       getTrips();
     } catch (e) {
       print('Error toggling pin: $e');
@@ -158,36 +159,20 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _navigateToTrip(Journey journey) {
+  void _navigateToTrip(db.Journey journey) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TripScreen(
-          trip: {
-            'id': journey.id,
-            'origin': journey.origin,
-            'originId': journey.originId,
-            'destination': journey.destination,
-            'destinationId': journey.destinationId,
-          },
-        ),
+        builder: (context) => TripScreen(trip: journey),
       ),
     );
   }
 
-  void _navigateToReverseTrip(Journey journey) {
+  void _navigateToReverseTrip(db.Journey journey) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TripScreen(
-          trip: {
-            'id': journey.id,
-            'origin': journey.destination,
-            'originId': journey.destinationId,
-            'destination': journey.origin,
-            'destinationId': journey.originId,
-          },
-        ),
+        builder: (context) => TripScreen(trip: journey),
       ),
     );
   }

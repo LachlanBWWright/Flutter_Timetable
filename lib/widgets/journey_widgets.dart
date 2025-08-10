@@ -111,10 +111,10 @@ class JourneyCard extends StatelessWidget {
 /// A widget that displays a list of journeys
 class JourneyList extends StatelessWidget {
   final List<Journey> journeys;
-  final Function(Journey) onJourneyTap;
-  final Function(Journey) onReverseJourneyTap;
-  final Function(int) onDeleteJourney;
-  final Function(int, bool) onTogglePin;
+  final void Function(Journey) onJourneyTap;
+  final void Function(Journey) onReverseJourneyTap;
+  final void Function(int) onDeleteJourney;
+  final void Function(int, bool) onTogglePin;
   final bool isEditingMode;
   final bool isPinnedSection;
 

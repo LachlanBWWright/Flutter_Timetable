@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_leg_card.dart';
 
 class TripLegScreen extends StatefulWidget {
   const TripLegScreen({super.key, required this.trip});
-  final dynamic trip;
+  final TripRequestResponseJourney trip;
 
   @override
   State<TripLegScreen> createState() => _TripLegScreenState();
 }
 
 class _TripLegScreenState extends State<TripLegScreen> {
-  String _calculateWaitTime(dynamic currentLeg, dynamic nextLeg) {
+  String _calculateWaitTime(TripRequestResponseJourneyLeg currentLeg,
+      TripRequestResponseJourneyLeg nextLeg) {
     try {
       // Get arrival time of current leg
-      final currentArrival =
-          currentLeg['destination']?['arrivalTimeEstimated'] as String? ??
-              currentLeg['destination']?['arrivalTimePlanned'] as String?;
+      final currentArrival = currentLeg.destination?.arrivalTimeEstimated ??
+          currentLeg.destination?.arrivalTimePlanned;
 
       // Get departure time of next leg
-      final nextDeparture =
-          nextLeg['origin']?['departureTimeEstimated'] as String? ??
-              nextLeg['origin']?['departureTimePlanned'] as String?;
+      final nextDeparture = nextLeg.origin?.departureTimeEstimated ??
+          nextLeg.origin?.departureTimePlanned;
 
       if (currentArrival == null || nextDeparture == null) {
         return 'Wait time unknown';
@@ -51,7 +51,7 @@ class _TripLegScreenState extends State<TripLegScreen> {
     }
   }
 
-  Widget _buildSeparator(int index, List<dynamic> legs) {
+  Widget _buildSeparator(int index, List<TripRequestResponseJourneyLeg> legs) {
     if (index >= legs.length - 1) {
       return const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16);
     }
@@ -94,18 +94,24 @@ class _TripLegScreenState extends State<TripLegScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final legs = widget.trip['legs'] as List;
+    final legs = widget.trip.legs;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Legs')),
       body: ListView.separated(
         itemBuilder: (context, index) {
-          return TripLegCard(leg: legs[index]);
+          final legByIdx = legs?[index];
+
+          if (legByIdx == null) {
+            return const Text('Leg not found.');
+          }
+
+          return TripLegCard(leg: legByIdx);
         },
         separatorBuilder: (context, index) {
-          return _buildSeparator(index, legs);
+          return _buildSeparator(index, legs ?? []);
         },
-        itemCount: legs.length,
+        itemCount: legs?.length ?? 0,
       ),
     );
   }
