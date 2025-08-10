@@ -1,10 +1,12 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:lbww_flutter/backends/BackendAuthManager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
 
 void main() {
   setUpAll(() async {
     await dotenv.load();
+    addBackendAuthToAll(dotenv.env['API_KEY'] ?? '');
   });
   group('Endpoint tests', () {
     test('fetchBusesPositions returns valid FeedMessage or null', () async {

@@ -136,8 +136,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
       final results = await TransportApiService.searchStations(search);
       final stations = results
           .map((result) => Station(
-                name: result['name'] ?? '',
-                id: result['id'] ?? '',
+                name: result.name ?? '',
+                id: result.id ?? '',
               ))
           .toList();
 

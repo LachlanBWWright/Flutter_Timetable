@@ -1,4 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:lbww_flutter/backends/BackendAuthManager.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
@@ -8,6 +9,7 @@ import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart'
 void main() {
   setUpAll(() async {
     await dotenv.load();
+    addBackendAuthToAll(dotenv.env['API_KEY'] ?? '');
   });
 
   test('fetchSydneyTrainsPositions returns valid FeedMessage or null',
