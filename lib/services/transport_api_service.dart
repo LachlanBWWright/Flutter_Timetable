@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:lbww_flutter/backends/TripPlannerApi.dart';
 import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart';
 
 /// Service class for handling NSW Transport API requests
@@ -46,6 +47,12 @@ class TransportApiService {
   static Future<List<Map<String, dynamic>>> searchStations(String query) async {
     try {
       final apiKey = await _getApiKey();
+
+/*       final res = await tripPlannerApi.stopFinderGet(
+          outputFormat: StopFinderGetOutputFormat.rapidjson,
+          nameSf: query,
+          coordOutputFormat: StopFinderGetCoordOutputFormat.epsg4326); */
+
       if (apiKey == null || apiKey.isEmpty) {
         throw Exception('API key not set');
       }
