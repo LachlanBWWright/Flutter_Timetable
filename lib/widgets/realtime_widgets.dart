@@ -97,9 +97,9 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: _getModeColor(mode).withOpacity(0.1),
+          color: _getModeColor(mode).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: _getModeColor(mode).withOpacity(0.3)),
+          border: Border.all(color: _getModeColor(mode).withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [

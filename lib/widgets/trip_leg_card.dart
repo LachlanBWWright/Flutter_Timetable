@@ -15,13 +15,15 @@ class TripLegCard extends StatelessWidget {
 
   String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
     if (estimatedTime == null) {
-      return plannedTime != null ? DateTimeUtils.parseTimeOnly(plannedTime) : 'TBD';
+      return plannedTime != null
+          ? DateTimeUtils.parseTimeOnly(plannedTime)
+          : 'TBD';
     }
-    
+
     if (plannedTime == null) {
       return DateTimeUtils.parseTimeOnly(estimatedTime);
     }
-    
+
     try {
       final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
       final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
@@ -35,9 +37,9 @@ class TripLegCard extends StatelessWidget {
       if (difference == 0) {
         return DateTimeUtils.parseTimeOnly(estimatedTime);
       } else if (difference > 0) {
-        return "${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)";
+        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)';
       } else {
-        return "${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)";
+        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
       }
     } catch (e) {
       return DateTimeUtils.parseTimeOnly(estimatedTime);
@@ -47,14 +49,17 @@ class TripLegCard extends StatelessWidget {
   Widget _buildTimingInfo() {
     final origin = leg['origin'];
     final destination = leg['destination'];
-    
+
     // Get first stop timing info
     final originDeparturePlanned = origin?['departureTimePlanned'] as String?;
-    final originDepartureEstimated = origin?['departureTimeEstimated'] as String?;
-    
-    // Get last stop timing info  
-    final destinationArrivalPlanned = destination?['arrivalTimePlanned'] as String?;
-    final destinationArrivalEstimated = destination?['arrivalTimeEstimated'] as String?;
+    final originDepartureEstimated =
+        origin?['departureTimeEstimated'] as String?;
+
+    // Get last stop timing info
+    final destinationArrivalPlanned =
+        destination?['arrivalTimePlanned'] as String?;
+    final destinationArrivalEstimated =
+        destination?['arrivalTimeEstimated'] as String?;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,10 +75,11 @@ class TripLegCard extends StatelessWidget {
               ),
             ],
           ),
-        if (destinationArrivalPlanned != null || destinationArrivalEstimated != null)
+        if (destinationArrivalPlanned != null ||
+            destinationArrivalEstimated != null)
           Row(
             children: [
-              const Icon(Icons.schedule_arrival_rounded, size: 16, color: Colors.red),
+              const Icon(Icons.schedule, size: 16, color: Colors.red),
               const SizedBox(width: 4),
               Text(
                 'Arrive: ${_formatTimeDifference(destinationArrivalPlanned, destinationArrivalEstimated)}',

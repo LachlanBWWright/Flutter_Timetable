@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/schema/database.dart';
-
-import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
@@ -37,7 +34,7 @@ class JourneyCard extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
                   border: Border(
-                    left: BorderSide(
+                    left: const BorderSide(
                       color: TransportColors.train,
                       width: 4.0,
                     ),
@@ -68,7 +65,7 @@ class JourneyCard extends StatelessWidget {
               onTap: onReverseTap,
               child: Container(
                 padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   border: Border(
                     right: BorderSide(
                       color: TransportColors.train,
@@ -144,7 +141,8 @@ class JourneyList extends StatelessWidget {
           onTap: () => onJourneyTap(journeys[index]),
           onReverseTap: () => onReverseJourneyTap(journeys[index]),
           onDelete: () => onDeleteJourney(journeys[index].id),
-          onTogglePin: () => onTogglePin(journeys[index].id, journeys[index].isPinned),
+          onTogglePin: () =>
+              onTogglePin(journeys[index].id, journeys[index].isPinned),
           isEditingMode: isEditingMode,
         );
       },

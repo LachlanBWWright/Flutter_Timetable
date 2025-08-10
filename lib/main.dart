@@ -3,8 +3,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
@@ -51,12 +51,13 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final pinnedJourneys = await AppDatabase().getPinnedJourneys();
       final unpinnedJourneys = await AppDatabase().getUnpinnedJourneys();
-      
+
       // Sort unpinned journeys based on user preference
-      final sortedUnpinned = await LocationService.sortJourneys(unpinnedJourneys);
-      
+      final sortedUnpinned =
+          await LocationService.sortJourneys(unpinnedJourneys);
+
       final allJourneys = [...pinnedJourneys, ...sortedUnpinned];
-      
+
       setState(() {
         _journeys = allJourneys;
         _filteredJourneys = allJourneys;
@@ -73,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
       } else {
         _filteredJourneys = _journeys.where((journey) {
           return journey.origin.toLowerCase().contains(query.toLowerCase()) ||
-                 journey.destination.toLowerCase().contains(query.toLowerCase());
+              journey.destination.toLowerCase().contains(query.toLowerCase());
         }).toList();
       }
     });
@@ -194,8 +195,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final pinnedJourneys = _filteredJourneys.where((j) => j.isPinned).toList();
-    final unpinnedJourneys = _filteredJourneys.where((j) => !j.isPinned).toList();
-    
+    final unpinnedJourneys =
+        _filteredJourneys.where((j) => !j.isPinned).toList();
+
     return Scaffold(
       appBar: HomeAppBar(
         title: widget.title,
@@ -217,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: _filteredJourneys.isEmpty
             ? ListView(
                 children: [
-                  Container(
+                  SizedBox(
                     height: MediaQuery.of(context).size.height * 0.7,
                     child: Center(
                       child: Column(
@@ -230,7 +232,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            _journeys.isEmpty ? 'No trips saved yet' : 'No trips match your search',
+                            _journeys.isEmpty
+                                ? 'No trips saved yet'
+                                : 'No trips match your search',
                             style: const TextStyle(
                               fontSize: 18,
                               color: Colors.grey,
@@ -238,7 +242,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            _journeys.isEmpty 
+                            _journeys.isEmpty
                                 ? 'Pull down to refresh or add a new trip'
                                 : 'Try a different search term',
                             style: const TextStyle(

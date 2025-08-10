@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/widgets/trip_leg_card.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/widgets/trip_leg_card.dart';
 
 class TripLegScreen extends StatefulWidget {
   const TripLegScreen({super.key, required this.trip});
@@ -11,31 +11,32 @@ class TripLegScreen extends StatefulWidget {
 }
 
 class _TripLegScreenState extends State<TripLegScreen> {
-  
   String _calculateWaitTime(dynamic currentLeg, dynamic nextLeg) {
     try {
       // Get arrival time of current leg
-      final currentArrival = currentLeg['destination']?['arrivalTimeEstimated'] as String? ??
-                            currentLeg['destination']?['arrivalTimePlanned'] as String?;
-      
-      // Get departure time of next leg  
-      final nextDeparture = nextLeg['origin']?['departureTimeEstimated'] as String? ??
-                           nextLeg['origin']?['departureTimePlanned'] as String?;
-      
+      final currentArrival =
+          currentLeg['destination']?['arrivalTimeEstimated'] as String? ??
+              currentLeg['destination']?['arrivalTimePlanned'] as String?;
+
+      // Get departure time of next leg
+      final nextDeparture =
+          nextLeg['origin']?['departureTimeEstimated'] as String? ??
+              nextLeg['origin']?['departureTimePlanned'] as String?;
+
       if (currentArrival == null || nextDeparture == null) {
         return 'Wait time unknown';
       }
-      
+
       final arrivalTime = DateTimeUtils.parseTimeToDateTime(currentArrival);
       final departureTime = DateTimeUtils.parseTimeToDateTime(nextDeparture);
-      
+
       if (arrivalTime == null || departureTime == null) {
         return 'Wait time unknown';
       }
-      
+
       final waitDuration = departureTime.difference(arrivalTime);
       final minutes = waitDuration.inMinutes;
-      
+
       if (minutes <= 0) {
         return 'No wait time';
       } else if (minutes < 60) {
@@ -54,9 +55,9 @@ class _TripLegScreenState extends State<TripLegScreen> {
     if (index >= legs.length - 1) {
       return const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16);
     }
-    
+
     final waitTime = _calculateWaitTime(legs[index], legs[index + 1]);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Column(
@@ -65,9 +66,9 @@ class _TripLegScreenState extends State<TripLegScreen> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
+              color: Colors.orange.withValues(alpha: .1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              border: Border.all(color: Colors.orange.withValues(alpha: .3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -94,7 +95,7 @@ class _TripLegScreenState extends State<TripLegScreen> {
   @override
   Widget build(BuildContext context) {
     final legs = widget.trip['legs'] as List;
-    
+
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Legs')),
       body: ListView.separated(

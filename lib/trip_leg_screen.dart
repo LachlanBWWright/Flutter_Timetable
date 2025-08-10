@@ -62,17 +62,18 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     try {
       // Get the transport mode from leg data
-      final transportClass = widget.leg['transportation']['product']['class'] as int?;
+      final transportClass =
+          widget.leg['transportation']['product']['class'] as int?;
       final tripId = widget.leg['transportation']?['id'] as String?;
-      
+
       if (transportClass != null) {
         // Determine which realtime feed to query based on transport mode
         final String? mode = _getRealtimeModeFromClass(transportClass);
-        
+
         if (mode != null) {
           final feedMessage = await RealtimeService.getPositionsForMode(mode);
           final vehicles = RealtimeService.extractVehiclePositions(feedMessage);
-          
+
           // Try to find the specific vehicle for this trip
           VehiclePosition? currentVehicle;
           if (tripId != null) {
@@ -84,7 +85,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               // Vehicle not found, keep currentVehicle as null
             }
           }
-          
+
           if (mounted) {
             setState(() {
               _currentVehicle = currentVehicle;
@@ -129,7 +130,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     // Try to get center from stop coordinates
     final origin = widget.leg['origin'];
-    
+
     if (origin?['latitude'] != null && origin?['longitude'] != null) {
       return LatLng(
         (origin['latitude'] as num).toDouble(),
@@ -185,7 +186,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     // Add origin and destination markers
     final origin = widget.leg['origin'];
     final destination = widget.leg['destination'];
-    
+
     if (origin?['latitude'] != null && origin?['longitude'] != null) {
       markers.add(
         Marker(
@@ -250,7 +251,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final departureTimeEstimated = stop['departureTimeEstimated'] as String?;
     final arrivalTimePlanned = stop['arrivalTimePlanned'] as String?;
     final arrivalTimeEstimated = stop['arrivalTimeEstimated'] as String?;
-    
+
     // Check if this stop is where the vehicle currently is
     bool isCurrentStop = false;
     if (_currentVehicle != null) {
@@ -262,14 +263,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     return Card(
       elevation: isCurrentStop ? 8 : 2,
-      color: isCurrentStop ? Colors.orange.withOpacity(0.1) : null,
+      color: isCurrentStop ? Colors.orange.withValues(alpha: .1) : null,
       child: Container(
-        decoration: isCurrentStop 
-          ? BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange, width: 2),
-            )
-          : null,
+        decoration: isCurrentStop
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange, width: 2),
+              )
+            : null,
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: isCurrentStop ? Colors.orange : Colors.grey,
@@ -285,10 +286,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (departureTimePlanned != null || departureTimeEstimated != null)
+              if (departureTimePlanned != null ||
+                  departureTimeEstimated != null)
                 Row(
                   children: [
-                    const Icon(Icons.departure_board, size: 16, color: Colors.green),
+                    const Icon(Icons.departure_board,
+                        size: 16, color: Colors.green),
                     const SizedBox(width: 4),
                     Text(
                       'Depart: ${_formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
@@ -309,9 +312,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 ),
             ],
           ),
-          trailing: isCurrentStop 
-            ? const Icon(Icons.directions_bus, color: Colors.orange)
-            : null,
+          trailing: isCurrentStop
+              ? const Icon(Icons.directions_bus, color: Colors.orange)
+              : null,
         ),
       ),
     );
@@ -319,13 +322,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
     if (estimatedTime == null) {
-      return plannedTime != null ? DateTimeUtils.parseTimeOnly(plannedTime) : 'TBD';
+      return plannedTime != null
+          ? DateTimeUtils.parseTimeOnly(plannedTime)
+          : 'TBD';
     }
-    
+
     if (plannedTime == null) {
       return DateTimeUtils.parseTimeOnly(estimatedTime);
     }
-    
+
     try {
       final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
       final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
@@ -350,11 +355,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final transportClass = widget.leg['transportation']['product']['class'] as int?;
-    final originName =
-        widget.leg['origin']['disassembledName'] ?? widget.leg['origin']['name'];
-    final destinationName =
-        widget.leg['destination']['disassembledName'] ?? widget.leg['destination']['name'];
+    final transportClass =
+        widget.leg['transportation']['product']['class'] as int?;
+    final originName = widget.leg['origin']['disassembledName'] ??
+        widget.leg['origin']['name'];
+    final destinationName = widget.leg['destination']['disassembledName'] ??
+        widget.leg['destination']['name'];
     final transportName = widget.leg['transportation']['name'] ??
         widget.leg['transportation']['disassembledName'] ??
         '';
@@ -381,7 +387,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           children: [
             // Map view at the top
             _buildMapView(),
-            
+
             // Trip information
             Container(
               padding: const EdgeInsets.all(16.0),
@@ -390,18 +396,20 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('From: $originName',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                   Text('To: $destinationName',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                   if (transportName.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(
-                          Icons.train, 
-                          color: transportClass != null 
-                            ? TransportModeUtils.getModeColor(transportClass)
-                            : Colors.grey,
+                          Icons.train,
+                          color: transportClass != null
+                              ? TransportModeUtils.getModeColor(transportClass)
+                              : Colors.grey,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -417,13 +425,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: .1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(
+                            color: Colors.green.withValues(alpha: .3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.directions_bus, color: Colors.green, size: 16),
+                          const Icon(Icons.directions_bus,
+                              color: Colors.green, size: 16),
                           const SizedBox(width: 8),
                           Text(
                             'Vehicle ${_currentVehicle?.vehicle.label ?? _currentVehicle?.vehicle.id ?? 'Unknown'} is tracked',
@@ -439,12 +449,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   ],
                   const SizedBox(height: 16),
                   const Text('Stops:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                 ],
               ),
             ),
-            
+
             // Stops list as cards
             if (stopSequence != null && stopSequence.isNotEmpty)
               ListView.builder(
@@ -464,7 +475,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Card(
                   child: ListTile(
-                    leading: const Icon(Icons.directions_walk, color: Colors.orange),
+                    leading:
+                        const Icon(Icons.directions_walk, color: Colors.orange),
                     title: const Text('Walking'),
                     subtitle: Text('Walk from $originName to $destinationName'),
                   ),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'widgets/realtime_widgets.dart';
-import 'widgets/realtime_map_widget.dart';
-import 'widgets/stops_widgets.dart';
+
 import 'services/location_service.dart';
+import 'widgets/realtime_map_widget.dart';
+import 'widgets/realtime_widgets.dart';
+import 'widgets/stops_widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

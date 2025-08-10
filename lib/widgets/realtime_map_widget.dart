@@ -86,7 +86,6 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         .map((vehicle) {
       final position = vehicle.position;
       final trip = vehicle.trip;
-      final vehicleDesc = vehicle.vehicle;
 
       // Determine color based on route or mode
       Color markerColor = TransportColors.bus; // default

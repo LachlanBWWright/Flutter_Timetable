@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/trip_legs_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
-import 'package:lbww_flutter/trip_legs_screen.dart';
 
 class TripScreen extends StatefulWidget {
   const TripScreen({super.key, required this.trip});
@@ -54,7 +54,7 @@ class _TripScreenState extends State<TripScreen> {
         child: trips.isEmpty
             ? ListView(
                 children: [
-                  Container(
+                  SizedBox(
                     height: MediaQuery.of(context).size.height * 0.7,
                     child: const Center(
                       child: CircularProgressIndicator(),

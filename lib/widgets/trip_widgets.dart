@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/utils/date_time_utils.dart';
 // import 'package:lbww_flutter/widgets/trip_leg_card.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'package:lbww_flutter/utils/date_time_utils.dart';
 
 /// Utility class for transport mode colors and names
 class TransportModeUtils {
@@ -73,9 +73,9 @@ class TripCard extends StatelessWidget {
       if (difference == 0) {
         return DateTimeUtils.parseTimeOnly(estimated);
       } else if (difference > 0) {
-        return "${DateTimeUtils.parseTimeOnly(estimated)} (+${difference}m late)";
+        return '${DateTimeUtils.parseTimeOnly(estimated)} (+${difference}m late)';
       } else {
-        return "${DateTimeUtils.parseTimeOnly(estimated)} (${difference.abs()}m early)";
+        return '${DateTimeUtils.parseTimeOnly(estimated)} (${difference.abs()}m early)';
       }
     } catch (e) {
       return DateTimeUtils.parseTimeOnly(estimated);

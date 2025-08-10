@@ -323,7 +323,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               );
             }).toList(),
           );
-        }).toList(),
+        }),
       ],
     );
   }
