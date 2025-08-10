@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart';
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
