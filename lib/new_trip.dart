@@ -1,10 +1,10 @@
-import 'package:csv/csv.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
+import 'package:lbww_flutter/widgets/stops_map_widget.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({super.key});
@@ -13,7 +13,7 @@ class NewTripScreen extends StatefulWidget {
   State<NewTripScreen> createState() => _NewTripScreenState();
 }
 
-class _NewTripScreenState extends State<NewTripScreen> {
+class _NewTripScreenState extends State<NewTripScreen> with TickerProviderStateMixin {
   List<Station> _trainStationList = [];
   List<Station> _busStationList = [];
   List<Station> _ferryStationList = [];
@@ -23,8 +23,11 @@ class _NewTripScreenState extends State<NewTripScreen> {
   String _secondStation = '';
   String _secondStationId = '';
   bool _isSearching = false;
+  bool _isLoading = false;
+  String _sortMode = 'alphabetical'; // 'alphabetical' or 'distance'
   final keyController = TextEditingController();
   final AppDatabase _db = AppDatabase();
+  TabController? _tabController;
 
   void setStation(String station, String id) async {
     setState(() {
@@ -97,38 +100,53 @@ class _NewTripScreenState extends State<NewTripScreen> {
   }
 
   Future<void> loadStations() async {
-    final dataset =
-        await rootBundle.loadString('assets/LocationFacilityData.csv');
-    final List<dynamic> data =
-        const CsvToListConverter().convert(dataset, eol: '\n');
-    data.removeWhere((station) => !station[9].contains('Train'));
-    //[10] - Mode
-    final trainStations = List<Station>.empty(growable: true);
-    final busStations = List<Station>.empty(growable: true);
-    final lightRailStations = List<Station>.empty(growable: true);
-    final ferryStations = List<Station>.empty(growable: true);
-    for (var station in data) {
-      if (station[9].contains('Train')) {
-        trainStations.add(Station(name: station[0], id: station[4].toString()));
-      }
-      if (station[9].contains('Bus')) {
-        busStations.add(Station(name: station[0], id: station[4].toString()));
-      }
-      if (station[9].contains('Light')) {
-        lightRailStations
-            .add(Station(name: station[0], id: station[4].toString()));
-      }
-      if (station[9].contains('Ferry')) {
-        ferryStations.add(Station(name: station[0], id: station[4].toString()));
-      }
-    }
-
+    if (_isSearching) return; // Don't reload if searching
+    
     setState(() {
-      _trainStationList = trainStations;
-      _busStationList = busStations;
-      _lightRailStationList = lightRailStations;
-      _ferryStationList = ferryStations;
+      _isLoading = true;
     });
+
+    try {
+      // Load stations from database/API for each transport mode
+      final trainStations = await NewTripService.loadStopsForMode('train');
+      final lightRailStations = await NewTripService.loadStopsForMode('lightrail');
+      final busStations = await NewTripService.loadStopsForMode('bus');
+      final ferryStations = await NewTripService.loadStopsForMode('ferry');
+
+      // Apply sorting
+      final sortedTrainStations = await _applySorting(trainStations);
+      final sortedLightRailStations = await _applySorting(lightRailStations);
+      final sortedBusStations = await _applySorting(busStations);
+      final sortedFerryStations = await _applySorting(ferryStations);
+
+      setState(() {
+        _trainStationList = sortedTrainStations;
+        _lightRailStationList = sortedLightRailStations;
+        _busStationList = sortedBusStations;
+        _ferryStationList = sortedFerryStations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading stations: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<List<Station>> _applySorting(List<Station> stations) async {
+    if (_sortMode == 'distance') {
+      return await NewTripService.sortByDistance(stations);
+    } else {
+      return NewTripService.sortAlphabetically(stations);
+    }
+  }
+
+  void _toggleSortMode() async {
+    setState(() {
+      _sortMode = _sortMode == 'alphabetical' ? 'distance' : 'alphabetical';
+    });
+    await loadStations(); // Reload with new sorting
   }
 
   void loadSearchStations(String search) async {
@@ -142,17 +160,67 @@ class _NewTripScreenState extends State<NewTripScreen> {
           .toList();
 
       setState(() {
+        // Update all lists with search results for consistency
         _trainStationList = stations;
+        _lightRailStationList = stations;
+        _busStationList = stations;
+        _ferryStationList = stations;
       });
     } catch (e) {
       print('Error searching stations: $e');
     }
   }
 
+  void _openStopsMap() {
+    if (_tabController == null) return;
+    
+    final currentIndex = _tabController!.index;
+    String mode;
+    String displayName;
+    
+    switch (currentIndex) {
+      case 0:
+        mode = 'train';
+        displayName = 'Train';
+        break;
+      case 1:
+        mode = 'lightrail';
+        displayName = 'Light Rail';
+        break;
+      case 2:
+        mode = 'bus';
+        displayName = 'Bus';
+        break;
+      case 3:
+        mode = 'ferry';
+        displayName = 'Ferry';
+        break;
+      default:
+        return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => StopsMapWidget(
+          transportMode: mode,
+          modeDisplayName: displayName,
+          onStopSelected: setStation,
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
     loadStations();
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -160,7 +228,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
     final bool canSave = _firstStation.isNotEmpty && _secondStation.isNotEmpty;
 
     return DefaultTabController(
-      length: 5,
+      length: 4, // Reduced from 5 (removed map tab)
       child: Scaffold(
         appBar: NewTripAppBar(
           isSearching: _isSearching,
@@ -169,25 +237,31 @@ class _NewTripScreenState extends State<NewTripScreen> {
           onToggleSearch: _toggleSearch,
           onSaveTrip: canSave ? _saveTrip : null,
           canSave: canSave,
+          onOpenMap: _openStopsMap,
+          onToggleSort: _toggleSortMode,
+          sortMode: _sortMode,
+          tabController: _tabController,
         ),
-        body: TabBarView(
-          children: [
-            _buildTrainStationTab(),
-            StationList(
-              listItems: _lightRailStationList,
-              setStation: setStation,
-            ),
-            StationList(
-              listItems: _busStationList,
-              setStation: setStation,
-            ),
-            StationList(
-              listItems: _ferryStationList,
-              setStation: setStation,
-            ),
-            const Center(child: Text('Map functionality coming soon')),
-          ],
-        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildTrainStationTab(),
+                  StationList(
+                    listItems: _lightRailStationList,
+                    setStation: setStation,
+                  ),
+                  StationList(
+                    listItems: _busStationList,
+                    setStation: setStation,
+                  ),
+                  StationList(
+                    listItems: _ferryStationList,
+                    setStation: setStation,
+                  ),
+                ],
+              ),
       ),
     );
   }

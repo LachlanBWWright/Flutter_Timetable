@@ -112,6 +112,10 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onToggleSearch;
   final VoidCallback? onSaveTrip;
   final bool canSave;
+  final VoidCallback onOpenMap;
+  final VoidCallback onToggleSort;
+  final String sortMode;
+  final TabController? tabController;
 
   const NewTripAppBar({
     super.key,
@@ -121,6 +125,10 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onToggleSearch,
     this.onSaveTrip,
     required this.canSave,
+    required this.onOpenMap,
+    required this.onToggleSort,
+    required this.sortMode,
+    this.tabController,
   });
 
   @override
@@ -138,7 +146,24 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : const Text('Add New Trip'),
       actions: [
-        if (!canSave)
+        if (!canSave) ...[
+          // Sort button (only show when not searching and not ready to save)
+          if (!isSearching)
+            IconButton(
+              onPressed: onToggleSort,
+              icon: Icon(sortMode == 'alphabetical' ? Icons.sort_by_alpha : Icons.near_me),
+              tooltip: sortMode == 'alphabetical' 
+                  ? 'Sort by distance' 
+                  : 'Sort alphabetically',
+            ),
+          // Map button (only show when not searching)
+          if (!isSearching)
+            IconButton(
+              onPressed: onOpenMap,
+              icon: const Icon(Icons.map),
+              tooltip: 'Open stops map',
+            ),
+          // Search/cancel button
           if (isSearching)
             IconButton(
               onPressed: onToggleSearch,
@@ -148,15 +173,16 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
             IconButton(
               onPressed: onToggleSearch,
               icon: const Icon(Icons.search),
-            )
-        else if (onSaveTrip != null)
+            ),
+        ] else if (onSaveTrip != null)
           IconButton(
             onPressed: onSaveTrip,
             icon: const Icon(Icons.arrow_forward),
           ),
       ],
-      bottom: const TabBar(
-        tabs: [
+      bottom: TabBar(
+        controller: tabController,
+        tabs: const [
           Tab(
             icon: Icon(
               Icons.directions_train,
@@ -181,7 +207,6 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: Color.fromARGB(255, 68, 240, 91),
             ),
           ),
-          Tab(icon: Icon(Icons.map)),
         ],
       ),
     );

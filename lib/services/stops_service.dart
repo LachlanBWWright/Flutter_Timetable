@@ -375,4 +375,17 @@ class StopsService {
     final db = database;
     return await db.getStopsCountByEndpoint();
   }
+
+  /// Wipe all stops data from the database
+  static Future<void> wipeAllStopsData() async {
+    final db = database;
+    
+    // Get all unique endpoints
+    final stopsCount = await db.getStopsCountByEndpoint();
+    
+    // Delete stops for each endpoint
+    for (final endpoint in stopsCount.keys) {
+      await db.deleteStopsForEndpoint(endpoint);
+    }
+  }
 }
