@@ -5,13 +5,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
-import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart'
-    show TripRequestResponseJourneyLeg;
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 class TripLegDetailScreen extends StatefulWidget {
-  final TripRequestResponseJourneyLeg leg;
+  final Map<String, dynamic> leg;
   const TripLegDetailScreen({super.key, required this.leg});
 
   @override

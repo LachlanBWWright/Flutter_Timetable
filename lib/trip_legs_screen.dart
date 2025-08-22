@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_leg_card.dart';
 
 class TripLegScreen extends StatefulWidget {
   const TripLegScreen({super.key, required this.trip});
-  final TripRequestResponseJourney trip;
+  final Map<String, dynamic> trip;
 
   @override
   State<TripLegScreen> createState() => _TripLegScreenState();
 }
 
 class _TripLegScreenState extends State<TripLegScreen> {
-  String _calculateWaitTime(TripRequestResponseJourneyLeg currentLeg,
-      TripRequestResponseJourneyLeg nextLeg) {
+  String _calculateWaitTime(Map<String, dynamic> currentLeg,
+      Map<String, dynamic> nextLeg) {
     try {
       // Get arrival time of current leg
-      final currentArrival = currentLeg.destination?.arrivalTimeEstimated ??
-          currentLeg.destination?.arrivalTimePlanned;
+      final currentDestination = currentLeg['destination'] as Map<String, dynamic>?;
+      final currentArrival = currentDestination?['arrivalTimeEstimated'] ??
+          currentDestination?['arrivalTimePlanned'];
 
       // Get departure time of next leg
-      final nextDeparture = nextLeg.origin?.departureTimeEstimated ??
-          nextLeg.origin?.departureTimePlanned;
+      final nextOrigin = nextLeg['origin'] as Map<String, dynamic>?;
+      final nextDeparture = nextOrigin?['departureTimeEstimated'] ??
+          nextOrigin?['departureTimePlanned'];
 
       if (currentArrival == null || nextDeparture == null) {
         return 'Wait time unknown';
@@ -51,7 +52,7 @@ class _TripLegScreenState extends State<TripLegScreen> {
     }
   }
 
-  Widget _buildSeparator(int index, List<TripRequestResponseJourneyLeg> legs) {
+  Widget _buildSeparator(int index, List<Map<String, dynamic>> legs) {
     if (index >= legs.length - 1) {
       return const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16);
     }
@@ -94,7 +95,7 @@ class _TripLegScreenState extends State<TripLegScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final legs = widget.trip.legs;
+    final legs = (widget.trip['legs'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Legs')),

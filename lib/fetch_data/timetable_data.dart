@@ -1,21 +1,20 @@
-import 'package:archive/archive.dart';
 import 'dart:convert';
-// For LineSplitter
-import 'package:lbww_flutter/backends/RealtimeTimetablesV1Api.dart';
-import 'package:lbww_flutter/backends/RealtimeTimetablesV2Api.dart';
 
-import 'csv_types/agency.dart';
-import 'csv_types/calendar.dart';
-import 'csv_types/calendar_dates.dart';
-import 'csv_types/notes.dart';
-import 'csv_types/routes.dart';
-import 'csv_types/shapes.dart';
-import 'csv_types/stops.dart';
-import 'csv_types/stop_times.dart';
-import 'csv_types/trips.dart';
+import 'package:archive/archive.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
-// If you have a GtfsData class, update its import accordingly, or keep as is if unchanged
+import '../gtfs/agency.dart';
+import '../gtfs/calendar.dart';
+import '../gtfs/calendar_date.dart';
 import '../gtfs/gtfs_data.dart';
+import '../gtfs/note.dart';
+import '../gtfs/route.dart';
+import '../gtfs/shape.dart';
+import '../gtfs/stop.dart';
+import '../gtfs/stop_time.dart';
+import '../gtfs/trip.dart';
+
 //V1
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime
 //Metro on v2
@@ -37,160 +36,156 @@ notes.txt - note_id,note_text
 
 */
 
-Future<GtfsData?> _fetchGtfsDataFromApi(Future apiCall) async {
-  try {
-    final res = await apiCall;
-    if (!res.isSuccessful || res.body == null) {
-      print('Failed to fetch GTFS data: ${res.statusCode}');
-      return null;
-    }
-    final archive = ZipDecoder().decodeBytes(res.body!);
-    final Map<String, String> csvFiles = {};
-    for (final file in archive) {
-      if (file.isFile && file.name.endsWith('.txt')) {
-        csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-      }
-    }
-    return parseGtfsFiles(csvFiles);
-  } catch (e) {
-    print('Error fetching GTFS data: $e');
+Map<String, String> getHeaders() {
+  final apiKey = dotenv.env['API_KEY'] ?? 'YOUR_API_KEY';
+  return {
+    'Authorization': 'apikey $apiKey',
+    //'Accept': 'application/x-protobuf', WRONG!
+  };
+}
+
+Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
+  final url =
+      Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/timetable$endpoint');
+  final response = await http.get(url, headers: getHeaders());
+  if (response.statusCode != 200) {
+    print('Failed to fetch GTFS data for $endpoint: ${response.statusCode}');
     return null;
   }
+  final archive = ZipDecoder().decodeBytes(response.bodyBytes);
+  final Map<String, String> csvFiles = {};
+  for (final file in archive) {
+    if (file.isFile && file.name.endsWith('.txt')) {
+      csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
+    }
+  }
+  return parseGtfsFiles(csvFiles);
 }
 
 /// Fetches the Metro GTFS schedule zip, extracts CSV files, and returns a map of filename to CSV string.
 Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
-  try {
-    final res = await realtimeTimetablesV2Api.metroGet();
-    if (!res.isSuccessful || res.body == null) {
-      print('Failed to fetch Metro schedule realtime: \\${res.statusCode}');
-      return null;
-    }
-    // Unzip the response body in memory
-    final archive = ZipDecoder().decodeBytes(res.body!);
-    final Map<String, String> csvFiles = {};
-    for (final file in archive) {
-      if (file.isFile && file.name.endsWith('.txt')) {
-        csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-      }
-    }
-    return csvFiles;
-  } catch (e) {
-    print('Error fetching Metro schedule realtime: $e');
+  final url =
+      Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/schedule/metro');
+  final response = await http.get(
+    url,
+    headers: getHeaders(),
+  );
+  if (response.statusCode != 200) {
+    print('Failed to fetch Metro schedule realtime: ${response.statusCode}');
     return null;
   }
+
+  // Unzip the response body in memory
+  final archive = ZipDecoder().decodeBytes(response.bodyBytes);
+  final Map<String, String> csvFiles = {};
+  for (final file in archive) {
+    print(file.name);
+    if (file.isFile && file.name.endsWith('.txt')) {
+      //csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
+    }
+  }
+  return csvFiles;
 }
 
-Future<GtfsData?> fetchBusesGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGet());
+Future<GtfsData?> fetchBusesGtfsData() => _fetchGtfsDataFromEndpoint('/buses');
 Future<GtfsData?> fetchBusesSBSC006GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesSBSC006Get());
+    _fetchGtfsDataFromEndpoint('/buses/SBSC006');
 Future<GtfsData?> fetchBusesGSBC001GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC001Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC001');
 Future<GtfsData?> fetchBusesGSBC002GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC002Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC002');
 Future<GtfsData?> fetchBusesGSBC003GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC003Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC003');
 Future<GtfsData?> fetchBusesGSBC004GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC004Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC004');
 Future<GtfsData?> fetchBusesGSBC007GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC007Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC007');
 Future<GtfsData?> fetchBusesGSBC008GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC008Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC008');
 Future<GtfsData?> fetchBusesGSBC009GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC009Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC009');
 Future<GtfsData?> fetchBusesGSBC010GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC010Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC010');
 Future<GtfsData?> fetchBusesGSBC014GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesGSBC014Get());
+    _fetchGtfsDataFromEndpoint('/buses/GSBC014');
 Future<GtfsData?> fetchBusesOSMBSC001GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC001Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC001');
 Future<GtfsData?> fetchBusesOSMBSC002GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC002Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC002');
 Future<GtfsData?> fetchBusesOSMBSC003GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC003Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC003');
 Future<GtfsData?> fetchBusesOSMBSC004GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC004Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC004');
 Future<GtfsData?> fetchBusesOMBSC006GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOMBSC006Get());
+    _fetchGtfsDataFromEndpoint('/buses/OMBSC006');
 Future<GtfsData?> fetchBusesOMBSC007GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOMBSC007Get());
+    _fetchGtfsDataFromEndpoint('/buses/OMBSC007');
 Future<GtfsData?> fetchBusesOSMBSC008GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC008Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC008');
 Future<GtfsData?> fetchBusesOSMBSC009GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC009Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC009');
 Future<GtfsData?> fetchBusesOSMBSC010GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC010Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC010');
 Future<GtfsData?> fetchBusesOSMBSC011GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC011Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC011');
 Future<GtfsData?> fetchBusesOSMBSC012GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesOSMBSC012Get());
+    _fetchGtfsDataFromEndpoint('/buses/OSMBSC012');
 Future<GtfsData?> fetchBusesNISC001GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesNISC001Get());
+    _fetchGtfsDataFromEndpoint('/buses/NISC001');
 Future<GtfsData?> fetchBusesReplacementBusGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.busesReplacementBusGet());
+    _fetchGtfsDataFromEndpoint('/buses/ReplacementBus');
 
 Future<GtfsData?> fetchFerriesSydneyFerriesGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.ferriesSydneyferriesGet());
+    _fetchGtfsDataFromEndpoint('/ferries/sydneyferries');
 Future<GtfsData?> fetchFerriesMFFGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.ferriesMFFGet());
+    _fetchGtfsDataFromEndpoint('/ferries/MFF');
 
 Future<GtfsData?> fetchLightRailInnerWestGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.lightrailInnerwestGet());
+    _fetchGtfsDataFromEndpoint('/lightrail/innerwest');
 Future<GtfsData?> fetchLightRailNewcastleGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.lightrailNewcastleGet());
+    _fetchGtfsDataFromEndpoint('/lightrail/newcastle');
 Future<GtfsData?> fetchLightRailCbdAndSoutheastGtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.lightrailCbdandsoutheastGet());
+    _fetchGtfsDataFromEndpoint('/lightrail/cbdandsoutheast');
 Future<GtfsData?> fetchLightRailParramattaGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.lightrailParramattaGet());
+    _fetchGtfsDataFromEndpoint('/lightrail/parramatta');
 
 Future<GtfsData?> fetchNswTrainsGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.nswtrainsGet());
+    _fetchGtfsDataFromEndpoint('/nswtrains');
 Future<GtfsData?> fetchSydneyTrainsGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.sydneytrainsGet());
+    _fetchGtfsDataFromEndpoint('/sydneytrains');
 
 Future<GtfsData?> fetchRegionBusesSouthEastTablelandsGtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesSoutheasttablelandsGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/southeasttablelands');
 Future<GtfsData?> fetchRegionBusesSouthEastTablelands2GtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesSoutheasttablelands2Get());
+    _fetchGtfsDataFromEndpoint('/regionbuses/southeasttablelands2');
 Future<GtfsData?> fetchRegionBusesNorthCoastGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.regionbusesNorthcoastGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/northcoast');
 Future<GtfsData?> fetchRegionBusesNorthCoast2GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.regionbusesNorthcoast2Get());
+    _fetchGtfsDataFromEndpoint('/regionbuses/northcoast2');
 Future<GtfsData?> fetchRegionBusesCentralWestAndOranaGtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesCentralwestandoranaGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/centralwestandorana');
 Future<GtfsData?> fetchRegionBusesCentralWestAndOrana2GtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesCentralwestandorana2Get());
+    _fetchGtfsDataFromEndpoint('/regionbuses/centralwestandorana2');
 Future<GtfsData?> fetchRegionBusesRiverinaMurrayGtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesRiverinamurrayGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/riverinamurray');
 Future<GtfsData?> fetchRegionBusesNewEnglandNorthWestGtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesNewenglandnorthwestGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/newenglandnorthwest');
 Future<GtfsData?> fetchRegionBusesRiverinaMurray2GtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesRiverinamurray2Get());
+    _fetchGtfsDataFromEndpoint('/regionbuses/riverinamurray2');
 Future<GtfsData?> fetchRegionBusesNorthCoast3GtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.regionbusesNorthcoast3Get());
+    _fetchGtfsDataFromEndpoint('/regionbuses/northcoast3');
 Future<GtfsData?> fetchRegionBusesSydneySurroundsGtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesSydneysurroundsGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/sydneysurrounds');
 Future<GtfsData?> fetchRegionBusesNewcastleHunterGtfsData() =>
-    _fetchGtfsDataFromApi(
-        realtimeTimetablesV1Api.regionbusesNewcastlehunterGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/newcastlehunter');
 Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
-    _fetchGtfsDataFromApi(realtimeTimetablesV1Api.regionbusesFarwestGet());
+    _fetchGtfsDataFromEndpoint('/regionbuses/farwest');
 
 List<Agency> parseAgencyCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Agency.fromCsvRow(_parseCsvLine(lines[i]))
+      Agency.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -198,7 +193,7 @@ List<Calendar> parseCalendarCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Calendar.fromCsvRow(_parseCsvLine(lines[i]))
+      Calendar.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -206,7 +201,7 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      CalendarDate.fromCsvRow(_parseCsvLine(lines[i]))
+      CalendarDate.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -214,15 +209,14 @@ List<Route> parseRoutesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Route.fromCsvRow(_parseCsvLine(lines[i]))
+      Route.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
 List<Stop> parseStopsCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
-    for (var i = 1; i < lines.length; i++)
-      Stop.fromCsvRow(_parseCsvLine(lines[i]))
+    for (var i = 1; i < lines.length; i++) Stop.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -230,15 +224,14 @@ List<StopTime> parseStopTimesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      StopTime.fromCsvRow(_parseCsvLine(lines[i]))
+      StopTime.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
 List<Trip> parseTripsCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
-    for (var i = 1; i < lines.length; i++)
-      Trip.fromCsvRow(_parseCsvLine(lines[i]))
+    for (var i = 1; i < lines.length; i++) Trip.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
@@ -246,15 +239,14 @@ List<Shape> parseShapesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
     for (var i = 1; i < lines.length; i++)
-      Shape.fromCsvRow(_parseCsvLine(lines[i]))
+      Shape.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 
 List<Note> parseNotesCsv(String csv) {
   final lines = LineSplitter.split(csv).toList();
   return [
-    for (var i = 1; i < lines.length; i++)
-      Note.fromCsvRow(_parseCsvLine(lines[i]))
+    for (var i = 1; i < lines.length; i++) Note.fromCsv(_parseCsvLine(lines[i]))
   ];
 }
 

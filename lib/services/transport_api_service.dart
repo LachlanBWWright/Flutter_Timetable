@@ -1,10 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:lbww_flutter/backends/TripPlannerApi.dart';
-import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart';
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
+  static const String _baseUrl = 'api.transport.nsw.gov.au';
+
   /// Get API key from .env
   static Future<String?> _getApiKey() async {
     // Ensure dotenv is loaded before calling this in main
@@ -26,8 +28,7 @@ class TransportApiService {
         'version': '10.2.1.42',
       };
 
-      final uri =
-          Uri.https('api.transport.nsw.gov.au', '/v1/tp/stop_finder/', params);
+      final uri = Uri.https(_baseUrl, '/v1/tp/stop_finder/', params);
       final response = await http.get(
         uri,
         headers: {'authorization': 'apikey $apiKey'},
@@ -41,20 +42,47 @@ class TransportApiService {
   }
 
   /// Search for stations/stops
-  static Future<List<StopFinderLocation>> searchStations(String query) async {
+  static Future<List<Map<String, dynamic>>> searchStations(String query) async {
     try {
-      final res = await tripPlannerApi.stopFinderGet(
-        outputFormat: StopFinderGetOutputFormat.rapidjson,
-        typeSf: StopFinderGetTypeSf.any,
-        nameSf: query,
-        coordOutputFormat: StopFinderGetCoordOutputFormat.epsg4326,
-        tfNSWSF: StopFinderGetTfNSWSF.$true,
-        version: '10.2.1.42',
+      final apiKey = await _getApiKey();
+
+/*       final res = await tripPlannerApi.stopFinderGet(
+          outputFormat: StopFinderGetOutputFormat.rapidjson,
+          nameSf: query,
+          coordOutputFormat: StopFinderGetCoordOutputFormat.epsg4326); */
+
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('API key not set');
+      }
+
+      final params = {
+        'outputFormat': 'rapidJSON',
+        'type_sf': 'any',
+        'name_sf': query,
+        'coordOutputFormat': 'EPSG:4326',
+        'TfNSWSF': 'true',
+        'version': '10.2.1.42',
+      };
+
+      final uri = Uri.https(_baseUrl, '/v1/tp/stop_finder/', params);
+      final response = await http.get(
+        uri,
+        headers: {'authorization': 'apikey $apiKey'},
       );
-      final body = res.body;
-      final bodyLocations = body?.locations;
-      if (body == null || bodyLocations == null) return [];
-      return bodyLocations;
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to search stations: ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body);
+      final locations = data['locations'] as List? ?? [];
+
+      return locations
+          .map((location) => {
+                'name': location['disassembledName'] ?? location['name'] ?? '',
+                'id': location['id']?.toString() ?? '',
+              })
+          .toList();
     } catch (e) {
       print('Error searching stations: $e');
       return [];
@@ -62,31 +90,45 @@ class TransportApiService {
   }
 
   /// Get trip information between two stations
-  static Future<List<TripRequestResponseJourney>> getTrips({
+  static Future<List<dynamic>> getTrips({
     required String originId,
     required String destinationId,
   }) async {
     try {
-      final res = await tripPlannerApi.tripGet(
-        outputFormat: TripGetOutputFormat.rapidjson,
-        coordOutputFormat: TripGetCoordOutputFormat.epsg4326,
-        depArrMacro: TripGetDepArrMacro.dep,
-        typeOrigin: TripGetTypeOrigin.any,
-        nameOrigin: originId,
-        typeDestination: TripGetTypeDestination.any,
-        nameDestination: destinationId,
-        calcNumberOfTrips: 20,
-        excludedMeans: TripGetExcludedMeans.checkbox,
-        exclMOT7: TripGetExclMOT7.value_1,
-        exclMOT11: TripGetExclMOT11.value_1,
-        tfNSWTR: TripGetTfNSWTR.$true,
-        version: '10.2.1.42',
-        itOptionsActive: 0,
+      final apiKey = await _getApiKey();
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('API key not set');
+      }
+
+      final params = {
+        'outputFormat': 'rapidJSON',
+        'coordOutputFormat': 'EPSG:4326',
+        'depArrMacro': 'dep',
+        'type_origin': 'any',
+        'name_origin': originId,
+        'type_destination': 'any',
+        'name_destination': destinationId,
+        'calcNumberOfTrips': '20',
+        'excludedMeans': 'checkbox',
+        'exclMOT_7': '1',
+        'exclMOT_11': '1',
+        'TfNSWTR': 'true',
+        'version': '10.2.1.42',
+        'itOptionsActive': '0',
+      };
+
+      final uri = Uri.https(_baseUrl, '/v1/tp/trip/', params);
+      final response = await http.get(
+        uri,
+        headers: {'authorization': 'apikey $apiKey'},
       );
-      final body = res.body;
-      final bodyJourneys = body?.journeys;
-      if (body == null || bodyJourneys == null) return [];
-      return bodyJourneys;
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to get trips: ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body);
+      return data['journeys'] as List? ?? [];
     } catch (e) {
       print('Error getting trips: $e');
       return [];

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart'
-    show TripRequestResponseJourneyLeg;
 import 'package:lbww_flutter/trip_leg_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
@@ -8,7 +6,7 @@ import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 /// Widget for displaying trip leg information
 
 class TripLegCard extends StatelessWidget {
-  final TripRequestResponseJourneyLeg leg;
+  final Map<String, dynamic> leg;
 
   const TripLegCard({
     super.key,
@@ -49,16 +47,16 @@ class TripLegCard extends StatelessWidget {
   }
 
   Widget _buildTimingInfo() {
-    final origin = leg.origin;
-    final destination = leg.destination;
+    final origin = leg['origin'] as Map<String, dynamic>?;
+    final destination = leg['destination'] as Map<String, dynamic>?;
 
     // Get first stop timing info
-    final originDeparturePlanned = origin?.departureTimePlanned;
-    final originDepartureEstimated = origin?.departureTimeEstimated;
+    final originDeparturePlanned = origin?['departureTimePlanned'];
+    final originDepartureEstimated = origin?['departureTimeEstimated'];
 
     // Get last stop timing info
-    final destinationArrivalPlanned = destination?.arrivalTimePlanned;
-    final destinationArrivalEstimated = destination?.arrivalTimeEstimated;
+    final destinationArrivalPlanned = destination?['arrivalTimePlanned'];
+    final destinationArrivalEstimated = destination?['arrivalTimeEstimated'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,12 +90,15 @@ class TripLegCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final transportClass = leg.transportation!.product?.$class;
-    final originName = leg.origin?.disassembledName ?? leg.origin?.name;
-    final destinationName =
-        leg.destination?.disassembledName ?? leg.destination?.name;
-    final transportName =
-        leg.transportation?.name ?? leg.transportation?.disassembledName ?? '';
+    final transportation = leg['transportation'] as Map<String, dynamic>?;
+    final transportProduct = transportation?['product'] as Map<String, dynamic>?;
+    final transportClass = transportProduct?['class'];
+    
+    final origin = leg['origin'] as Map<String, dynamic>?;
+    final destination = leg['destination'] as Map<String, dynamic>?;
+    final originName = origin?['disassembledName'] ?? origin?['name'];
+    final destinationName = destination?['disassembledName'] ?? destination?['name'];
+    final transportName = transportation?['name'] ?? transportation?['disassembledName'] ?? '';
 
     if (transportClass == null) {
       print('Missing transport class');

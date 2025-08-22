@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/backends/TripPlannerApi.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
 import 'package:lbww_flutter/services/transport_api_service.dart';
-import 'package:lbww_flutter/swagger_output/trip_planner.swagger.dart';
 import 'package:lbww_flutter/trip_legs_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
@@ -19,7 +17,7 @@ class TripScreen extends StatefulWidget {
 
 class _TripScreenState extends State<TripScreen> {
   String testText = '';
-  List<TripRequestResponseJourney> trips = [];
+  List<Map<String, dynamic>> trips = [];
   bool _isLoading = false;
   String? _error;
 
