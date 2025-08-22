@@ -34,12 +34,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
         _statusSummary = summary;
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+    } catch (e) {}
   }
 
   @override

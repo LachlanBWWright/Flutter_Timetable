@@ -13,7 +13,8 @@ class NewTripScreen extends StatefulWidget {
   State<NewTripScreen> createState() => _NewTripScreenState();
 }
 
-class _NewTripScreenState extends State<NewTripScreen> with TickerProviderStateMixin {
+class _NewTripScreenState extends State<NewTripScreen>
+    with TickerProviderStateMixin {
   List<Station> _trainStationList = [];
   List<Station> _busStationList = [];
   List<Station> _ferryStationList = [];
@@ -101,7 +102,7 @@ class _NewTripScreenState extends State<NewTripScreen> with TickerProviderStateM
 
   Future<void> loadStations() async {
     if (_isSearching) return; // Don't reload if searching
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -109,7 +110,8 @@ class _NewTripScreenState extends State<NewTripScreen> with TickerProviderStateM
     try {
       // Load stations from database/API for each transport mode
       final trainStations = await NewTripService.loadStopsForMode('train');
-      final lightRailStations = await NewTripService.loadStopsForMode('lightrail');
+      final lightRailStations =
+          await NewTripService.loadStopsForMode('lightrail');
       final busStations = await NewTripService.loadStopsForMode('bus');
       final ferryStations = await NewTripService.loadStopsForMode('ferry');
 
@@ -173,11 +175,11 @@ class _NewTripScreenState extends State<NewTripScreen> with TickerProviderStateM
 
   void _openStopsMap() {
     if (_tabController == null) return;
-    
+
     final currentIndex = _tabController!.index;
     String mode;
     String displayName;
-    
+
     switch (currentIndex) {
       case 0:
         mode = 'train';
@@ -243,7 +245,42 @@ class _NewTripScreenState extends State<NewTripScreen> with TickerProviderStateM
           tabController: _tabController,
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? ListView(
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 12),
+                          const Text('Loading station lists...'),
+                          const SizedBox(height: 8),
+                          if (_firstStation.isNotEmpty)
+                            Text('Selected origin: $_firstStation'),
+                          if (_secondStation.isNotEmpty)
+                            Text('Selected destination: $_secondStation'),
+                          const SizedBox(height: 8),
+                          Text(
+                              'Train stations loaded: ${_trainStationList.length}'),
+                          Text(
+                              'Light rail stations loaded: ${_lightRailStationList.length}'),
+                          Text(
+                              'Bus stations loaded: ${_busStationList.length}'),
+                          Text(
+                              'Ferry stations loaded: ${_ferryStationList.length}'),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : loadStations,
+                            child: const Text('Retry loading'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
             : TabBarView(
                 controller: _tabController,
                 children: [

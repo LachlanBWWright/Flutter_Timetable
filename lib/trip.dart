@@ -19,8 +19,15 @@ class TripScreen extends StatefulWidget {
 class _TripScreenState extends State<TripScreen> {
   String testText = '';
   List<TripRequestResponseJourney> trips = [];
+  bool _isLoading = false;
+  String? _error;
 
   Future<void> getTripData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
     try {
       final tripData = await TransportApiService.getTrips(
         originId: widget.trip.originId,
@@ -32,9 +39,15 @@ class _TripScreenState extends State<TripScreen> {
       setState(() {
         trips = tripData;
         testText = tripData.toString();
+        _isLoading = false;
       });
     } catch (e) {
       print('Error getting trip data: $e');
+      if (!context.mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -59,8 +72,45 @@ class _TripScreenState extends State<TripScreen> {
                 children: [
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.7,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isLoading)
+                            const CircularProgressIndicator()
+                          else
+                            const Icon(Icons.info_outline,
+                                size: 48, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          if (_isLoading)
+                            Text(
+                                'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...')
+                          else if (_error != null)
+                            Column(
+                              children: [
+                                Text('Error loading trips:\n$_error',
+                                    textAlign: TextAlign.center),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: getTripData,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            )
+                          else
+                            Column(
+                              children: [
+                                Text(
+                                    'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.'),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: getTripData,
+                                  child: const Text('Search again'),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

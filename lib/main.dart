@@ -47,11 +47,13 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isEditingMode = false;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  // Single database instance for this stateful widget
+  final db.AppDatabase _database = db.AppDatabase();
 
   Future<void> getTrips() async {
     try {
-      final pinnedJourneys = await db.AppDatabase().getPinnedJourneys();
-      final unpinnedJourneys = await db.AppDatabase().getUnpinnedJourneys();
+      final pinnedJourneys = await _database.getPinnedJourneys();
+      final unpinnedJourneys = await _database.getUnpinnedJourneys();
 
       // Sort unpinned journeys based on user preference
       final sortedUnpinned =
@@ -83,7 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> deleteTrip(int tripId) async {
     try {
-      await db.AppDatabase().deleteJourney(tripId);
+      await _database.deleteJourney(tripId);
       getTrips();
     } catch (e) {
       print('Error deleting trip: $e');
@@ -92,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> togglePin(int tripId, bool isPinned) async {
     try {
-      await db.AppDatabase().toggleJourneyPin(tripId, !isPinned);
+      await _database.toggleJourneyPin(tripId, !isPinned);
       getTrips();
     } catch (e) {
       print('Error toggling pin: $e');

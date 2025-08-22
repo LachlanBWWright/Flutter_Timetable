@@ -1,5 +1,7 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
+import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'database.g.dart';
@@ -32,7 +34,21 @@ class Stops extends Table {
 
 @DriftDatabase(tables: [Journeys, Stops])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  // Singleton instance
+  static AppDatabase? _instance;
+
+  // Single QueryExecutor reused across the app to avoid multiple database
+  // instances using the same underlying file which can cause race
+  // conditions. We use a LazyDatabase that opens a NativeDatabase file.
+  static final QueryExecutor _sharedExecutor = LazyDatabase(() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File('${dbFolder.path}/trip_database.db');
+    return NativeDatabase(file);
+  });
+
+  AppDatabase._internal() : super(_sharedExecutor);
+
+  factory AppDatabase() => _instance ??= AppDatabase._internal();
 
   @override
   int get schemaVersion => 3;
@@ -56,10 +72,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<Journey>> getAllJourneys() => select(journeys).get();
 
-  Future<List<Journey>> getPinnedJourneys() => 
+  Future<List<Journey>> getPinnedJourneys() =>
       (select(journeys)..where((tbl) => tbl.isPinned.equals(true))).get();
 
-  Future<List<Journey>> getUnpinnedJourneys() => 
+  Future<List<Journey>> getUnpinnedJourneys() =>
       (select(journeys)..where((tbl) => tbl.isPinned.equals(false))).get();
 
   Future<int> toggleJourneyPin(int id, bool isPinned) =>
@@ -125,17 +141,7 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  static QueryExecutor _openConnection() {
-    return driftDatabase(
-      name: 'my_database',
-      native: const DriftNativeOptions(
-        // By default, `driftDatabase` from `package:drift_flutter` stores the
-        // database files in `getApplicationDocumentsDirectory()`.
-        databaseDirectory: getApplicationSupportDirectory,
-      ),
-      // If you need web support, see https://drift.simonbinder.eu/platforms/web/
-    );
-  }
+  // No extra connection helpers are exposed; use the AppDatabase() singleton.
 }
 
 /* LazyDatabase _openConnection() {
