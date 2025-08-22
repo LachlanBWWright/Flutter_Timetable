@@ -62,8 +62,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     try {
       // Get the transport mode from leg data
-      final transportClass = widget.leg.transportation?.product?.$class;
-      final tripId = widget.leg.transportation?.id;
+      final transportation = widget.leg['transportation'] as Map<String, dynamic>?;
+      final transportProduct = transportation?['product'] as Map<String, dynamic>?;
+      final transportClass = transportProduct?['class'];
+      final tripId = transportation?['id'];
 
       if (transportClass != null) {
         // Determine which realtime feed to query based on transport mode
@@ -128,13 +130,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     // Try to get center from stop coordinates
-    final origin = widget.leg.origin;
+    final origin = widget.leg['origin'] as Map<String, dynamic>?;
 
-    if (origin?.coord?[0] != null && origin?.coord?[1] != null) {
-      return LatLng(
-        (origin?.coord?[0] as num).toDouble(),
-        (origin?.coord?[1] as num).toDouble(),
-      );
+    if (origin?['coord'] != null) {
+      final coord = origin!['coord'] as List?;
+      if (coord != null && coord.length >= 2 && coord[0] != null && coord[1] != null) {
+        return LatLng(
+          (coord[0] as num).toDouble(),
+          (coord[1] as num).toDouble(),
+        );
+      }
     }
 
     // Fall back to user location
@@ -174,7 +179,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           child: Icon(
             Icons.directions_bus,
             color: TransportModeUtils.getModeColor(
-              widget.leg.transportation?.product?.$class ?? 5,
+              (widget.leg['transportation'] as Map<String, dynamic>?)?['product']?['class'] ?? 5,
             ),
             size: 25,
           ),
@@ -183,15 +188,17 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     // Add origin and destination markers
-    final origin = widget.leg.origin;
-    final destination = widget.leg.destination;
+    final origin = widget.leg['origin'] as Map<String, dynamic>?;
+    final destination = widget.leg['destination'] as Map<String, dynamic>?;
 
-    if (origin?.coord?[0] != null && origin?.coord?[1] != null) {
+    if (origin?['coord'] != null) {
+      final coord = origin!['coord'] as List?;
+      if (coord != null && coord.length >= 2) {
       markers.add(
         Marker(
           point: LatLng(
-            (origin?.coord?[0] as num).toDouble(),
-            (origin?.coord?[1] as num).toDouble(),
+            (coord[0] as num).toDouble(),
+            (coord[1] as num).toDouble(),
           ),
           child: const Icon(
             Icons.play_arrow,
@@ -200,17 +207,20 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           ),
         ),
       );
+      }
     }
 
-    if (destination?.coord?[0] != null && destination?.coord?[1] != null) {
-      markers.add(
-        Marker(
-          point: LatLng(
-            (destination?.coord?[0] as num).toDouble(),
-            (destination?.coord?[1] as num).toDouble(),
-          ),
-          child: const Icon(
-            Icons.stop,
+    if (destination?['coord'] != null) {
+      final destCoord = destination!['coord'] as List?;
+      if (destCoord != null && destCoord.length >= 2) {
+        markers.add(
+          Marker(
+            point: LatLng(
+              (destCoord[0] as num).toDouble(),
+              (destCoord[1] as num).toDouble(),
+            ),
+            child: const Icon(
+              Icons.stop,
             color: Colors.red,
             size: 25,
           ),
@@ -354,15 +364,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final transportClass = widget.leg.transportation?.product?.$class;
-    final originName =
-        widget.leg.origin?.disassembledName ?? widget.leg.origin?.name;
-    final destinationName = widget.leg.destination?.disassembledName ??
-        widget.leg.destination?.name;
-    final transportName = widget.leg.transportation?.name ??
-        widget.leg.transportation?.disassembledName ??
-        '';
-    final stopSequence = widget.leg.stopSequence as List?;
+    final transportation = widget.leg['transportation'] as Map<String, dynamic>?;
+    final transportProduct = transportation?['product'] as Map<String, dynamic>?;
+    final transportClass = transportProduct?['class'];
+    
+    final origin = widget.leg['origin'] as Map<String, dynamic>?;
+    final destination = widget.leg['destination'] as Map<String, dynamic>?;
+    final originName = origin?['disassembledName'] ?? origin?['name'];
+    final destinationName = destination?['disassembledName'] ?? destination?['name'];
+    final transportName = transportation?['name'] ?? transportation?['disassembledName'] ?? '';
+    final stopSequence = widget.leg['stopSequence'] as List?;
 
     return Scaffold(
       appBar: AppBar(
