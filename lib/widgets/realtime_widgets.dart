@@ -28,13 +28,11 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
       _error = null;
     });
 
-    try {
-      final summary = await RealtimeService.getRealtimeStatusSummary();
-      setState(() {
-        _statusSummary = summary;
-        _isLoading = false;
-      });
-    } catch (e) {}
+    final summary = await RealtimeService.getRealtimeStatusSummary();
+    setState(() {
+      _statusSummary = summary;
+      _isLoading = false;
+    });
   }
 
   @override

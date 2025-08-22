@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-// import 'package:lbww_flutter/widgets/trip_leg_card.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 
 /// Utility class for transport mode colors and names
@@ -50,7 +50,7 @@ class TransportModeUtils {
 
 /// Widget for displaying a single trip card
 class TripCard extends StatelessWidget {
-  final dynamic trip;
+  final TripJourney trip;
   final VoidCallback onTap;
 
   const TripCard({
@@ -59,7 +59,10 @@ class TripCard extends StatelessWidget {
     required this.onTap,
   });
 
-  String _formatTimeDifference(String planned, String estimated) {
+  String _formatTimeDifference(String? planned, String? estimated) {
+    if (planned == null || estimated == null) {
+      return DateTimeUtils.parseTimeOnly(estimated ?? '');
+    }
     try {
       final plannedTime = DateTimeUtils.parseTimeToDateTime(planned);
       final estimatedTime = DateTimeUtils.parseTimeToDateTime(estimated);
@@ -84,7 +87,7 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final legs = trip['legs'] as List;
+    final legs = trip.legs;
     final firstLeg = legs.first;
     final lastLeg = legs.last;
 
@@ -92,7 +95,7 @@ class TripCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         title: Text(
-          "${firstLeg['origin']['disassembledName']} to ${lastLeg['destination']['disassembledName']}",
+          '${firstLeg.origin.disassembledName} to ${lastLeg.destination.disassembledName}',
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,15 +104,15 @@ class TripCard extends StatelessWidget {
               children: [
                 Text(
                   _formatTimeDifference(
-                    firstLeg['origin']['departureTimePlanned'],
-                    firstLeg['origin']['departureTimeEstimated'],
+                    firstLeg.origin.departureTimePlanned,
+                    firstLeg.origin.departureTimeEstimated,
                   ),
                 ),
                 const Text(' - '),
                 Text(
                   _formatTimeDifference(
-                    lastLeg['destination']['arrivalTimePlanned'],
-                    lastLeg['destination']['arrivalTimeEstimated'],
+                    lastLeg.destination.arrivalTimePlanned,
+                    lastLeg.destination.arrivalTimeEstimated,
                   ),
                 ),
               ],

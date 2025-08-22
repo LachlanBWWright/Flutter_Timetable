@@ -23,6 +23,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
   String _secondStation = '';
   String _secondStationId = '';
   bool _isSearching = false;
+  SortMode _sortMode = SortMode.alphabetical;
   final keyController = TextEditingController();
   final AppDatabase _db = AppDatabase();
 
@@ -62,6 +63,14 @@ class _NewTripScreenState extends State<NewTripScreen> {
       } else {
         keyController.text = '';
       }
+    });
+  }
+
+  void _toggleSort() {
+    setState(() {
+      _sortMode = _sortMode == SortMode.alphabetical
+          ? SortMode.distance
+          : SortMode.alphabetical;
     });
   }
 
@@ -169,6 +178,9 @@ class _NewTripScreenState extends State<NewTripScreen> {
           onToggleSearch: _toggleSearch,
           onSaveTrip: canSave ? _saveTrip : null,
           canSave: canSave,
+          onOpenMap: () {},
+          onToggleSort: _toggleSort,
+          sortMode: _sortMode,
         ),
         body: TabBarView(
           children: [

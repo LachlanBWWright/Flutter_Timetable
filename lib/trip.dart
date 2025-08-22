@@ -17,7 +17,7 @@ class TripScreen extends StatefulWidget {
 
 class _TripScreenState extends State<TripScreen> {
   String testText = '';
-  List<Map<String, dynamic>> trips = [];
+  List<TripJourney> trips = [];
   bool _isLoading = false;
   String? _error;
 
@@ -40,7 +40,7 @@ class _TripScreenState extends State<TripScreen> {
       if (!context.mounted) return;
 
       setState(() {
-        trips = tripData;
+        trips = tripData.tripJourneys;
         testText = tripData.toString();
         _isLoading = false;
       });

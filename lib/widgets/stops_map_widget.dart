@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
-import '../gtfs/stop.dart';
-import '../services/stops_service.dart';
-import '../services/location_service.dart';
 import '../constants/transport_colors.dart';
+import '../gtfs/stop.dart';
+import '../services/location_service.dart';
+import '../services/stops_service.dart';
 
 /// Widget for displaying stops on a map for a specific transport mode
 class StopsMapWidget extends StatefulWidget {
@@ -50,7 +50,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
       // Load stops for the transport mode
       final allStops = await _getStopsForTransportMode(widget.transportMode);
-      
+
       setState(() {
         _stops = allStops;
         _isLoading = false;
@@ -183,7 +183,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error, size: 64, color: Colors.red),
+                      const Icon(Icons.error, size: 64, color: Colors.red),
                       const SizedBox(height: 16),
                       Text('Error loading stops: $_error'),
                       const SizedBox(height: 16),
@@ -199,9 +199,11 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.location_off, size: 64, color: Colors.grey),
+                          const Icon(Icons.location_off,
+                              size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
-                          Text('No ${widget.modeDisplayName.toLowerCase()} stops found'),
+                          Text(
+                              'No ${widget.modeDisplayName.toLowerCase()} stops found'),
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: _loadStopsAndLocation,
@@ -212,15 +214,16 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                     )
                   : FlutterMap(
                       mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: const LatLng(-33.8688, 151.2093), // Sydney
+                      options: const MapOptions(
+                        initialCenter: LatLng(-33.8688, 151.2093), // Sydney
                         initialZoom: 10.0,
                         minZoom: 5.0,
                         maxZoom: 18.0,
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.flutter_timetable',
                         ),
                         MarkerLayer(
@@ -228,7 +231,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                             // User location marker
                             if (_userLocation != null)
                               Marker(
-                                point: LatLng(_userLocation!.latitude, _userLocation!.longitude),
+                                point: LatLng(_userLocation!.latitude,
+                                    _userLocation!.longitude),
                                 width: 30.0,
                                 height: 30.0,
                                 child: const Icon(
@@ -239,7 +243,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                               ),
                             // Stop markers
                             ..._stops
-                                .where((stop) => stop.stopLat != 0.0 && stop.stopLon != 0.0)
+                                .where((stop) =>
+                                    stop.stopLat != 0.0 && stop.stopLon != 0.0)
                                 .map(
                                   (stop) => Marker(
                                     point: LatLng(stop.stopLat, stop.stopLon),
@@ -253,7 +258,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                                         decoration: BoxDecoration(
                                           color: _getModeColor(),
                                           shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 2),
+                                          border: Border.all(
+                                              color: Colors.white, width: 2),
                                         ),
                                         child: Icon(
                                           _getModeIcon(),
@@ -273,7 +279,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
         children: [
           if (_userLocation != null)
             FloatingActionButton(
-              heroTag: "location",
+              heroTag: 'location',
               mini: true,
               onPressed: () {
                 _mapController.move(
@@ -285,7 +291,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
             ),
           const SizedBox(height: 8),
           FloatingActionButton(
-            heroTag: "fit_stops",
+            heroTag: 'fit_stops',
             mini: true,
             onPressed: _centerMapOnStops,
             child: const Icon(Icons.center_focus_strong),

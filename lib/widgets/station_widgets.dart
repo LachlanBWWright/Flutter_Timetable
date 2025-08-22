@@ -69,6 +69,9 @@ class StationList extends StatelessWidget {
   }
 }
 
+/// Sort mode for station lists
+enum SortMode { alphabetical, distance }
+
 /// Widget for displaying selected station with cancel option
 class SelectedStationCard extends StatelessWidget {
   final String label;
@@ -114,7 +117,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool canSave;
   final VoidCallback onOpenMap;
   final VoidCallback onToggleSort;
-  final String sortMode;
+  final SortMode sortMode;
   final TabController? tabController;
 
   const NewTripAppBar({
@@ -151,9 +154,11 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           if (!isSearching)
             IconButton(
               onPressed: onToggleSort,
-              icon: Icon(sortMode == 'alphabetical' ? Icons.sort_by_alpha : Icons.near_me),
-              tooltip: sortMode == 'alphabetical' 
-                  ? 'Sort by distance' 
+              icon: Icon(sortMode == SortMode.alphabetical
+                  ? Icons.sort_by_alpha
+                  : Icons.near_me),
+              tooltip: sortMode == SortMode.alphabetical
+                  ? 'Sort by distance'
                   : 'Sort alphabetically',
             ),
           // Map button (only show when not searching)
@@ -213,5 +218,6 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
+  Size get preferredSize =>
+      const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
 }

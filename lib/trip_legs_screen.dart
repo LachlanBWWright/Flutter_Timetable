@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_leg_card.dart';
 
 class TripLegScreen extends StatefulWidget {
   const TripLegScreen({super.key, required this.trip});
-  final Map<String, dynamic> trip;
+  final TripJourney trip;
 
   @override
   State<TripLegScreen> createState() => _TripLegScreenState();
 }
 
 class _TripLegScreenState extends State<TripLegScreen> {
-  String _calculateWaitTime(Map<String, dynamic> currentLeg,
-      Map<String, dynamic> nextLeg) {
+  String _calculateWaitTime(Leg currentLeg, Leg nextLeg) {
     try {
       // Get arrival time of current leg
-      final currentDestination = currentLeg['destination'] as Map<String, dynamic>?;
-      final currentArrival = currentDestination?['arrivalTimeEstimated'] ??
-          currentDestination?['arrivalTimePlanned'];
+      final currentDestination = currentLeg.destination;
+      final currentArrival = currentDestination.arrivalTimeEstimated ??
+          currentDestination.arrivalTimePlanned;
 
       // Get departure time of next leg
-      final nextOrigin = nextLeg['origin'] as Map<String, dynamic>?;
-      final nextDeparture = nextOrigin?['departureTimeEstimated'] ??
-          nextOrigin?['departureTimePlanned'];
+      final nextOrigin = nextLeg.origin;
+      final nextDeparture =
+          nextOrigin.departureTimeEstimated ?? nextOrigin.departureTimePlanned;
 
       if (currentArrival == null || nextDeparture == null) {
         return 'Wait time unknown';
@@ -52,7 +52,7 @@ class _TripLegScreenState extends State<TripLegScreen> {
     }
   }
 
-  Widget _buildSeparator(int index, List<Map<String, dynamic>> legs) {
+  Widget _buildSeparator(int index, List<Leg> legs) {
     if (index >= legs.length - 1) {
       return const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16);
     }
@@ -67,9 +67,9 @@ class _TripLegScreenState extends State<TripLegScreen> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: .1),
+              color: Colors.orange.withAlpha((255 * 0.1).round()),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withValues(alpha: .3)),
+              border: Border.all(color: Colors.orange.withAlpha((255 * 0.3).round())),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -95,24 +95,20 @@ class _TripLegScreenState extends State<TripLegScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final legs = (widget.trip['legs'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final legs = widget.trip.legs;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Legs')),
       body: ListView.separated(
         itemBuilder: (context, index) {
-          final legByIdx = legs?[index];
-
-          if (legByIdx == null) {
-            return const Text('Leg not found.');
-          }
+          final legByIdx = legs[index];
 
           return TripLegCard(leg: legByIdx);
         },
         separatorBuilder: (context, index) {
-          return _buildSeparator(index, legs ?? []);
+          return _buildSeparator(index, legs);
         },
-        itemCount: legs?.length ?? 0,
+        itemCount: legs.length,
       ),
     );
   }

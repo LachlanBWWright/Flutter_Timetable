@@ -1,17 +1,16 @@
-import '../gtfs/stop.dart';
-import '../services/stops_service.dart';
-import '../services/location_service.dart';
 import '../fetch_data/timetable_data.dart';
+import '../gtfs/stop.dart';
+import '../services/location_service.dart';
+import '../services/stops_service.dart';
 import '../widgets/station_widgets.dart';
 
 /// Service for managing stops data in the New Trip screen
 class NewTripService {
-  
   /// Load stops for a specific transport mode from database or API
   static Future<List<Station>> loadStopsForMode(String mode) async {
     final endpoints = _getEndpointsForMode(mode);
     final List<Stop> allStops = [];
-    
+
     // Check if we have any stops for this mode in the database
     bool hasStops = false;
     for (final endpoint in endpoints) {
@@ -21,25 +20,27 @@ class NewTripService {
         allStops.addAll(existingStops);
       }
     }
-    
+
     // If no stops found in database, try to load from API
     if (!hasStops) {
       await _loadStopsFromApi(endpoints);
-      
+
       // Try loading from database again
       for (final endpoint in endpoints) {
         final stops = await StopsService.getStopsForEndpoint(endpoint);
         allStops.addAll(stops);
       }
     }
-    
+
     // Convert Stop objects to Station objects for the UI
-    return allStops.map((stop) => Station(
-      name: stop.stopName,
-      id: stop.stopId,
-      latitude: stop.stopLat != 0.0 ? stop.stopLat : null,
-      longitude: stop.stopLon != 0.0 ? stop.stopLon : null,
-    )).toList();
+    return allStops
+        .map((stop) => Station(
+              name: stop.stopName,
+              id: stop.stopId,
+              latitude: stop.stopLat != 0.0 ? stop.stopLat : null,
+              longitude: stop.stopLon != 0.0 ? stop.stopLon : null,
+            ))
+        .toList();
   }
 
   /// Get the list of API endpoints for a transport mode
@@ -50,7 +51,7 @@ class NewTripService {
       case 'lightrail':
         return [
           'lightrail_innerwest',
-          'lightrail_newcastle', 
+          'lightrail_newcastle',
           'lightrail_cbdandsoutheast',
           'lightrail_parramatta'
         ];
@@ -93,7 +94,7 @@ class NewTripService {
     for (final endpoint in endpoints) {
       try {
         print('Loading stops from API for endpoint: $endpoint');
-        
+
         // Get GTFS data from the appropriate endpoint
         final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
         if (gtfsData != null && gtfsData.stops.isNotEmpty) {
@@ -117,7 +118,7 @@ class NewTripService {
         return await fetchNswTrainsGtfsData();
       case 'sydneytrains':
         return await fetchSydneyTrainsGtfsData();
-      
+
       // Light Rail
       case 'lightrail_innerwest':
         return await fetchLightRailInnerWestGtfsData();
@@ -127,7 +128,7 @@ class NewTripService {
         return await fetchLightRailCbdAndSoutheastGtfsData();
       case 'lightrail_parramatta':
         return await fetchLightRailParramattaGtfsData();
-      
+
       // Buses
       case 'buses':
         return await fetchBusesGtfsData();
@@ -177,13 +178,13 @@ class NewTripService {
         return await fetchBusesNISC001GtfsData();
       case 'buses_ReplacementBus':
         return await fetchBusesReplacementBusGtfsData();
-      
+
       // Ferries
       case 'ferries_sydneyferries':
         return await fetchFerriesSydneyFerriesGtfsData();
       case 'ferries_MFF':
         return await fetchFerriesMFFGtfsData();
-      
+
       default:
         print('Unknown endpoint: $endpoint');
         return null;
@@ -200,20 +201,22 @@ class NewTripService {
   /// Sort stations by distance from user's current location
   static Future<List<Station>> sortByDistance(List<Station> stations) async {
     // This will be implemented using the LocationService
-    final stationsWithCoords = stations.where((station) => 
-        station.latitude != null && station.longitude != null).toList();
-    
+    final stationsWithCoords = stations
+        .where(
+            (station) => station.latitude != null && station.longitude != null)
+        .toList();
+
     if (stationsWithCoords.isEmpty) {
       return sortAlphabetically(stations);
     }
-    
+
     // Use LocationService to get current position and calculate distances
     try {
       final position = await LocationService.getCurrentLocation();
       if (position == null) {
         return sortAlphabetically(stations);
       }
-      
+
       // Calculate distances and sort
       final stationsWithDistance = stationsWithCoords.map((station) {
         final distance = LocationService.calculateDistance(
@@ -224,14 +227,16 @@ class NewTripService {
         );
         return MapEntry(station, distance);
       }).toList();
-      
+
       stationsWithDistance.sort((a, b) => a.value.compareTo(b.value));
-      
+
       // Add stations without coordinates at the end
-      final stationsWithoutCoords = stations.where((station) => 
-          station.latitude == null || station.longitude == null).toList();
+      final stationsWithoutCoords = stations
+          .where((station) =>
+              station.latitude == null || station.longitude == null)
+          .toList();
       stationsWithoutCoords.sort((a, b) => a.name.compareTo(b.name));
-      
+
       return [
         ...stationsWithDistance.map((entry) => entry.key),
         ...stationsWithoutCoords,
@@ -241,7 +246,7 @@ class NewTripService {
       return sortAlphabetically(stations);
     }
   }
-  
+
   /// Get display name for transport mode
   static String getModeDisplayName(String mode) {
     switch (mode) {

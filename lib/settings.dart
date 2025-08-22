@@ -200,8 +200,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (_isUpdating)
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           SizedBox(
                               width: 16,
                               height: 16,
