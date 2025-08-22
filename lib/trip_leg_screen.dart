@@ -62,8 +62,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     try {
       // Get the transport mode from leg data
-      final transportation = widget.leg['transportation'] as Map<String, dynamic>?;
-      final transportProduct = transportation?['product'] as Map<String, dynamic>?;
+      final transportation =
+          widget.leg['transportation'] as Map<String, dynamic>?;
+      final transportProduct =
+          transportation?['product'] as Map<String, dynamic>?;
       final transportClass = transportProduct?['class'];
       final tripId = transportation?['id'];
 
@@ -134,7 +136,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     if (origin?['coord'] != null) {
       final coord = origin!['coord'] as List?;
-      if (coord != null && coord.length >= 2 && coord[0] != null && coord[1] != null) {
+      if (coord != null &&
+          coord.length >= 2 &&
+          coord[0] != null &&
+          coord[1] != null) {
         return LatLng(
           (coord[0] as num).toDouble(),
           (coord[1] as num).toDouble(),
@@ -179,7 +184,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           child: Icon(
             Icons.directions_bus,
             color: TransportModeUtils.getModeColor(
-              (widget.leg['transportation'] as Map<String, dynamic>?)?['product']?['class'] ?? 5,
+              (widget.leg['transportation']
+                      as Map<String, dynamic>?)?['product']?['class'] ??
+                  5,
             ),
             size: 25,
           ),
@@ -194,19 +201,19 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     if (origin?['coord'] != null) {
       final coord = origin!['coord'] as List?;
       if (coord != null && coord.length >= 2) {
-      markers.add(
-        Marker(
-          point: LatLng(
-            (coord[0] as num).toDouble(),
-            (coord[1] as num).toDouble(),
+        markers.add(
+          Marker(
+            point: LatLng(
+              (coord[0] as num).toDouble(),
+              (coord[1] as num).toDouble(),
+            ),
+            child: const Icon(
+              Icons.play_arrow,
+              color: Colors.green,
+              size: 25,
+            ),
           ),
-          child: const Icon(
-            Icons.play_arrow,
-            color: Colors.green,
-            size: 25,
-          ),
-        ),
-      );
+        );
       }
     }
 
@@ -221,11 +228,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             ),
             child: const Icon(
               Icons.stop,
-            color: Colors.red,
-            size: 25,
+              color: Colors.red,
+              size: 25,
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
     return markers;
@@ -364,15 +372,19 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final transportation = widget.leg['transportation'] as Map<String, dynamic>?;
-    final transportProduct = transportation?['product'] as Map<String, dynamic>?;
+    final transportation =
+        widget.leg['transportation'] as Map<String, dynamic>?;
+    final transportProduct =
+        transportation?['product'] as Map<String, dynamic>?;
     final transportClass = transportProduct?['class'];
-    
+
     final origin = widget.leg['origin'] as Map<String, dynamic>?;
     final destination = widget.leg['destination'] as Map<String, dynamic>?;
     final originName = origin?['disassembledName'] ?? origin?['name'];
-    final destinationName = destination?['disassembledName'] ?? destination?['name'];
-    final transportName = transportation?['name'] ?? transportation?['disassembledName'] ?? '';
+    final destinationName =
+        destination?['disassembledName'] ?? destination?['name'];
+    final transportName =
+        transportation?['name'] ?? transportation?['disassembledName'] ?? '';
     final stopSequence = widget.leg['stopSequence'] as List?;
 
     return Scaffold(

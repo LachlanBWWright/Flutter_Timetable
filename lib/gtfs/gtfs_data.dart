@@ -1,12 +1,12 @@
-import '../fetch_data/csv_types/agency.dart';
-import '../fetch_data/csv_types/calendar.dart';
-import '../fetch_data/csv_types/calendar_dates.dart';
-import '../fetch_data/csv_types/notes.dart';
-import '../fetch_data/csv_types/routes.dart';
-import '../fetch_data/csv_types/shapes.dart';
-import '../fetch_data/csv_types/stop_times.dart';
-import '../fetch_data/csv_types/stops.dart';
-import '../fetch_data/csv_types/trips.dart';
+import 'package:lbww_flutter/gtfs/agency.dart';
+import 'package:lbww_flutter/gtfs/calendar.dart';
+import 'package:lbww_flutter/gtfs/calendar_date.dart';
+import 'package:lbww_flutter/gtfs/note.dart';
+import 'package:lbww_flutter/gtfs/route.dart';
+import 'package:lbww_flutter/gtfs/shape.dart';
+import 'package:lbww_flutter/gtfs/stop.dart';
+import 'package:lbww_flutter/gtfs/stop_time.dart';
+import 'package:lbww_flutter/gtfs/trip.dart';
 
 class GtfsData {
   final List<Agency> agencies;
