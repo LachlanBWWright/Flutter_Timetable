@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/backends/TripPlannerApi.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
 import 'package:lbww_flutter/services/transport_api_service.dart';
@@ -29,10 +30,14 @@ class _TripScreenState extends State<TripScreen> {
     });
 
     try {
+      print(
+          'Getting trip data for ${widget.trip.origin} to ${widget.trip.destination}');
+
       final tripData = await TransportApiService.getTrips(
         originId: widget.trip.originId,
         destinationId: widget.trip.destinationId,
       );
+      print('Trip data received: $tripData');
 
       if (!context.mounted) return;
 

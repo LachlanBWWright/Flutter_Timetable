@@ -3,6 +3,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
+import 'package:lbww_flutter/backends/BackendAuthManager.dart'
+    show addBackendAuthToAll;
 
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
@@ -13,6 +15,21 @@ import 'package:lbww_flutter/widgets/journey_widgets.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
+
+  // Initialize backend auth for all swagger clients using the API key from dotenv.
+  // TransportApiService reads dotenv internally; prefer that to avoid duplicate logic.
+  try {
+    final apiKey = dotenv.env['API_KEY'];
+    if (apiKey != null && apiKey.isNotEmpty) {
+      print("API key found");
+      addBackendAuthToAll(apiKey);
+    } else {
+      print("No API key found");
+    }
+  } catch (e) {
+    // If anything goes wrong here, continue without backend auth; UI/tests can still set it later.
+    // Keep this silent to avoid noisy startup logs.
+  }
   runApp(const MyApp());
 }
 
