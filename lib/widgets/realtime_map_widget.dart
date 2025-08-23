@@ -4,17 +4,15 @@ import 'package:latlong2/latlong.dart';
 import '../constants/transport_colors.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
+import '../services/transport_api_service.dart';
 
 /// Widget for displaying GTFS realtime vehicle positions on a map
 class RealtimeMapWidget extends StatefulWidget {
   final String? mode;
   final String? routeFilter;
+  final Leg? leg;
 
-  const RealtimeMapWidget({
-    super.key,
-    this.mode,
-    this.routeFilter,
-  });
+  const RealtimeMapWidget({super.key, this.mode, this.routeFilter, this.leg});
 
   @override
   State<RealtimeMapWidget> createState() => _RealtimeMapWidgetState();
@@ -27,11 +25,21 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   String? _error;
 
   // Sydney CBD as default center
-  static const LatLng _sydneyCenter = LatLng(-33.8688, 151.2093);
+  late LatLng _mapCenter;
 
+  @override
   @override
   void initState() {
     super.initState();
+    // If a leg is provided, use its origin as the map center
+    if (widget.leg != null &&
+        widget.leg!.origin.coord != null &&
+        widget.leg!.origin.coord!.length == 2) {
+      _mapCenter =
+          LatLng(widget.leg!.origin.coord![0], widget.leg!.origin.coord![1]);
+    } else {
+      _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
+    }
     _loadVehiclePositions();
   }
 
@@ -63,6 +71,15 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         vehicles.removeWhere((vehicle) =>
             !vehicle.trip.hasRouteId() ||
             !vehicle.trip.routeId.contains(widget.routeFilter!));
+      }
+
+      // If a leg is provided, filter vehicles to those near the leg's route (if possible)
+      if (widget.leg != null &&
+          widget.leg!.transportation != null &&
+          widget.leg!.transportation!.id != null) {
+        final legRouteId = widget.leg!.transportation!.id!;
+        vehicles.removeWhere((vehicle) =>
+            !vehicle.trip.hasRouteId() || vehicle.trip.routeId != legRouteId);
       }
 
       setState(() {
@@ -211,8 +228,11 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text(widget.mode != null ? '${widget.mode} Map' : 'Realtime Map'),
+        title: Text(widget.mode != null
+            ? '${widget.mode} Map'
+            : widget.leg != null
+                ? 'Trip Leg Map'
+                : 'Realtime Map'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -243,8 +263,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                   children: [
                     FlutterMap(
                       mapController: _mapController,
-                      options: const MapOptions(
-                        initialCenter: _sydneyCenter,
+                      options: MapOptions(
+                        initialCenter: _mapCenter,
                         initialZoom: 11.0,
                         minZoom: 8.0,
                         maxZoom: 18.0,
@@ -284,13 +304,24 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Fit map to show all vehicles
+          // Fit map to show all vehicles or leg
           if (_vehicles.isNotEmpty) {
             final bounds = _calculateBounds(_vehicles);
             _mapController.fitCamera(CameraFit.bounds(
                 bounds: bounds, padding: const EdgeInsets.all(50)));
+          } else if (widget.leg != null &&
+              widget.leg!.origin.coord != null &&
+              widget.leg!.destination.coord != null) {
+            final bounds = LatLngBounds(
+              LatLng(
+                  widget.leg!.origin.coord![0], widget.leg!.origin.coord![1]),
+              LatLng(widget.leg!.destination.coord![0],
+                  widget.leg!.destination.coord![1]),
+            );
+            _mapController.fitCamera(CameraFit.bounds(
+                bounds: bounds, padding: const EdgeInsets.all(50)));
           } else {
-            _mapController.move(_sydneyCenter, 11.0);
+            _mapController.move(_mapCenter, 11.0);
           }
         },
         child: const Icon(Icons.my_location),

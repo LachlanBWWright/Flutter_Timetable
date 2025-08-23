@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/services/location_service.dart';
 
 /// A model class for station data
 class Station {
@@ -124,9 +123,11 @@ class StationList extends StatelessWidget {
     return ListView.builder(
       itemCount: listItems.length,
       itemBuilder: (context, index) {
+        // Default to alphabetical if not specified
         return StationView(
           station: listItems[index],
           setStation: setStation,
+          sortMode: SortMode.alphabetical,
         );
       },
     );

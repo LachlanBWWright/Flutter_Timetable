@@ -168,14 +168,12 @@ class GetTripsResponse {
           try {
             tripJourneys.add(TripJourney.fromJson(journey));
           } catch (e, st) {
-            print(
-                '[GetTripsResponse] Error parsing TripJourney: \\${e}\n\\${st}');
+            print('[GetTripsResponse] Error parsing TripJourney: \\$e\n\\$st');
           }
         }
       }
     } catch (e, st) {
-      print(
-          '[GetTripsResponse] Exception while parsing journeys: \\${e}\n\\${st}');
+      print('[GetTripsResponse] Exception while parsing journeys: \\$e\n\\$st');
     }
 
     // Parse systemMessages (handle both list and object)
@@ -190,19 +188,18 @@ class GetTripsResponse {
       }
     } catch (e, st) {
       print(
-          '[GetTripsResponse] Exception while parsing systemMessages: \\${e}\n\\${st}');
+          '[GetTripsResponse] Exception while parsing systemMessages: \\$e\n\\$st');
     }
 
     // Parse version
     try {
       version = json['version'];
-      print('[GetTripsResponse] version: \\${version}');
+      print('[GetTripsResponse] version: \\$version');
       if (version == null) {
         print('[GetTripsResponse] version is null or missing!');
       }
     } catch (e, st) {
-      print(
-          '[GetTripsResponse] Exception while parsing version: \\${e}\n\\${st}');
+      print('[GetTripsResponse] Exception while parsing version: \\$e\n\\$st');
     }
 
     // Defensive: if systemMessages is still null, use an empty one
@@ -350,7 +347,7 @@ class Stop {
   });
 
   factory Stop.fromJson(Map<String, dynamic> json) {
-    print("stop parent:");
+    print('stop parent:');
     print(json['parent']);
     return Stop(
       arrivalTimeEstimated: json['arrivalTimeEstimated'],
@@ -399,7 +396,7 @@ class Parent {
         parsedParent = rawParent.toString();
       }
     }
-    print("default");
+    print('default');
     return Parent(
       disassembledName: json['disassembledName']?.toString(),
       id: json['id']?.toString() ?? '',
@@ -612,7 +609,7 @@ class Info {
   });
 
   factory Info.fromJson(dynamic json) {
-    print("info");
+    print('info');
     print(json);
     return Info(
       content: json['content'],
