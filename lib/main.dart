@@ -29,7 +29,13 @@ class MyApp extends StatelessWidget {
       title: AppConstants.appTitle,
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        brightness: Brightness.light,
       ),
+      darkTheme: ThemeData(
+        primarySwatch: Colors.blue,
+        brightness: Brightness.dark,
+      ),
+      themeMode: ThemeMode.dark, // Use dark mode throughout the application
       home: const MyHomePage(title: AppConstants.appTitle),
     );
   }
@@ -174,10 +180,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _navigateToReverseTrip(db.Journey journey) {
+    // Create a reversed journey
+    final reversedJourney = db.Journey(
+      id: journey.id,
+      origin: journey.destination,
+      originId: journey.destinationId, 
+      destination: journey.origin,
+      destinationId: journey.originId,
+      isPinned: journey.isPinned,
+    );
+    
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TripScreen(trip: journey),
+        builder: (context) => TripScreen(trip: reversedJourney),
       ),
     );
   }

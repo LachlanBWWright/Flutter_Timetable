@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
@@ -114,13 +115,12 @@ class TripLegCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8.0),
         onTap: () {
-          // TODO: implement navigation to leg details
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (context) => TripLegDetailScreen(leg: leg),
-          //   ),
-          // );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TripLegDetailScreen(leg: leg),
+            ),
+          );
         },
         child: Container(
           decoration: BoxDecoration(

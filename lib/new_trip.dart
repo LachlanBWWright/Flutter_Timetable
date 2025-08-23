@@ -1,10 +1,9 @@
-import 'package:csv/csv.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:lbww_flutter/schema/database.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
+import 'package:lbww_flutter/widgets/stops_map_widget.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({super.key});
@@ -13,19 +12,77 @@ class NewTripScreen extends StatefulWidget {
   State<NewTripScreen> createState() => _NewTripScreenState();
 }
 
-class _NewTripScreenState extends State<NewTripScreen> {
+class _NewTripScreenState extends State<NewTripScreen>
+    with TickerProviderStateMixin {
   List<Station> _trainStationList = [];
   List<Station> _busStationList = [];
   List<Station> _ferryStationList = [];
   List<Station> _lightRailStationList = [];
+  List<Station> _filteredStations = [];
   String _firstStation = '';
   String _firstStationId = '';
   String _secondStation = '';
   String _secondStationId = '';
   bool _isSearching = false;
+  bool _isLoading = false;
   SortMode _sortMode = SortMode.alphabetical;
   final keyController = TextEditingController();
   final AppDatabase _db = AppDatabase();
+  late TabController _tabController;
+  String _currentMode = 'train';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    keyController.addListener(_applySearchFilter);
+    loadStationsForCurrentMode();
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    keyController.removeListener(_applySearchFilter);
+    keyController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) {
+      final oldMode = _currentMode;
+      setState(() {
+        switch (_tabController.index) {
+          case 0:
+            _currentMode = 'train';
+            break;
+          case 1:
+            _currentMode = 'lightrail';
+            break;
+          case 2:
+            _currentMode = 'bus';
+            break;
+          case 3:
+            _currentMode = 'ferry';
+            break;
+        }
+      });
+      
+      if (oldMode != _currentMode) {
+        // Load stations for the new mode if not already loaded
+        final currentStations = _getCurrentStationList();
+        if (currentStations.isEmpty) {
+          loadStationsForCurrentMode();
+        } else {
+          setState(() {
+            _filteredStations = currentStations;
+          });
+          _applySearchFilter();
+        }
+      }
+    }
+  }
 
   void setStation(String station, String id) async {
     setState(() {
@@ -39,7 +96,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
         keyController.text = '';
       }
     });
-    loadStations();
+    _applySearchFilter();
   }
 
   void _clearFirstStation() {
@@ -62,16 +119,32 @@ class _NewTripScreenState extends State<NewTripScreen> {
         _isSearching = !_isSearching;
       } else {
         keyController.text = '';
+        _applySearchFilter();
       }
     });
   }
 
-  void _toggleSort() {
+  void _toggleSort() async {
     setState(() {
       _sortMode = _sortMode == SortMode.alphabetical
           ? SortMode.distance
           : SortMode.alphabetical;
     });
+    await _applySorting();
+  }
+
+  void _openMap() {
+    final modeDisplayName = NewTripService.getModeDisplayName(_currentMode);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StopsMapWidget(
+          transportMode: _currentMode,
+          modeDisplayName: modeDisplayName,
+          onStopSelected: setStation,
+        ),
+      ),
+    );
   }
 
   Future<void> _saveTrip() async {
@@ -105,63 +178,104 @@ class _NewTripScreenState extends State<NewTripScreen> {
     }
   }
 
-  Future<void> loadStations() async {
-    final dataset =
-        await rootBundle.loadString('assets/LocationFacilityData.csv');
-    final List<dynamic> data =
-        const CsvToListConverter().convert(dataset, eol: '\n');
-    data.removeWhere((station) => !station[9].contains('Train'));
-    //[10] - Mode
-    final trainStations = List<Station>.empty(growable: true);
-    final busStations = List<Station>.empty(growable: true);
-    final lightRailStations = List<Station>.empty(growable: true);
-    final ferryStations = List<Station>.empty(growable: true);
-    for (var station in data) {
-      if (station[9].contains('Train')) {
-        trainStations.add(Station(name: station[0], id: station[4].toString()));
-      }
-      if (station[9].contains('Bus')) {
-        busStations.add(Station(name: station[0], id: station[4].toString()));
-      }
-      if (station[9].contains('Light')) {
-        lightRailStations
-            .add(Station(name: station[0], id: station[4].toString()));
-      }
-      if (station[9].contains('Ferry')) {
-        ferryStations.add(Station(name: station[0], id: station[4].toString()));
-      }
+  Future<void> loadStationsForCurrentMode() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final stations = await NewTripService.loadStopsForMode(_currentMode);
+      setState(() {
+        switch (_currentMode) {
+          case 'train':
+            _trainStationList = stations;
+            break;
+          case 'lightrail':
+            _lightRailStationList = stations;
+            break;
+          case 'bus':
+            _busStationList = stations;
+            break;
+          case 'ferry':
+            _ferryStationList = stations;
+            break;
+        }
+        _filteredStations = _getCurrentStationList();
+      });
+
+      await _applySorting();
+    } catch (e) {
+      print('Error loading stations: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading stations: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<Station> _getCurrentStationList() {
+    switch (_currentMode) {
+      case 'train':
+        return _trainStationList;
+      case 'lightrail':
+        return _lightRailStationList;
+      case 'bus':
+        return _busStationList;
+      case 'ferry':
+        return _ferryStationList;
+      default:
+        return [];
+    }
+  }
+
+  Future<void> _applySorting() async {
+    final stations = _getCurrentStationList();
+    List<Station> sortedStations;
+
+    if (_sortMode == SortMode.alphabetical) {
+      sortedStations = NewTripService.sortAlphabetically(stations);
+    } else {
+      sortedStations = await NewTripService.sortByDistance(stations);
     }
 
     setState(() {
-      _trainStationList = trainStations;
-      _busStationList = busStations;
-      _lightRailStationList = lightRailStations;
-      _ferryStationList = ferryStations;
+      switch (_currentMode) {
+        case 'train':
+          _trainStationList = sortedStations;
+          break;
+        case 'lightrail':
+          _lightRailStationList = sortedStations;
+          break;
+        case 'bus':
+          _busStationList = sortedStations;
+          break;
+        case 'ferry':
+          _ferryStationList = sortedStations;
+          break;
+      }
+      _filteredStations = sortedStations;
+      _applySearchFilter();
     });
   }
 
-  void loadSearchStations(String search) async {
-    try {
-      final results = await TransportApiService.searchStations(search);
-      final stations = results
-          .map((result) => Station(
-                name: result['name'] ?? '',
-                id: result['id'] ?? '',
-              ))
-          .toList();
-
+  void _applySearchFilter() {
+    final currentStations = _getCurrentStationList();
+    if (keyController.text.isEmpty) {
       setState(() {
-        _trainStationList = stations;
+        _filteredStations = currentStations;
       });
-    } catch (e) {
-      print('Error searching stations: $e');
+    } else {
+      final filtered = currentStations
+          .where((station) =>
+              station.name.toLowerCase().contains(keyController.text.toLowerCase()))
+          .toList();
+      setState(() {
+        _filteredStations = filtered;
+      });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    loadStations();
   }
 
   @override
@@ -174,36 +288,31 @@ class _NewTripScreenState extends State<NewTripScreen> {
         appBar: NewTripAppBar(
           isSearching: _isSearching,
           searchController: keyController,
-          onSearch: loadSearchStations,
+          onSearch: (query) {
+            _applySearchFilter();
+          },
           onToggleSearch: _toggleSearch,
           onSaveTrip: canSave ? _saveTrip : null,
           canSave: canSave,
-          onOpenMap: () {},
+          onOpenMap: _openMap,
           onToggleSort: _toggleSort,
           sortMode: _sortMode,
+          tabController: _tabController,
         ),
         body: TabBarView(
+          controller: _tabController,
           children: [
-            _buildTrainStationTab(),
-            StationList(
-              listItems: _lightRailStationList,
-              setStation: setStation,
-            ),
-            StationList(
-              listItems: _busStationList,
-              setStation: setStation,
-            ),
-            StationList(
-              listItems: _ferryStationList,
-              setStation: setStation,
-            ),
+            _buildStationTab('train'),
+            _buildStationTab('lightrail'),
+            _buildStationTab('bus'),
+            _buildStationTab('ferry'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTrainStationTab() {
+  Widget _buildStationTab(String mode) {
     return Column(
       children: [
         if (_firstStation.isNotEmpty)
@@ -218,12 +327,18 @@ class _NewTripScreenState extends State<NewTripScreen> {
             stationName: _secondStation,
             onCancel: _clearSecondStation,
           ),
-        Expanded(
-          child: StationList(
-            listItems: _trainStationList,
-            setStation: setStation,
+        if (_isLoading)
+          const Expanded(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          Expanded(
+            child: EnhancedStationList(
+              listItems: _filteredStations,
+              setStation: setStation,
+              sortMode: _sortMode,
+            ),
           ),
-        ),
       ],
     );
   }

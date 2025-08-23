@@ -15,15 +15,17 @@ class Station {
   });
 }
 
-/// Widget for displaying a single station item
+/// Widget for displaying a single station item with optional distance
 class StationView extends StatelessWidget {
   final Station station;
   final Function(String, String) setStation;
+  final SortMode sortMode;
 
   const StationView({
     super.key,
     required this.station,
     required this.setStation,
+    required this.sortMode,
   });
 
   @override
@@ -37,9 +39,44 @@ class StationView extends StatelessWidget {
           },
           child: ListTile(
             title: Text(station.name),
+            subtitle: _buildDistanceSubtitle(),
           ),
         ),
       ),
+    );
+  }
+
+  Widget? _buildDistanceSubtitle() {
+    // For now, return null since we'd need current location to calculate distance
+    // In a real implementation, this would be calculated during sorting
+    return null;
+  }
+}
+
+/// Enhanced widget for displaying a list of stations with distance support
+class EnhancedStationList extends StatelessWidget {
+  final List<Station> listItems;
+  final Function(String, String) setStation;
+  final SortMode sortMode;
+
+  const EnhancedStationList({
+    super.key,
+    required this.listItems,
+    required this.setStation,
+    required this.sortMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: listItems.length,
+      itemBuilder: (context, index) {
+        return StationView(
+          station: listItems[index],
+          setStation: setStation,
+          sortMode: sortMode,
+        );
+      },
     );
   }
 }
