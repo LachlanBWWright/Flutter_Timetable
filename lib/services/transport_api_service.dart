@@ -94,45 +94,41 @@ class TransportApiService {
     required String originId,
     required String destinationId,
   }) async {
-    try {
-      final apiKey = await _getApiKey();
-      if (apiKey == null || apiKey.isEmpty) {
-        throw Exception('API key not set');
-      }
-
-      final params = {
-        'outputFormat': 'rapidJSON',
-        'coordOutputFormat': 'EPSG:4326',
-        'depArrMacro': 'dep',
-        'type_origin': 'any',
-        'name_origin': originId,
-        'type_destination': 'any',
-        'name_destination': destinationId,
-        'calcNumberOfTrips': '20',
-        'excludedMeans': 'checkbox',
-        'exclMOT_7': '1',
-        'exclMOT_11': '1',
-        'TfNSWTR': 'true',
-        'version': '10.2.1.42',
-        'itOptionsActive': '0',
-      };
-
-      final uri = Uri.https(_baseUrl, '/v1/tp/trip/', params);
-      final response = await http.get(
-        uri,
-        headers: {'authorization': 'apikey $apiKey'},
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to get trips: ${response.statusCode}');
-      }
-
-      final data = jsonDecode(response.body);
-      return GetTripsResponse.fromJson(data);
-    } catch (e) {
-      print('Error getting trips: $e');
-      rethrow;
+    final apiKey = await _getApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('API key not set');
     }
+
+    final params = {
+      'outputFormat': 'rapidJSON',
+      'coordOutputFormat': 'EPSG:4326',
+      'depArrMacro': 'dep',
+      'type_origin': 'any',
+      'name_origin': originId,
+      'type_destination': 'any',
+      'name_destination': destinationId,
+      'calcNumberOfTrips': '20',
+      'excludedMeans': 'checkbox',
+      'exclMOT_7': '1',
+      'exclMOT_11': '1',
+      'TfNSWTR': 'true',
+      'version': '10.2.1.42',
+      'itOptionsActive': '0',
+    };
+
+    final uri = Uri.https(_baseUrl, '/v1/tp/trip/', params);
+    final response = await http.get(
+      uri,
+      headers: {'authorization': 'apikey $apiKey'},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to get trips: ${response.statusCode}');
+    }
+
+    final data = jsonDecode(response.body);
+    print(data);
+    return GetTripsResponse.fromJson(data);
   }
 }
 
@@ -150,12 +146,71 @@ class GetTripsResponse {
   });
 
   factory GetTripsResponse.fromJson(Map<String, dynamic> json) {
+    print('[GetTripsResponse] Raw JSON:');
+    print(json);
+
+    List<TripJourney> tripJourneys = [];
+    SystemMessages? systemMessages;
+    String? version;
+
+    // Parse tripJourneys
+    try {
+      final journeysJson = json['journeys'];
+      if (journeysJson == null) {
+        print('[GetTripsResponse] journeys is null or missing!');
+      } else if (journeysJson is! List) {
+        print(
+            '[GetTripsResponse] journeys is not a List! Type: \\${journeysJson.runtimeType}');
+      } else {
+        print('[GetTripsResponse] journeys count: \\${journeysJson.length}');
+        tripJourneys = [];
+        for (final journey in journeysJson) {
+          try {
+            tripJourneys.add(TripJourney.fromJson(journey));
+          } catch (e, st) {
+            print(
+                '[GetTripsResponse] Error parsing TripJourney: \\${e}\n\\${st}');
+          }
+        }
+      }
+    } catch (e, st) {
+      print(
+          '[GetTripsResponse] Exception while parsing journeys: \\${e}\n\\${st}');
+    }
+
+    // Parse systemMessages (handle both list and object)
+    try {
+      final systemMessagesJson = json['systemMessages'];
+      if (systemMessagesJson == null) {
+        print('[GetTripsResponse] systemMessages is null or missing!');
+      } else {
+        print(
+            '[GetTripsResponse] systemMessages: \\${systemMessagesJson.runtimeType}');
+        systemMessages = SystemMessages.fromJson(systemMessagesJson);
+      }
+    } catch (e, st) {
+      print(
+          '[GetTripsResponse] Exception while parsing systemMessages: \\${e}\n\\${st}');
+    }
+
+    // Parse version
+    try {
+      version = json['version'];
+      print('[GetTripsResponse] version: \\${version}');
+      if (version == null) {
+        print('[GetTripsResponse] version is null or missing!');
+      }
+    } catch (e, st) {
+      print(
+          '[GetTripsResponse] Exception while parsing version: \\${e}\n\\${st}');
+    }
+
+    // Defensive: if systemMessages is still null, use an empty one
+    systemMessages ??= SystemMessages(responseMessages: []);
     return GetTripsResponse(
-      tripJourneys: (json['journeys'] as List<dynamic>)
-          .map((journey) => TripJourney.fromJson(journey))
-          .toList(),
-      systemMessages: SystemMessages.fromJson(json['systemMessages']),
-      version: json['version'],
+      tripJourneys: tripJourneys,
+      systemMessages: systemMessages,
+      version: version ?? '',
     );
   }
 }
@@ -172,11 +227,17 @@ class TripJourney {
   });
 
   factory TripJourney.fromJson(Map<String, dynamic> json) {
+    print('[TripJourney] Raw JSON:');
+    print(json);
+    final legsJson = json['legs'] as List<dynamic>?;
+    if (legsJson == null) {
+      print('[TripJourney] legs is null or missing!');
+    } else {
+      print('[TripJourney] legs count: \\${legsJson.length}');
+    }
     return TripJourney(
       isAdditional: json['isAdditional'],
-      legs: (json['legs'] as List<dynamic>)
-          .map((leg) => Leg.fromJson(leg))
-          .toList(),
+      legs: (legsJson ?? []).map((leg) => Leg.fromJson(leg)).toList(),
       rating: json['rating'],
     );
   }
@@ -216,10 +277,17 @@ class Leg {
   });
 
   factory Leg.fromJson(Map<String, dynamic> json) {
+    print('[Leg] Raw JSON:');
+    print(json);
+    print(
+        '[Leg] destination: \\${json['destination'] != null ? 'present' : 'null'}');
+    print('[Leg] origin: \\${json['origin'] != null ? 'present' : 'null'}');
+    print('[Leg] coords: \\${json['coords']?.runtimeType}');
     return Leg(
       coords: (json['coords'] as List<dynamic>?)
-          ?.map((coord) =>
-              (coord as List<dynamic>).map((c) => (c as num).toDouble()).toList())
+          ?.map((coord) => (coord as List<dynamic>)
+              .map((c) => (c as num).toDouble())
+              .toList())
           .toList(),
       destination: Stop.fromJson(json['destination']),
       distance: json['distance'],
@@ -282,6 +350,8 @@ class Stop {
   });
 
   factory Stop.fromJson(Map<String, dynamic> json) {
+    print("stop parent:");
+    print(json['parent']);
     return Stop(
       arrivalTimeEstimated: json['arrivalTimeEstimated'],
       arrivalTimePlanned: json['arrivalTimePlanned'],
@@ -291,13 +361,13 @@ class Stop {
       departureTimeEstimated: json['departureTimeEstimated'],
       departureTimePlanned: json['departureTimePlanned'],
       disassembledName: json['disassembledName'],
-      id: json['id'],
-      name: json['name'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
       parent: json['parent'] != null ? Parent.fromJson(json['parent']) : null,
       properties: json['properties'] != null
           ? StopProperties.fromJson(json['properties'])
           : null,
-      type: json['type'],
+      type: json['type']?.toString() ?? '',
     );
   }
 }
@@ -306,7 +376,7 @@ class Parent {
   final String? disassembledName;
   final String id;
   final String name;
-  final String? parent;
+  final dynamic parent; // can be nested Parent or a simple id/string
   final String? type;
 
   Parent({
@@ -317,13 +387,25 @@ class Parent {
     this.type,
   });
 
-  factory Parent.fromJson(Map<String, dynamic> json) {
+  factory Parent.fromJson(dynamic json) {
+    // If it's already a Parent instance, return it
+
+    final rawParent = json['parent'];
+    dynamic parsedParent;
+    if (rawParent != null) {
+      if (rawParent is Map<String, dynamic>) {
+        parsedParent = Parent.fromJson(rawParent);
+      } else {
+        parsedParent = rawParent.toString();
+      }
+    }
+    print("default");
     return Parent(
-      disassembledName: json['disassembledName'],
-      id: json['id'],
-      name: json['name'],
-      parent: json['parent'],
-      type: json['type'],
+      disassembledName: json['disassembledName']?.toString(),
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      parent: parsedParent,
+      type: json['type']?.toString(),
     );
   }
 }
@@ -516,7 +598,7 @@ class Info {
   final Timestamps? timestamps;
   final String? url;
   final String? urlText;
-  final int? version;
+  final String? version;
 
   Info({
     this.content,
@@ -529,7 +611,9 @@ class Info {
     this.version,
   });
 
-  factory Info.fromJson(Map<String, dynamic> json) {
+  factory Info.fromJson(dynamic json) {
+    print("info");
+    print(json);
     return Info(
       content: json['content'],
       id: json['id'],
@@ -603,8 +687,9 @@ class Interchange {
   factory Interchange.fromJson(Map<String, dynamic> json) {
     return Interchange(
       coords: (json['coords'] as List<dynamic>?)
-          ?.map((coord) =>
-              (coord as List<dynamic>).map((c) => (c as num).toDouble()).toList())
+          ?.map((coord) => (coord as List<dynamic>)
+              .map((c) => (c as num).toDouble())
+              .toList())
           .toList(),
       desc: json['desc'],
       type: json['type'],
@@ -817,12 +902,38 @@ class SystemMessages {
     this.responseMessages,
   });
 
-  factory SystemMessages.fromJson(Map<String, dynamic> json) {
-    return SystemMessages(
-      responseMessages: (json['responseMessages'] as List<dynamic>?)
-          ?.map((message) => ResponseMessage.fromJson(message))
-          .toList(),
-    );
+  factory SystemMessages.fromJson(dynamic json) {
+    // If json is a List, treat it as the list of messages directly
+    if (json is List) {
+      print(
+          '[SystemMessages] systemMessages is a List, using as responseMessages');
+      return SystemMessages(
+        responseMessages:
+            json.map((msg) => ResponseMessage.fromJson(msg)).toList(),
+      );
+    }
+    // If json is a Map and has responseMessages, use that
+    if (json is Map<String, dynamic>) {
+      if (json.containsKey('responseMessages')) {
+        print(
+            '[SystemMessages] systemMessages is an object with responseMessages');
+        return SystemMessages(
+          responseMessages: (json['responseMessages'] as List<dynamic>?)
+              ?.map((message) => ResponseMessage.fromJson(message))
+              .toList(),
+        );
+      } else {
+        // Sometimes the API may return a single message as an object
+        print(
+            '[SystemMessages] systemMessages is a single object, wrapping in a list');
+        return SystemMessages(
+          responseMessages: [ResponseMessage.fromJson(json)],
+        );
+      }
+    }
+    print(
+        '[SystemMessages] systemMessages is of unexpected type: \\${json.runtimeType}');
+    return SystemMessages(responseMessages: []);
   }
 }
 

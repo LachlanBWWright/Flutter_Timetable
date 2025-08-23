@@ -169,7 +169,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
     final bool canSave = _firstStation.isNotEmpty && _secondStation.isNotEmpty;
 
     return DefaultTabController(
-      length: 5,
+      length: 4,
       child: Scaffold(
         appBar: NewTripAppBar(
           isSearching: _isSearching,
@@ -197,7 +197,6 @@ class _NewTripScreenState extends State<NewTripScreen> {
               listItems: _ferryStationList,
               setStation: setStation,
             ),
-            const Center(child: Text('Map functionality coming soon')),
           ],
         ),
       ),
