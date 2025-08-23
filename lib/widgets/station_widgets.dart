@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/services/location_service.dart';
 
 /// A model class for station data
 class Station {
@@ -6,13 +7,32 @@ class Station {
   final String id;
   final double? latitude;
   final double? longitude;
+  final double? distance; // Distance from user location in km
 
   Station({
     required this.name,
     required this.id,
     this.latitude,
     this.longitude,
+    this.distance,
   });
+
+  /// Create a new Station with updated distance
+  Station copyWith({
+    String? name,
+    String? id,
+    double? latitude,
+    double? longitude,
+    double? distance,
+  }) {
+    return Station(
+      name: name ?? this.name,
+      id: id ?? this.id,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      distance: distance ?? this.distance,
+    );
+  }
 }
 
 /// Widget for displaying a single station item with optional distance
@@ -47,8 +67,15 @@ class StationView extends StatelessWidget {
   }
 
   Widget? _buildDistanceSubtitle() {
-    // For now, return null since we'd need current location to calculate distance
-    // In a real implementation, this would be calculated during sorting
+    if (sortMode == SortMode.distance && station.distance != null) {
+      return Text(
+        '${station.distance!.toStringAsFixed(1)} km away',
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.grey,
+        ),
+      );
+    }
     return null;
   }
 }

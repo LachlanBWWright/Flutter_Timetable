@@ -200,7 +200,6 @@ class NewTripService {
 
   /// Sort stations by distance from user's current location
   static Future<List<Station>> sortByDistance(List<Station> stations) async {
-    // This will be implemented using the LocationService
     final stationsWithCoords = stations
         .where(
             (station) => station.latitude != null && station.longitude != null)
@@ -210,14 +209,13 @@ class NewTripService {
       return sortAlphabetically(stations);
     }
 
-    // Use LocationService to get current position and calculate distances
     try {
       final position = await LocationService.getCurrentLocation();
       if (position == null) {
         return sortAlphabetically(stations);
       }
 
-      // Calculate distances and sort
+      // Calculate distances and create new Station objects with distance data
       final stationsWithDistance = stationsWithCoords.map((station) {
         final distance = LocationService.calculateDistance(
           position.latitude,
@@ -225,12 +223,12 @@ class NewTripService {
           station.latitude!,
           station.longitude!,
         );
-        return MapEntry(station, distance);
+        return station.copyWith(distance: distance);
       }).toList();
 
-      stationsWithDistance.sort((a, b) => a.value.compareTo(b.value));
+      stationsWithDistance.sort((a, b) => a.distance!.compareTo(b.distance!));
 
-      // Add stations without coordinates at the end
+      // Add stations without coordinates at the end (sorted alphabetically)
       final stationsWithoutCoords = stations
           .where((station) =>
               station.latitude == null || station.longitude == null)
@@ -238,7 +236,7 @@ class NewTripService {
       stationsWithoutCoords.sort((a, b) => a.name.compareTo(b.name));
 
       return [
-        ...stationsWithDistance.map((entry) => entry.key),
+        ...stationsWithDistance,
         ...stationsWithoutCoords,
       ];
     } catch (e) {

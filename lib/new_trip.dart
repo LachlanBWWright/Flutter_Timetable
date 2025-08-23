@@ -37,7 +37,43 @@ class _NewTripScreenState extends State<NewTripScreen>
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
     keyController.addListener(_applySearchFilter);
-    loadStationsForCurrentMode();
+    _loadAllModes();
+  }
+
+  Future<void> _loadAllModes() async {
+    // Load all modes in parallel for better user experience
+    final futures = [
+      NewTripService.loadStopsForMode('train'),
+      NewTripService.loadStopsForMode('lightrail'),
+      NewTripService.loadStopsForMode('bus'),
+      NewTripService.loadStopsForMode('ferry'),
+    ];
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final results = await Future.wait(futures);
+      setState(() {
+        _trainStationList = results[0];
+        _lightRailStationList = results[1];
+        _busStationList = results[2];
+        _ferryStationList = results[3];
+        _filteredStations = _getCurrentStationList();
+        _isLoading = false;
+      });
+
+      await _applySorting();
+    } catch (e) {
+      print('Error loading stations: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading stations: $e')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -70,16 +106,10 @@ class _NewTripScreenState extends State<NewTripScreen>
       });
       
       if (oldMode != _currentMode) {
-        // Load stations for the new mode if not already loaded
-        final currentStations = _getCurrentStationList();
-        if (currentStations.isEmpty) {
-          loadStationsForCurrentMode();
-        } else {
-          setState(() {
-            _filteredStations = currentStations;
-          });
-          _applySearchFilter();
-        }
+        setState(() {
+          _filteredStations = _getCurrentStationList();
+        });
+        _applySearchFilter();
       }
     }
   }
@@ -178,44 +208,6 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
   }
 
-  Future<void> loadStationsForCurrentMode() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final stations = await NewTripService.loadStopsForMode(_currentMode);
-      setState(() {
-        switch (_currentMode) {
-          case 'train':
-            _trainStationList = stations;
-            break;
-          case 'lightrail':
-            _lightRailStationList = stations;
-            break;
-          case 'bus':
-            _busStationList = stations;
-            break;
-          case 'ferry':
-            _ferryStationList = stations;
-            break;
-        }
-        _filteredStations = _getCurrentStationList();
-      });
-
-      await _applySorting();
-    } catch (e) {
-      print('Error loading stations: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading stations: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   List<Station> _getCurrentStationList() {
     switch (_currentMode) {
       case 'train':
@@ -289,7 +281,7 @@ class _NewTripScreenState extends State<NewTripScreen>
           isSearching: _isSearching,
           searchController: keyController,
           onSearch: (query) {
-            _applySearchFilter();
+            // This will be handled by the text controller listener
           },
           onToggleSearch: _toggleSearch,
           onSaveTrip: canSave ? _saveTrip : null,
