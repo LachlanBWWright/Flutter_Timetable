@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
-import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
+import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 /// Screen for tracking an individual trip leg with real-time updates
 class TripLegDetailScreen extends StatefulWidget {
@@ -36,7 +36,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       // For now, just use the original leg data since real-time updates
       // would require additional API endpoints
       await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-      
+
       setState(() {
         _isLoading = false;
       });
@@ -87,20 +87,21 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final transportation = leg.transportation;
     final transportProduct = transportation?.product;
     final transportClass = transportProduct?.classField;
-    
+
     final origin = leg.origin;
     final destination = leg.destination;
     final originName = origin.disassembledName ?? origin.name;
     final destinationName = destination.disassembledName ?? destination.name;
-    final transportName = transportation?.name ?? transportation?.disassembledName ?? '';
+    final transportName =
+        transportation?.name ?? transportation?.disassembledName ?? '';
 
-    final modeColor = transportClass != null 
+    final modeColor = transportClass != null
         ? TransportModeUtils.getModeColor(transportClass)
         : Colors.blue;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Trip Leg Details'),
+        title: const Text('Trip Leg Details'),
         backgroundColor: modeColor,
         foregroundColor: Colors.white,
         actions: [
@@ -147,7 +148,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                           child: Text(
-                            transportClass != null 
+                            transportClass != null
                                 ? TransportModeUtils.getModeName(transportClass)
                                 : 'Unknown',
                             style: const TextStyle(
@@ -227,9 +228,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Timing information
             Card(
               child: Padding(
@@ -245,11 +246,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Departure time
                     Row(
                       children: [
-                        Icon(Icons.departure_board, color: Colors.green),
+                        const Icon(Icons.departure_board, color: Colors.green),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -257,7 +258,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             children: [
                               const Text(
                                 'Departure',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               Text(
                                 _formatTimeDifference(
@@ -274,13 +276,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Arrival time
                     Row(
                       children: [
-                        Icon(Icons.schedule, color: Colors.red),
+                        const Icon(Icons.schedule, color: Colors.red),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -288,7 +290,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             children: [
                               const Text(
                                 'Arrival',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               Text(
                                 _formatTimeDifference(
@@ -309,9 +312,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Status card
             Card(
               child: Padding(
@@ -332,7 +335,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         if (_isLoading)
                           const CircularProgressIndicator()
                         else
-                          Icon(
+                          const Icon(
                             Icons.check_circle,
                             color: Colors.green,
                           ),
