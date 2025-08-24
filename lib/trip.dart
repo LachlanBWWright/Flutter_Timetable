@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/schema/database.dart';
+
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/trip_legs_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
-import 'package:lbww_flutter/trip_legs_screen.dart';
 
 class TripScreen extends StatefulWidget {
   const TripScreen({super.key, required this.trip});
 
-  final Map<String, dynamic> trip;
+  final Journey trip;
 
   @override
   State<TripScreen> createState() => _TripScreenState();
@@ -15,23 +17,40 @@ class TripScreen extends StatefulWidget {
 
 class _TripScreenState extends State<TripScreen> {
   String testText = '';
-  List<dynamic> trips = [];
+  List<TripJourney> trips = [];
+  bool _isLoading = false;
+  String? _error;
 
   Future<void> getTripData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
     try {
+      print(
+          'Getting trip data for ${widget.trip.origin} to ${widget.trip.destination}');
+
       final tripData = await TransportApiService.getTrips(
-        originId: widget.trip['originId'],
-        destinationId: widget.trip['destinationId'],
+        originId: widget.trip.originId,
+        destinationId: widget.trip.destinationId,
       );
+      print('Trip data received: $tripData');
 
       if (!context.mounted) return;
 
       setState(() {
-        trips = tripData;
+        trips = tripData.tripJourneys;
         testText = tripData.toString();
+        _isLoading = false;
       });
     } catch (e) {
       print('Error getting trip data: $e');
+      if (!context.mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -54,10 +73,47 @@ class _TripScreenState extends State<TripScreen> {
         child: trips.isEmpty
             ? ListView(
                 children: [
-                  Container(
+                  SizedBox(
                     height: MediaQuery.of(context).size.height * 0.7,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isLoading)
+                            const CircularProgressIndicator()
+                          else
+                            const Icon(Icons.info_outline,
+                                size: 48, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          if (_isLoading)
+                            Text(
+                                'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...')
+                          else if (_error != null)
+                            Column(
+                              children: [
+                                Text('Error loading trips:\n$_error',
+                                    textAlign: TextAlign.center),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: getTripData,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            )
+                          else
+                            Column(
+                              children: [
+                                Text(
+                                    'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.'),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: getTripData,
+                                  child: const Text('Search again'),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

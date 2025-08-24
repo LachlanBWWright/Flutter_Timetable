@@ -6,24 +6,45 @@ class Station {
   final String id;
   final double? latitude;
   final double? longitude;
+  final double? distance; // Distance from user location in km
 
   Station({
     required this.name,
     required this.id,
     this.latitude,
     this.longitude,
+    this.distance,
   });
+
+  /// Create a new Station with updated distance
+  Station copyWith({
+    String? name,
+    String? id,
+    double? latitude,
+    double? longitude,
+    double? distance,
+  }) {
+    return Station(
+      name: name ?? this.name,
+      id: id ?? this.id,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      distance: distance ?? this.distance,
+    );
+  }
 }
 
-/// Widget for displaying a single station item
+/// Widget for displaying a single station item with optional distance
 class StationView extends StatelessWidget {
   final Station station;
   final Function(String, String) setStation;
+  final SortMode sortMode;
 
   const StationView({
     super.key,
     required this.station,
     required this.setStation,
+    required this.sortMode,
   });
 
   @override
@@ -37,9 +58,51 @@ class StationView extends StatelessWidget {
           },
           child: ListTile(
             title: Text(station.name),
+            subtitle: _buildDistanceSubtitle(),
           ),
         ),
       ),
+    );
+  }
+
+  Widget? _buildDistanceSubtitle() {
+    if (sortMode == SortMode.distance && station.distance != null) {
+      return Text(
+        '${station.distance!.toStringAsFixed(1)} km away',
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.grey,
+        ),
+      );
+    }
+    return null;
+  }
+}
+
+/// Enhanced widget for displaying a list of stations with distance support
+class EnhancedStationList extends StatelessWidget {
+  final List<Station> listItems;
+  final Function(String, String) setStation;
+  final SortMode sortMode;
+
+  const EnhancedStationList({
+    super.key,
+    required this.listItems,
+    required this.setStation,
+    required this.sortMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: listItems.length,
+      itemBuilder: (context, index) {
+        return StationView(
+          station: listItems[index],
+          setStation: setStation,
+          sortMode: sortMode,
+        );
+      },
     );
   }
 }
@@ -60,14 +123,19 @@ class StationList extends StatelessWidget {
     return ListView.builder(
       itemCount: listItems.length,
       itemBuilder: (context, index) {
+        // Default to alphabetical if not specified
         return StationView(
           station: listItems[index],
           setStation: setStation,
+          sortMode: SortMode.alphabetical,
         );
       },
     );
   }
 }
+
+/// Sort mode for station lists
+enum SortMode { alphabetical, distance }
 
 /// Widget for displaying selected station with cancel option
 class SelectedStationCard extends StatelessWidget {
@@ -112,6 +180,10 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onToggleSearch;
   final VoidCallback? onSaveTrip;
   final bool canSave;
+  final VoidCallback onOpenMap;
+  final VoidCallback onToggleSort;
+  final SortMode sortMode;
+  final TabController? tabController;
 
   const NewTripAppBar({
     super.key,
@@ -121,6 +193,10 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onToggleSearch,
     this.onSaveTrip,
     required this.canSave,
+    required this.onOpenMap,
+    required this.onToggleSort,
+    required this.sortMode,
+    this.tabController,
   });
 
   @override
@@ -138,7 +214,26 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : const Text('Add New Trip'),
       actions: [
-        if (!canSave)
+        if (!canSave) ...[
+          // Sort button (only show when not searching and not ready to save)
+          if (!isSearching)
+            IconButton(
+              onPressed: onToggleSort,
+              icon: Icon(sortMode == SortMode.alphabetical
+                  ? Icons.sort_by_alpha
+                  : Icons.near_me),
+              tooltip: sortMode == SortMode.alphabetical
+                  ? 'Sort by distance'
+                  : 'Sort alphabetically',
+            ),
+          // Map button (only show when not searching)
+          if (!isSearching)
+            IconButton(
+              onPressed: onOpenMap,
+              icon: const Icon(Icons.map),
+              tooltip: 'Open stops map',
+            ),
+          // Search/cancel button
           if (isSearching)
             IconButton(
               onPressed: onToggleSearch,
@@ -148,15 +243,16 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
             IconButton(
               onPressed: onToggleSearch,
               icon: const Icon(Icons.search),
-            )
-        else if (onSaveTrip != null)
+            ),
+        ] else if (onSaveTrip != null)
           IconButton(
             onPressed: onSaveTrip,
             icon: const Icon(Icons.arrow_forward),
           ),
       ],
-      bottom: const TabBar(
-        tabs: [
+      bottom: TabBar(
+        controller: tabController,
+        tabs: const [
           Tab(
             icon: Icon(
               Icons.directions_train,
@@ -181,12 +277,12 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: Color.fromARGB(255, 68, 240, 91),
             ),
           ),
-          Tab(icon: Icon(Icons.map)),
         ],
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
+  Size get preferredSize =>
+      const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
 }

@@ -1,29 +1,114 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/trip_leg_screen.dart';
-// import 'package:lbww_flutter/utils/date_time_utils.dart';
-// import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/trip_leg_detail_screen.dart';
+
+import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 /// Widget for displaying trip leg information
 
 class TripLegCard extends StatelessWidget {
-  final dynamic leg;
+  final Leg leg;
 
   const TripLegCard({
     super.key,
     required this.leg,
   });
 
+  String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
+    if (estimatedTime == null) {
+      return plannedTime != null
+          ? DateTimeUtils.parseTimeOnly(plannedTime)
+          : 'TBD';
+    }
+
+    if (plannedTime == null) {
+      return DateTimeUtils.parseTimeOnly(estimatedTime);
+    }
+
+    try {
+      final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
+      final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
+
+      if (planned == null || estimated == null) {
+        return DateTimeUtils.parseTimeOnly(estimatedTime);
+      }
+
+      final difference = estimated.difference(planned).inMinutes;
+
+      if (difference == 0) {
+        return DateTimeUtils.parseTimeOnly(estimatedTime);
+      } else if (difference > 0) {
+        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)';
+      } else {
+        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
+      }
+    } catch (e) {
+      return DateTimeUtils.parseTimeOnly(estimatedTime);
+    }
+  }
+
+  Widget _buildTimingInfo() {
+    final origin = leg.origin;
+    final destination = leg.destination;
+
+    // Get first stop timing info
+    final originDeparturePlanned = origin.departureTimePlanned;
+    final originDepartureEstimated = origin.departureTimeEstimated;
+
+    // Get last stop timing info
+    final destinationArrivalPlanned = destination.arrivalTimePlanned;
+    final destinationArrivalEstimated = destination.arrivalTimeEstimated;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (originDeparturePlanned != null || originDepartureEstimated != null)
+          Row(
+            children: [
+              const Icon(Icons.departure_board, size: 16, color: Colors.green),
+              const SizedBox(width: 4),
+              Text(
+                'Depart: ${_formatTimeDifference(originDeparturePlanned, originDepartureEstimated)}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        if (destinationArrivalPlanned != null ||
+            destinationArrivalEstimated != null)
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 16, color: Colors.red),
+              const SizedBox(width: 4),
+              Text(
+                'Arrive: ${_formatTimeDifference(destinationArrivalPlanned, destinationArrivalEstimated)}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final transportClass = leg['transportation']['product']['class'] as int;
-    final originName =
-        leg['origin']['disassembledName'] ?? leg['origin']['name'];
+    final transportation = leg.transportation;
+    final transportProduct = transportation?.product;
+    final transportClass = transportProduct?.classField;
+
+    final origin = leg.origin;
+    final destination = leg.destination;
+    final originName = origin.disassembledName ?? origin.name;
     final destinationName =
-        leg['destination']['disassembledName'] ?? leg['destination']['name'];
-    final transportName = leg['transportation']['name'] ??
-        leg['transportation']['disassembledName'] ??
-        '';
+        destination.disassembledName ?? destination.name;
+    final transportName =
+        transportation?.name ?? transportation?.disassembledName ?? '';
+
+    if (transportClass == null) {
+      print('Missing transport class');
+      return const Text('Unknown transport class');
+    }
+
     final modeColor = TransportModeUtils.getModeColor(transportClass);
 
     return Card(
@@ -61,15 +146,21 @@ class TripLegCard extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            subtitle: transportName.isNotEmpty
-                ? Text(
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (transportName.isNotEmpty)
+                  Text(
                     transportName,
                     style: TextStyle(
                       color: modeColor,
                       fontWeight: FontWeight.w600,
                     ),
-                  )
-                : null,
+                  ),
+                const SizedBox(height: 4),
+                _buildTimingInfo(),
+              ],
+            ),
           ),
         ),
       ),

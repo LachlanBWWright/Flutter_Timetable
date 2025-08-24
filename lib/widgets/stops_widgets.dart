@@ -134,6 +134,69 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     }
   }
 
+  Future<void> _wipeStopsData() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Wipe Stops Data'),
+        content: const Text(
+            'This will permanently delete all stops data from the local database. '
+            'You will need to reload the data from API or placeholders afterwards. '
+            'Continue?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      try {
+        await StopsService.wipeAllStopsData();
+        await _loadStopsData(); // Refresh the counts
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('All stops data wiped successfully'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error wiping stops data: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -219,8 +282,25 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                 IconButton(
                   onPressed: _isLoading ? null : _loadStopsData,
                   icon: const Icon(Icons.refresh),
+                  tooltip: 'Refresh data',
                 ),
               ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Wipe data button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _wipeStopsData,
+                icon: const Icon(Icons.delete_sweep),
+                label: const Text('Wipe All Stops Data'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+              ),
             ),
 
             const SizedBox(height: 16),
@@ -323,7 +403,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               );
             }).toList(),
           );
-        }).toList(),
+        }),
       ],
     );
   }

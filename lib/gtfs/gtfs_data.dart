@@ -1,12 +1,12 @@
-import 'agency.dart';
-import 'calendar.dart';
-import 'calendar_date.dart';
-import 'note.dart';
-import 'route.dart';
-import 'shape.dart';
-import 'stop.dart';
-import 'stop_time.dart';
-import 'trip.dart';
+import 'package:lbww_flutter/gtfs/agency.dart';
+import 'package:lbww_flutter/gtfs/calendar.dart';
+import 'package:lbww_flutter/gtfs/calendar_date.dart';
+import 'package:lbww_flutter/gtfs/note.dart';
+import 'package:lbww_flutter/gtfs/route.dart';
+import 'package:lbww_flutter/gtfs/shape.dart';
+import 'package:lbww_flutter/gtfs/stop.dart';
+import 'package:lbww_flutter/gtfs/stop_time.dart';
+import 'package:lbww_flutter/gtfs/trip.dart';
 
 class GtfsData {
   final List<Agency> agencies;
