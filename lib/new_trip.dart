@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
+import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
 
@@ -67,9 +68,11 @@ class _NewTripScreenState extends State<NewTripScreen>
       await _applySorting();
     } catch (e) {
       print('Error loading stations: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading stations: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading stations: $e')),
+        );
+      }
       setState(() {
         _isLoading = false;
       });
@@ -291,13 +294,31 @@ class _NewTripScreenState extends State<NewTripScreen>
           sortMode: _sortMode,
           tabController: _tabController,
         ),
-        body: TabBarView(
-          controller: _tabController,
+        body: Column(
           children: [
-            _buildStationTab('train'),
-            _buildStationTab('lightrail'),
-            _buildStationTab('bus'),
-            _buildStationTab('ferry'),
+            // Main content with TabBarView
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildStationTab('train'),
+                  _buildStationTab('lightrail'),
+                  _buildStationTab('bus'),
+                  _buildStationTab('ferry'),
+                ],
+              ),
+            ),
+            
+            // Selected stops widget at the bottom
+            SelectedStopsWidget(
+              firstStation: _firstStation,
+              firstStationId: _firstStationId,
+              secondStation: _secondStation,
+              secondStationId: _secondStationId,
+              currentMode: _currentMode,
+              onClearFirst: _clearFirstStation,
+              onClearSecond: _clearSecondStation,
+            ),
           ],
         ),
       ),
@@ -307,18 +328,6 @@ class _NewTripScreenState extends State<NewTripScreen>
   Widget _buildStationTab(String mode) {
     return Column(
       children: [
-        if (_firstStation.isNotEmpty)
-          SelectedStationCard(
-            label: 'First Station Selected',
-            stationName: _firstStation,
-            onCancel: _clearFirstStation,
-          ),
-        if (_secondStation.isNotEmpty)
-          SelectedStationCard(
-            label: 'Second Station Selected',
-            stationName: _secondStation,
-            onCancel: _clearSecondStation,
-          ),
         if (_isLoading)
           const Expanded(
             child: Center(child: CircularProgressIndicator()),
