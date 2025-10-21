@@ -1,5 +1,6 @@
 import '../fetch_data/timetable_data.dart';
 import '../gtfs/stop.dart';
+import '../logs/logger.dart';
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
 import '../widgets/station_widgets.dart';
@@ -93,19 +94,19 @@ class NewTripService {
   static Future<void> _loadStopsFromApi(List<String> endpoints) async {
     for (final endpoint in endpoints) {
       try {
-        print('Loading stops from API for endpoint: $endpoint');
+        logger.d('Loading stops from API for endpoint: $endpoint');
 
         // Get GTFS data from the appropriate endpoint
         final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
         if (gtfsData != null && gtfsData.stops.isNotEmpty) {
           // Store the stops to database
           await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
-          print('Loaded ${gtfsData.stops.length} stops for $endpoint');
+          logger.d('Loaded ${gtfsData.stops.length} stops for $endpoint');
         } else {
-          print('No GTFS data found for $endpoint');
+          logger.d('No GTFS data found for $endpoint');
         }
       } catch (e) {
-        print('Error loading stops from endpoint $endpoint: $e');
+        logger.e('Error loading stops from endpoint $endpoint: $e');
       }
     }
   }
@@ -186,7 +187,7 @@ class NewTripService {
         return await fetchFerriesMFFGtfsData();
 
       default:
-        print('Unknown endpoint: $endpoint');
+        logger.d('Unknown endpoint: $endpoint');
         return null;
     }
   }
@@ -240,7 +241,7 @@ class NewTripService {
         ...stationsWithoutCoords,
       ];
     } catch (e) {
-      print('Error sorting by distance: $e');
+      logger.e('Error sorting by distance: $e');
       return sortAlphabetically(stations);
     }
   }

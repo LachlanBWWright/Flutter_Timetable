@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../fetch_data/timetable_data.dart';
 import '../gtfs/stop.dart';
+import '../logs/logger.dart';
 import '../schema/database.dart' hide Stop;
 
 /// Service for managing GTFS stops data - parsing from assets and API endpoints
@@ -22,7 +23,7 @@ class StopsService {
       final csvString = await rootBundle.loadString(assetPath);
       return _parseStopsFromCsv(csvString);
     } catch (e) {
-      print('Error loading stops from asset $assetPath: $e');
+      logger.e('Error loading stops from asset $assetPath: $e');
       return [];
     }
   }
@@ -43,7 +44,7 @@ class StopsService {
         try {
           stops.add(Stop.fromCsv(row.map((e) => e.toString()).toList()));
         } catch (e) {
-          print('Error parsing stop row: $row, error: $e');
+          logger.e('Error parsing stop row: $row, error: $e');
         }
       }
     }
@@ -160,9 +161,9 @@ class StopsService {
         final assetPath = 'assets/stops/${endpoint}_stops.txt';
         final stops = await parseStopsFromAsset(assetPath);
         await storeStopsToDatabase(stops, endpoint);
-        print('Loaded ${stops.length} stops for $endpoint');
+        logger.d('Loaded ${stops.length} stops for $endpoint');
       } catch (e) {
-        print('Failed to load stops for $endpoint: $e');
+        logger.e('Failed to load stops for $endpoint: $e');
       }
     }
   }
@@ -170,20 +171,20 @@ class StopsService {
   /// Fetch stops from API endpoint and update database (manual update function)
   static Future<void> updateStopsFromEndpoint(String endpoint) async {
     try {
-      print('Fetching stops from API for endpoint: $endpoint');
+      logger.d('Fetching stops from API for endpoint: $endpoint');
 
       // Get GTFS data from the appropriate endpoint
       final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
       if (gtfsData == null) {
-        print('Failed to fetch GTFS data for $endpoint');
+        logger.e('Failed to fetch GTFS data for $endpoint');
         return;
       }
 
       // Store the stops to database
       await storeStopsToDatabase(gtfsData.stops, endpoint);
-      print('Updated ${gtfsData.stops.length} stops for $endpoint from API');
+      logger.d('Updated ${gtfsData.stops.length} stops for $endpoint from API');
     } catch (e) {
-      print('Error updating stops from endpoint $endpoint: $e');
+      logger.e('Error updating stops from endpoint $endpoint: $e');
     }
   }
 
@@ -291,7 +292,7 @@ class StopsService {
         return await fetchRegionBusesFarWestGtfsData();
 
       default:
-        print('Unknown endpoint: $endpoint');
+        logger.d('Unknown endpoint: $endpoint');
         return null;
     }
   }
@@ -346,7 +347,7 @@ class StopsService {
       'regionbuses_farwest',
     ];
 
-    print('Starting to update all stops from API endpoints...');
+    logger.d('Starting to update all stops from API endpoints...');
     int successCount = 0;
     int failureCount = 0;
 
@@ -355,12 +356,12 @@ class StopsService {
         await updateStopsFromEndpoint(endpoint);
         successCount++;
       } catch (e) {
-        print('Failed to update $endpoint: $e');
+        logger.e('Failed to update $endpoint: $e');
         failureCount++;
       }
     }
 
-    print(
+    logger.d(
         'Finished updating stops. Success: $successCount, Failures: $failureCount');
   }
 
@@ -379,10 +380,10 @@ class StopsService {
   /// Wipe all stops data from the database
   static Future<void> wipeAllStopsData() async {
     final db = database;
-    
+
     // Get all unique endpoints
     final stopsCount = await db.getStopsCountByEndpoint();
-    
+
     // Delete stops for each endpoint
     for (final endpoint in stopsCount.keys) {
       await db.deleteStopsForEndpoint(endpoint);

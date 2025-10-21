@@ -5,6 +5,7 @@ import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({super.key});
@@ -67,7 +68,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
       await _applySorting();
     } catch (e) {
-      print('Error loading stations: $e');
+      logger.e('Error loading stations: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading stations: $e')),
@@ -107,7 +108,7 @@ class _NewTripScreenState extends State<NewTripScreen>
             break;
         }
       });
-      
+
       if (oldMode != _currentMode) {
         setState(() {
           _filteredStations = _getCurrentStationList();
@@ -182,8 +183,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   Future<void> _saveTrip() async {
     if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
-      print(
-          'Attempting to save trip: $_firstStation ($_firstStationId) -> $_secondStation ($_secondStationId)');
+      logger.d('Attempting to save trip');
       try {
         await _db.insertJourney(JourneysCompanion(
           origin: drift.Value(_firstStation),
@@ -193,11 +193,9 @@ class _NewTripScreenState extends State<NewTripScreen>
         ));
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-              'Saved trip from $_firstStation to $_secondStation.',
-            ),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Trip saved.')),
+          );
           setState(() {
             _firstStation = '';
             _firstStationId = '';
@@ -206,7 +204,7 @@ class _NewTripScreenState extends State<NewTripScreen>
           });
         }
       } catch (e) {
-        print('Error inserting journey: $e');
+        logger.e('Error inserting journey: $e');
       }
     }
   }
@@ -264,8 +262,9 @@ class _NewTripScreenState extends State<NewTripScreen>
       });
     } else {
       final filtered = currentStations
-          .where((station) =>
-              station.name.toLowerCase().contains(keyController.text.toLowerCase()))
+          .where((station) => station.name
+              .toLowerCase()
+              .contains(keyController.text.toLowerCase()))
           .toList();
       setState(() {
         _filteredStations = filtered;
@@ -308,7 +307,7 @@ class _NewTripScreenState extends State<NewTripScreen>
                 ],
               ),
             ),
-            
+
             // Selected stops widget at the bottom
             SelectedStopsWidget(
               firstStation: _firstStation,

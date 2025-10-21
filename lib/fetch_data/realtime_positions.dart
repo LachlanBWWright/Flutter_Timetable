@@ -1,5 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
 Map<String, String> getHeaders() {
@@ -26,7 +27,7 @@ Future<FeedMessage?> fetchSydneyMetroPositions() async {
       Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/metro');
   final response = await http.get(url, headers: getHeaders());
   if (response.statusCode != 200) {
-    print('Error fetching Sydney Metro positions: ${response.statusCode}');
+    logger.e('Error fetching Sydney Metro positions: ${response.statusCode}');
     return null;
   }
   return FeedMessage.fromBuffer(response.bodyBytes);

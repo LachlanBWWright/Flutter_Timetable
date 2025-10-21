@@ -14,6 +14,7 @@ import '../gtfs/shape.dart';
 import '../gtfs/stop.dart';
 import '../gtfs/stop_time.dart';
 import '../gtfs/trip.dart';
+import '../logs/logger.dart';
 
 //V1
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime
@@ -49,7 +50,7 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
       Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/timetable$endpoint');
   final response = await http.get(url, headers: getHeaders());
   if (response.statusCode != 200) {
-    print('Failed to fetch GTFS data for $endpoint: ${response.statusCode}');
+    logger.e('Failed to fetch GTFS data for $endpoint: ${response.statusCode}');
     return null;
   }
   final archive = ZipDecoder().decodeBytes(response.bodyBytes);
@@ -71,7 +72,7 @@ Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
     headers: getHeaders(),
   );
   if (response.statusCode != 200) {
-    print('Failed to fetch Metro schedule realtime: ${response.statusCode}');
+    logger.e('Failed to fetch Metro schedule realtime: ${response.statusCode}');
     return null;
   }
 
@@ -79,7 +80,7 @@ Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
   final archive = ZipDecoder().decodeBytes(response.bodyBytes);
   final Map<String, String> csvFiles = {};
   for (final file in archive) {
-    print(file.name);
+    logger.d(file.name);
     if (file.isFile && file.name.endsWith('.txt')) {
       //csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
     }

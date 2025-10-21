@@ -2,6 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart'
     show FeedMessage;
 
@@ -14,9 +15,9 @@ void main() {
       () async {
     final feed = await fetchSydneyTrainsPositions();
     if (feed == null) {
-      print('Sydney Trains: No data or API error');
+      logger.d('Sydney Trains: No data or API error');
     } else {
-      print(
+      logger.d(
           'Sydney Trains: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
@@ -26,9 +27,9 @@ void main() {
   test('fetchSydneyMetroPositions returns valid FeedMessage or null', () async {
     final feed = await fetchSydneyMetroPositions();
     if (feed == null) {
-      print('Sydney Metro: No data or API error');
+      logger.d('Sydney Metro: No data or API error');
     } else {
-      print(
+      logger.d(
           'Sydney Metro: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
@@ -38,9 +39,9 @@ void main() {
   test('fetchBusesPositions returns valid FeedMessage or null', () async {
     final feed = await fetchBusesPositions();
     if (feed == null) {
-      print('Buses: No data or API error');
+      logger.d('Buses: No data or API error');
     } else {
-      print(
+      logger.d(
           'Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
@@ -50,9 +51,9 @@ void main() {
   test('fetchNswTrainsPositions returns valid FeedMessage or null', () async {
     final feed = await fetchNswTrainsPositions();
     if (feed == null) {
-      print('NSW Trains: No data or API error');
+      logger.d('NSW Trains: No data or API error');
     } else {
-      print(
+      logger.d(
           'NSW Trains: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
@@ -64,9 +65,9 @@ void main() {
     expect(feeds.isNotEmpty, true);
     for (final feed in feeds) {
       if (feed == null) {
-        print('Region Buses: No data or API error');
+        logger.d('Region Buses: No data or API error');
       } else {
-        print(
+        logger.d(
             'Region Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);
@@ -79,9 +80,9 @@ void main() {
     expect(feeds.isNotEmpty, true);
     for (final feed in feeds) {
       if (feed == null) {
-        print('All Ferries: No data or API error');
+        logger.d('All Ferries: No data or API error');
       } else {
-        print(
+        logger.d(
             'All Ferries: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);
@@ -94,9 +95,9 @@ void main() {
     expect(feeds.isNotEmpty, true);
     for (final feed in feeds) {
       if (feed == null) {
-        print('All Light Rail: No data or API error');
+        logger.d('All Light Rail: No data or API error');
       } else {
-        print(
+        logger.d(
             'All Light Rail: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);
@@ -114,9 +115,9 @@ void main() {
         .cast<FeedMessage?>();
     for (final feed in flatFeeds) {
       if (feed == null) {
-        print('All Region Buses: No data or API error');
+        logger.d('All Region Buses: No data or API error');
       } else {
-        print(
+        logger.d(
             'All Region Buses: \\${feed.header.gtfsRealtimeVersion}, entities: \\${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);

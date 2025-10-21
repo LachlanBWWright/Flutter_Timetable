@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
@@ -99,13 +100,12 @@ class TripLegCard extends StatelessWidget {
     final origin = leg.origin;
     final destination = leg.destination;
     final originName = origin.disassembledName ?? origin.name;
-    final destinationName =
-        destination.disassembledName ?? destination.name;
+    final destinationName = destination.disassembledName ?? destination.name;
     final transportName =
         transportation?.name ?? transportation?.disassembledName ?? '';
 
     if (transportClass == null) {
-      print('Missing transport class');
+      logger.d('Missing transport class');
       return const Text('Unknown transport class');
     }
 

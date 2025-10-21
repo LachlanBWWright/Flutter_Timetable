@@ -49,6 +49,7 @@ dependencies:
 
   collection: ^1.18.0
   fixnum: ^1.1.1
+  logger: ^2.6.2
 
 dev_dependencies:
   flutter_test:

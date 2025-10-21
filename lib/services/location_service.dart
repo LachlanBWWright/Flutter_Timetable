@@ -1,5 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../logs/logger.dart';
 import '../schema/database.dart';
 
 class LocationService {
@@ -29,7 +30,7 @@ class LocationService {
 
       return await Geolocator.getCurrentPosition();
     } catch (e) {
-      print('Error getting location: $e');
+      logger.e('Error getting location: $e');
       return null;
     }
   }
@@ -70,7 +71,7 @@ class LocationService {
 
       return null;
     } catch (e) {
-      print('Error getting stop coordinates: $e');
+      logger.e('Error getting stop coordinates: $e');
       return null;
     }
   }

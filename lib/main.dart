@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
-
 
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
@@ -75,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _filteredJourneys = allJourneys;
       });
     } catch (e) {
-      print('Error loading trips: $e');
+      logger.e('Error loading trips: $e');
     }
   }
 
@@ -97,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await _database.deleteJourney(tripId);
       getTrips();
     } catch (e) {
-      print('Error deleting trip: $e');
+      logger.e('Error deleting trip: $e');
     }
   }
 
@@ -106,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await _database.toggleJourneyPin(tripId, !isPinned);
       getTrips();
     } catch (e) {
-      print('Error toggling pin: $e');
+      logger.e('Error toggling pin: $e');
     }
   }
 
@@ -184,12 +184,12 @@ class _MyHomePageState extends State<MyHomePage> {
     final reversedJourney = db.Journey(
       id: journey.id,
       origin: journey.destination,
-      originId: journey.destinationId, 
+      originId: journey.destinationId,
       destination: journey.origin,
       destinationId: journey.originId,
       isPinned: journey.isPinned,
     );
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(

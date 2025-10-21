@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../constants/transport_colors.dart';
 import '../gtfs/stop.dart';
+import '../logs/logger.dart';
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
 
@@ -82,7 +83,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
         final stops = await StopsService.getStopsForEndpoint(endpoint);
         allStops.addAll(stops);
       } catch (e) {
-        print('Error loading stops for endpoint $endpoint: $e');
+        logger.e('Error loading stops for endpoint $endpoint: $e');
       }
     }
 

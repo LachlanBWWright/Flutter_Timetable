@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
 import 'package:lbww_flutter/services/transport_api_service.dart';
@@ -28,14 +29,14 @@ class _TripScreenState extends State<TripScreen> {
     });
 
     try {
-      print(
+      logger.d(
           'Getting trip data for ${widget.trip.origin} to ${widget.trip.destination}');
 
       final tripData = await TransportApiService.getTrips(
         originId: widget.trip.originId,
         destinationId: widget.trip.destinationId,
       );
-      print('Trip data received: $tripData');
+      logger.d('Trip data received: $tripData');
 
       if (!context.mounted) return;
 
@@ -45,7 +46,7 @@ class _TripScreenState extends State<TripScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error getting trip data: $e');
+      logger.e('Error getting trip data: $e');
       if (!context.mounted) return;
       setState(() {
         _error = e.toString();
