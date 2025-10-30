@@ -9,20 +9,24 @@ import 'package:lbww_flutter/logs/logger.dart';
 /// Requires API key in .env as API_KEY.
 /// Returns the parsed JSON as a Map, or null on error.
 Future<Map<String, dynamic>?> fetchTimetable() async {
-  final apiKey = dotenv.env['API_KEY'] ?? 'YOUR_API_KEY';
-  final url = Uri.parse(
-    'https://api.transport.nsw.gov.au/v1/publictransport/timetables/complete/gtfs',
-  );
-  final response = await http.get(
-    url,
-    headers: {
-      'Authorization': 'apikey $apiKey',
-      'Accept': 'application/json',
-    },
-  );
-  if (response.statusCode != 200) {
-    logger.e('Failed to fetch timetable: \\${response.statusCode}');
+  try {
+    final apiKey = dotenv.env['API_KEY'] ?? 'YOUR_API_KEY';
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/v1/publictransport/timetables/complete/gtfs',
+    );
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'apikey $apiKey',
+        'Accept': 'application/json',
+      },
+    );
+    if (response.statusCode != 200) {
+      logger.e('Failed to fetch timetable: \\${response.statusCode}');
+      return null;
+    }
+    return json.decode(response.body) as Map<String, dynamic>;
+  } catch (e) {
     return null;
   }
-  return json.decode(response.body) as Map<String, dynamic>;
 }

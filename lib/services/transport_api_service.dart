@@ -95,41 +95,50 @@ class TransportApiService {
     required String originId,
     required String destinationId,
   }) async {
-    final apiKey = await _getApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('API key not set');
+    try {
+      final apiKey = await _getApiKey();
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('API key not set');
+      }
+
+      final params = {
+        'outputFormat': 'rapidJSON',
+        'coordOutputFormat': 'EPSG:4326',
+        'depArrMacro': 'dep',
+        'type_origin': 'any',
+        'name_origin': originId,
+        'type_destination': 'any',
+        'name_destination': destinationId,
+        'calcNumberOfTrips': '20',
+        'excludedMeans': 'checkbox',
+        'exclMOT_7': '1',
+        'exclMOT_11': '1',
+        'TfNSWTR': 'true',
+        'version': '10.2.1.42',
+        'itOptionsActive': '0',
+      };
+
+      final uri = Uri.https(_baseUrl, '/v1/tp/trip/', params);
+      final response = await http.get(
+        uri,
+        headers: {'authorization': 'apikey $apiKey'},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to get trips: ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body);
+      logger.d(data);
+      return GetTripsResponse.fromJson(data);
+    } catch (e) {
+      logger.e('Error getting trips: $e');
+      return GetTripsResponse(
+        tripJourneys: [],
+        systemMessages: SystemMessages(responseMessages: []),
+        version: '',
+      );
     }
-
-    final params = {
-      'outputFormat': 'rapidJSON',
-      'coordOutputFormat': 'EPSG:4326',
-      'depArrMacro': 'dep',
-      'type_origin': 'any',
-      'name_origin': originId,
-      'type_destination': 'any',
-      'name_destination': destinationId,
-      'calcNumberOfTrips': '20',
-      'excludedMeans': 'checkbox',
-      'exclMOT_7': '1',
-      'exclMOT_11': '1',
-      'TfNSWTR': 'true',
-      'version': '10.2.1.42',
-      'itOptionsActive': '0',
-    };
-
-    final uri = Uri.https(_baseUrl, '/v1/tp/trip/', params);
-    final response = await http.get(
-      uri,
-      headers: {'authorization': 'apikey $apiKey'},
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to get trips: ${response.statusCode}');
-    }
-
-    final data = jsonDecode(response.body);
-    logger.d(data);
-    return GetTripsResponse.fromJson(data);
   }
 }
 

@@ -210,6 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
         hasApiKey: _hasApiKey,
         isSearching: _isSearching,
         isEditingMode: _isEditingMode,
+        hasTrips: _journeys.isNotEmpty,
         onAddTrip: _navigateToNewTrip,
         onSettings: _navigateToSettings,
         onToggleSearch: _toggleSearchMode,

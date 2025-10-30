@@ -156,6 +156,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool hasApiKey;
   final bool isSearching;
   final bool isEditingMode;
+  final bool hasTrips;
   final VoidCallback onAddTrip;
   final VoidCallback onSettings;
   final VoidCallback onToggleSearch;
@@ -169,6 +170,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.hasApiKey,
     required this.isSearching,
     required this.isEditingMode,
+    required this.hasTrips,
     required this.onAddTrip,
     required this.onSettings,
     required this.onToggleSearch,
@@ -195,14 +197,16 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           : Text(title),
       actions: <Widget>[
         if (!isSearching) ...[
-          IconButton(
-            onPressed: onToggleSearch,
-            icon: const Icon(Icons.search),
-          ),
-          IconButton(
-            onPressed: onToggleEdit,
-            icon: Icon(isEditingMode ? Icons.done : Icons.edit),
-          ),
+          if (hasTrips)
+            IconButton(
+              onPressed: onToggleSearch,
+              icon: const Icon(Icons.search),
+            ),
+          if (hasTrips)
+            IconButton(
+              onPressed: onToggleEdit,
+              icon: Icon(isEditingMode ? Icons.done : Icons.edit),
+            ),
           if (hasApiKey)
             IconButton(
               onPressed: onAddTrip,

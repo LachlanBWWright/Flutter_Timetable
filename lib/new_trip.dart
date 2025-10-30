@@ -1,11 +1,11 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
-import 'package:lbww_flutter/logs/logger.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({super.key});
