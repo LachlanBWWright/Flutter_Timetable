@@ -73,10 +73,10 @@ class _NewTripScreenState extends State<NewTripScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading stations: $e')),
         );
+        setState(() {
+          _isLoading = false;
+        });
       }
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
