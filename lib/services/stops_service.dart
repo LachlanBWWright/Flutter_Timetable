@@ -176,7 +176,8 @@ class StopsService {
       // Get GTFS data from the appropriate endpoint
       final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
       if (gtfsData == null) {
-        logger.e('Failed to fetch GTFS data for $endpoint');
+        logger.e(
+            'Failed to fetch GTFS data for $endpoint: no data returned from API.');
         return;
       }
 

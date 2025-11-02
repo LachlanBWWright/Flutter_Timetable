@@ -22,7 +22,8 @@ Future<Map<String, dynamic>?> fetchTimetable() async {
       },
     );
     if (response.statusCode != 200) {
-      logger.e('Failed to fetch timetable: \\${response.statusCode}');
+      logger.e(
+          'Failed to fetch timetable: ${response.statusCode}, ${response.body}');
       return null;
     }
     return json.decode(response.body) as Map<String, dynamic>;

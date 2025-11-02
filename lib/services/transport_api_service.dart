@@ -72,7 +72,8 @@ class TransportApiService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to search stations: ${response.statusCode}');
+        throw Exception(
+            'Failed to search stations: ${response.statusCode}, ${response.body}');
       }
 
       final data = jsonDecode(response.body);
@@ -125,7 +126,8 @@ class TransportApiService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to get trips: ${response.statusCode}');
+        throw Exception(
+            'Failed to get trips: ${response.statusCode}, ${response.body}');
       }
 
       final data = jsonDecode(response.body);

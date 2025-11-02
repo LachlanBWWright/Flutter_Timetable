@@ -46,46 +46,58 @@ Map<String, String> getHeaders() {
 }
 
 Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
-  final url =
-      Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/timetable$endpoint');
-  final response = await http.get(url, headers: getHeaders());
-  if (response.statusCode != 200) {
-    logger.e('Failed to fetch GTFS data for $endpoint: ${response.statusCode}');
+  try {
+    final url = Uri.parse(
+        'https://api.transport.nsw.gov.au/v1/gtfs/timetable$endpoint');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch GTFS data for $endpoint: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    final archive = ZipDecoder().decodeBytes(response.bodyBytes);
+    final Map<String, String> csvFiles = {};
+    for (final file in archive) {
+      if (file.isFile && file.name.endsWith('.txt')) {
+        csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
+      }
+    }
+    return parseGtfsFiles(csvFiles);
+  } catch (e, st) {
+    logger.e('Error fetching GTFS data for $endpoint: $e\n$st');
     return null;
   }
-  final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-  final Map<String, String> csvFiles = {};
-  for (final file in archive) {
-    if (file.isFile && file.name.endsWith('.txt')) {
-      csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-    }
-  }
-  return parseGtfsFiles(csvFiles);
 }
 
 /// Fetches the Metro GTFS schedule zip, extracts CSV files, and returns a map of filename to CSV string.
 Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
-  final url =
-      Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/schedule/metro');
-  final response = await http.get(
-    url,
-    headers: getHeaders(),
-  );
-  if (response.statusCode != 200) {
-    logger.e('Failed to fetch Metro schedule realtime: ${response.statusCode}');
+  try {
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/schedule/metro');
+    final response = await http.get(
+      url,
+      headers: getHeaders(),
+    );
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch Metro schedule realtime: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+
+    // Unzip the response body in memory
+    final archive = ZipDecoder().decodeBytes(response.bodyBytes);
+    final Map<String, String> csvFiles = {};
+    for (final file in archive) {
+      logger.d(file.name);
+      if (file.isFile && file.name.endsWith('.txt')) {
+        //csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
+      }
+    }
+    return csvFiles;
+  } catch (e, st) {
+    logger.e('Error fetching Metro schedule realtime: $e\n$st');
     return null;
   }
-
-  // Unzip the response body in memory
-  final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-  final Map<String, String> csvFiles = {};
-  for (final file in archive) {
-    logger.d(file.name);
-    if (file.isFile && file.name.endsWith('.txt')) {
-      //csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-    }
-  }
-  return csvFiles;
 }
 
 Future<GtfsData?> fetchBusesGtfsData() => _fetchGtfsDataFromEndpoint('/buses');
