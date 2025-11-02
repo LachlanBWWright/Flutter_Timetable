@@ -24,7 +24,7 @@ class Route {
   });
 
   /// Create a Route from a CSV row using header-based field mapping
-  factory Route.fromCsvWithHeader(List<String> header, List<String> row) {
+  factory Route.fromCsv(List<String> header, List<String> row) {
     String? getField(String fieldName) {
       final index = header.indexOf(fieldName);
       if (index == -1 || index >= row.length) return null;
@@ -45,20 +45,6 @@ class Route {
       routeSortOrder: getField('route_sort_order'),
     );
   }
-
-  /// Legacy constructor for backward compatibility with positional CSV parsing
-  factory Route.fromCsv(List<String> row) => Route(
-        routeId: row[0],
-        agencyId: row[1],
-        routeShortName: row[2],
-        routeLongName: row[3],
-        routeDesc: row.length > 4 && row[4].isNotEmpty ? row[4] : null,
-        routeType: row[5],
-        routeColor: row.length > 6 && row[6].isNotEmpty ? row[6] : null,
-        routeTextColor: row.length > 7 && row[7].isNotEmpty ? row[7] : null,
-        routeUrl: row.length > 8 && row[8].isNotEmpty ? row[8] : null,
-        routeSortOrder: null,
-      );
 
   /// Expected CSV header for routes.txt per GTFS specification
   static List<String> expectedCsvHeader() => [

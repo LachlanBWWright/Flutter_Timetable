@@ -20,7 +20,7 @@ class Agency {
   });
 
   /// Create an Agency from a CSV row using header-based field mapping
-  factory Agency.fromCsvWithHeader(List<String> header, List<String> row) {
+  factory Agency.fromCsv(List<String> header, List<String> row) {
     String? getField(String fieldName) {
       final index = header.indexOf(fieldName);
       if (index == -1 || index >= row.length) return null;
@@ -39,18 +39,6 @@ class Agency {
       agencyEmail: getField('agency_email'),
     );
   }
-
-  /// Legacy constructor for backward compatibility with positional CSV parsing
-  factory Agency.fromCsv(List<String> row) => Agency(
-        agencyId: row[0],
-        agencyName: row[1],
-        agencyUrl: row[2],
-        agencyTimezone: row[3],
-        agencyLang: row.length > 4 && row[4].isNotEmpty ? row[4] : null,
-        agencyPhone: row.length > 5 && row[5].isNotEmpty ? row[5] : null,
-        agencyFareUrl: row.length > 6 && row[6].isNotEmpty ? row[6] : null,
-        agencyEmail: row.length > 7 && row[7].isNotEmpty ? row[7] : null,
-      );
 
   /// Expected CSV header for agency.txt per GTFS specification
   static List<String> expectedCsvHeader() => [

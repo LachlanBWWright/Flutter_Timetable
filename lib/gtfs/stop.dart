@@ -34,7 +34,7 @@ class Stop {
   });
 
   /// Create a Stop from a CSV row using header-based field mapping
-  factory Stop.fromCsvWithHeader(List<String> header, List<String> row) {
+  factory Stop.fromCsv(List<String> header, List<String> row) {
     String? getField(String fieldName) {
       final index = header.indexOf(fieldName);
       if (index == -1 || index >= row.length) return null;
@@ -68,28 +68,6 @@ class Stop {
       wheelchairBoarding: getIntField('wheelchair_boarding'),
       levelId: getField('level_id'),
       platformCode: getField('platform_code'),
-    );
-  }
-
-  /// Legacy constructor for backward compatibility with positional CSV parsing
-  /// Assumes the old NSW Transport API format
-  factory Stop.fromCsv(List<String> row) {
-    return Stop(
-      stopId: row[0],
-      stopCode: null,
-      stopName: row[1],
-      ttsStopName: null,
-      stopDesc: null,
-      stopLat: double.tryParse(row[2]) ?? 0.0,
-      stopLon: double.tryParse(row[3]) ?? 0.0,
-      zoneId: null,
-      stopUrl: null,
-      locationType: int.tryParse(row[4]) ?? 0,
-      parentStation: row[5].isEmpty ? null : row[5],
-      stopTimezone: null,
-      wheelchairBoarding: int.tryParse(row[6]) ?? 0,
-      levelId: null,
-      platformCode: row.length > 7 && row[7].isNotEmpty ? row[7] : null,
     );
   }
 

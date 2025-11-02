@@ -274,30 +274,30 @@ R1,WD,T1,Downtown''';
       });
     });
 
-    group('Backward Compatibility', () {
-      test('Stop.fromCsv works with legacy positional format', () {
-        final row = ['S1', 'First St', '37.8', '-122.4', '0', 'PARENT', '1', 'A'];
-        final stop = Stop.fromCsv(row);
+    group('Edge Cases', () {
+      test('Stops with missing optional fields parse correctly', () {
+        final csv = '''stop_id,stop_name,stop_lat,stop_lon,location_type,wheelchair_boarding
+S1,Test Stop,37.8,-122.4,0,1''';
+        final stops = parseStopsCsv(csv);
         
-        expect(stop.stopId, equals('S1'));
-        expect(stop.stopName, equals('First St'));
-        expect(stop.stopLat, equals(37.8));
-        expect(stop.stopLon, equals(-122.4));
-        expect(stop.locationType, equals(0));
-        expect(stop.parentStation, equals('PARENT'));
-        expect(stop.wheelchairBoarding, equals(1));
-        expect(stop.platformCode, equals('A'));
+        expect(stops.length, equals(1));
+        expect(stops[0].stopId, equals('S1'));
+        expect(stops[0].stopName, equals('Test Stop'));
+        expect(stops[0].stopCode, isNull);
+        expect(stops[0].stopDesc, isNull);
+        expect(stops[0].platformCode, isNull);
       });
 
-      test('Route.fromCsv works with legacy positional format', () {
-        final row = ['R1', 'AGENCY1', '10', 'Main Line', 'Description', '3', 'FF0000', 'FFFFFF', 'http://example.com'];
-        final route = Route.fromCsv(row);
+      test('Routes with empty optional fields parse correctly', () {
+        final csv = '''route_id,agency_id,route_short_name,route_long_name,route_desc,route_type
+R1,,10,Main Line,,3''';
+        final routes = parseRoutesCsv(csv);
         
-        expect(route.routeId, equals('R1'));
-        expect(route.agencyId, equals('AGENCY1'));
-        expect(route.routeShortName, equals('10'));
-        expect(route.routeLongName, equals('Main Line'));
-        expect(route.routeType, equals('3'));
+        expect(routes.length, equals(1));
+        expect(routes[0].routeId, equals('R1'));
+        expect(routes[0].agencyId, isNull);
+        expect(routes[0].routeDesc, isNull);
+        expect(routes[0].routeType, equals('3'));
       });
     });
   });

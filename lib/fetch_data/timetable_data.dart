@@ -282,7 +282,7 @@ List<Agency> parseAgencyCsv(String csv) {
   
   return [
     for (var i = 1; i < rows.length; i++)
-      Agency.fromCsvWithHeader(
+      Agency.fromCsv(
         header,
         rows[i].map((c) => c == null ? '' : c.toString()).toList()
       )
@@ -294,10 +294,20 @@ List<Calendar> parseCalendarCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('calendar.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('calendar.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
       Calendar.fromCsv(
-          rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 
@@ -306,10 +316,20 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('calendar_dates.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('calendar_dates.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
       CalendarDate.fromCsv(
-          rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 
@@ -328,7 +348,7 @@ List<Route> parseRoutesCsv(String csv) {
   
   return [
     for (var i = 1; i < rows.length; i++)
-      Route.fromCsvWithHeader(
+      Route.fromCsv(
         header,
         rows[i].map((c) => c == null ? '' : c.toString()).toList()
       )
@@ -350,7 +370,7 @@ List<Stop> parseStopsCsv(String csv) {
   
   return [
     for (var i = 1; i < rows.length; i++)
-      Stop.fromCsvWithHeader(
+      Stop.fromCsv(
         header,
         rows[i].map((c) => c == null ? '' : c.toString()).toList()
       )
@@ -372,7 +392,7 @@ List<StopTime> parseStopTimesCsv(String csv) {
   
   return [
     for (var i = 1; i < rows.length; i++)
-      StopTime.fromCsvWithHeader(
+      StopTime.fromCsv(
         header,
         rows[i].map((c) => c == null ? '' : c.toString()).toList()
       )
@@ -394,7 +414,7 @@ List<Trip> parseTripsCsv(String csv) {
   
   return [
     for (var i = 1; i < rows.length; i++)
-      Trip.fromCsvWithHeader(
+      Trip.fromCsv(
         header,
         rows[i].map((c) => c == null ? '' : c.toString()).toList()
       )
@@ -406,9 +426,20 @@ List<Shape> parseShapesCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('shapes.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('shapes.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
-      Shape.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
+      Shape.fromCsv(
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 
@@ -417,9 +448,20 @@ List<Note> parseNotesCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('notes.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('notes.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
-      Note.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
+      Note.fromCsv(
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 

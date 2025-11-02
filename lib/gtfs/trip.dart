@@ -29,7 +29,7 @@ class Trip {
   });
 
   /// Create a Trip from a CSV row using header-based field mapping
-  factory Trip.fromCsvWithHeader(List<String> header, List<String> row) {
+  factory Trip.fromCsv(List<String> header, List<String> row) {
     String? getField(String fieldName) {
       final index = header.indexOf(fieldName);
       if (index == -1 || index >= row.length) return null;
@@ -52,23 +52,6 @@ class Trip {
       routeDirection: getField('route_direction'),
     );
   }
-
-  /// Legacy constructor for backward compatibility with positional CSV parsing
-  factory Trip.fromCsv(List<String> row) => Trip(
-        routeId: row[0],
-        serviceId: row[1],
-        tripId: row[2],
-        shapeId: row.length > 3 && row[3].isNotEmpty ? row[3] : null,
-        tripHeadsign: row.length > 4 && row[4].isNotEmpty ? row[4] : null,
-        directionId: row.length > 5 && row[5].isNotEmpty ? row[5] : null,
-        tripShortName: row.length > 6 && row[6].isNotEmpty ? row[6] : null,
-        blockId: row.length > 7 && row[7].isNotEmpty ? row[7] : null,
-        wheelchairAccessible:
-            row.length > 8 && row[8].isNotEmpty ? row[8] : null,
-        tripNote: row.length > 9 && row[9].isNotEmpty ? row[9] : null,
-        routeDirection: row.length > 10 && row[10].isNotEmpty ? row[10] : null,
-        bikesAllowed: row.length > 11 && row[11].isNotEmpty ? row[11] : null,
-      );
 
   /// Expected CSV header for trips.txt per GTFS specification
   static List<String> expectedCsvHeader() => [

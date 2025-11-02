@@ -31,7 +31,7 @@ class StopTime {
   });
 
   /// Create a StopTime from a CSV row using header-based field mapping
-  factory StopTime.fromCsvWithHeader(List<String> header, List<String> row) {
+  factory StopTime.fromCsv(List<String> header, List<String> row) {
     String? getField(String fieldName) {
       final index = header.indexOf(fieldName);
       if (index == -1 || index >= row.length) return null;
@@ -55,23 +55,6 @@ class StopTime {
       stopNote: getField('stop_note'),
     );
   }
-
-  /// Legacy constructor for backward compatibility with positional CSV parsing
-  factory StopTime.fromCsv(List<String> row) => StopTime(
-        tripId: row[0],
-        arrivalTime: row[1],
-        departureTime: row[2],
-        stopId: row[3],
-        stopSequence: row[4],
-        stopHeadsign: row.length > 5 && row[5].isNotEmpty ? row[5] : null,
-        pickupType: row.length > 6 && row[6].isNotEmpty ? row[6] : null,
-        dropOffType: row.length > 7 && row[7].isNotEmpty ? row[7] : null,
-        continuousPickup: null,
-        continuousDropOff: null,
-        shapeDistTraveled: row.length > 8 && row[8].isNotEmpty ? row[8] : null,
-        timepoint: row.length > 9 && row[9].isNotEmpty ? row[9] : null,
-        stopNote: row.length > 10 && row[10].isNotEmpty ? row[10] : null,
-      );
 
   /// Expected CSV header for stop_times.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
