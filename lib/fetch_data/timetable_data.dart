@@ -25,17 +25,26 @@ import '../logs/logger.dart';
 
 /*
 
-The endpoints return a ZIP with the following files of CSV values, with the according headers: 
+The endpoints return a ZIP with GTFS (General Transit Feed Specification) files.
+These files follow the official GTFS standard defined at https://gtfs.org/documentation/schedule/reference/
 
-agency.txt - agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url,agency_email
-calendar.txt - service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
-calendar_dates.txt - service_id,date,exception_type
-routes.txt - route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_color,route_text_color,route_url
-stops.txt - stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,wheelchair_boarding,platform_code
-stop_times.txt - trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled,timepoint,stop_note
-trips.txt - route_id,service_id,trip_id,shape_id,trip_headsign,direction_id,trip_short_name,block_id,wheelchair_accessible,trip_note,route_direction,bikes_allowed
-shapes.txt - shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence,shape_dist_traveled
-notes.txt - note_id,note_text
+Standard GTFS files and their required/optional fields:
+
+agency.txt - agency_name*, agency_url*, agency_timezone*, agency_id, agency_lang, agency_phone, agency_fare_url, agency_email
+calendar.txt - service_id*, monday*, tuesday*, wednesday*, thursday*, friday*, saturday*, sunday*, start_date*, end_date*
+calendar_dates.txt - service_id*, date*, exception_type*
+routes.txt - route_id*, route_short_name*, route_long_name*, route_type*, agency_id, route_desc, route_url, route_color, route_text_color, route_sort_order
+stops.txt - stop_id*, stop_name, stop_lat, stop_lon, stop_code, tts_stop_name, stop_desc, zone_id, stop_url, location_type, parent_station, stop_timezone, wheelchair_boarding, level_id, platform_code
+stop_times.txt - trip_id*, arrival_time*, departure_time*, stop_id*, stop_sequence*, stop_headsign, pickup_type, drop_off_type, continuous_pickup, continuous_drop_off, shape_dist_traveled, timepoint
+trips.txt - route_id*, service_id*, trip_id*, trip_headsign, trip_short_name, direction_id, block_id, shape_id, wheelchair_accessible, bikes_allowed
+shapes.txt - shape_id*, shape_pt_lat*, shape_pt_lon*, shape_pt_sequence*, shape_dist_traveled
+
+Non-standard extensions used by NSW Transport API:
+- stop_times.txt: stop_note
+- trips.txt: trip_note, route_direction  
+- notes.txt: note_id, note_text (custom file)
+
+* = Required field per GTFS specification
 
 */
 
@@ -263,9 +272,20 @@ List<Agency> parseAgencyCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('agency.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('agency.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
-      Agency.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
+      Agency.fromCsvWithHeader(
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 
@@ -298,9 +318,20 @@ List<Route> parseRoutesCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('routes.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('routes.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
-      Route.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
+      Route.fromCsvWithHeader(
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 
@@ -309,11 +340,20 @@ List<Stop> parseStopsCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('stops.txt is empty');
   }
-  logger.e(rows[0]);
-  logger.e(rows[1]);
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('stops.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
-      Stop.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
+      Stop.fromCsvWithHeader(
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 
@@ -322,10 +362,20 @@ List<StopTime> parseStopTimesCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('stop_times.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('stop_times.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
-      StopTime.fromCsv(
-          rows[i].map((c) => c == null ? '' : c.toString()).toList())
+      StopTime.fromCsvWithHeader(
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 
@@ -334,9 +384,20 @@ List<Trip> parseTripsCsv(String csv) {
   if (rows.isEmpty) {
     throw FormatException('trips.txt is empty');
   }
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('trips.txt header: $header');
+  
   return [
     for (var i = 1; i < rows.length; i++)
-      Trip.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
+      Trip.fromCsvWithHeader(
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList()
+      )
   ];
 }
 

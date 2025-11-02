@@ -1,5 +1,5 @@
 class Agency {
-  final String agencyId;
+  final String? agencyId;
   final String agencyName;
   final String agencyUrl;
   final String agencyTimezone;
@@ -9,7 +9,7 @@ class Agency {
   final String? agencyEmail;
 
   Agency({
-    required this.agencyId,
+    this.agencyId,
     required this.agencyName,
     required this.agencyUrl,
     required this.agencyTimezone,
@@ -19,6 +19,28 @@ class Agency {
     this.agencyEmail,
   });
 
+  /// Create an Agency from a CSV row using header-based field mapping
+  factory Agency.fromCsvWithHeader(List<String> header, List<String> row) {
+    String? getField(String fieldName) {
+      final index = header.indexOf(fieldName);
+      if (index == -1 || index >= row.length) return null;
+      final value = row[index];
+      return value.isEmpty ? null : value;
+    }
+
+    return Agency(
+      agencyId: getField('agency_id'),
+      agencyName: getField('agency_name') ?? '',
+      agencyUrl: getField('agency_url') ?? '',
+      agencyTimezone: getField('agency_timezone') ?? '',
+      agencyLang: getField('agency_lang'),
+      agencyPhone: getField('agency_phone'),
+      agencyFareUrl: getField('agency_fare_url'),
+      agencyEmail: getField('agency_email'),
+    );
+  }
+
+  /// Legacy constructor for backward compatibility with positional CSV parsing
   factory Agency.fromCsv(List<String> row) => Agency(
         agencyId: row[0],
         agencyName: row[1],
@@ -30,7 +52,7 @@ class Agency {
         agencyEmail: row.length > 7 && row[7].isNotEmpty ? row[7] : null,
       );
 
-  /// Expected CSV header for agency.txt
+  /// Expected CSV header for agency.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
         'agency_id',
         'agency_name',
@@ -43,23 +65,16 @@ class Agency {
       ];
 
   static void validateCsvHeader(List<String> header) {
-    // Only require the presence and order of the required (non-nullable) columns.
+    // Require presence of required columns per GTFS spec
     final required = [
-      'agency_id',
       'agency_name',
       'agency_url',
       'agency_timezone'
     ];
-    var lastIndex = -1;
     for (final col in required) {
-      final idx = header.indexOf(col);
-      if (idx == -1) {
+      if (!header.contains(col)) {
         throw FormatException('agency.txt missing required column "$col"');
       }
-      if (idx <= lastIndex) {
-        throw FormatException('agency.txt column "$col" is out of order');
-      }
-      lastIndex = idx;
     }
   }
 }

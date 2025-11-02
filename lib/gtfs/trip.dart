@@ -2,36 +2,63 @@ class Trip {
   final String routeId;
   final String serviceId;
   final String tripId;
-  final String shapeId;
+  final String? shapeId;
   final String? tripHeadsign;
-  final String? directionId;
   final String? tripShortName;
+  final String? directionId;
   final String? blockId;
   final String? wheelchairAccessible;
+  final String? bikesAllowed;
+  // Non-standard fields used by NSW Transport API
   final String? tripNote;
   final String? routeDirection;
-  final String? bikesAllowed;
 
   Trip({
     required this.routeId,
     required this.serviceId,
     required this.tripId,
-    required this.shapeId,
+    this.shapeId,
     this.tripHeadsign,
-    this.directionId,
     this.tripShortName,
+    this.directionId,
     this.blockId,
     this.wheelchairAccessible,
+    this.bikesAllowed,
     this.tripNote,
     this.routeDirection,
-    this.bikesAllowed,
   });
 
+  /// Create a Trip from a CSV row using header-based field mapping
+  factory Trip.fromCsvWithHeader(List<String> header, List<String> row) {
+    String? getField(String fieldName) {
+      final index = header.indexOf(fieldName);
+      if (index == -1 || index >= row.length) return null;
+      final value = row[index];
+      return value.isEmpty ? null : value;
+    }
+
+    return Trip(
+      routeId: getField('route_id') ?? '',
+      serviceId: getField('service_id') ?? '',
+      tripId: getField('trip_id') ?? '',
+      shapeId: getField('shape_id'),
+      tripHeadsign: getField('trip_headsign'),
+      tripShortName: getField('trip_short_name'),
+      directionId: getField('direction_id'),
+      blockId: getField('block_id'),
+      wheelchairAccessible: getField('wheelchair_accessible'),
+      bikesAllowed: getField('bikes_allowed'),
+      tripNote: getField('trip_note'),
+      routeDirection: getField('route_direction'),
+    );
+  }
+
+  /// Legacy constructor for backward compatibility with positional CSV parsing
   factory Trip.fromCsv(List<String> row) => Trip(
         routeId: row[0],
         serviceId: row[1],
         tripId: row[2],
-        shapeId: row[3],
+        shapeId: row.length > 3 && row[3].isNotEmpty ? row[3] : null,
         tripHeadsign: row.length > 4 && row[4].isNotEmpty ? row[4] : null,
         directionId: row.length > 5 && row[5].isNotEmpty ? row[5] : null,
         tripShortName: row.length > 6 && row[6].isNotEmpty ? row[6] : null,
@@ -43,35 +70,27 @@ class Trip {
         bikesAllowed: row.length > 11 && row[11].isNotEmpty ? row[11] : null,
       );
 
-  /// Expected CSV header for trips.txt
+  /// Expected CSV header for trips.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
         'route_id',
         'service_id',
         'trip_id',
-        'shape_id',
         'trip_headsign',
-        'direction_id',
         'trip_short_name',
+        'direction_id',
         'block_id',
+        'shape_id',
         'wheelchair_accessible',
-        'trip_note',
-        'route_direction',
         'bikes_allowed',
       ];
 
   static void validateCsvHeader(List<String> header) {
-    // Require presence and order of required (non-nullable) columns.
-    final required = ['route_id', 'service_id', 'trip_id', 'shape_id'];
-    var lastIndex = -1;
+    // Require presence of required columns per GTFS spec
+    final required = ['route_id', 'service_id', 'trip_id'];
     for (final col in required) {
-      final idx = header.indexOf(col);
-      if (idx == -1) {
+      if (!header.contains(col)) {
         throw FormatException('trips.txt missing required column "$col"');
       }
-      if (idx <= lastIndex) {
-        throw FormatException('trips.txt column "$col" is out of order');
-      }
-      lastIndex = idx;
     }
   }
 }
