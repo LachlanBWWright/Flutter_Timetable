@@ -43,4 +43,22 @@ void main() {
     expect(data, isA<GtfsData>());
     expect(data!.agencies, isA<List>());
   });
+
+  test('fetchSydneyTrainsGtfsData returns a GtfsData object and logs a station',
+      () async {
+    final data = await fetchSydneyTrainsGtfsData();
+    expect(data, isNotNull);
+    expect(data, isA<GtfsData>());
+    expect(data!.stops, isA<List>());
+    if (data.stops.isNotEmpty) {
+      // Print the parentStation for up to the first 100 stops so it's visible in test output / logs
+      final count = data.stops.length < 100 ? data.stops.length : 100;
+      for (var i = 0; i < count; i++) {
+        final parent = data.stops[i].parentStation;
+        print('Stop ${i + 1} ${data.stops[i]}');
+      }
+    } else {
+      print('No stops returned for SydneyTrains feed');
+    }
+  });
 }

@@ -59,24 +59,45 @@ class StationView extends StatelessWidget {
           },
           child: ListTile(
             title: Text(station.name),
-            subtitle: _buildDistanceSubtitle(),
+            subtitle: _buildSubtitle(),
           ),
         ),
       ),
     );
   }
 
-  Widget? _buildDistanceSubtitle() {
-    if (sortMode == SortMode.distance && station.distance != null) {
-      return Text(
-        '${station.distance!.toStringAsFixed(1)} km away',
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.grey,
-        ),
-      );
+  Widget _buildSubtitle() {
+    final List<Widget> rows = [];
+
+    // Station ID
+    rows.add(Text(
+      'ID: ${station.id}',
+      style: const TextStyle(fontSize: 12, color: Colors.grey),
+    ));
+
+    // Latitude / Longitude if available
+    if (station.latitude != null && station.longitude != null) {
+      rows.add(const SizedBox(height: 4));
+      rows.add(Text(
+        'Lat: ${station.latitude!.toStringAsFixed(6)}, Lon: ${station.longitude!.toStringAsFixed(6)}',
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ));
     }
-    return null;
+
+    // Distance if available
+    if (station.distance != null) {
+      rows.add(const SizedBox(height: 4));
+      rows.add(Text(
+        '${station.distance!.toStringAsFixed(1)} km away',
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: rows,
+    );
   }
 }
 

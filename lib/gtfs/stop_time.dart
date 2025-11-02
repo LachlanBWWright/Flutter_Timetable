@@ -38,4 +38,41 @@ class StopTime {
         timepoint: row.length > 9 && row[9].isNotEmpty ? row[9] : null,
         stopNote: row.length > 10 && row[10].isNotEmpty ? row[10] : null,
       );
+
+  /// Expected CSV header for stop_times.txt
+  static List<String> expectedCsvHeader() => [
+        'trip_id',
+        'arrival_time',
+        'departure_time',
+        'stop_id',
+        'stop_sequence',
+        'stop_headsign',
+        'pickup_type',
+        'drop_off_type',
+        'shape_dist_traveled',
+        'timepoint',
+        'stop_note',
+      ];
+
+  static void validateCsvHeader(List<String> header) {
+    // Require presence and order of required (non-nullable) columns.
+    final required = [
+      'trip_id',
+      'arrival_time',
+      'departure_time',
+      'stop_id',
+      'stop_sequence'
+    ];
+    var lastIndex = -1;
+    for (final col in required) {
+      final idx = header.indexOf(col);
+      if (idx == -1) {
+        throw FormatException('stop_times.txt missing required column "$col"');
+      }
+      if (idx <= lastIndex) {
+        throw FormatException('stop_times.txt column "$col" is out of order');
+      }
+      lastIndex = idx;
+    }
+  }
 }

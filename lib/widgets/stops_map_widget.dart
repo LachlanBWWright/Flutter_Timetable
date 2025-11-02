@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../constants/transport_colors.dart';
+import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 // logger removed
 import '../services/location_service.dart';
@@ -11,7 +12,7 @@ import '../services/stops_service.dart';
 
 /// Widget for displaying stops on a map for a specific transport mode
 class StopsMapWidget extends StatefulWidget {
-  final String transportMode;
+  final TransportMode transportMode;
   final String modeDisplayName;
   final Function(String, String) onStopSelected;
 
@@ -32,6 +33,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   Position? _userLocation;
   bool _isLoading = true;
   String? _error;
+  bool _mapIsReady = false;
+  VoidCallback? _pendingMapAction;
 
   @override
   void initState() {
@@ -59,10 +62,19 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
       // Center map on user location or stops
       if (_userLocation != null) {
-        _mapController.move(
-          LatLng(_userLocation!.latitude, _userLocation!.longitude),
-          13.0,
-        );
+        if (_mapIsReady) {
+          _mapController.move(
+            LatLng(_userLocation!.latitude, _userLocation!.longitude),
+            13.0,
+          );
+        } else {
+          _pendingMapAction = () {
+            _mapController.move(
+              LatLng(_userLocation!.latitude, _userLocation!.longitude),
+              13.0,
+            );
+          };
+        }
       } else if (_stops.isNotEmpty) {
         _centerMapOnStops();
       }
@@ -74,7 +86,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     }
   }
 
-  Future<List<Stop>> _getStopsForTransportMode(String mode) async {
+  Future<List<Stop>> _getStopsForTransportMode(TransportMode mode) async {
     final List<String> endpoints = _getEndpointsForMode(mode);
     final List<Stop> allStops = [];
 
@@ -90,18 +102,20 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     return allStops;
   }
 
-  List<String> _getEndpointsForMode(String mode) {
+  List<String> _getEndpointsForMode(TransportMode mode) {
     switch (mode) {
-      case 'train':
+      case TransportMode.metro:
+        return ['metro'];
+      case TransportMode.train:
         return ['nswtrains', 'sydneytrains'];
-      case 'lightrail':
+      case TransportMode.lightrail:
         return [
           'lightrail_innerwest',
           'lightrail_newcastle',
           'lightrail_cbdandsoutheast',
           'lightrail_parramatta'
         ];
-      case 'bus':
+      case TransportMode.bus:
         return [
           'buses',
           'buses_SBSC006',
@@ -128,10 +142,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
           'buses_NISC001',
           'buses_ReplacementBus',
         ];
-      case 'ferry':
+      case TransportMode.ferry:
         return ['ferries_sydneyferries', 'ferries_MFF'];
-      default:
-        return [];
     }
   }
 
@@ -145,27 +157,35 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
     if (latLngs.isNotEmpty) {
       final bounds = LatLngBounds.fromPoints(latLngs);
-      _mapController.fitCamera(
-        CameraFit.bounds(
-          bounds: bounds,
-          padding: const EdgeInsets.all(50.0),
-        ),
-      );
+      final action = () {
+        _mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: bounds,
+            padding: const EdgeInsets.all(50.0),
+          ),
+        );
+      };
+
+      if (_mapIsReady) {
+        action();
+      } else {
+        _pendingMapAction = action;
+      }
     }
   }
 
   Color _getModeColor() {
     switch (widget.transportMode) {
-      case 'train':
+      case TransportMode.metro:
+        return TransportColors.metro;
+      case TransportMode.train:
         return TransportColors.train;
-      case 'lightrail':
+      case TransportMode.lightrail:
         return TransportColors.lightRail;
-      case 'bus':
+      case TransportMode.bus:
         return TransportColors.bus;
-      case 'ferry':
+      case TransportMode.ferry:
         return TransportColors.ferry;
-      default:
-        return Colors.blue;
     }
   }
 
@@ -215,11 +235,21 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                     )
                   : FlutterMap(
                       mapController: _mapController,
-                      options: const MapOptions(
+                      options: MapOptions(
                         initialCenter: LatLng(-33.8688, 151.2093), // Sydney
                         initialZoom: 10.0,
                         minZoom: 5.0,
                         maxZoom: 18.0,
+                        onMapReady: () {
+                          // Mark map as ready and run any pending map action
+                          setState(() {
+                            _mapIsReady = true;
+                          });
+                          if (_pendingMapAction != null) {
+                            _pendingMapAction!();
+                            _pendingMapAction = null;
+                          }
+                        },
                       ),
                       children: [
                         TileLayer(
@@ -304,16 +334,16 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
   IconData _getModeIcon() {
     switch (widget.transportMode) {
-      case 'train':
+      case TransportMode.metro:
+        return Icons.subway;
+      case TransportMode.train:
         return Icons.directions_train;
-      case 'lightrail':
+      case TransportMode.lightrail:
         return Icons.tram;
-      case 'bus':
+      case TransportMode.bus:
         return Icons.directions_bus;
-      case 'ferry':
+      case TransportMode.ferry:
         return Icons.directions_ferry;
-      default:
-        return Icons.location_on;
     }
   }
 

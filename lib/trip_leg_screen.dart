@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
@@ -70,11 +71,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       final tripId = transportation?['id'];
 
       if (transportClass != null) {
-        // Determine which realtime feed to query based on transport mode
-        final String? mode = _getRealtimeModeFromClass(transportClass);
+        // Determine which high-level transport mode to query based on transport class
+        final TransportMode? mode = _getRealtimeModeFromClass(transportClass);
 
         if (mode != null) {
-          final feedMessage = await RealtimeService.getPositionsForMode(mode);
+          final feedMessage =
+              await RealtimeService.getPositionsForTransportMode(mode);
           final vehicles = RealtimeService.extractVehiclePositions(feedMessage);
 
           // Try to find the specific vehicle for this trip
@@ -106,17 +108,17 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
-  String? _getRealtimeModeFromClass(int transportClass) {
+  TransportMode? _getRealtimeModeFromClass(int transportClass) {
     switch (transportClass) {
       case 1: // Train
-        return 'sydney_trains'; // Could also be nsw_trains or metro
+        return TransportMode.train;
       case 4: // Light Rail
-        return 'lightrail_cbd_southeast'; // Could be other light rail lines
+        return TransportMode.lightrail;
       case 5: // Bus
       case 11: // School Bus
-        return 'buses';
+        return TransportMode.bus;
       case 9: // Ferry
-        return 'ferries_sydney';
+        return TransportMode.ferry;
       default:
         return null;
     }

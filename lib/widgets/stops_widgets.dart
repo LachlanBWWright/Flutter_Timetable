@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/transport_colors.dart';
+import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 import '../services/stops_service.dart';
 
@@ -38,32 +39,6 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         _stopsCount = countByEndpoint;
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadPlaceholderData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      await StopsService.loadAllPlaceholderStops();
-      await _loadStopsData(); // Refresh the counts
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Placeholder stops data loaded successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -229,7 +204,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8.0),
                 border:
                     Border.all(color: Theme.of(context).colorScheme.outline),
@@ -272,19 +247,6 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _loadPlaceholderData,
-                    icon: const Icon(Icons.file_download),
-                    label: const Text('Load Placeholders'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -379,7 +341,26 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               width: 4,
               height: 30,
               decoration: BoxDecoration(
-                color: _getModeColor(mode),
+                color: (() {
+                  final parsed = transportModeFromString(mode);
+                  if (parsed != null)
+                    return TransportColors.getColorByTransportMode(parsed);
+                  switch (mode) {
+                    case 'trains':
+                      return TransportColors.train;
+                    case 'metro':
+                      return TransportColors.metro;
+                    case 'buses':
+                    case 'regionbuses':
+                      return TransportColors.bus;
+                    case 'lightrail':
+                      return TransportColors.lightRail;
+                    case 'ferries':
+                      return TransportColors.ferry;
+                    default:
+                      return Colors.grey;
+                  }
+                })(),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -452,24 +433,6 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     }
 
     return groups;
-  }
-
-  Color _getModeColor(String mode) {
-    switch (mode) {
-      case 'trains':
-        return TransportColors.train;
-      case 'metro':
-        return TransportColors.metro;
-      case 'buses':
-      case 'regionbuses':
-        return TransportColors.bus;
-      case 'lightrail':
-        return TransportColors.lightRail;
-      case 'ferries':
-        return TransportColors.ferry;
-      default:
-        return Colors.grey;
-    }
   }
 
   String _getDisplayName(String mode) {

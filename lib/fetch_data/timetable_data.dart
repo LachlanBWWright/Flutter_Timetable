@@ -1,9 +1,10 @@
-import 'dart:convert';
+// dart:convert not required now - CSV parsing uses package:csv
 
 import 'package:archive/archive.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import 'package:csv/csv.dart';
 
 import '../gtfs/agency.dart';
 import '../gtfs/calendar.dart';
@@ -87,6 +88,48 @@ Future<FeedMessage?> fetchMetroScheduleRealtime() async {
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e, st) {
     logger.e('Error fetching Metro realtime: $e\n$st');
+    return null;
+  }
+}
+
+/// Fetches a GTFS-realtime feed from the v1 realtime surface and parses it
+/// into a [FeedMessage]. Append the endpoint path (for example '/metro' or
+/// '/sydneytrains') to the base URL when calling.
+Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV1(
+    String endpoint) async {
+  try {
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/realtime$endpoint');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch GTFS realtime (v1) for $endpoint: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    return FeedMessage.fromBuffer(response.bodyBytes);
+  } catch (e, st) {
+    logger.e('Error fetching GTFS realtime (v1) for $endpoint: $e\n$st');
+    return null;
+  }
+}
+
+/// Fetches a GTFS-realtime feed from the v2 realtime surface and parses it
+/// into a [FeedMessage]. Append the endpoint path (for example '/metro' or
+/// '/sydneytrains') to the base URL when calling.
+Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV2(
+    String endpoint) async {
+  try {
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/realtime$endpoint');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch GTFS realtime (v2) for $endpoint: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    return FeedMessage.fromBuffer(response.bodyBytes);
+  } catch (e, st) {
+    logger.e('Error fetching GTFS realtime (v2) for $endpoint: $e\n$st');
     return null;
   }
 }
@@ -216,87 +259,110 @@ Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/farwest');
 
 List<Agency> parseAgencyCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('agency.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++)
-      Agency.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Agency.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Calendar> parseCalendarCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('calendar.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++)
-      Calendar.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Calendar.fromCsv(
+          rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<CalendarDate> parseCalendarDatesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('calendar_dates.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++)
-      CalendarDate.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      CalendarDate.fromCsv(
+          rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Route> parseRoutesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('routes.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++)
-      Route.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Route.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Stop> parseStopsCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('stops.txt is empty');
+  }
+  logger.e(rows[0]);
+  logger.e(rows[1]);
   return [
-    for (var i = 1; i < lines.length; i++) Stop.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Stop.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<StopTime> parseStopTimesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('stop_times.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++)
-      StopTime.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      StopTime.fromCsv(
+          rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Trip> parseTripsCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('trips.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++) Trip.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Trip.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Shape> parseShapesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('shapes.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++)
-      Shape.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Shape.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Note> parseNotesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  if (rows.isEmpty) {
+    throw FormatException('notes.txt is empty');
+  }
   return [
-    for (var i = 1; i < lines.length; i++) Note.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Note.fromCsv(rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
-List<String> _parseCsvLine(String line) {
-  // Handles quoted fields and commas inside quotes
-  final List<String> result = [];
-  final RegExp regExp = RegExp(r'((?:"[^"]*")|[^,]+|(?<=,)(?=,))');
-  for (final match in regExp.allMatches(line)) {
-    var value = match.group(0) ?? '';
-    if (value.startsWith('"') && value.endsWith('"')) {
-      value = value.substring(1, value.length - 1);
-    }
-    result.add(value);
-  }
-  return result;
-}
+// Note: custom CSV line parser removed in favor of package:csv
 
 GtfsData parseGtfsFiles(Map<String, String> files) {
   return GtfsData(

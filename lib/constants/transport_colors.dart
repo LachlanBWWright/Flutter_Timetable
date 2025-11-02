@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 
 /// Transport Network Colors based on official NSW Transport branding
 class TransportColors {
   // Sydney Metro
   static const Color metroM = Color(0xFF168388); // M LINE
-  
+
   // Sydney Trains
   static const Color trainsT1 = Color(0xFFF99D1C); // T1 LINE
   static const Color trainsT2 = Color(0xFF0098CD); // T2 LINE
@@ -14,18 +15,20 @@ class TransportColors {
   static const Color trainsT7 = Color(0xFF6F818E); // T7 LINE
   static const Color trainsT8 = Color(0xFF00954C); // T8 LINE
   static const Color trainsT9 = Color(0xFFD11F2F); // T9 LINE
-  
+
   // Intercity Trains
   static const Color blueMountains = Color(0xFFF99D1C); // BLUE MOUNTAINS
-  static const Color centralCoastNewcastle = Color(0xFFD11F2F); // CENTRAL COAST & NEWCASTLE
+  static const Color centralCoastNewcastle =
+      Color(0xFFD11F2F); // CENTRAL COAST & NEWCASTLE
   static const Color hunter = Color(0xFF833134); // HUNTER
   static const Color southCoast = Color(0xFF005AA3); // SOUTH COAST
-  static const Color southernHighlands = Color(0xFF00954C); // SOUTHERN HIGHLANDS
-  
+  static const Color southernHighlands =
+      Color(0xFF00954C); // SOUTHERN HIGHLANDS
+
   // Regional Trains and Coaches Network
   static const Color regionalTrains = Color(0xFFF6891F); // TRAINS
   static const Color regionalCoaches = Color(0xFF732A82); // COACHES
-  
+
   // Sydney Ferries
   static const Color ferryF1 = Color(0xFF00774B); // F1 MANLY
   static const Color ferryF2 = Color(0xFF144734); // F2 TARONGA ZOO
@@ -37,16 +40,17 @@ class TransportColors {
   static const Color ferryF8 = Color(0xFF55622B); // F8 COCKATOO ISLAND
   static const Color ferryF9 = Color(0xFF65B32E); // F9 WATSONS BAY
   static const Color ferryF10 = Color(0xFF5AB031); // F10 BLACKWATTLE BAY
-  
+
   // Newcastle Ferries
   static const Color newcastleFerry = Color(0xFF5AB031); // STKN Stockton
-  
+
   // Sydney Light Rail
   static const Color lightRailL1 = Color(0xFFBE1622); // L1 DULWICH HILL LINE
   static const Color lightRailL2 = Color(0xFFDD1E25); // L2 RANDWICK LINE
   static const Color lightRailL3 = Color(0xFF781140); // L3 KINGSFORD LINE
-  static const Color newcastleLightRail = Color(0xFFEE343F); // NLR NEWCASTLE LIGHT RAIL
-  
+  static const Color newcastleLightRail =
+      Color(0xFFEE343F); // NLR NEWCASTLE LIGHT RAIL
+
   // Generic mode colors for UI
   static const Color bus = Color(0xFF0098CD); // Generic bus blue
   static const Color train = Color(0xFFF99D1C); // Generic train orange
@@ -54,28 +58,30 @@ class TransportColors {
   static const Color lightRail = Color(0xFFBE1622); // Generic light rail red
   static const Color metro = Color(0xFF168388); // Metro teal
   static const Color coach = Color(0xFF732A82); // Coach purple
-  
+
   /// Get color by transport mode
-  static Color getColorByMode(String mode) {
-    switch (mode.toLowerCase()) {
-      case 'bus':
+  static Color getColorByTransportMode(TransportMode mode) {
+    switch (mode) {
+      case TransportMode.bus:
         return bus;
-      case 'train':
+      case TransportMode.train:
         return train;
-      case 'ferry':
+      case TransportMode.ferry:
         return ferry;
-      case 'lightrail':
-      case 'light rail':
+      case TransportMode.lightrail:
         return lightRail;
-      case 'metro':
+      case TransportMode.metro:
         return metro;
-      case 'coach':
-        return coach;
-      default:
-        return Colors.grey;
     }
   }
-  
+
+  /// Backwards-compatible wrapper that accepts a mode string. It first
+  /// attempts to parse the string into a `TransportMode` and uses the typed
+  /// helper; if parsing fails, it falls back to the original string matching
+  /// behaviour to preserve existing semantics for unknown/legacy mode names.
+  // NOTE: removed getColorByMode(String) to ensure transport modes are
+  // represented by the typed `TransportMode` enum throughout the codebase.
+
   /// Get color by specific line/route
   static Color getColorByLine(String line) {
     switch (line.toUpperCase()) {
@@ -96,12 +102,12 @@ class TransportColors {
         return trainsT8;
       case 'T9':
         return trainsT9;
-        
+
       // Metro
       case 'M':
       case 'METRO':
         return metroM;
-        
+
       // Light Rail
       case 'L1':
         return lightRailL1;
@@ -111,7 +117,7 @@ class TransportColors {
         return lightRailL3;
       case 'NLR':
         return newcastleLightRail;
-        
+
       // Ferries
       case 'F1':
         return ferryF1;
@@ -133,7 +139,7 @@ class TransportColors {
         return ferryF9;
       case 'F10':
         return ferryF10;
-        
+
       default:
         return Colors.grey;
     }

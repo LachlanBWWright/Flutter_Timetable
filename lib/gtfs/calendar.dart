@@ -35,4 +35,28 @@ class Calendar {
         startDate: row[8],
         endDate: row[9],
       );
+
+  /// Expected CSV header for calendar.txt
+  static List<String> expectedCsvHeader() => [
+        'service_id',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
+        'start_date',
+        'end_date',
+      ];
+
+  static void validateCsvHeader(List<String> header) {
+    final expected = expectedCsvHeader();
+    for (var i = 0; i < expected.length; i++) {
+      if (i >= header.length || header[i] != expected[i]) {
+        throw FormatException(
+            'calendar.txt header mismatch at column ${i + 1}: expected "${expected[i]}" but found "${i < header.length ? header[i] : '<missing>'}"');
+      }
+    }
+  }
 }

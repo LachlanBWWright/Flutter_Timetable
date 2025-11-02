@@ -5,11 +5,12 @@ import '../gtfs/stop.dart';
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
 import '../widgets/station_widgets.dart';
+import '../constants/transport_modes.dart';
 
 /// Service for managing stops data in the New Trip screen
 class NewTripService {
   /// Load stops for a specific transport mode from database or API
-  static Future<List<Station>> loadStopsForMode(String mode) async {
+  static Future<List<Station>> loadStopsForMode(TransportMode mode) async {
     final endpoints = _getEndpointsForMode(mode);
     final List<Stop> allStops = [];
 
@@ -34,39 +35,8 @@ class NewTripService {
       }
     }
 
-    // Convert Stop objects to Station objects for the UI
-    // Helper to detect suspect stop names (numeric or equal to the id)
-    bool isSuspectName(String name, String id) {
-      final trimmed = name.trim();
-      if (trimmed.isEmpty) return true;
-      if (trimmed == id) return true;
-      // If name is numeric-only, treat as suspect
-      if (RegExp(r'^\d+\$').hasMatch(trimmed)) return true;
-      return false;
-    }
-
     return allStops.map((stop) {
-      String displayName = stop.stopName;
-
-      if (isSuspectName(displayName, stop.stopId)) {
-        // Try to find a parent station's name in the fetched stops
-        if (stop.parentStation != null && stop.parentStation!.isNotEmpty) {
-          final parentMatches = allStops
-              .where((s) => s.stopId == stop.parentStation)
-              .toList();
-          if (parentMatches.isNotEmpty) {
-            final parentName = parentMatches.first.stopName;
-            if (!isSuspectName(parentName, parentMatches.first.stopId)) {
-              displayName = parentName;
-            }
-          }
-        }
-      }
-
-      // Fallback: if still suspect, use stopId so the user at least sees an identifier
-      if (isSuspectName(displayName, stop.stopId)) {
-        displayName = stop.stopId;
-      }
+      final String displayName = stop.stopName;
 
       return Station(
         name: displayName,
@@ -78,20 +48,20 @@ class NewTripService {
   }
 
   /// Get the list of API endpoints for a transport mode
-  static List<String> _getEndpointsForMode(String mode) {
+  static List<String> _getEndpointsForMode(TransportMode mode) {
     switch (mode) {
-      case 'train':
+      case TransportMode.train:
         return ['nswtrains', 'sydneytrains'];
-      case 'metro':
+      case TransportMode.metro:
         return ['metro'];
-      case 'lightrail':
+      case TransportMode.lightrail:
         return [
           'lightrail_innerwest',
           'lightrail_newcastle',
           'lightrail_cbdandsoutheast',
           'lightrail_parramatta'
         ];
-      case 'bus':
+      case TransportMode.bus:
         return [
           'buses',
           'buses_SBSC006',
@@ -118,10 +88,8 @@ class NewTripService {
           'buses_NISC001',
           'buses_ReplacementBus',
         ];
-      case 'ferry':
+      case TransportMode.ferry:
         return ['ferries_sydneyferries', 'ferries_MFF'];
-      default:
-        return [];
     }
   }
 
@@ -282,20 +250,7 @@ class NewTripService {
   }
 
   /// Get display name for transport mode
-  static String getModeDisplayName(String mode) {
-    switch (mode) {
-      case 'train':
-        return 'Train';
-      case 'metro':
-        return 'Metro';
-      case 'lightrail':
-        return 'Light Rail';
-      case 'bus':
-        return 'Bus';
-      case 'ferry':
-        return 'Ferry';
-      default:
-        return mode;
-    }
+  static String getModeDisplayName(TransportMode mode) {
+    return mode.displayName;
   }
 }

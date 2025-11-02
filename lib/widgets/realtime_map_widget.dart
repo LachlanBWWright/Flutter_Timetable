@@ -2,17 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../constants/transport_colors.dart';
+import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart';
 
 /// Widget for displaying GTFS realtime vehicle positions on a map
 class RealtimeMapWidget extends StatefulWidget {
-  final String? mode;
+  final TransportMode? mode;
+  final TransportMode? transportMode;
   final String? routeFilter;
   final Leg? leg;
 
-  const RealtimeMapWidget({super.key, this.mode, this.routeFilter, this.leg});
+  const RealtimeMapWidget({
+    super.key,
+    this.mode,
+    this.transportMode,
+    this.routeFilter,
+    this.leg,
+  });
 
   @override
   State<RealtimeMapWidget> createState() => _RealtimeMapWidgetState();
@@ -38,18 +46,16 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   CameraFit? _pendingFit;
   LatLng? _pendingCenter;
 
-  // Available modes (keys) and whether they're enabled in the UI filter.
-  static const List<String> _allModes = [
-    'train',
-    'metro',
-    'bus',
-    'ferry',
-    'lightrail',
-    'coach',
-    'unknown',
+  // Available transport modes and whether they're enabled in the UI filter.
+  static const List<TransportMode> _allModes = [
+    TransportMode.train,
+    TransportMode.metro,
+    TransportMode.bus,
+    TransportMode.ferry,
+    TransportMode.lightrail,
   ];
 
-  late Map<String, bool> _modeEnabled;
+  late Map<TransportMode, bool> _modeEnabled;
 
   // Sydney CBD as default center
   late LatLng _mapCenter;
@@ -83,8 +89,18 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       final vehicles = <_VehicleWithMode>[];
 
       for (final entry in allPositions.entries) {
-        if (widget.mode != null && !entry.key.contains(widget.mode!)) {
-          continue;
+        // If a TransportMode filter was provided, prefer that (map feed key -> mode and compare).
+        if (widget.transportMode != null) {
+          final feedMode = _modeFromFeedKey(entry.key);
+          final parsed = transportModeFromString(feedMode);
+          if (parsed != widget.transportMode) continue;
+        } else if (widget.mode != null) {
+          // The provided mode is already a typed TransportMode; compare
+          // against the inferred feed mode.
+          final requested = widget.mode!;
+          final feedMode = _modeFromFeedKey(entry.key);
+          final parsed = transportModeFromString(feedMode);
+          if (parsed != requested) continue;
         }
 
         final feedMessage = entry.value;
@@ -137,14 +153,21 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             vw.vehicle.position.hasLatitude() &&
             vw.vehicle.position.hasLongitude() &&
             // Only include vehicles whose mode is enabled in the filter
-            (_modeEnabled[vw.mode] ?? (_modeEnabled['unknown'] ?? true)))
+            (() {
+              final parsed = transportModeFromString(vw.mode);
+              if (parsed != null) return _modeEnabled[parsed] ?? true;
+              return true;
+            })())
         .map((vw) {
       final vehicle = vw.vehicle;
       final position = vehicle.position;
       final mode = vw.mode;
 
-      // Use mode-based color and icon mapping
-      Color markerColor = TransportColors.getColorByMode(mode);
+      // Use mode-based color and icon mapping. Prefer typed API when possible.
+      final parsed = transportModeFromString(mode);
+      final Color markerColor = parsed != null
+          ? TransportColors.getColorByTransportMode(parsed)
+          : Colors.grey;
 
       return Marker(
         point: LatLng(position.latitude, position.longitude),
@@ -166,7 +189,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               ],
             ),
             child: Icon(
-              _getVehicleIconByMode(mode),
+              _getVehicleIconByTransportMode(parsed),
               color: Colors.white,
               size: 16,
             ),
@@ -177,12 +200,15 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   }
 
   void _openModeFilterSheet(BuildContext context) async {
-    // Compute vehicle counts per mode from the current loaded vehicles so we
-    // can show counts next to each mode in the toggle list.
-    final counts = <String, int>{};
-    for (final m in _allModes) counts[m] = 0;
+    // Compute vehicle counts per transport mode from the current loaded
+    // vehicles so we can show counts next to each mode in the toggle list.
+    final counts = <TransportMode, int>{};
+    for (final m in _allModes) {
+      counts[m] = 0;
+    }
     for (final vw in _vehicles) {
-      counts[vw.mode] = (counts[vw.mode] ?? 0) + 1;
+      final parsed = transportModeFromString(vw.mode);
+      if (parsed != null) counts[parsed] = (counts[parsed] ?? 0) + 1;
     }
 
     await showModalBottomSheet(
@@ -207,7 +233,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                             fontSize: 18, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 12),
                     ..._allModes.map((mode) {
-                      final display = _modeDisplayName(mode);
+                      final display = _modeDisplayNameForTransportMode(mode);
                       final count = counts[mode] ?? 0;
                       return CheckboxListTile(
                         value: _modeEnabled[mode] ?? true,
@@ -233,23 +259,21 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     );
   }
 
-  String _modeDisplayName(String mode) {
+  // Legacy string-based display name helper removed. Use
+  // _modeDisplayNameForTransportMode(TransportMode) for typed mode names.
+
+  String _modeDisplayNameForTransportMode(TransportMode mode) {
     switch (mode) {
-      case 'train':
+      case TransportMode.train:
         return 'Trains';
-      case 'metro':
+      case TransportMode.metro:
         return 'Metro';
-      case 'bus':
+      case TransportMode.bus:
         return 'Buses';
-      case 'ferry':
-        return 'Ferries';
-      case 'lightrail':
+      case TransportMode.lightrail:
         return 'Light Rail';
-      case 'coach':
-        return 'Coach';
-      case 'unknown':
-      default:
-        return mode[0].toUpperCase() + mode.substring(1);
+      case TransportMode.ferry:
+        return 'Ferries';
     }
   }
 
@@ -265,26 +289,24 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     return 'unknown';
   }
 
-  IconData _getVehicleIconByMode(String mode) {
-    switch (mode.toLowerCase()) {
-      case 'train':
+  IconData _getVehicleIconByTransportMode(TransportMode? mode) {
+    if (mode == null) return Icons.help_outline;
+    switch (mode) {
+      case TransportMode.train:
         return Icons.train;
-      case 'metro':
+      case TransportMode.metro:
         return Icons.subway;
-      case 'lightrail':
-      case 'light rail':
+      case TransportMode.lightrail:
         return Icons.tram;
-      case 'ferry':
+      case TransportMode.ferry:
         return Icons.directions_boat;
-      case 'coach':
-        return Icons.airline_seat_recline_normal;
-      case 'bus':
+      case TransportMode.bus:
         return Icons.directions_bus;
-      case 'unknown':
-      default:
-        return Icons.help_outline;
     }
   }
+
+  // Non-nullable overload removed; use the nullable-accepting
+  // _getVehicleIconByTransportMode(TransportMode?) instead.
 
   void _showVehicleInfo(VehiclePosition vehicle) {
     final trip = vehicle.trip;
@@ -452,7 +474,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           if (_vehicles.isNotEmpty) {
             final bounds =
                 _calculateBounds(_vehicles.map((vw) => vw.vehicle).toList());
-            final fit = CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50));
+            final fit = CameraFit.bounds(
+                bounds: bounds, padding: const EdgeInsets.all(50));
             if (_mapIsReady) {
               _mapController.fitCamera(fit);
             } else {
@@ -467,7 +490,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               LatLng(widget.leg!.destination.coord![0],
                   widget.leg!.destination.coord![1]),
             );
-            final fit = CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50));
+            final fit = CameraFit.bounds(
+                bounds: bounds, padding: const EdgeInsets.all(50));
             if (_mapIsReady) {
               _mapController.fitCamera(fit);
             } else {

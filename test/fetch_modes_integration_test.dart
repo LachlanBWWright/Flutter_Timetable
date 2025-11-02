@@ -8,7 +8,8 @@ void main() {
     await dotenv.load();
     final apiKey = dotenv.env['API_KEY'];
     if (apiKey == null || apiKey.isEmpty) {
-      fail('API_KEY not set in .env — integration tests require a valid API key.');
+      fail(
+          'API_KEY not set in .env — integration tests require a valid API key.');
     }
   });
 
@@ -38,28 +39,28 @@ void main() {
       final data = await fetchNswTrainsGtfsData();
       expect(data, isNotNull);
       expect((data!.stops.isNotEmpty || data.agencies.isNotEmpty), isTrue);
-  if (data.stops.isNotEmpty) logStop(data.stops.first);
+      if (data.stops.isNotEmpty) logStop(data.stops.first);
     }, timeout: Timeout(Duration(seconds: 60)));
 
     test('buses fetch returns stops', () async {
       final data = await fetchBusesGtfsData();
       expect(data, isNotNull);
       expect(data!.stops, isNotEmpty);
-  logStop(data.stops.first);
+      logStop(data.stops.first);
     }, timeout: Timeout(Duration(seconds: 60)));
 
     test('lightrail fetch returns stops', () async {
       final data = await fetchLightRailCbdAndSoutheastGtfsData();
       expect(data, isNotNull);
       expect(data!.stops, isNotEmpty);
-  logStop(data.stops.first);
+      logStop(data.stops.first);
     }, timeout: Timeout(Duration(seconds: 60)));
 
     test('ferries fetch returns stops', () async {
       final data = await fetchFerriesSydneyFerriesGtfsData();
       expect(data, isNotNull);
       expect(data!.stops, isNotEmpty);
-  logStop(data.stops.first);
+      logStop(data.stops.first);
     }, timeout: Timeout(Duration(seconds: 60)));
   });
 }

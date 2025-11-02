@@ -32,4 +32,39 @@ class Route {
         routeTextColor: row.length > 7 && row[7].isNotEmpty ? row[7] : null,
         routeUrl: row.length > 8 && row[8].isNotEmpty ? row[8] : null,
       );
+
+  /// Expected CSV header for routes.txt
+  static List<String> expectedCsvHeader() => [
+        'route_id',
+        'agency_id',
+        'route_short_name',
+        'route_long_name',
+        'route_desc',
+        'route_type',
+        'route_color',
+        'route_text_color',
+        'route_url',
+      ];
+
+  static void validateCsvHeader(List<String> header) {
+    // Require presence and order of required (non-nullable) columns.
+    final required = [
+      'route_id',
+      'agency_id',
+      'route_short_name',
+      'route_long_name',
+      'route_type'
+    ];
+    var lastIndex = -1;
+    for (final col in required) {
+      final idx = header.indexOf(col);
+      if (idx == -1) {
+        throw FormatException('routes.txt missing required column "$col"');
+      }
+      if (idx <= lastIndex) {
+        throw FormatException('routes.txt column "$col" is out of order');
+      }
+      lastIndex = idx;
+    }
+  }
 }

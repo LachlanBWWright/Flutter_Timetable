@@ -32,6 +32,41 @@ class Stop {
     );
   }
 
+  /// Expected CSV header for stops.txt
+  static List<String> expectedCsvHeader() => [
+        'stop_id',
+        'stop_name',
+        'stop_lat',
+        'stop_lon',
+        'location_type',
+        'parent_station',
+        'wheelchair_boarding',
+        'platform_code',
+      ];
+
+  static void validateCsvHeader(List<String> header) {
+    // Require presence and order of required (non-nullable) columns.
+    final required = [
+      'stop_id',
+      'stop_name',
+      'stop_lat',
+      'stop_lon',
+      'location_type',
+      'wheelchair_boarding'
+    ];
+    var lastIndex = -1;
+    for (final col in required) {
+      final idx = header.indexOf(col);
+      if (idx == -1) {
+        throw FormatException('stops.txt missing required column "$col"');
+      }
+      if (idx <= lastIndex) {
+        throw FormatException('stops.txt column "$col" is out of order');
+      }
+      lastIndex = idx;
+    }
+  }
+
   @override
   String toString() =>
       'Stop(stopId: $stopId, stopName: $stopName, stopLat: $stopLat, stopLon: $stopLon, locationType: $locationType, parentStation: $parentStation, wheelchairBoarding: $wheelchairBoarding, platformCode: $platformCode)';

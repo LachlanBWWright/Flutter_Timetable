@@ -3,6 +3,7 @@ import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
+import 'package:lbww_flutter/constants/transport_modes.dart';
 
 /// Screen for tracking an individual trip leg with real-time updates
 class TripLegDetailScreen extends StatefulWidget {
@@ -24,6 +25,23 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     super.initState();
     _updatedLeg = widget.leg;
     _refreshLegData();
+  }
+
+  TransportMode? _getRealtimeModeFromClass(int? transportClass) {
+    if (transportClass == null) return null;
+    switch (transportClass) {
+      case 1: // Train
+        return TransportMode.train;
+      case 4: // Light Rail
+        return TransportMode.lightrail;
+      case 5: // Bus
+      case 11: // School Bus
+        return TransportMode.bus;
+      case 9: // Ferry
+        return TransportMode.ferry;
+      default:
+        return null;
+    }
   }
 
   Future<void> _refreshLegData() async {
@@ -112,11 +130,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           IconButton(
             icon: const Icon(Icons.map),
             onPressed: () {
+              final mode = _getRealtimeModeFromClass(transportClass);
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => RealtimeMapWidget(
                     leg: leg,
+                    transportMode: mode,
                   ),
                 ),
               );

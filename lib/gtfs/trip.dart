@@ -42,4 +42,36 @@ class Trip {
         routeDirection: row.length > 10 && row[10].isNotEmpty ? row[10] : null,
         bikesAllowed: row.length > 11 && row[11].isNotEmpty ? row[11] : null,
       );
+
+  /// Expected CSV header for trips.txt
+  static List<String> expectedCsvHeader() => [
+        'route_id',
+        'service_id',
+        'trip_id',
+        'shape_id',
+        'trip_headsign',
+        'direction_id',
+        'trip_short_name',
+        'block_id',
+        'wheelchair_accessible',
+        'trip_note',
+        'route_direction',
+        'bikes_allowed',
+      ];
+
+  static void validateCsvHeader(List<String> header) {
+    // Require presence and order of required (non-nullable) columns.
+    final required = ['route_id', 'service_id', 'trip_id', 'shape_id'];
+    var lastIndex = -1;
+    for (final col in required) {
+      final idx = header.indexOf(col);
+      if (idx == -1) {
+        throw FormatException('trips.txt missing required column "$col"');
+      }
+      if (idx <= lastIndex) {
+        throw FormatException('trips.txt column "$col" is out of order');
+      }
+      lastIndex = idx;
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/transport_colors.dart';
+import '../constants/transport_modes.dart';
 
 /// Widget for displaying selected stops at the bottom of the new trip screen
 /// with mode-specific accents and two-column layout
@@ -8,7 +9,7 @@ class SelectedStopsWidget extends StatelessWidget {
   final String firstStationId;
   final String secondStation;
   final String secondStationId;
-  final String currentMode;
+  final TransportMode currentMode;
   final VoidCallback onClearFirst;
   final VoidCallback onClearSecond;
 
@@ -24,28 +25,28 @@ class SelectedStopsWidget extends StatelessWidget {
   });
 
   Color _getModeColor() {
-    return TransportColors.getColorByMode(currentMode);
+    return TransportColors.getColorByTransportMode(currentMode);
   }
 
   IconData _getModeIcon() {
     switch (currentMode) {
-      case 'train':
+      case TransportMode.train:
         return Icons.directions_train;
-      case 'lightrail':
+      case TransportMode.lightrail:
         return Icons.tram;
-      case 'bus':
+      case TransportMode.bus:
         return Icons.directions_bus;
-      case 'ferry':
+      case TransportMode.ferry:
         return Icons.directions_ferry;
-      default:
-        return Icons.location_on;
+      case TransportMode.metro:
+        return Icons.subway;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bool hasAnyStop = firstStation.isNotEmpty || secondStation.isNotEmpty;
-    
+
     if (!hasAnyStop) {
       return const SizedBox.shrink();
     }
@@ -61,7 +62,7 @@ class SelectedStopsWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8.0,
             offset: const Offset(0, -2),
           ),
@@ -90,13 +91,13 @@ class SelectedStopsWidget extends StatelessWidget {
               Text(
                 'Selected Stops',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 12.0),
-          
+
           // Two-column layout for stops
           Row(
             children: [
@@ -112,7 +113,7 @@ class SelectedStopsWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12.0),
-              
+
               // Second stop (Destination)
               Expanded(
                 child: _buildStopCard(
@@ -140,19 +141,19 @@ class SelectedStopsWidget extends StatelessWidget {
     required bool isOrigin,
   }) {
     final modeColor = _getModeColor();
-    
+
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
-          color: isEmpty 
-            ? Colors.grey.withOpacity(0.3)
-            : modeColor.withOpacity(0.3),
+          color: isEmpty
+              ? Colors.grey.withValues(alpha: 0.3)
+              : modeColor.withValues(alpha: 0.3),
           width: 1.0,
         ),
         borderRadius: BorderRadius.circular(8.0),
-        color: isEmpty 
-          ? Colors.grey.withOpacity(0.05)
-          : modeColor.withOpacity(0.05),
+        color: isEmpty
+            ? Colors.grey.withValues(alpha: 0.05)
+            : modeColor.withValues(alpha: 0.05),
       ),
       padding: const EdgeInsets.all(12.0),
       child: Column(
@@ -171,9 +172,9 @@ class SelectedStopsWidget extends StatelessWidget {
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: isEmpty ? Colors.grey : modeColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+                        color: isEmpty ? Colors.grey : modeColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ),
               if (!isEmpty)
@@ -191,14 +192,14 @@ class SelectedStopsWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6.0),
-          
+
           // Station name or placeholder
           Text(
             isEmpty ? 'Select ${label.toLowerCase()} stop' : stationName,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isEmpty ? Colors.grey.shade600 : null,
-              fontWeight: isEmpty ? FontWeight.normal : FontWeight.w500,
-            ),
+                  color: isEmpty ? Colors.grey.shade600 : null,
+                  fontWeight: isEmpty ? FontWeight.normal : FontWeight.w500,
+                ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

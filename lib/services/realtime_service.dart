@@ -1,6 +1,7 @@
 import '../fetch_data/realtime_positions.dart' as positions;
 import '../fetch_data/realtime_updates.dart' as updates;
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import '../constants/transport_modes.dart';
 
 /// Service for managing realtime transport data
 class RealtimeService {
@@ -64,9 +65,14 @@ class RealtimeService {
     return results;
   }
 
-  /// Get positions for specific transport mode
-  static Future<FeedMessage?> getPositionsForMode(String mode) async {
-    switch (mode.toLowerCase()) {
+  /// Get positions for a specific feed key (legacy / granular).
+  ///
+  /// This used to be named `getPositionsForMode` and accepted many
+  /// granular feed keys such as `sydney_trains` or `lightrail_innerwest`.
+  /// It has been renamed to make the distinction between a broad
+  /// `TransportMode` enum and a feed key explicit.
+  static Future<FeedMessage?> getPositionsForFeedKey(String feedKey) async {
+    switch (feedKey.toLowerCase()) {
       case 'sydney_trains':
         return await positions.fetchSydneyTrainsPositions();
       case 'nsw_trains':
@@ -92,9 +98,28 @@ class RealtimeService {
     }
   }
 
-  /// Get trip updates for specific transport mode
-  static Future<FeedMessage?> getUpdatesForMode(String mode) async {
-    switch (mode.toLowerCase()) {
+  /// Typed wrapper: get positions for a broad TransportMode. This maps the
+  /// enum to a sensible canonical feed key and delegates to the existing
+  /// string-based API to preserve existing feed selection logic.
+  static Future<FeedMessage?> getPositionsForTransportMode(
+      TransportMode mode) async {
+    switch (mode) {
+      case TransportMode.train:
+        return await getPositionsForFeedKey('sydney_trains');
+      case TransportMode.metro:
+        return await getPositionsForFeedKey('metro');
+      case TransportMode.bus:
+        return await getPositionsForFeedKey('buses');
+      case TransportMode.lightrail:
+        return await getPositionsForFeedKey('lightrail_cbd_southeast');
+      case TransportMode.ferry:
+        return await getPositionsForFeedKey('ferries_sydney');
+    }
+  }
+
+  /// Get trip updates for a specific feed key (legacy / granular).
+  static Future<FeedMessage?> getUpdatesForFeedKey(String feedKey) async {
+    switch (feedKey.toLowerCase()) {
       case 'sydney_trains':
         return await updates.fetchSydneyTrainsUpdates();
       case 'nsw_trains':
@@ -117,6 +142,23 @@ class RealtimeService {
         return await updates.fetchFerriesMFFUpdates();
       default:
         return null;
+    }
+  }
+
+  /// Typed wrapper: get trip updates for a broad TransportMode.
+  static Future<FeedMessage?> getUpdatesForTransportMode(
+      TransportMode mode) async {
+    switch (mode) {
+      case TransportMode.train:
+        return await getUpdatesForFeedKey('sydney_trains');
+      case TransportMode.metro:
+        return await getUpdatesForFeedKey('metro');
+      case TransportMode.bus:
+        return await getUpdatesForFeedKey('buses');
+      case TransportMode.lightrail:
+        return await getUpdatesForFeedKey('lightrail_cbd_southeast');
+      case TransportMode.ferry:
+        return await getUpdatesForFeedKey('ferries_sydney');
     }
   }
 
@@ -194,7 +236,7 @@ class RealtimeService {
       FeedMessage? updFeed;
 
       try {
-        posFeed = await getPositionsForMode(mode);
+        posFeed = await getPositionsForFeedKey(mode);
         if (posFeed == null) {
           errors.add('Positions: no data returned');
         }
@@ -203,7 +245,7 @@ class RealtimeService {
       }
 
       try {
-        updFeed = await getUpdatesForMode(mode);
+        updFeed = await getUpdatesForFeedKey(mode);
         if (updFeed == null) {
           errors.add('Updates: no data returned');
         }

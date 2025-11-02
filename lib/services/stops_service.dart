@@ -116,59 +116,6 @@ class StopsService {
         .toList();
   }
 
-  /// Load all placeholder stops from assets into database
-  static Future<void> loadAllPlaceholderStops() async {
-    // List of all endpoint asset files
-    final endpoints = [
-      // Buses
-      'buses', 'buses_SBSC006', 'buses_GSBC001', 'buses_GSBC002',
-      'buses_GSBC003',
-      'buses_GSBC004', 'buses_GSBC007', 'buses_GSBC008', 'buses_GSBC009',
-      'buses_GSBC010',
-      'buses_GSBC014', 'buses_OSMBSC001', 'buses_OSMBSC002', 'buses_OSMBSC003',
-      'buses_OSMBSC004',
-      'buses_OMBSC006', 'buses_OMBSC007', 'buses_OSMBSC008', 'buses_OSMBSC009',
-      'buses_OSMBSC010',
-      'buses_OSMBSC011', 'buses_OSMBSC012', 'buses_NISC001',
-      'buses_ReplacementBus',
-
-      // Ferries
-      'ferries_sydneyferries', 'ferries_MFF',
-
-      // Light Rail
-      'lightrail_innerwest', 'lightrail_newcastle', 'lightrail_cbdandsoutheast',
-      'lightrail_parramatta',
-
-      // Trains
-      'nswtrains', 'sydneytrains',
-
-      // Regional Buses
-      'regionbuses_southeasttablelands', 'regionbuses_southeasttablelands2',
-      'regionbuses_northcoast',
-      'regionbuses_northcoast2', 'regionbuses_centralwestandorana',
-      'regionbuses_centralwestandorana2',
-      'regionbuses_riverinamurray', 'regionbuses_newenglandnorthwest',
-      'regionbuses_riverinamurray2',
-      'regionbuses_northcoast3', 'regionbuses_sydneysurrounds',
-      'regionbuses_newcastlehunter',
-      'regionbuses_farwest',
-
-      // Metro
-      'metro',
-    ];
-
-    for (final endpoint in endpoints) {
-      try {
-        final assetPath = 'assets/stops/${endpoint}_stops.txt';
-        final stops = await parseStopsFromAsset(assetPath);
-        await storeStopsToDatabase(stops, endpoint);
-        logger.i('Loaded ${stops.length} stops for $endpoint');
-      } catch (e) {
-        logger.w('Failed to load stops for $endpoint: $e');
-      }
-    }
-  }
-
   /// Fetch stops from API endpoint and update database (manual update function)
   static Future<void> updateStopsFromEndpoint(String endpoint) async {
     try {
@@ -188,11 +135,9 @@ class StopsService {
             .i('Updated ${gtfsData.stops.length} stops for $endpoint from API');
       } catch (e, st) {
         logger.e('Database error while storing stops for $endpoint: $e\n$st');
-        rethrow;
       }
     } catch (e) {
       logger.e('Error updating stops from endpoint $endpoint: $e');
-      rethrow;
     }
   }
 
