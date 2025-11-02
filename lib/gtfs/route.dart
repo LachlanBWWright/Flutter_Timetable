@@ -9,6 +9,9 @@ class Route {
   final String? routeColor;
   final String? routeTextColor;
   final String? routeSortOrder;
+  final String? continuousPickup;
+  final String? continuousDropOff;
+  final String? networkId;
 
   Route({
     required this.routeId,
@@ -21,6 +24,9 @@ class Route {
     this.routeColor,
     this.routeTextColor,
     this.routeSortOrder,
+    this.continuousPickup,
+    this.continuousDropOff,
+    this.networkId,
   });
 
   /// Create a Route from a CSV row using header-based field mapping
@@ -43,6 +49,9 @@ class Route {
       routeColor: getField('route_color'),
       routeTextColor: getField('route_text_color'),
       routeSortOrder: getField('route_sort_order'),
+      continuousPickup: getField('continuous_pickup'),
+      continuousDropOff: getField('continuous_drop_off'),
+      networkId: getField('network_id'),
     );
   }
 
@@ -58,6 +67,9 @@ class Route {
         'route_color',
         'route_text_color',
         'route_sort_order',
+        'continuous_pickup',
+        'continuous_drop_off',
+        'network_id',
       ];
 
   static void validateCsvHeader(List<String> header) {

@@ -34,19 +34,19 @@ class StopsService {
     final List<List<dynamic>> csvData =
         const CsvToListConverter().convert(csvString);
 
-    if (csvData.isEmpty) return [];
+    if (csvData.isEmpty || csvData.length < 2) return [];
 
-    // Skip header row
-    final dataRows = csvData.skip(1);
+    // Get header row
+    final header = csvData[0].map((e) => e.toString()).toList();
+    
+    // Parse data rows using header-based parsing
     final stops = <Stop>[];
-
-    for (final row in dataRows) {
-      if (row.length >= 8) {
-        try {
-          stops.add(Stop.fromCsv(row.map((e) => e.toString()).toList()));
-        } catch (e) {
-          // Error parsing stop row
-        }
+    for (var i = 1; i < csvData.length; i++) {
+      try {
+        final row = csvData[i].map((e) => e.toString()).toList();
+        stops.add(Stop.fromCsv(header, row));
+      } catch (e) {
+        logger.w('Error parsing stop row ${i + 1}: $e');
       }
     }
 
@@ -54,12 +54,20 @@ class StopsService {
   }
 
   /// Store stops to database for a specific endpoint
+  /// Only stores stations (location_type=1) per GTFS specification:
+  /// - Stations (location_type=1) - stored
+  /// - All other location types (0, 2, 3, 4) - skipped
   static Future<void> storeStopsToDatabase(
       List<Stop> stops, String endpoint) async {
     final db = database;
 
+    // Filter to only include stations (location_type=1)
+    final stations = stops.where((stop) => stop.locationType == 1).toList();
+
+    logger.i('Storing ${stations.length} stations (filtered from ${stops.length} total stops) for endpoint $endpoint');
+
     // Convert Stop objects to StopsCompanion objects for Drift
-    final stopsCompanions = stops
+    final stopsCompanions = stations
         .map((stop) => StopsCompanion.insert(
               stopId: stop.stopId,
               stopName: stop.stopName,

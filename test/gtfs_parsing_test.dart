@@ -97,7 +97,8 @@ void main() {
 
         expect(station.stopId, equals('STATION1'));
         expect(station.locationType, equals(1)); // Station
-        expect(station.stopName, isNull);
+        expect(station.stopName, equals('Main Station'));
+        expect(station.stopDesc, equals('Central transit station'));
       });
 
       test('Stop validates required fields', () {
