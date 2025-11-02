@@ -1,6 +1,7 @@
 import '../fetch_data/timetable_data.dart';
+import '../gtfs/gtfs_data.dart';
 import '../gtfs/stop.dart';
-import '../logs/logger.dart';
+// logger removed
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
 import '../widgets/station_widgets.dart';
@@ -94,25 +95,25 @@ class NewTripService {
   static Future<void> _loadStopsFromApi(List<String> endpoints) async {
     for (final endpoint in endpoints) {
       try {
-        logger.d('Loading stops from API for endpoint: $endpoint');
+        // Loading stops from API for endpoint: $endpoint
 
         // Get GTFS data from the appropriate endpoint
         final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
         if (gtfsData != null && gtfsData.stops.isNotEmpty) {
           // Store the stops to database
           await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
-          logger.d('Loaded ${gtfsData.stops.length} stops for $endpoint');
+          // Loaded ${gtfsData.stops.length} stops for $endpoint
         } else {
-          logger.d('No GTFS data found for $endpoint');
+          // No GTFS data found for $endpoint
         }
       } catch (e) {
-        logger.e('Error loading stops from endpoint $endpoint: $e');
+        // Error loading stops from endpoint $endpoint
       }
     }
   }
 
   /// Helper function to call the appropriate GTFS fetch function for an endpoint
-  static Future<dynamic> _fetchGtfsDataForEndpoint(String endpoint) async {
+  static Future<GtfsData?> _fetchGtfsDataForEndpoint(String endpoint) async {
     switch (endpoint) {
       // Trains
       case 'nswtrains':
@@ -187,7 +188,7 @@ class NewTripService {
         return await fetchFerriesMFFGtfsData();
 
       default:
-        logger.d('Unknown endpoint: $endpoint');
+    // Unknown endpoint: $endpoint
         return null;
     }
   }
@@ -241,7 +242,7 @@ class NewTripService {
         ...stationsWithoutCoords,
       ];
     } catch (e) {
-      logger.e('Error sorting by distance: $e');
+      // Error sorting by distance
       return sortAlphabetically(stations);
     }
   }

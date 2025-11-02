@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/logs/logger.dart';
+// logger removed
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
@@ -105,7 +105,7 @@ class TripLegCard extends StatelessWidget {
         transportation?.name ?? transportation?.disassembledName ?? '';
 
     if (transportClass == null) {
-      logger.d('Missing transport class');
+      // Missing transport class
       return const Text('Unknown transport class');
     }
 

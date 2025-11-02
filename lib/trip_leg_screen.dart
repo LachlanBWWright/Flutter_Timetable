@@ -262,7 +262,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  Widget _buildStopCard(dynamic stop, int index) {
+  Widget _buildStopCard(Map<String, dynamic> stop, int index) {
     final stopName = stop['disassembledName'] ?? stop['name'] ?? 'Unknown Stop';
     final departureTimePlanned = stop['departureTimePlanned'] as String?;
     final departureTimeEstimated = stop['departureTimeEstimated'] as String?;
@@ -487,7 +487,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
-                    child: _buildStopCard(stopSequence[index], index),
+                    child: _buildStopCard(
+                        stopSequence[index] as Map<String, dynamic>, index),
                   );
                 },
               )

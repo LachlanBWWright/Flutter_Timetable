@@ -215,34 +215,40 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             ),
             const SizedBox(height: 16),
 
-            // Summary card
+            // Summary card — use theme colors for improved contrast
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: Theme.of(context).colorScheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: Colors.blue[200]!),
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.save, color: Colors.blue[700], size: 32),
+                  Icon(Icons.save,
+                      color: Theme.of(context).colorScheme.primary, size: 32),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Total Stops: $_totalStops',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                       ),
                       Text(
                         'Endpoints: ${_stopsCount.length}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                     ],
                   ),
@@ -252,10 +258,12 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
             const SizedBox(height: 16),
 
-            // Action buttons
-            Row(
+            // Action buttons — stacked and full width for better accessibility
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _loadPlaceholderData,
                     icon: const Icon(Icons.file_download),
@@ -266,8 +274,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _updateFromApi,
                     icon: const Icon(Icons.cloud_download),
@@ -278,11 +287,17 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _isLoading ? null : _loadStopsData,
-                  icon: const Icon(Icons.refresh),
-                  tooltip: 'Refresh data',
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: IconButton(
+                        onPressed: _isLoading ? null : _loadStopsData,
+                        icon: const Icon(Icons.refresh),
+                        tooltip: 'Refresh data',
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

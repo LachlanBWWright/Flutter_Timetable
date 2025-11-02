@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/logs/logger.dart';
+// logger removed
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
@@ -68,7 +68,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
       await _applySorting();
     } catch (e) {
-      logger.e('Error loading stations: $e');
+      // Error loading stations
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading stations: $e')),
@@ -183,7 +183,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   Future<void> _saveTrip() async {
     if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
-      logger.d('Attempting to save trip');
+      // Attempting to save trip
       try {
         await _db.insertJourney(JourneysCompanion(
           origin: drift.Value(_firstStation),
@@ -204,7 +204,7 @@ class _NewTripScreenState extends State<NewTripScreen>
           });
         }
       } catch (e) {
-        logger.e('Error inserting journey: $e');
+        // Error inserting journey
       }
     }
   }

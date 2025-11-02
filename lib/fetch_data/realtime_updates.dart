@@ -3,8 +3,8 @@
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/logs/logger.dart';
+import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
 Map<String, String> getHeaders() {
   final apiKey = dotenv.env['API_KEY'] ?? 'YOUR_API_KEY';
@@ -20,12 +20,12 @@ Future<FeedMessage?> fetchBusesUpdates() async {
         Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/realtime/buses');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -36,12 +36,12 @@ Future<FeedMessage?> fetchFerriesSydneyFerriesUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/ferries/sydneyferries');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -52,12 +52,12 @@ Future<FeedMessage?> fetchFerriesMFFUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/ferries/MFF');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -68,12 +68,12 @@ Future<FeedMessage?> fetchLightRailCbdAndSoutheastUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/cbdandsoutheast');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -84,12 +84,12 @@ Future<FeedMessage?> fetchLightRailInnerWestUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/innerwest');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -100,12 +100,12 @@ Future<FeedMessage?> fetchLightRailNewcastleUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/newcastle');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -116,12 +116,12 @@ Future<FeedMessage?> fetchLightRailParramattaUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/parramatta');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -132,12 +132,12 @@ Future<FeedMessage?> fetchNswTrainsUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/nswtrains');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -148,12 +148,12 @@ Future<FeedMessage?> fetchRegionBusesCentralWestAndOranaUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/centralwestandorana');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e) {
+    logger.w('Realtime fetch failed: $e');
     return null;
   }
 }
@@ -164,8 +164,7 @@ Future<FeedMessage?> fetchRegionBusesCentralWestAndOrana2Updates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/centralwestandorana2');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -180,8 +179,7 @@ Future<FeedMessage?> fetchRegionBusesFarWestUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/farwest');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -196,8 +194,7 @@ Future<FeedMessage?> fetchRegionBusesNewcastleHunterUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/newcastlehunter');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -212,8 +209,7 @@ Future<FeedMessage?> fetchRegionBusesNewEnglandNorthWestUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/newenglandnorthwest');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -228,8 +224,7 @@ Future<FeedMessage?> fetchRegionBusesNorthCoastUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -244,8 +239,7 @@ Future<FeedMessage?> fetchRegionBusesNorthCoast2Updates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast2');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -260,8 +254,7 @@ Future<FeedMessage?> fetchRegionBusesNorthCoast3Updates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast3');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -276,8 +269,7 @@ Future<FeedMessage?> fetchRegionBusesRiverinaMurrayUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/riverinamurray');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -292,8 +284,7 @@ Future<FeedMessage?> fetchRegionBusesRiverinaMurray2Updates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/riverinamurray2');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -308,8 +299,7 @@ Future<FeedMessage?> fetchRegionBusesSouthEastTablelandsUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/southeasttablelands');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -324,8 +314,7 @@ Future<FeedMessage?> fetchRegionBusesSouthEastTablelands2Updates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/southeasttablelands2');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -340,8 +329,7 @@ Future<FeedMessage?> fetchRegionBusesSydneySurroundsUpdates() async {
         'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/sydneysurrounds');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -356,8 +344,7 @@ Future<FeedMessage?> fetchSydneyTrainsUpdates() async {
         'https://api.transport.nsw.gov.au/v2/gtfs/realtime/sydneytrains');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -372,8 +359,7 @@ Future<FeedMessage?> fetchSydneyMetroUpdates() async {
         Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch ${url.toString()}: ${response.statusCode}, ${response.body}');
+      // Failed to fetch ${url.toString()}: ${response.statusCode}
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);

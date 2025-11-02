@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:lbww_flutter/logs/logger.dart';
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
@@ -37,7 +36,7 @@ class TransportApiService {
 
       return response.statusCode == 200;
     } catch (e) {
-      logger.e('Error validating API key: $e');
+      // Error validating API key
       return false;
     }
   }
@@ -86,7 +85,7 @@ class TransportApiService {
               })
           .toList();
     } catch (e) {
-      logger.e('Error searching stations: $e');
+      // Error searching stations
       return [];
     }
   }
@@ -131,10 +130,10 @@ class TransportApiService {
       }
 
       final data = jsonDecode(response.body);
-      logger.d(data);
+      // Received getTrips response
       return GetTripsResponse.fromJson(data);
     } catch (e) {
-      logger.e('Error getting trips: $e');
+      // Error getting trips
       return GetTripsResponse(
         tripJourneys: [],
         systemMessages: SystemMessages(responseMessages: []),
@@ -158,8 +157,7 @@ class GetTripsResponse {
   });
 
   factory GetTripsResponse.fromJson(Map<String, dynamic> json) {
-    logger.d('[GetTripsResponse] Raw JSON:');
-    logger.d(json);
+    // GetTripsResponse raw json keys logged (removed)
 
     List<TripJourney> tripJourneys = [];
     SystemMessages? systemMessages;
@@ -169,52 +167,47 @@ class GetTripsResponse {
     try {
       final journeysJson = json['journeys'];
       if (journeysJson == null) {
-        logger.d('[GetTripsResponse] journeys is null or missing!');
+        // journeys is null or missing
       } else if (journeysJson is! List) {
-        logger.d(
-            '[GetTripsResponse] journeys is not a List! Type: \\${journeysJson.runtimeType}');
+        // journeys is not a List! Type: ${journeysJson.runtimeType}
       } else {
-        logger.d('[GetTripsResponse] journeys count: \\${journeysJson.length}');
+        // journeys count: ${journeysJson.length}
         tripJourneys = [];
         for (final journey in journeysJson) {
           try {
             tripJourneys.add(TripJourney.fromJson(journey));
-          } catch (e, st) {
-            logger
-                .e('[GetTripsResponse] Error parsing TripJourney: \\$e\n\\$st');
+          } catch (e) {
+            // Error parsing TripJourney: $e
           }
         }
       }
-    } catch (e, st) {
-      logger.e(
-          '[GetTripsResponse] Exception while parsing journeys: \\$e\n\\$st');
+    } catch (e) {
+      // Exception while parsing journeys: $e
     }
 
     // Parse systemMessages (handle both list and object)
     try {
       final systemMessagesJson = json['systemMessages'];
       if (systemMessagesJson == null) {
-        logger.d('[GetTripsResponse] systemMessages is null or missing!');
+        // systemMessages is null or missing
+        // systemMessages type: ${systemMessagesJson.runtimeType}
       } else {
-        logger.d(
-            '[GetTripsResponse] systemMessages: \\${systemMessagesJson.runtimeType}');
+        // systemMessages type: ${systemMessagesJson.runtimeType}
         systemMessages = SystemMessages.fromJson(systemMessagesJson);
       }
-    } catch (e, st) {
-      logger.e(
-          '[GetTripsResponse] Exception while parsing systemMessages: \\$e\n\\$st');
+    } catch (e) {
+      // Exception while parsing systemMessages: $e
     }
 
     // Parse version
     try {
       version = json['version'];
-      logger.d('[GetTripsResponse] version: \\$version');
+      // version: $version
       if (version == null) {
-        logger.d('[GetTripsResponse] version is null or missing!');
+        // version is null or missing
       }
-    } catch (e, st) {
-      logger
-          .e('[GetTripsResponse] Exception while parsing version: \\$e\n\\$st');
+    } catch (e) {
+      // Exception while parsing version: $e
     }
 
     // Defensive: if systemMessages is still null, use an empty one
@@ -239,13 +232,12 @@ class TripJourney {
   });
 
   factory TripJourney.fromJson(Map<String, dynamic> json) {
-    logger.d('[TripJourney] Raw JSON:');
-    logger.d(json);
+    // TripJourney raw json keys logged (removed)
     final legsJson = json['legs'] as List<dynamic>?;
     if (legsJson == null) {
-      logger.d('[TripJourney] legs is null or missing!');
+      // legs is null or missing
     } else {
-      logger.d('[TripJourney] legs count: \\${legsJson.length}');
+      // legs count: ${legsJson.length}
     }
     return TripJourney(
       isAdditional: json['isAdditional'],
@@ -289,12 +281,10 @@ class Leg {
   });
 
   factory Leg.fromJson(Map<String, dynamic> json) {
-    logger.d('[Leg] Raw JSON:');
-    logger.d(json);
-    logger.d(
-        '[Leg] destination: \\${json['destination'] != null ? 'present' : 'null'}');
-    logger.d('[Leg] origin: \\${json['origin'] != null ? 'present' : 'null'}');
-    logger.d('[Leg] coords: \\${json['coords']?.runtimeType}');
+    // Leg raw json keys logged (removed)
+    // Leg destination present: ${json['destination'] != null}
+    // Leg origin present: ${json['origin'] != null}
+    // Leg coords type: ${json['coords']?.runtimeType}
     return Leg(
       coords: (json['coords'] as List<dynamic>?)
           ?.map((coord) => (coord as List<dynamic>)
@@ -362,8 +352,7 @@ class Stop {
   });
 
   factory Stop.fromJson(Map<String, dynamic> json) {
-    logger.d('stop parent:');
-    logger.d(json['parent']);
+    // stop parent present: ${json['parent'] != null}
     return Stop(
       arrivalTimeEstimated: json['arrivalTimeEstimated'],
       arrivalTimePlanned: json['arrivalTimePlanned'],
@@ -399,7 +388,7 @@ class Parent {
     this.type,
   });
 
-  factory Parent.fromJson(dynamic json) {
+  factory Parent.fromJson(Map<String, dynamic> json) {
     // If it's already a Parent instance, return it
 
     final rawParent = json['parent'];
@@ -411,7 +400,7 @@ class Parent {
         parsedParent = rawParent.toString();
       }
     }
-    logger.d('default');
+    // default
     return Parent(
       disassembledName: json['disassembledName']?.toString(),
       id: json['id']?.toString() ?? '',
@@ -623,9 +612,8 @@ class Info {
     this.version,
   });
 
-  factory Info.fromJson(dynamic json) {
-    logger.d('info');
-    logger.d(json);
+  factory Info.fromJson(Map<String, dynamic> json) {
+    // info (removed)
     return Info(
       content: json['content'],
       id: json['id'],
@@ -914,11 +902,10 @@ class SystemMessages {
     this.responseMessages,
   });
 
-  factory SystemMessages.fromJson(dynamic json) {
+  factory SystemMessages.fromJson(Object json) {
     // If json is a List, treat it as the list of messages directly
     if (json is List) {
-      logger.d(
-          '[SystemMessages] systemMessages is a List, using as responseMessages');
+      // systemMessages is a List, using as responseMessages
       return SystemMessages(
         responseMessages:
             json.map((msg) => ResponseMessage.fromJson(msg)).toList(),
@@ -927,8 +914,7 @@ class SystemMessages {
     // If json is a Map and has responseMessages, use that
     if (json is Map<String, dynamic>) {
       if (json.containsKey('responseMessages')) {
-        logger.d(
-            '[SystemMessages] systemMessages is an object with responseMessages');
+        // systemMessages is an object with responseMessages
         return SystemMessages(
           responseMessages: (json['responseMessages'] as List<dynamic>?)
               ?.map((message) => ResponseMessage.fromJson(message))
@@ -936,15 +922,13 @@ class SystemMessages {
         );
       } else {
         // Sometimes the API may return a single message as an object
-        logger.d(
-            '[SystemMessages] systemMessages is a single object, wrapping in a list');
+        // systemMessages is a single object, wrapping in a list
         return SystemMessages(
           responseMessages: [ResponseMessage.fromJson(json)],
         );
       }
     }
-    logger.d(
-        '[SystemMessages] systemMessages is of unexpected type: \\${json.runtimeType}');
+    // systemMessages is of unexpected type: ${json.runtimeType}
     return SystemMessages(responseMessages: []);
   }
 }

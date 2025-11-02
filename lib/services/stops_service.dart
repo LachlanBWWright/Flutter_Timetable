@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/services.dart';
 
 import '../fetch_data/timetable_data.dart';
+import '../gtfs/gtfs_data.dart';
 import '../gtfs/stop.dart';
 import '../logs/logger.dart';
 import '../schema/database.dart' hide Stop;
@@ -23,7 +24,7 @@ class StopsService {
       final csvString = await rootBundle.loadString(assetPath);
       return _parseStopsFromCsv(csvString);
     } catch (e) {
-      logger.e('Error loading stops from asset $assetPath: $e');
+      logger.w('Error loading stops from asset $assetPath: $e');
       return [];
     }
   }
@@ -44,7 +45,7 @@ class StopsService {
         try {
           stops.add(Stop.fromCsv(row.map((e) => e.toString()).toList()));
         } catch (e) {
-          logger.e('Error parsing stop row: $row, error: $e');
+          // Error parsing stop row
         }
       }
     }
@@ -161,9 +162,9 @@ class StopsService {
         final assetPath = 'assets/stops/${endpoint}_stops.txt';
         final stops = await parseStopsFromAsset(assetPath);
         await storeStopsToDatabase(stops, endpoint);
-        logger.d('Loaded ${stops.length} stops for $endpoint');
+        logger.i('Loaded ${stops.length} stops for $endpoint');
       } catch (e) {
-        logger.e('Failed to load stops for $endpoint: $e');
+        logger.w('Failed to load stops for $endpoint: $e');
       }
     }
   }
@@ -171,26 +172,32 @@ class StopsService {
   /// Fetch stops from API endpoint and update database (manual update function)
   static Future<void> updateStopsFromEndpoint(String endpoint) async {
     try {
-      logger.d('Fetching stops from API for endpoint: $endpoint');
+      // Fetching stops from API for endpoint: $endpoint
 
       // Get GTFS data from the appropriate endpoint
       final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
       if (gtfsData == null) {
-        logger.e(
-            'Failed to fetch GTFS data for $endpoint: no data returned from API.');
+        // Failed to fetch GTFS data for $endpoint: no data returned from API.
         return;
       }
 
       // Store the stops to database
-      await storeStopsToDatabase(gtfsData.stops, endpoint);
-      logger.d('Updated ${gtfsData.stops.length} stops for $endpoint from API');
+      try {
+        await storeStopsToDatabase(gtfsData.stops, endpoint);
+        logger
+            .i('Updated ${gtfsData.stops.length} stops for $endpoint from API');
+      } catch (e, st) {
+        logger.e('Database error while storing stops for $endpoint: $e\n$st');
+        rethrow;
+      }
     } catch (e) {
       logger.e('Error updating stops from endpoint $endpoint: $e');
+      rethrow;
     }
   }
 
   /// Helper function to call the appropriate GTFS fetch function for an endpoint
-  static Future<dynamic> _fetchGtfsDataForEndpoint(String endpoint) async {
+  static Future<GtfsData?> _fetchGtfsDataForEndpoint(String endpoint) async {
     switch (endpoint) {
       // Buses
       case 'buses':
@@ -293,7 +300,7 @@ class StopsService {
         return await fetchRegionBusesFarWestGtfsData();
 
       default:
-        logger.d('Unknown endpoint: $endpoint');
+        // Unknown endpoint: $endpoint
         return null;
     }
   }
@@ -348,22 +355,18 @@ class StopsService {
       'regionbuses_farwest',
     ];
 
-    logger.d('Starting to update all stops from API endpoints...');
-    int successCount = 0;
-    int failureCount = 0;
+    // Starting to update all stops from API endpoints...
+    // Counters removed (previously used for logging)
 
     for (final endpoint in endpoints) {
       try {
         await updateStopsFromEndpoint(endpoint);
-        successCount++;
       } catch (e) {
-        logger.e('Failed to update $endpoint: $e');
-        failureCount++;
+        logger.w('Failed to update $endpoint: $e');
       }
     }
 
-    logger.d(
-        'Finished updating stops. Success: $successCount, Failures: $failureCount');
+    // Finished updating stops. Success: $successCount, Failures: $failureCount
   }
 
   /// Get total number of stops in database

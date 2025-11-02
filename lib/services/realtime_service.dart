@@ -4,57 +4,66 @@ import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
 /// Service for managing realtime transport data
 class RealtimeService {
-  
   /// Get realtime positions for all transport modes
   static Future<Map<String, FeedMessage?>> getAllRealtimePositions() async {
     final results = <String, FeedMessage?>{};
-    
+
     // Trains
     results['sydney_trains'] = await positions.fetchSydneyTrainsPositions();
     results['nsw_trains'] = await positions.fetchNswTrainsPositions();
     results['metro'] = await positions.fetchSydneyMetroPositions();
-    
-    // Buses  
+
+    // Buses
     results['buses'] = await positions.fetchBusesPositions();
-    
+
     // Light Rail
-    results['lightrail_cbd_southeast'] = await positions.fetchLightRailCbdAndSoutheastPositions();
-    results['lightrail_innerwest'] = await positions.fetchLightRailInnerWestPositions();
-    results['lightrail_newcastle'] = await positions.fetchLightRailNewcastlePositions();
-    results['lightrail_parramatta'] = await positions.fetchLightRailParramattaPositions();
-    
+    results['lightrail_cbd_southeast'] =
+        await positions.fetchLightRailCbdAndSoutheastPositions();
+    results['lightrail_innerwest'] =
+        await positions.fetchLightRailInnerWestPositions();
+    results['lightrail_newcastle'] =
+        await positions.fetchLightRailNewcastlePositions();
+    results['lightrail_parramatta'] =
+        await positions.fetchLightRailParramattaPositions();
+
     // Ferries
-    results['ferries_sydney'] = await positions.fetchFerriesSydneyFerriesPositions();
+    results['ferries_sydney'] =
+        await positions.fetchFerriesSydneyFerriesPositions();
     results['ferries_mff'] = await positions.fetchFerriesMFFPositions();
-    
+
     return results;
   }
-  
-  /// Get realtime trip updates for all transport modes  
+
+  /// Get realtime trip updates for all transport modes
   static Future<Map<String, FeedMessage?>> getAllRealtimeUpdates() async {
     final results = <String, FeedMessage?>{};
-    
+
     // Trains
     results['sydney_trains'] = await updates.fetchSydneyTrainsUpdates();
     results['nsw_trains'] = await updates.fetchNswTrainsUpdates();
     results['metro'] = await updates.fetchSydneyMetroUpdates();
-    
+
     // Buses
     results['buses'] = await updates.fetchBusesUpdates();
-    
+
     // Light Rail
-    results['lightrail_cbd_southeast'] = await updates.fetchLightRailCbdAndSoutheastUpdates();
-    results['lightrail_innerwest'] = await updates.fetchLightRailInnerWestUpdates();
-    results['lightrail_newcastle'] = await updates.fetchLightRailNewcastleUpdates();
-    results['lightrail_parramatta'] = await updates.fetchLightRailParramattaUpdates();
-    
+    results['lightrail_cbd_southeast'] =
+        await updates.fetchLightRailCbdAndSoutheastUpdates();
+    results['lightrail_innerwest'] =
+        await updates.fetchLightRailInnerWestUpdates();
+    results['lightrail_newcastle'] =
+        await updates.fetchLightRailNewcastleUpdates();
+    results['lightrail_parramatta'] =
+        await updates.fetchLightRailParramattaUpdates();
+
     // Ferries
-    results['ferries_sydney'] = await updates.fetchFerriesSydneyFerriesUpdates();
+    results['ferries_sydney'] =
+        await updates.fetchFerriesSydneyFerriesUpdates();
     results['ferries_mff'] = await updates.fetchFerriesMFFUpdates();
-    
+
     return results;
   }
-  
+
   /// Get positions for specific transport mode
   static Future<FeedMessage?> getPositionsForMode(String mode) async {
     switch (mode.toLowerCase()) {
@@ -82,7 +91,7 @@ class RealtimeService {
         return null;
     }
   }
-  
+
   /// Get trip updates for specific transport mode
   static Future<FeedMessage?> getUpdatesForMode(String mode) async {
     switch (mode.toLowerCase()) {
@@ -110,75 +119,109 @@ class RealtimeService {
         return null;
     }
   }
-  
+
   /// Get region bus positions
   static Future<List<FeedMessage?>> getRegionBusPositions() async {
     return await positions.getAllRegionBuses();
   }
-  
+
   /// Get region bus updates
   static Future<List<FeedMessage?>> getRegionBusUpdates() async {
     return await updates.fetchAllRegionBuses();
   }
-  
+
   /// Get all ferry positions
   static Future<List<FeedMessage?>> getAllFerryPositions() async {
     return await positions.getAllFerries();
   }
-  
+
   /// Get all ferry updates
   static Future<List<FeedMessage?>> getAllFerryUpdates() async {
     return await updates.fetchAllFerries();
   }
-  
+
   /// Get all light rail positions
   static Future<List<FeedMessage?>> getAllLightRailPositions() async {
     return await positions.getAllLightRail();
   }
-  
+
   /// Get all light rail updates
   static Future<List<FeedMessage?>> getAllLightRailUpdates() async {
     return await updates.fetchAllLightRail();
   }
-  
+
   /// Extract vehicle positions from feed message
   static List<VehiclePosition> extractVehiclePositions(FeedMessage? feed) {
     if (feed == null) return [];
-    
+
     return feed.entity
         .where((entity) => entity.hasVehicle())
         .map((entity) => entity.vehicle)
         .toList();
   }
-  
+
   /// Extract trip updates from feed message
   static List<TripUpdate> extractTripUpdates(FeedMessage? feed) {
     if (feed == null) return [];
-    
+
     return feed.entity
         .where((entity) => entity.hasTripUpdate())
         .map((entity) => entity.tripUpdate)
         .toList();
   }
-  
+
   /// Get realtime status summary
   static Future<Map<String, dynamic>> getRealtimeStatusSummary() async {
-    final positions = await getAllRealtimePositions();
-    final updates = await getAllRealtimeUpdates();
-    
+    // Build summary by fetching positions and updates per-mode and collect any errors
+    final modes = <String>[
+      'sydney_trains',
+      'nsw_trains',
+      'metro',
+      'buses',
+      'lightrail_cbd_southeast',
+      'lightrail_innerwest',
+      'lightrail_newcastle',
+      'lightrail_parramatta',
+      'ferries_sydney',
+      'ferries_mff',
+    ];
+
     final summary = <String, dynamic>{};
-    
-    for (final mode in positions.keys) {
-      final positionCount = extractVehiclePositions(positions[mode]).length;
-      final updateCount = extractTripUpdates(updates[mode]).length;
-      
+
+    for (final mode in modes) {
+      final errors = <String>[];
+      FeedMessage? posFeed;
+      FeedMessage? updFeed;
+
+      try {
+        posFeed = await getPositionsForMode(mode);
+        if (posFeed == null) {
+          errors.add('Positions: no data returned');
+        }
+      } catch (e) {
+        errors.add('Positions: ${e.toString()}');
+      }
+
+      try {
+        updFeed = await getUpdatesForMode(mode);
+        if (updFeed == null) {
+          errors.add('Updates: no data returned');
+        }
+      } catch (e) {
+        errors.add('Updates: ${e.toString()}');
+      }
+
+      final positionCount = extractVehiclePositions(posFeed).length;
+      final updateCount = extractTripUpdates(updFeed).length;
+
       summary[mode] = {
         'vehicles': positionCount,
         'updates': updateCount,
         'last_updated': DateTime.now().toIso8601String(),
+        'errors': errors,
       };
     }
-    
+
     return summary;
   }
 }

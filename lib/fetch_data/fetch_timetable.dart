@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:lbww_flutter/logs/logger.dart';
+// logger removed
 
 /// Fetches the complete GTFS timetable as JSON from Transport for NSW Open Data.
 ///
@@ -22,8 +22,7 @@ Future<Map<String, dynamic>?> fetchTimetable() async {
       },
     );
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch timetable: ${response.statusCode}, ${response.body}');
+      // Failed to fetch timetable
       return null;
     }
     return json.decode(response.body) as Map<String, dynamic>;

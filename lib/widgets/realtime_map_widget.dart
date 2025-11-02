@@ -18,11 +18,34 @@ class RealtimeMapWidget extends StatefulWidget {
   State<RealtimeMapWidget> createState() => _RealtimeMapWidgetState();
 }
 
+// Small helper struct to keep a VehiclePosition together with its inferred mode
+class _VehicleWithMode {
+  final VehiclePosition vehicle;
+  final String mode;
+
+  _VehicleWithMode(this.vehicle, this.mode);
+}
+
 class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   final MapController _mapController = MapController();
-  List<VehiclePosition> _vehicles = [];
+  // Store vehicles with an associated mode so markers can use mode-specific
+  // colors and icons.
+  List<_VehicleWithMode> _vehicles = [];
   bool _isLoading = false;
   String? _error;
+
+  // Available modes (keys) and whether they're enabled in the UI filter.
+  static const List<String> _allModes = [
+    'train',
+    'metro',
+    'bus',
+    'ferry',
+    'lightrail',
+    'coach',
+    'unknown',
+  ];
+
+  late Map<String, bool> _modeEnabled;
 
   // Sydney CBD as default center
   late LatLng _mapCenter;
@@ -40,6 +63,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     } else {
       _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
     }
+    // Enable all modes by default (initialize before loading)
+    _modeEnabled = {for (var m in _allModes) m: true};
     _loadVehiclePositions();
   }
 
@@ -51,7 +76,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
     try {
       final allPositions = await RealtimeService.getAllRealtimePositions();
-      final vehicles = <VehiclePosition>[];
+      final vehicles = <_VehicleWithMode>[];
 
       for (final entry in allPositions.entries) {
         if (widget.mode != null && !entry.key.contains(widget.mode!)) {
@@ -62,24 +87,31 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         if (feedMessage != null) {
           final vehiclePositions =
               RealtimeService.extractVehiclePositions(feedMessage);
-          vehicles.addAll(vehiclePositions);
+          // Determine a mode for this feed key so we can colour and icon each marker
+          final feedMode = _modeFromFeedKey(entry.key);
+          vehicles.addAll(
+              vehiclePositions.map((v) => _VehicleWithMode(v, feedMode)));
         }
       }
 
       // Filter by route if specified
       if (widget.routeFilter != null) {
-        vehicles.removeWhere((vehicle) =>
-            !vehicle.trip.hasRouteId() ||
-            !vehicle.trip.routeId.contains(widget.routeFilter!));
+        // Only remove vehicles that have a routeId and do not match the filter.
+        // Do not drop vehicles that lack routeId information.
+        vehicles.removeWhere((vw) =>
+            vw.vehicle.trip.hasRouteId() &&
+            !vw.vehicle.trip.routeId.contains(widget.routeFilter!));
       }
 
-      // If a leg is provided, filter vehicles to those near the leg's route (if possible)
+      // If a leg is provided, filter vehicles to those matching the leg's route id
       if (widget.leg != null &&
           widget.leg!.transportation != null &&
           widget.leg!.transportation!.id != null) {
         final legRouteId = widget.leg!.transportation!.id!;
-        vehicles.removeWhere((vehicle) =>
-            !vehicle.trip.hasRouteId() || vehicle.trip.routeId != legRouteId);
+        // Only remove vehicles that have a routeId and it doesn't match the leg.
+        vehicles.removeWhere((vw) =>
+            vw.vehicle.trip.hasRouteId() &&
+            vw.vehicle.trip.routeId != legRouteId);
       }
 
       setState(() {
@@ -96,31 +128,19 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
   List<Marker> _buildVehicleMarkers() {
     return _vehicles
-        .where((vehicle) =>
-            vehicle.hasPosition() &&
-            vehicle.position.hasLatitude() &&
-            vehicle.position.hasLongitude())
-        .map((vehicle) {
+        .where((vw) =>
+            vw.vehicle.hasPosition() &&
+            vw.vehicle.position.hasLatitude() &&
+            vw.vehicle.position.hasLongitude() &&
+            // Only include vehicles whose mode is enabled in the filter
+            (_modeEnabled[vw.mode] ?? (_modeEnabled['unknown'] ?? true)))
+        .map((vw) {
+      final vehicle = vw.vehicle;
       final position = vehicle.position;
-      final trip = vehicle.trip;
+      final mode = vw.mode;
 
-      // Determine color based on route or mode
-      Color markerColor = TransportColors.bus; // default
-      if (trip.hasRouteId()) {
-        markerColor = TransportColors.getColorByLine(trip.routeId);
-        if (markerColor == Colors.grey) {
-          // Fallback to mode-based color
-          if (trip.routeId.startsWith('T')) {
-            markerColor = TransportColors.train;
-          } else if (trip.routeId.startsWith('M')) {
-            markerColor = TransportColors.metro;
-          } else if (trip.routeId.startsWith('L')) {
-            markerColor = TransportColors.lightRail;
-          } else if (trip.routeId.startsWith('F')) {
-            markerColor = TransportColors.ferry;
-          }
-        }
-      }
+      // Use mode-based color and icon mapping
+      Color markerColor = TransportColors.getColorByMode(mode);
 
       return Marker(
         point: LatLng(position.latitude, position.longitude),
@@ -142,7 +162,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               ],
             ),
             child: Icon(
-              _getVehicleIcon(trip.routeId),
+              _getVehicleIconByMode(mode),
               color: Colors.white,
               size: 16,
             ),
@@ -152,12 +172,74 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     }).toList();
   }
 
-  IconData _getVehicleIcon(String routeId) {
-    if (routeId.startsWith('T')) return Icons.train;
-    if (routeId.startsWith('M')) return Icons.subway;
-    if (routeId.startsWith('L')) return Icons.tram;
-    if (routeId.startsWith('F')) return Icons.directions_boat;
-    return Icons.directions_bus;
+  void _openModeFilterSheet(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Show modes',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
+                ..._allModes.map((mode) {
+                  return CheckboxListTile(
+                    value: _modeEnabled[mode] ?? true,
+                    title: Text(mode[0].toUpperCase() + mode.substring(1)),
+                    onChanged: (v) {
+                      setSheetState(() => _modeEnabled[mode] = v ?? false);
+                      setState(() {});
+                    },
+                  );
+                }).toList(),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Done'),
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  // Infer a simple mode string from the feed key used in RealtimeService
+  String _modeFromFeedKey(String feedKey) {
+    final k = feedKey.toLowerCase();
+    if (k.contains('train')) return 'train';
+    if (k.contains('metro')) return 'metro';
+    if (k.contains('bus')) return 'bus';
+    if (k.contains('ferry') || k.contains('ferries')) return 'ferry';
+    if (k.contains('lightrail')) return 'lightrail';
+    if (k.contains('coach')) return 'coach';
+    return 'unknown';
+  }
+
+  IconData _getVehicleIconByMode(String mode) {
+    switch (mode.toLowerCase()) {
+      case 'train':
+        return Icons.train;
+      case 'metro':
+        return Icons.subway;
+      case 'lightrail':
+      case 'light rail':
+        return Icons.tram;
+      case 'ferry':
+        return Icons.directions_boat;
+      case 'coach':
+        return Icons.airline_seat_recline_normal;
+      case 'bus':
+        return Icons.directions_bus;
+      case 'unknown':
+      default:
+        return Icons.help_outline;
+    }
   }
 
   void _showVehicleInfo(VehiclePosition vehicle) {
@@ -238,6 +320,11 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             icon: const Icon(Icons.refresh),
             onPressed: _isLoading ? null : _loadVehiclePositions,
           ),
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Filter modes',
+            onPressed: () => _openModeFilterSheet(context),
+          ),
         ],
       ),
       body: _isLoading
@@ -306,7 +393,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         onPressed: () {
           // Fit map to show all vehicles or leg
           if (_vehicles.isNotEmpty) {
-            final bounds = _calculateBounds(_vehicles);
+            final bounds =
+                _calculateBounds(_vehicles.map((vw) => vw.vehicle).toList());
             _mapController.fitCamera(CameraFit.bounds(
                 bounds: bounds, padding: const EdgeInsets.all(50)));
           } else if (widget.leg != null &&

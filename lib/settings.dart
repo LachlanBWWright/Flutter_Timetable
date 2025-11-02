@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'services/location_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:lbww_flutter/schema/database.dart' as db;
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
@@ -134,6 +136,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: const Text('Open Realtime Map'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
                         ),
                       ),
                     ),
@@ -196,7 +200,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _updateStatus ?? 'No recent updates',
-                      style: TextStyle(color: Colors.grey[700]),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     if (_isUpdating)
@@ -211,20 +217,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       )
                     else
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: _performUpdate,
-                            icon: const Icon(Icons.download),
-                            label: const Text('Update now'),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _performUpdate,
+                              icon: const Icon(Icons.download),
+                              label: const Text('Update now'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            onPressed: _performUpdate,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Force refresh'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _performUpdate,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Force refresh'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
                             ),
                           ),
                         ],
@@ -236,9 +258,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (_updateStatus != null &&
                         _updateStatus!.isNotEmpty &&
                         !_isUpdating)
-                      TextButton(
-                        onPressed: () => setState(() => _updateStatus = null),
-                        child: const Text('Clear status'),
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () => setState(() => _updateStatus = null),
+                          child: const Text('Clear status'),
+                        ),
+                      ),
+
+                    // Dev-only: full DB reset (delete file and recreate)
+                    if (kDebugMode)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              setState(() {
+                                _isUpdating = true;
+                                _updateStatus = 'Resetting database...';
+                              });
+                              try {
+                                await db.AppDatabase.resetDatabase();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('Database reset successfully'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('Database reset failed: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                setState(() {
+                                  _isUpdating = false;
+                                  _updateStatus = null;
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.restore),
+                            label: const Text('Reset DB (dev)'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
                       ),
                   ],
                 ),

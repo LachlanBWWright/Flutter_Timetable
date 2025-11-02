@@ -4,33 +4,10 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 
+part 'tables/journeys.dart';
+part 'tables/stops.dart';
+
 part 'database.g.dart';
-
-// Drift table for journeys
-class Journeys extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get origin => text()();
-  TextColumn get originId => text()();
-  TextColumn get destination => text()();
-  TextColumn get destinationId => text()();
-  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
-}
-
-// Drift table for stops
-class Stops extends Table {
-  TextColumn get stopId => text()();
-  TextColumn get stopName => text()();
-  RealColumn get stopLat => real().nullable()();
-  RealColumn get stopLon => real().nullable()();
-  IntColumn get locationType => integer().nullable()();
-  TextColumn get parentStation => text().nullable()();
-  IntColumn get wheelchairBoarding => integer().nullable()();
-  TextColumn get platformCode => text().nullable()();
-  TextColumn get endpoint => text()();
-
-  @override
-  Set<Column> get primaryKey => {stopId, endpoint};
-}
 
 @DriftDatabase(tables: [Journeys, Stops])
 class AppDatabase extends _$AppDatabase {
@@ -50,6 +27,10 @@ class AppDatabase extends _$AppDatabase {
 
   factory AppDatabase() => _instance ??= AppDatabase._internal();
 
+  /// Create an AppDatabase backed by the provided [QueryExecutor].
+  /// Useful for tests where an in-memory or temporary file database is required.
+  AppDatabase.connect(QueryExecutor executor) : super(executor);
+
   @override
   int get schemaVersion => 3;
 
@@ -57,12 +38,6 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (Migrator m) {
           return m.createAll();
-        },
-        onUpgrade: (Migrator m, int from, int to) async {
-          if (from < 3) {
-            // Add isPinned column to journeys table
-            await m.addColumn(journeys, journeys.isPinned);
-          }
         },
       );
 
@@ -142,6 +117,43 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // No extra connection helpers are exposed; use the AppDatabase() singleton.
+
+  /// Close, delete and recreate the underlying database file.
+  ///
+  /// This is intended for development/testing only. It will close the current
+  /// instance (if any), delete the database file from the application's
+  /// documents directory and create a fresh DB instance.
+  static Future<void> resetDatabase() async {
+    // Close existing instance if open
+    try {
+      await _instance?.close();
+    } catch (_) {
+      // ignore errors during close
+    }
+
+    _instance = null;
+
+    // Delete the DB file
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File('${dbFolder.path}/trip_database.db');
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // ignore file delete errors in reset
+    }
+
+    // Create a fresh instance backed by a new LazyDatabase executor so we don't
+    // reuse any cached executor that may have been closed previously.
+    final newExecutor = LazyDatabase(() async {
+      final dbFolder = await getApplicationDocumentsDirectory();
+      final file = File('${dbFolder.path}/trip_database.db');
+      return NativeDatabase(file);
+    });
+
+    _instance = AppDatabase.connect(newExecutor);
+  }
 }
 
 /* LazyDatabase _openConnection() {

@@ -14,7 +14,7 @@ import '../gtfs/shape.dart';
 import '../gtfs/stop.dart';
 import '../gtfs/stop_time.dart';
 import '../gtfs/trip.dart';
-import '../logs/logger.dart';
+// logger removed
 
 //V1
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime
@@ -51,8 +51,7 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
         'https://api.transport.nsw.gov.au/v1/gtfs/timetable$endpoint');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch GTFS data for $endpoint: ${response.statusCode}, ${response.body}');
+      // Failed to fetch GTFS data for $endpoint
       return null;
     }
     final archive = ZipDecoder().decodeBytes(response.bodyBytes);
@@ -63,8 +62,8 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
       }
     }
     return parseGtfsFiles(csvFiles);
-  } catch (e, st) {
-    logger.e('Error fetching GTFS data for $endpoint: $e\n$st');
+  } catch (e) {
+    // Error fetching GTFS data for $endpoint
     return null;
   }
 }
@@ -79,8 +78,7 @@ Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
       headers: getHeaders(),
     );
     if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch Metro schedule realtime: ${response.statusCode}, ${response.body}');
+      // Failed to fetch Metro schedule realtime
       return null;
     }
 
@@ -88,14 +86,14 @@ Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
     final archive = ZipDecoder().decodeBytes(response.bodyBytes);
     final Map<String, String> csvFiles = {};
     for (final file in archive) {
-      logger.d(file.name);
+      // file: ${file.name}
       if (file.isFile && file.name.endsWith('.txt')) {
         //csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
       }
     }
     return csvFiles;
-  } catch (e, st) {
-    logger.e('Error fetching Metro schedule realtime: $e\n$st');
+  } catch (e) {
+    // Error fetching Metro schedule realtime
     return null;
   }
 }
