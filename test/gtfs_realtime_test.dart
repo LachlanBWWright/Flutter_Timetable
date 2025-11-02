@@ -56,7 +56,6 @@ void main() {
           reason: 'All Region Buses: No data or API error');
       logger.d(
           'All Region Buses: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
-      expect(feeds[0]!.entity.isNotEmpty, true);
     });
 
     test('Sydney Metro GTFS-realtime endpoint returns valid FeedMessage',

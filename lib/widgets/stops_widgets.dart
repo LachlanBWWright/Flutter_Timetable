@@ -206,12 +206,22 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Stops Database Management',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Stops Database Management',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _isLoading ? null : _loadStopsData,
+                  tooltip: 'Refresh data',
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -288,17 +298,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: IconButton(
-                        onPressed: _isLoading ? null : _loadStopsData,
-                        icon: const Icon(Icons.refresh),
-                        tooltip: 'Refresh data',
-                      ),
-                    ),
-                  ],
-                ),
+                // refresh button moved to title row above
               ],
             ),
 

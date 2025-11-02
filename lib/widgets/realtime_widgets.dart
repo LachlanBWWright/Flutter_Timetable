@@ -124,27 +124,13 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
                       color: Colors.grey[600],
                     ),
                   ),
-                  // show any error logs from the fetches inside the same coloured section
-                  if (data.containsKey('errors') &&
-                      (data['errors'] as List).isNotEmpty)
-                    const SizedBox(height: 6),
-                  if (data.containsKey('errors'))
-                    ...((data['errors'] as List).cast<String>()).map(
-                      (err) => Text(
-                        err,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.red[700],
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
             if (vehicleCount > 0 || updateCount > 0)
-              Icon(
+              const Icon(
                 Icons.check_circle,
-                color: Colors.green[700],
+                color: Colors.green,
                 size: 20,
               )
             else

@@ -173,40 +173,80 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   }
 
   void _openModeFilterSheet(BuildContext context) async {
+    // Compute vehicle counts per mode from the current loaded vehicles so we
+    // can show counts next to each mode in the toggle list.
+    final counts = <String, int>{};
+    for (final m in _allModes) counts[m] = 0;
+    for (final vw in _vehicles) {
+      counts[vw.mode] = (counts[vw.mode] ?? 0) + 1;
+    }
+
     await showModalBottomSheet(
       context: context,
       builder: (context) {
         return StatefulBuilder(builder: (context, setSheetState) {
+          // Constrain the bottom sheet height and make contents scrollable so
+          // a long list of modes doesn't overflow on smaller screens.
           return Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Show modes',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 12),
-                ..._allModes.map((mode) {
-                  return CheckboxListTile(
-                    value: _modeEnabled[mode] ?? true,
-                    title: Text(mode[0].toUpperCase() + mode.substring(1)),
-                    onChanged: (v) {
-                      setSheetState(() => _modeEnabled[mode] = v ?? false);
-                      setState(() {});
-                    },
-                  );
-                }).toList(),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Done'),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                // Allow the sheet to grow but cap at 70% of the screen height
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Show modes',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 12),
+                    ..._allModes.map((mode) {
+                      final display = _modeDisplayName(mode);
+                      final count = counts[mode] ?? 0;
+                      return CheckboxListTile(
+                        value: _modeEnabled[mode] ?? true,
+                        title: Text('$display (${count.toString()})'),
+                        onChanged: (v) {
+                          setSheetState(() => _modeEnabled[mode] = v ?? false);
+                          setState(() {});
+                        },
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Done'),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           );
         });
       },
     );
+  }
+
+  String _modeDisplayName(String mode) {
+    switch (mode) {
+      case 'train':
+        return 'Trains';
+      case 'metro':
+        return 'Metro';
+      case 'bus':
+        return 'Buses';
+      case 'ferry':
+        return 'Ferries';
+      case 'lightrail':
+        return 'Light Rail';
+      case 'coach':
+        return 'Coach';
+      case 'unknown':
+      default:
+        return mode[0].toUpperCase() + mode.substring(1);
+    }
   }
 
   // Infer a simple mode string from the feed key used in RealtimeService

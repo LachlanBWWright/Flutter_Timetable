@@ -98,7 +98,7 @@ class NewTripService {
         // Loading stops from API for endpoint: $endpoint
 
         // Get GTFS data from the appropriate endpoint
-        final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
+        final gtfsData = await fetchGtfsDataForEndpoint(endpoint);
         if (gtfsData != null && gtfsData.stops.isNotEmpty) {
           // Store the stops to database
           await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
@@ -113,7 +113,7 @@ class NewTripService {
   }
 
   /// Helper function to call the appropriate GTFS fetch function for an endpoint
-  static Future<GtfsData?> _fetchGtfsDataForEndpoint(String endpoint) async {
+  static Future<GtfsData?> fetchGtfsDataForEndpoint(String endpoint) async {
     switch (endpoint) {
       // Trains
       case 'nswtrains':
@@ -188,7 +188,7 @@ class NewTripService {
         return await fetchFerriesMFFGtfsData();
 
       default:
-    // Unknown endpoint: $endpoint
+        // Unknown endpoint: $endpoint
         return null;
     }
   }

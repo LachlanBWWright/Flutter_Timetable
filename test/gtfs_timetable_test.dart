@@ -6,6 +6,14 @@ import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 void main() {
   setUpAll(() async {
     await dotenv.load();
+    final apiKey = dotenv.env['API_KEY'];
+    if (apiKey == null ||
+        apiKey.isEmpty ||
+        apiKey.toLowerCase() == 'your_api_key_here' ||
+        apiKey.toLowerCase() == 'your_api_key') {
+      fail(
+          'API_KEY not set in .env. Please create a .env file in the project root with a valid NSW Transport API key, e.g.:\n\nAPI_KEY=your_real_api_key_here');
+    }
   });
 
   test('fetchBusesGtfsData returns a GtfsData object', () async {

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
 import '../gtfs/agency.dart';
 import '../gtfs/calendar.dart';
@@ -14,7 +15,7 @@ import '../gtfs/shape.dart';
 import '../gtfs/stop.dart';
 import '../gtfs/stop_time.dart';
 import '../gtfs/trip.dart';
-// logger removed
+import '../logs/logger.dart';
 
 //V1
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime
@@ -47,11 +48,12 @@ Map<String, String> getHeaders() {
 
 Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
   try {
-    final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/timetable$endpoint');
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/schedule$endpoint');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      // Failed to fetch GTFS data for $endpoint
+      logger.e(
+          'Failed to fetch GTFS data for $endpoint: ${response.statusCode}, ${response.body}');
       return null;
     }
     final archive = ZipDecoder().decodeBytes(response.bodyBytes);
@@ -62,38 +64,29 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
       }
     }
     return parseGtfsFiles(csvFiles);
-  } catch (e) {
-    // Error fetching GTFS data for $endpoint
+  } catch (e, st) {
+    logger.e('Error fetching GTFS data for $endpoint: $e\n$st');
     return null;
   }
 }
 
-/// Fetches the Metro GTFS schedule zip, extracts CSV files, and returns a map of filename to CSV string.
-Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
+/// Fetches the Metro GTFS-realtime trip updates feed (protobuf) and
+/// returns a parsed [FeedMessage]. The previous implementation returned a
+/// CSV map from a schedule ZIP; the tests expect a realtime FeedMessage so
+/// this function now calls the realtime endpoint.
+Future<FeedMessage?> fetchMetroScheduleRealtime() async {
   try {
     final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/schedule/metro');
-    final response = await http.get(
-      url,
-      headers: getHeaders(),
-    );
+        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro');
+    final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      // Failed to fetch Metro schedule realtime
+      logger.e(
+          'Failed to fetch Metro realtime: ${response.statusCode}, ${response.body}');
       return null;
     }
-
-    // Unzip the response body in memory
-    final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-    final Map<String, String> csvFiles = {};
-    for (final file in archive) {
-      // file: ${file.name}
-      if (file.isFile && file.name.endsWith('.txt')) {
-        //csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-      }
-    }
-    return csvFiles;
-  } catch (e) {
-    // Error fetching Metro schedule realtime
+    return FeedMessage.fromBuffer(response.bodyBytes);
+  } catch (e, st) {
+    logger.e('Error fetching Metro realtime: $e\n$st');
     return null;
   }
 }

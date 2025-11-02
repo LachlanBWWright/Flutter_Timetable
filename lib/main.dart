@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
-// logger removed
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 
@@ -75,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _filteredJourneys = allJourneys;
       });
     } catch (e) {
-      // Error loading trips
+      logger.e('Error loading trips: $e');
     }
   }
 
@@ -97,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await _database.deleteJourney(tripId);
       getTrips();
     } catch (e) {
-      // Error deleting trip
+      logger.e('Error deleting trip: $e');
     }
   }
 
@@ -106,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await _database.toggleJourneyPin(tripId, !isPinned);
       getTrips();
     } catch (e) {
-      // Error toggling pin
+      logger.e('Error toggling pin: $e');
     }
   }
 
