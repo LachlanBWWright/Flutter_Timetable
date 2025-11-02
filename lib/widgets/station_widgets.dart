@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/transport_colors.dart';
 
 /// A model class for station data
 class Station {
@@ -263,6 +264,12 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
             icon: Icon(
               Icons.tram,
               color: Color.fromARGB(255, 255, 82, 82),
+            ),
+          ),
+          Tab(
+            icon: Icon(
+              Icons.subway,
+              color: TransportColors.metro,
             ),
           ),
           Tab(

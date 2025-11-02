@@ -20,6 +20,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   List<Station> _busStationList = [];
   List<Station> _ferryStationList = [];
   List<Station> _lightRailStationList = [];
+  List<Station> _metroStationList = [];
   List<Station> _filteredStations = [];
   String _firstStation = '';
   String _firstStationId = '';
@@ -36,7 +37,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+  _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
     keyController.addListener(_applySearchFilter);
     _loadAllModes();
@@ -49,6 +50,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       NewTripService.loadStopsForMode('lightrail'),
       NewTripService.loadStopsForMode('bus'),
       NewTripService.loadStopsForMode('ferry'),
+      NewTripService.loadStopsForMode('metro'),
     ];
 
     setState(() {
@@ -62,6 +64,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         _lightRailStationList = results[1];
         _busStationList = results[2];
         _ferryStationList = results[3];
+        _metroStationList = results[4];
         _filteredStations = _getCurrentStationList();
         _isLoading = false;
       });
@@ -105,6 +108,9 @@ class _NewTripScreenState extends State<NewTripScreen>
             break;
           case 3:
             _currentMode = 'ferry';
+            break;
+          case 4:
+            _currentMode = 'metro';
             break;
         }
       });
@@ -215,6 +221,8 @@ class _NewTripScreenState extends State<NewTripScreen>
         return _trainStationList;
       case 'lightrail':
         return _lightRailStationList;
+      case 'metro':
+        return _metroStationList;
       case 'bus':
         return _busStationList;
       case 'ferry':
@@ -241,6 +249,9 @@ class _NewTripScreenState extends State<NewTripScreen>
           break;
         case 'lightrail':
           _lightRailStationList = sortedStations;
+          break;
+        case 'metro':
+          _metroStationList = sortedStations;
           break;
         case 'bus':
           _busStationList = sortedStations;
@@ -277,7 +288,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     final bool canSave = _firstStation.isNotEmpty && _secondStation.isNotEmpty;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: NewTripAppBar(
           isSearching: _isSearching,
@@ -298,14 +309,15 @@ class _NewTripScreenState extends State<NewTripScreen>
             // Main content with TabBarView
             Expanded(
               child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildStationTab('train'),
-                  _buildStationTab('lightrail'),
-                  _buildStationTab('bus'),
-                  _buildStationTab('ferry'),
-                ],
-              ),
+                  controller: _tabController,
+                  children: [
+                    _buildStationTab('train'),
+                    _buildStationTab('lightrail'),
+                    _buildStationTab('bus'),
+                    _buildStationTab('ferry'),
+                    _buildStationTab('metro'),
+                  ],
+                ),
             ),
 
             // Selected stops widget at the bottom

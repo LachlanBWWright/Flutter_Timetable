@@ -61,7 +61,7 @@ class SelectedStopsWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8.0,
             offset: const Offset(0, -2),
           ),
@@ -145,14 +145,14 @@ class SelectedStopsWidget extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(
           color: isEmpty 
-            ? Colors.grey.withValues(alpha: 0.3)
-            : modeColor.withValues(alpha: 0.3),
+            ? Colors.grey.withOpacity(0.3)
+            : modeColor.withOpacity(0.3),
           width: 1.0,
         ),
         borderRadius: BorderRadius.circular(8.0),
         color: isEmpty 
-          ? Colors.grey.withValues(alpha: 0.05)
-          : modeColor.withValues(alpha: 0.05),
+          ? Colors.grey.withOpacity(0.05)
+          : modeColor.withOpacity(0.05),
       ),
       padding: const EdgeInsets.all(12.0),
       child: Column(

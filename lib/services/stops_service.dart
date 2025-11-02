@@ -271,6 +271,10 @@ class StopsService {
       case 'sydneytrains':
         return await fetchSydneyTrainsGtfsData();
 
+      // Metro
+      case 'metro':
+        return await fetchMetroGtfsData();
+
       // Regional Buses
       case 'regionbuses_southeasttablelands':
         return await fetchRegionBusesSouthEastTablelandsGtfsData();
@@ -340,6 +344,7 @@ class StopsService {
       'lightrail_parramatta',
       'nswtrains',
       'sydneytrains',
+      'metro',
       'regionbuses_southeasttablelands',
       'regionbuses_southeasttablelands2',
       'regionbuses_northcoast',

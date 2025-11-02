@@ -91,6 +91,36 @@ Future<FeedMessage?> fetchMetroScheduleRealtime() async {
   }
 }
 
+/// Some feeds (notably Metro) are exposed under the v2 schedule surface.
+/// Use this helper to fetch GTFS schedule ZIPs from the v2 path when needed.
+Future<GtfsData?> _fetchGtfsDataFromEndpointV2(String endpoint) async {
+  try {
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/schedule$endpoint');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch GTFS data (v2) for $endpoint: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    final archive = ZipDecoder().decodeBytes(response.bodyBytes);
+    final Map<String, String> csvFiles = {};
+    for (final file in archive) {
+      if (file.isFile && file.name.endsWith('.txt')) {
+        csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
+      }
+    }
+    return parseGtfsFiles(csvFiles);
+  } catch (e, st) {
+    logger.e('Error fetching GTFS data (v2) for $endpoint: $e\n$st');
+    return null;
+  }
+}
+
+/// Fetch Metro schedule GTFS using the v2 schedule surface
+Future<GtfsData?> fetchMetroGtfsData() =>
+    _fetchGtfsDataFromEndpointV2('/metro');
+
 Future<GtfsData?> fetchBusesGtfsData() => _fetchGtfsDataFromEndpoint('/buses');
 Future<GtfsData?> fetchBusesSBSC006GtfsData() =>
     _fetchGtfsDataFromEndpoint('/buses/SBSC006');

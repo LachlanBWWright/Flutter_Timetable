@@ -33,6 +33,10 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   List<_VehicleWithMode> _vehicles = [];
   bool _isLoading = false;
   String? _error;
+  // Map readiness and pending actions
+  bool _mapIsReady = false;
+  CameraFit? _pendingFit;
+  LatLng? _pendingCenter;
 
   // Available modes (keys) and whether they're enabled in the UI filter.
   static const List<String> _allModes = [
@@ -395,6 +399,18 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                         initialZoom: 11.0,
                         minZoom: 8.0,
                         maxZoom: 18.0,
+                        onMapReady: () {
+                          setState(() {
+                            _mapIsReady = true;
+                          });
+                          if (_pendingFit != null) {
+                            _mapController.fitCamera(_pendingFit!);
+                            _pendingFit = null;
+                          } else if (_pendingCenter != null) {
+                            _mapController.move(_pendingCenter!, 11.0);
+                            _pendingCenter = null;
+                          }
+                        },
                       ),
                       children: [
                         TileLayer(
@@ -431,12 +447,17 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Fit map to show all vehicles or leg
+          // Fit map to show all vehicles or leg. If the map isn't ready,
+          // store the intent and apply when onMapReady fires.
           if (_vehicles.isNotEmpty) {
             final bounds =
                 _calculateBounds(_vehicles.map((vw) => vw.vehicle).toList());
-            _mapController.fitCamera(CameraFit.bounds(
-                bounds: bounds, padding: const EdgeInsets.all(50)));
+            final fit = CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50));
+            if (_mapIsReady) {
+              _mapController.fitCamera(fit);
+            } else {
+              _pendingFit = fit;
+            }
           } else if (widget.leg != null &&
               widget.leg!.origin.coord != null &&
               widget.leg!.destination.coord != null) {
@@ -446,10 +467,18 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               LatLng(widget.leg!.destination.coord![0],
                   widget.leg!.destination.coord![1]),
             );
-            _mapController.fitCamera(CameraFit.bounds(
-                bounds: bounds, padding: const EdgeInsets.all(50)));
+            final fit = CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50));
+            if (_mapIsReady) {
+              _mapController.fitCamera(fit);
+            } else {
+              _pendingFit = fit;
+            }
           } else {
-            _mapController.move(_mapCenter, 11.0);
+            if (_mapIsReady) {
+              _mapController.move(_mapCenter, 11.0);
+            } else {
+              _pendingCenter = _mapCenter;
+            }
           }
         },
         child: const Icon(Icons.my_location),

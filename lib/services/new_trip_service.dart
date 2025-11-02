@@ -35,14 +35,46 @@ class NewTripService {
     }
 
     // Convert Stop objects to Station objects for the UI
-    return allStops
-        .map((stop) => Station(
-              name: stop.stopName,
-              id: stop.stopId,
-              latitude: stop.stopLat != 0.0 ? stop.stopLat : null,
-              longitude: stop.stopLon != 0.0 ? stop.stopLon : null,
-            ))
-        .toList();
+    // Helper to detect suspect stop names (numeric or equal to the id)
+    bool isSuspectName(String name, String id) {
+      final trimmed = name.trim();
+      if (trimmed.isEmpty) return true;
+      if (trimmed == id) return true;
+      // If name is numeric-only, treat as suspect
+      if (RegExp(r'^\d+\$').hasMatch(trimmed)) return true;
+      return false;
+    }
+
+    return allStops.map((stop) {
+      String displayName = stop.stopName;
+
+      if (isSuspectName(displayName, stop.stopId)) {
+        // Try to find a parent station's name in the fetched stops
+        if (stop.parentStation != null && stop.parentStation!.isNotEmpty) {
+          final parentMatches = allStops
+              .where((s) => s.stopId == stop.parentStation)
+              .toList();
+          if (parentMatches.isNotEmpty) {
+            final parentName = parentMatches.first.stopName;
+            if (!isSuspectName(parentName, parentMatches.first.stopId)) {
+              displayName = parentName;
+            }
+          }
+        }
+      }
+
+      // Fallback: if still suspect, use stopId so the user at least sees an identifier
+      if (isSuspectName(displayName, stop.stopId)) {
+        displayName = stop.stopId;
+      }
+
+      return Station(
+        name: displayName,
+        id: stop.stopId,
+        latitude: stop.stopLat != 0.0 ? stop.stopLat : null,
+        longitude: stop.stopLon != 0.0 ? stop.stopLon : null,
+      );
+    }).toList();
   }
 
   /// Get the list of API endpoints for a transport mode
@@ -50,6 +82,8 @@ class NewTripService {
     switch (mode) {
       case 'train':
         return ['nswtrains', 'sydneytrains'];
+      case 'metro':
+        return ['metro'];
       case 'lightrail':
         return [
           'lightrail_innerwest',
@@ -252,6 +286,8 @@ class NewTripService {
     switch (mode) {
       case 'train':
         return 'Train';
+      case 'metro':
+        return 'Metro';
       case 'lightrail':
         return 'Light Rail';
       case 'bus':
