@@ -18,6 +18,9 @@ import '../gtfs/stop_time.dart';
 import '../gtfs/trip.dart';
 import '../logs/logger.dart';
 
+/// Which schedule surface to use when fetching GTFS schedule ZIPs
+enum GtfsScheduleVersion { v1, v2 }
+
 //V1
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime
 //Metro on v2
@@ -56,14 +59,16 @@ Map<String, String> getHeaders() {
   };
 }
 
-Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
+Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
+    {GtfsScheduleVersion version = GtfsScheduleVersion.v1}) async {
   try {
-    final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/schedule$endpoint');
+    final versionPath = version == GtfsScheduleVersion.v2 ? 'v2' : 'v1';
+    final url = Uri.parse(
+        'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule$endpoint');
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       logger.e(
-          'Failed to fetch GTFS data for $endpoint: ${response.statusCode}, ${response.body}');
+          'Failed to fetch GTFS data for $endpoint (version=$versionPath): ${response.statusCode}, ${response.body}');
       return null;
     }
     final archive = ZipDecoder().decodeBytes(response.bodyBytes);
@@ -143,35 +148,9 @@ Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV2(
   }
 }
 
-/// Some feeds (notably Metro) are exposed under the v2 schedule surface.
-/// Use this helper to fetch GTFS schedule ZIPs from the v2 path when needed.
-Future<GtfsData?> _fetchGtfsDataFromEndpointV2(String endpoint) async {
-  try {
-    final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/schedule$endpoint');
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      logger.e(
-          'Failed to fetch GTFS data (v2) for $endpoint: ${response.statusCode}, ${response.body}');
-      return null;
-    }
-    final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-    final Map<String, String> csvFiles = {};
-    for (final file in archive) {
-      if (file.isFile && file.name.endsWith('.txt')) {
-        csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-      }
-    }
-    return parseGtfsFiles(csvFiles);
-  } catch (e, st) {
-    logger.e('Error fetching GTFS data (v2) for $endpoint: $e\n$st');
-    return null;
-  }
-}
-
 /// Fetch Metro schedule GTFS using the v2 schedule surface
 Future<GtfsData?> fetchMetroGtfsData() =>
-    _fetchGtfsDataFromEndpointV2('/metro');
+    _fetchGtfsDataFromEndpoint('/metro', version: GtfsScheduleVersion.v2);
 
 Future<GtfsData?> fetchBusesGtfsData() => _fetchGtfsDataFromEndpoint('/buses');
 Future<GtfsData?> fetchBusesSBSC006GtfsData() =>
@@ -275,17 +254,15 @@ List<Agency> parseAgencyCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('agency.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       Agency.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -297,17 +274,15 @@ List<Calendar> parseCalendarCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('calendar.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       Calendar.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -319,17 +294,15 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('calendar_dates.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       CalendarDate.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -341,17 +314,15 @@ List<Route> parseRoutesCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('routes.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       Route.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -363,17 +334,15 @@ List<Stop> parseStopsCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('stops.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       Stop.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -385,17 +354,15 @@ List<StopTime> parseStopTimesCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('stop_times.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       StopTime.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -407,17 +374,15 @@ List<Trip> parseTripsCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('trips.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       Trip.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -429,17 +394,15 @@ List<Shape> parseShapesCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('shapes.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       Shape.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
@@ -451,17 +414,15 @@ List<Note> parseNotesCsv(String csv) {
   if (rows.length < 2) {
     return [];
   }
-  
+
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
   logger.i('notes.txt header: $header');
-  
+
   return [
     for (var i = 1; i < rows.length; i++)
       Note.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList()
-      )
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
