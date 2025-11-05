@@ -1,7 +1,7 @@
-import 'package:test/test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
+import 'package:test/test.dart';
 
 void main() {
   setUpAll(() async {
@@ -18,5 +18,5 @@ void main() {
     expect(data, isNotNull);
     // The feed should contain at least stops or routes
     expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
-  }, timeout: Timeout(Duration(seconds: 60)));
+  }, timeout: const Timeout(Duration(seconds: 60)));
 }

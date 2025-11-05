@@ -5,7 +5,7 @@ import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 
 void main() {
   // Helper to print first N stops and a frequency map of locationType values
-  void _logStopsSummary(GtfsData data, String name, int showCount) {
+  void logStopsSummary(GtfsData data, String name, int showCount) {
     final stops = data.stops;
     print(
         '\n--- $name feed: ${stops.length} stops (showing up to $showCount) ---');
@@ -51,11 +51,11 @@ void main() {
     expect(data.stops.length, greaterThanOrEqualTo(5),
         reason: 'Expected at least 5 stops for buses feed');
     if (data.stops.isNotEmpty) {
-      _logStopsSummary(data, 'buses', 10);
+      logStopsSummary(data, 'buses', 10);
     } else {
       print('\n--- buses feed returned 0 stops ---');
     }
-  }, timeout: Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('fetchFerriesSydneyFerriesGtfsData returns a GtfsData object', () async {
     final data = await fetchFerriesSydneyFerriesGtfsData();
@@ -63,7 +63,7 @@ void main() {
     expect(data, isA<GtfsData>());
     expect(data!.routes, isA<List>());
     if (data.stops.isNotEmpty) {
-      _logStopsSummary(data, 'ferries', 10);
+      logStopsSummary(data, 'ferries', 10);
     } else {
       print('\n--- ferries feed returned 0 stops ---');
     }
@@ -77,11 +77,11 @@ void main() {
     expect(data.stops.length, greaterThanOrEqualTo(5),
         reason: 'Expected at least 5 stops for metro feed');
     if (data.stops.isNotEmpty) {
-      _logStopsSummary(data, 'metro', 50);
+      logStopsSummary(data, 'metro', 50);
     } else {
       print('No stops returned for Metro feed');
     }
-  }, timeout: Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('fetchLightRailInnerWestGtfsData returns a GtfsData object', () async {
     final data = await fetchLightRailInnerWestGtfsData();
@@ -89,7 +89,7 @@ void main() {
     expect(data, isA<GtfsData>());
     expect(data!.trips, isA<List>());
     if (data.stops.isNotEmpty) {
-      _logStopsSummary(data, 'lightrail', 10);
+      logStopsSummary(data, 'lightrail', 10);
     } else {
       print('\n--- lightrail feed returned 0 stops ---');
     }
@@ -104,11 +104,11 @@ void main() {
     expect(data.stops.length, greaterThanOrEqualTo(5),
         reason: 'Expected at least 5 stops for nswtrains feed');
     if (data.stops.isNotEmpty) {
-      _logStopsSummary(data, 'nswtrains', 10);
+      logStopsSummary(data, 'nswtrains', 10);
     } else {
       print('\n--- nswtrains feed returned 0 stops ---');
     }
-  }, timeout: Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('fetchSydneyTrainsGtfsData returns a GtfsData object and logs a station',
       () async {
@@ -119,7 +119,7 @@ void main() {
     expect(data.stops.length, greaterThanOrEqualTo(5),
         reason: 'Expected at least 5 stops for sydneytrains feed');
     if (data.stops.isNotEmpty) {
-      _logStopsSummary(data, 'sydneytrains', 100);
+      logStopsSummary(data, 'sydneytrains', 100);
     } else {
       print('No stops returned for SydneyTrains feed');
     }
@@ -132,9 +132,9 @@ void main() {
     expect(data, isA<GtfsData>());
     expect(data!.stops, isA<List>());
     if (data.stops.isNotEmpty) {
-      _logStopsSummary(data, 'metro', 100);
+      logStopsSummary(data, 'metro', 100);
     } else {
       print('No stops returned for Metro feed');
     }
-  }, timeout: Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
+import '../utils/transport_display.dart';
 
 /// Widget displaying realtime transport information
 class RealtimeInfoWidget extends StatefulWidget {
@@ -13,7 +15,7 @@ class RealtimeInfoWidget extends StatefulWidget {
 }
 
 class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
-  Map<String, dynamic>? _statusSummary;
+  Map<TransportMode, Map<String, dynamic>>? _statusSummary;
   bool _isLoading = false;
   String? _error;
 
@@ -82,49 +84,32 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   List<Widget> _buildStatusList() {
     final summary = _statusSummary!;
     return summary.entries.map((entry) {
-      final mode = entry.key;
-      final data = entry.value as Map<String, dynamic>;
+      final modeKey = entry.key;
+      final data = entry.value;
       final vehicleCount = data['vehicles'] as int;
       final updateCount = data['updates'] as int;
+
+      // modeKey is a TransportMode enum per service contract. Use it
+      // directly for display and color. Keep a modeString for any
+      // legacy string-based fallbacks (not expected here).
+      final TransportMode parsedMode = modeKey;
+
+      // Resolve display name: prefer typed TransportMode helper, otherwise
+      // fall back to a generic formatted fallback.
+      final displayName = getDisplayNameForTransportMode(parsedMode);
 
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
           color: (() {
-            final parsed = transportModeFromString(mode);
-            if (parsed != null)
-              return TransportColors.getColorByTransportMode(parsed)
-                  .withValues(alpha: 0.1);
-            if (mode.contains('trains'))
-              return TransportColors.train.withValues(alpha: 0.1);
-            if (mode.contains('metro'))
-              return TransportColors.metro.withValues(alpha: 0.1);
-            if (mode.contains('buses'))
-              return TransportColors.bus.withValues(alpha: 0.1);
-            if (mode.contains('lightrail'))
-              return TransportColors.lightRail.withValues(alpha: 0.1);
-            if (mode.contains('ferries'))
-              return TransportColors.ferry.withValues(alpha: 0.1);
-            return Colors.grey.withOpacity(0.1);
+            return TransportColors.getColorByTransportMode(parsedMode)
+                .withValues(alpha: 0.1);
           })(),
           borderRadius: BorderRadius.circular(8.0),
           border: Border.all(color: (() {
-            final parsed = transportModeFromString(mode);
-            if (parsed != null)
-              return TransportColors.getColorByTransportMode(parsed)
-                  .withValues(alpha: 0.3);
-            if (mode.contains('trains'))
-              return TransportColors.train.withValues(alpha: 0.3);
-            if (mode.contains('metro'))
-              return TransportColors.metro.withValues(alpha: 0.3);
-            if (mode.contains('buses'))
-              return TransportColors.bus.withValues(alpha: 0.3);
-            if (mode.contains('lightrail'))
-              return TransportColors.lightRail.withValues(alpha: 0.3);
-            if (mode.contains('ferries'))
-              return TransportColors.ferry.withValues(alpha: 0.3);
-            return Colors.grey.withOpacity(0.3);
+            return TransportColors.getColorByTransportMode(parsedMode)
+                .withValues(alpha: 0.3);
           })()),
         ),
         child: Row(
@@ -133,18 +118,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
               width: 4,
               height: 40,
               decoration: BoxDecoration(
-                color: (() {
-                  final parsed = transportModeFromString(mode);
-                  if (parsed != null)
-                    return TransportColors.getColorByTransportMode(parsed);
-                  if (mode.contains('trains')) return TransportColors.train;
-                  if (mode.contains('metro')) return TransportColors.metro;
-                  if (mode.contains('buses')) return TransportColors.bus;
-                  if (mode.contains('lightrail'))
-                    return TransportColors.lightRail;
-                  if (mode.contains('ferries')) return TransportColors.ferry;
-                  return Colors.grey;
-                })(),
+                color: TransportColors.getColorByTransportMode(parsedMode),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -154,7 +128,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _getDisplayName(mode),
+                    displayName,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -193,57 +167,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   // available so that transport modes are always represented by the
   // `TransportMode` enum when possible.
 
-  String _getDisplayName(String mode) {
-    // Try typed helper first
-    final parsed = transportModeFromString(mode);
-    if (parsed != null) return _getDisplayNameForTransportMode(parsed);
-
-    switch (mode) {
-      case 'sydney_trains':
-        return 'Sydney Trains';
-      case 'nsw_trains':
-        return 'NSW Trains';
-      case 'metro':
-        return 'Sydney Metro';
-      case 'buses':
-        return 'Buses';
-      case 'lightrail_cbd_southeast':
-        return 'Light Rail CBD & SE';
-      case 'lightrail_innerwest':
-        return 'Light Rail Inner West';
-      case 'lightrail_newcastle':
-        return 'Light Rail Newcastle';
-      case 'lightrail_parramatta':
-        return 'Light Rail Parramatta';
-      case 'ferries_sydney':
-        return 'Sydney Ferries';
-      case 'ferries_mff':
-        return 'Manly Fast Ferry';
-      default:
-        return mode
-            .replaceAll('_', ' ')
-            .split(' ')
-            .map((word) => word.isNotEmpty
-                ? word[0].toUpperCase() + word.substring(1)
-                : word)
-            .join(' ');
-    }
-  }
-
-  String _getDisplayNameForTransportMode(TransportMode mode) {
-    switch (mode) {
-      case TransportMode.train:
-        return 'Trains';
-      case TransportMode.metro:
-        return 'Metro';
-      case TransportMode.bus:
-        return 'Buses';
-      case TransportMode.lightrail:
-        return 'Light Rail';
-      case TransportMode.ferry:
-        return 'Ferries';
-    }
-  }
+  // _getDisplayName removed — display name resolution is inlined where needed
 }
 
 /// Widget for displaying specific transport mode positions

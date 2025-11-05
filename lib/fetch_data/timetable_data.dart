@@ -1,10 +1,10 @@
 // dart:convert not required now - CSV parsing uses package:csv
 
 import 'package:archive/archive.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
-import 'package:csv/csv.dart';
 
 import '../gtfs/agency.dart';
 import '../gtfs/calendar.dart';
@@ -78,7 +78,22 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
         csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
       }
     }
-    return parseGtfsFiles(csvFiles);
+    final data = parseGtfsFiles(csvFiles);
+    // Debug logging: report how many stops were parsed and sample a few rows
+    try {
+      logger.i(
+          'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files');
+      logger.i('stops.txt contains ${data.stops.length} rows');
+      for (var i = 0; i < data.stops.length && i < 10; i++) {
+        final s = data.stops[i];
+        logger.d(
+            'Sample stop[$i]: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}');
+      }
+    } catch (e) {
+      logger.w('Error logging parsed GTFS sample for $endpoint: $e');
+    }
+
+    return data;
   } catch (e, st) {
     logger.e('Error fetching GTFS data for $endpoint: $e\n$st');
     return null;
@@ -249,7 +264,7 @@ Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
 List<Agency> parseAgencyCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('agency.txt is empty');
+    throw const FormatException('agency.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -269,7 +284,7 @@ List<Agency> parseAgencyCsv(String csv) {
 List<Calendar> parseCalendarCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('calendar.txt is empty');
+    throw const FormatException('calendar.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -289,7 +304,7 @@ List<Calendar> parseCalendarCsv(String csv) {
 List<CalendarDate> parseCalendarDatesCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('calendar_dates.txt is empty');
+    throw const FormatException('calendar_dates.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -309,7 +324,7 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
 List<Route> parseRoutesCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('routes.txt is empty');
+    throw const FormatException('routes.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -329,7 +344,7 @@ List<Route> parseRoutesCsv(String csv) {
 List<Stop> parseStopsCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('stops.txt is empty');
+    throw const FormatException('stops.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -349,7 +364,7 @@ List<Stop> parseStopsCsv(String csv) {
 List<StopTime> parseStopTimesCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('stop_times.txt is empty');
+    throw const FormatException('stop_times.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -369,7 +384,7 @@ List<StopTime> parseStopTimesCsv(String csv) {
 List<Trip> parseTripsCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('trips.txt is empty');
+    throw const FormatException('trips.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -389,7 +404,7 @@ List<Trip> parseTripsCsv(String csv) {
 List<Shape> parseShapesCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('shapes.txt is empty');
+    throw const FormatException('shapes.txt is empty');
   }
   if (rows.length < 2) {
     return [];
@@ -409,7 +424,7 @@ List<Shape> parseShapesCsv(String csv) {
 List<Note> parseNotesCsv(String csv) {
   final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
   if (rows.isEmpty) {
-    throw FormatException('notes.txt is empty');
+    throw const FormatException('notes.txt is empty');
   }
   if (rows.length < 2) {
     return [];

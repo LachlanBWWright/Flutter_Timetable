@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/schema/database.dart' as db;
 
 import 'services/location_service.dart';
-import 'package:flutter/foundation.dart';
-import 'package:lbww_flutter/schema/database.dart' as db;
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';

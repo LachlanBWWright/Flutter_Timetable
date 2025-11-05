@@ -1,101 +1,56 @@
+import '../constants/transport_modes.dart';
 import '../fetch_data/realtime_positions.dart' as positions;
 import '../fetch_data/realtime_updates.dart' as updates;
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
-import '../constants/transport_modes.dart';
 
 /// Service for managing realtime transport data
 class RealtimeService {
-  /// Get realtime positions for all transport modes
-  static Future<Map<String, FeedMessage?>> getAllRealtimePositions() async {
-    final results = <String, FeedMessage?>{};
-
-    // Trains
-    results['sydney_trains'] = await positions.fetchSydneyTrainsPositions();
-    results['nsw_trains'] = await positions.fetchNswTrainsPositions();
-    results['metro'] = await positions.fetchSydneyMetroPositions();
-
-    // Buses
-    results['buses'] = await positions.fetchBusesPositions();
-
-    // Light Rail
-    results['lightrail_cbd_southeast'] =
-        await positions.fetchLightRailCbdAndSoutheastPositions();
-    results['lightrail_innerwest'] =
-        await positions.fetchLightRailInnerWestPositions();
-    results['lightrail_newcastle'] =
-        await positions.fetchLightRailNewcastlePositions();
-    results['lightrail_parramatta'] =
-        await positions.fetchLightRailParramattaPositions();
-
-    // Ferries
-    results['ferries_sydney'] =
-        await positions.fetchFerriesSydneyFerriesPositions();
-    results['ferries_mff'] = await positions.fetchFerriesMFFPositions();
-
-    return results;
-  }
-
-  /// Get realtime trip updates for all transport modes
-  static Future<Map<String, FeedMessage?>> getAllRealtimeUpdates() async {
-    final results = <String, FeedMessage?>{};
-
-    // Trains
-    results['sydney_trains'] = await updates.fetchSydneyTrainsUpdates();
-    results['nsw_trains'] = await updates.fetchNswTrainsUpdates();
-    results['metro'] = await updates.fetchSydneyMetroUpdates();
-
-    // Buses
-    results['buses'] = await updates.fetchBusesUpdates();
-
-    // Light Rail
-    results['lightrail_cbd_southeast'] =
-        await updates.fetchLightRailCbdAndSoutheastUpdates();
-    results['lightrail_innerwest'] =
-        await updates.fetchLightRailInnerWestUpdates();
-    results['lightrail_newcastle'] =
-        await updates.fetchLightRailNewcastleUpdates();
-    results['lightrail_parramatta'] =
-        await updates.fetchLightRailParramattaUpdates();
-
-    // Ferries
-    results['ferries_sydney'] =
-        await updates.fetchFerriesSydneyFerriesUpdates();
-    results['ferries_mff'] = await updates.fetchFerriesMFFUpdates();
-
-    return results;
-  }
-
-  /// Get positions for a specific feed key (legacy / granular).
+  /// Get realtime positions for all broad transport modes.
   ///
-  /// This used to be named `getPositionsForMode` and accepted many
-  /// granular feed keys such as `sydney_trains` or `lightrail_innerwest`.
-  /// It has been renamed to make the distinction between a broad
-  /// `TransportMode` enum and a feed key explicit.
-  static Future<FeedMessage?> getPositionsForFeedKey(String feedKey) async {
-    switch (feedKey.toLowerCase()) {
-      case 'sydney_trains':
-        return await positions.fetchSydneyTrainsPositions();
-      case 'nsw_trains':
-        return await positions.fetchNswTrainsPositions();
-      case 'metro':
-        return await positions.fetchSydneyMetroPositions();
-      case 'buses':
-        return await positions.fetchBusesPositions();
-      case 'lightrail_cbd_southeast':
-        return await positions.fetchLightRailCbdAndSoutheastPositions();
-      case 'lightrail_innerwest':
-        return await positions.fetchLightRailInnerWestPositions();
-      case 'lightrail_newcastle':
-        return await positions.fetchLightRailNewcastlePositions();
-      case 'lightrail_parramatta':
-        return await positions.fetchLightRailParramattaPositions();
-      case 'ferries_sydney':
-        return await positions.fetchFerriesSydneyFerriesPositions();
-      case 'ferries_mff':
-        return await positions.fetchFerriesMFFPositions();
-      default:
-        return null;
-    }
+  /// Returns a map keyed by [TransportMode] (the broad mode) with the
+  /// corresponding canonical feed [FeedMessage] where available. This
+  /// intentionally uses the enum as the key instead of string feed keys so
+  /// callers can rely on typed mode values.
+  static Future<Map<TransportMode, FeedMessage?>>
+      getAllRealtimePositions() async {
+    final results = <TransportMode, FeedMessage?>{};
+
+    // Use the typed wrappers which map a broad TransportMode to a
+    // canonical feed key and fetch function.
+    results[TransportMode.train] =
+        await getPositionsForTransportMode(TransportMode.train);
+    results[TransportMode.metro] =
+        await getPositionsForTransportMode(TransportMode.metro);
+    results[TransportMode.bus] =
+        await getPositionsForTransportMode(TransportMode.bus);
+    results[TransportMode.lightrail] =
+        await getPositionsForTransportMode(TransportMode.lightrail);
+    results[TransportMode.ferry] =
+        await getPositionsForTransportMode(TransportMode.ferry);
+
+    return results;
+  }
+
+  /// Get realtime trip updates for all broad transport modes.
+  ///
+  /// Returns a map keyed by [TransportMode] with the canonical feed
+  /// [FeedMessage] for each broad mode.
+  static Future<Map<TransportMode, FeedMessage?>>
+      getAllRealtimeUpdates() async {
+    final results = <TransportMode, FeedMessage?>{};
+
+    results[TransportMode.train] =
+        await getUpdatesForTransportMode(TransportMode.train);
+    results[TransportMode.metro] =
+        await getUpdatesForTransportMode(TransportMode.metro);
+    results[TransportMode.bus] =
+        await getUpdatesForTransportMode(TransportMode.bus);
+    results[TransportMode.lightrail] =
+        await getUpdatesForTransportMode(TransportMode.lightrail);
+    results[TransportMode.ferry] =
+        await getUpdatesForTransportMode(TransportMode.ferry);
+
+    return results;
   }
 
   /// Typed wrapper: get positions for a broad TransportMode. This maps the
@@ -105,43 +60,15 @@ class RealtimeService {
       TransportMode mode) async {
     switch (mode) {
       case TransportMode.train:
-        return await getPositionsForFeedKey('sydney_trains');
+        return await positions.fetchSydneyTrainsPositions();
       case TransportMode.metro:
-        return await getPositionsForFeedKey('metro');
+        return await positions.fetchSydneyMetroPositions();
       case TransportMode.bus:
-        return await getPositionsForFeedKey('buses');
+        return await positions.fetchBusesPositions();
       case TransportMode.lightrail:
-        return await getPositionsForFeedKey('lightrail_cbd_southeast');
+        return await positions.fetchLightRailCbdAndSoutheastPositions();
       case TransportMode.ferry:
-        return await getPositionsForFeedKey('ferries_sydney');
-    }
-  }
-
-  /// Get trip updates for a specific feed key (legacy / granular).
-  static Future<FeedMessage?> getUpdatesForFeedKey(String feedKey) async {
-    switch (feedKey.toLowerCase()) {
-      case 'sydney_trains':
-        return await updates.fetchSydneyTrainsUpdates();
-      case 'nsw_trains':
-        return await updates.fetchNswTrainsUpdates();
-      case 'metro':
-        return await updates.fetchSydneyMetroUpdates();
-      case 'buses':
-        return await updates.fetchBusesUpdates();
-      case 'lightrail_cbd_southeast':
-        return await updates.fetchLightRailCbdAndSoutheastUpdates();
-      case 'lightrail_innerwest':
-        return await updates.fetchLightRailInnerWestUpdates();
-      case 'lightrail_newcastle':
-        return await updates.fetchLightRailNewcastleUpdates();
-      case 'lightrail_parramatta':
-        return await updates.fetchLightRailParramattaUpdates();
-      case 'ferries_sydney':
-        return await updates.fetchFerriesSydneyFerriesUpdates();
-      case 'ferries_mff':
-        return await updates.fetchFerriesMFFUpdates();
-      default:
-        return null;
+        return await positions.fetchFerriesSydneyFerriesPositions();
     }
   }
 
@@ -150,15 +77,15 @@ class RealtimeService {
       TransportMode mode) async {
     switch (mode) {
       case TransportMode.train:
-        return await getUpdatesForFeedKey('sydney_trains');
+        return await updates.fetchSydneyTrainsUpdates();
       case TransportMode.metro:
-        return await getUpdatesForFeedKey('metro');
+        return await updates.fetchSydneyMetroUpdates();
       case TransportMode.bus:
-        return await getUpdatesForFeedKey('buses');
+        return await updates.fetchBusesUpdates();
       case TransportMode.lightrail:
-        return await getUpdatesForFeedKey('lightrail_cbd_southeast');
+        return await updates.fetchLightRailCbdAndSoutheastUpdates();
       case TransportMode.ferry:
-        return await getUpdatesForFeedKey('ferries_sydney');
+        return await updates.fetchFerriesSydneyFerriesUpdates();
     }
   }
 
@@ -213,22 +140,18 @@ class RealtimeService {
   }
 
   /// Get realtime status summary
-  static Future<Map<String, dynamic>> getRealtimeStatusSummary() async {
-    // Build summary by fetching positions and updates per-mode and collect any errors
-    final modes = <String>[
-      'sydney_trains',
-      'nsw_trains',
-      'metro',
-      'buses',
-      'lightrail_cbd_southeast',
-      'lightrail_innerwest',
-      'lightrail_newcastle',
-      'lightrail_parramatta',
-      'ferries_sydney',
-      'ferries_mff',
+  static Future<Map<TransportMode, Map<String, dynamic>>>
+      getRealtimeStatusSummary() async {
+    // Build summary by fetching positions and updates for each broad TransportMode
+    final modes = <TransportMode>[
+      TransportMode.train,
+      TransportMode.metro,
+      TransportMode.bus,
+      TransportMode.lightrail,
+      TransportMode.ferry,
     ];
 
-    final summary = <String, dynamic>{};
+    final summary = <TransportMode, Map<String, dynamic>>{};
 
     for (final mode in modes) {
       final errors = <String>[];
@@ -236,7 +159,7 @@ class RealtimeService {
       FeedMessage? updFeed;
 
       try {
-        posFeed = await getPositionsForFeedKey(mode);
+        posFeed = await getPositionsForTransportMode(mode);
         if (posFeed == null) {
           errors.add('Positions: no data returned');
         }
@@ -245,7 +168,7 @@ class RealtimeService {
       }
 
       try {
-        updFeed = await getUpdatesForFeedKey(mode);
+        updFeed = await getUpdatesForTransportMode(mode);
         if (updFeed == null) {
           errors.add('Updates: no data returned');
         }

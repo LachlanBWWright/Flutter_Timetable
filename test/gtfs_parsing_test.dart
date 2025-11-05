@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/gtfs/agency.dart';
-import 'package:lbww_flutter/gtfs/stop.dart';
 import 'package:lbww_flutter/gtfs/route.dart';
-import 'package:lbww_flutter/gtfs/trip.dart';
+import 'package:lbww_flutter/gtfs/stop.dart';
 import 'package:lbww_flutter/gtfs/stop_time.dart';
+import 'package:lbww_flutter/gtfs/trip.dart';
 
 void main() {
   group('GTFS Standard Parsing Tests', () {
@@ -21,7 +22,8 @@ void main() {
       stopsCsv = await File('test/fixtures/sample_stops.txt').readAsString();
       routesCsv = await File('test/fixtures/sample_routes.txt').readAsString();
       tripsCsv = await File('test/fixtures/sample_trips.txt').readAsString();
-      stopTimesCsv = await File('test/fixtures/sample_stop_times.txt').readAsString();
+      stopTimesCsv =
+          await File('test/fixtures/sample_stop_times.txt').readAsString();
     });
 
     group('Agency Parsing', () {
@@ -45,9 +47,10 @@ void main() {
       });
 
       test('Agency validates required fields', () {
-        Agency.validateCsvHeader(['agency_name', 'agency_url', 'agency_timezone']);
-        expect(() => Agency.validateCsvHeader(['agency_name']), 
-          throwsA(isA<FormatException>()));
+        Agency.validateCsvHeader(
+            ['agency_name', 'agency_url', 'agency_timezone']);
+        expect(() => Agency.validateCsvHeader(['agency_name']),
+            throwsA(isA<FormatException>()));
       });
     });
 
@@ -103,8 +106,8 @@ void main() {
 
       test('Stop validates required fields', () {
         Stop.validateCsvHeader(['stop_id', 'stop_name', 'stop_lat']);
-        expect(() => Stop.validateCsvHeader(['stop_name']), 
-          throwsA(isA<FormatException>()));
+        expect(() => Stop.validateCsvHeader(['stop_name']),
+            throwsA(isA<FormatException>()));
       });
     });
 
@@ -140,9 +143,10 @@ void main() {
       });
 
       test('Route validates required fields', () {
-        Route.validateCsvHeader(['route_id', 'route_short_name', 'route_long_name', 'route_type']);
-        expect(() => Route.validateCsvHeader(['route_id']), 
-          throwsA(isA<FormatException>()));
+        Route.validateCsvHeader(
+            ['route_id', 'route_short_name', 'route_long_name', 'route_type']);
+        expect(() => Route.validateCsvHeader(['route_id']),
+            throwsA(isA<FormatException>()));
       });
     });
 
@@ -188,8 +192,8 @@ void main() {
 
       test('Trip validates required fields', () {
         Trip.validateCsvHeader(['route_id', 'service_id', 'trip_id']);
-        expect(() => Trip.validateCsvHeader(['route_id', 'trip_id']), 
-          throwsA(isA<FormatException>()));
+        expect(() => Trip.validateCsvHeader(['route_id', 'trip_id']),
+            throwsA(isA<FormatException>()));
       });
     });
 
@@ -224,7 +228,8 @@ void main() {
         expect(stopTime.stopHeadsign, equals('Final Stop'));
       });
 
-      test('parseStopTimesCsv handles trips without continuous pickup/dropoff', () {
+      test('parseStopTimesCsv handles trips without continuous pickup/dropoff',
+          () {
         final stopTimes = parseStopTimesCsv(stopTimesCsv);
         final stopTime = stopTimes[2];
 
@@ -234,18 +239,25 @@ void main() {
       });
 
       test('StopTime validates required fields', () {
-        StopTime.validateCsvHeader(['trip_id', 'arrival_time', 'departure_time', 'stop_id', 'stop_sequence']);
-        expect(() => StopTime.validateCsvHeader(['trip_id', 'arrival_time']), 
-          throwsA(isA<FormatException>()));
+        StopTime.validateCsvHeader([
+          'trip_id',
+          'arrival_time',
+          'departure_time',
+          'stop_id',
+          'stop_sequence'
+        ]);
+        expect(() => StopTime.validateCsvHeader(['trip_id', 'arrival_time']),
+            throwsA(isA<FormatException>()));
       });
     });
 
     group('Header-based Parsing Flexibility', () {
       test('Stops can be parsed with fields in different order', () {
-        final csv = '''stop_name,stop_id,stop_lon,stop_lat,location_type,wheelchair_boarding,parent_station
+        const csv =
+            '''stop_name,stop_id,stop_lon,stop_lat,location_type,wheelchair_boarding,parent_station
 Test Stop,TEST1,-122.4,37.8,0,1,''';
         final stops = parseStopsCsv(csv);
-        
+
         expect(stops.length, equals(1));
         expect(stops[0].stopId, equals('TEST1'));
         expect(stops[0].stopName, equals('Test Stop'));
@@ -254,10 +266,10 @@ Test Stop,TEST1,-122.4,37.8,0,1,''';
       });
 
       test('Routes can be parsed with minimal required fields', () {
-        final csv = '''route_id,route_short_name,route_long_name,route_type
+        const csv = '''route_id,route_short_name,route_long_name,route_type
 R1,1,Main Route,3''';
         final routes = parseRoutesCsv(csv);
-        
+
         expect(routes.length, equals(1));
         expect(routes[0].routeId, equals('R1'));
         expect(routes[0].agencyId, isNull);
@@ -265,10 +277,10 @@ R1,1,Main Route,3''';
       });
 
       test('Trips can be parsed without optional shape_id', () {
-        final csv = '''route_id,service_id,trip_id,trip_headsign
+        const csv = '''route_id,service_id,trip_id,trip_headsign
 R1,WD,T1,Downtown''';
         final trips = parseTripsCsv(csv);
-        
+
         expect(trips.length, equals(1));
         expect(trips[0].tripId, equals('T1'));
         expect(trips[0].shapeId, isNull);
@@ -277,10 +289,11 @@ R1,WD,T1,Downtown''';
 
     group('Edge Cases', () {
       test('Stops with missing optional fields parse correctly', () {
-        final csv = '''stop_id,stop_name,stop_lat,stop_lon,location_type,wheelchair_boarding
+        const csv =
+            '''stop_id,stop_name,stop_lat,stop_lon,location_type,wheelchair_boarding
 S1,Test Stop,37.8,-122.4,0,1''';
         final stops = parseStopsCsv(csv);
-        
+
         expect(stops.length, equals(1));
         expect(stops[0].stopId, equals('S1'));
         expect(stops[0].stopName, equals('Test Stop'));
@@ -290,10 +303,11 @@ S1,Test Stop,37.8,-122.4,0,1''';
       });
 
       test('Routes with empty optional fields parse correctly', () {
-        final csv = '''route_id,agency_id,route_short_name,route_long_name,route_desc,route_type
+        const csv =
+            '''route_id,agency_id,route_short_name,route_long_name,route_desc,route_type
 R1,,10,Main Line,,3''';
         final routes = parseRoutesCsv(csv);
-        
+
         expect(routes.length, equals(1));
         expect(routes[0].routeId, equals('R1'));
         expect(routes[0].agencyId, isNull);

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
-import 'package:lbww_flutter/constants/transport_modes.dart';
 
 /// Screen for tracking an individual trip leg with real-time updates
 class TripLegDetailScreen extends StatefulWidget {

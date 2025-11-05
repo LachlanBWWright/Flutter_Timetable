@@ -44,12 +44,16 @@ class Stop {
 
     double getDoubleField(String fieldName, {double defaultValue = 0.0}) {
       final value = getField(fieldName);
-      return value != null ? (double.tryParse(value) ?? defaultValue) : defaultValue;
+      return value != null
+          ? (double.tryParse(value) ?? defaultValue)
+          : defaultValue;
     }
 
     int getIntField(String fieldName, {int defaultValue = 0}) {
       final value = getField(fieldName);
-      return value != null ? (int.tryParse(value) ?? defaultValue) : defaultValue;
+      return value != null
+          ? (int.tryParse(value) ?? defaultValue)
+          : defaultValue;
     }
 
     return Stop(
@@ -93,7 +97,8 @@ class Stop {
   static void validateCsvHeader(List<String> header) {
     // Only require stop_id per GTFS spec (other fields are conditionally required)
     if (!header.contains('stop_id')) {
-      throw FormatException('stops.txt missing required column "stop_id"');
+      throw const FormatException(
+          'stops.txt missing required column "stop_id"');
     }
   }
 

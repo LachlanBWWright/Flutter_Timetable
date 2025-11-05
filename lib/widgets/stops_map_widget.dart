@@ -87,7 +87,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   }
 
   Future<List<Stop>> _getStopsForTransportMode(TransportMode mode) async {
-    final List<String> endpoints = _getEndpointsForMode(mode);
+    final List<StopsEndpoint> endpoints = _getEndpointsForMode(mode);
     final List<Stop> allStops = [];
 
     for (final endpoint in endpoints) {
@@ -102,48 +102,48 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     return allStops;
   }
 
-  List<String> _getEndpointsForMode(TransportMode mode) {
+  List<StopsEndpoint> _getEndpointsForMode(TransportMode mode) {
     switch (mode) {
       case TransportMode.metro:
-        return ['metro'];
+        return [StopsEndpoint.metro];
       case TransportMode.train:
-        return ['nswtrains', 'sydneytrains'];
+        return [StopsEndpoint.nswtrains, StopsEndpoint.sydneytrains];
       case TransportMode.lightrail:
         return [
-          'lightrail_innerwest',
-          'lightrail_newcastle',
-          'lightrail_cbdandsoutheast',
-          'lightrail_parramatta'
+          StopsEndpoint.lightrail_innerwest,
+          StopsEndpoint.lightrail_newcastle,
+          StopsEndpoint.lightrail_cbdandsoutheast,
+          StopsEndpoint.lightrail_parramatta,
         ];
       case TransportMode.bus:
         return [
-          'buses',
-          'buses_SBSC006',
-          'buses_GSBC001',
-          'buses_GSBC002',
-          'buses_GSBC003',
-          'buses_GSBC004',
-          'buses_GSBC007',
-          'buses_GSBC008',
-          'buses_GSBC009',
-          'buses_GSBC010',
-          'buses_GSBC014',
-          'buses_OSMBSC001',
-          'buses_OSMBSC002',
-          'buses_OSMBSC003',
-          'buses_OSMBSC004',
-          'buses_OMBSC006',
-          'buses_OMBSC007',
-          'buses_OSMBSC008',
-          'buses_OSMBSC009',
-          'buses_OSMBSC010',
-          'buses_OSMBSC011',
-          'buses_OSMBSC012',
-          'buses_NISC001',
-          'buses_ReplacementBus',
+          StopsEndpoint.buses,
+          StopsEndpoint.buses_SBSC006,
+          StopsEndpoint.buses_GSBC001,
+          StopsEndpoint.buses_GSBC002,
+          StopsEndpoint.buses_GSBC003,
+          StopsEndpoint.buses_GSBC004,
+          StopsEndpoint.buses_GSBC007,
+          StopsEndpoint.buses_GSBC008,
+          StopsEndpoint.buses_GSBC009,
+          StopsEndpoint.buses_GSBC010,
+          StopsEndpoint.buses_GSBC014,
+          StopsEndpoint.buses_OSMBSC001,
+          StopsEndpoint.buses_OSMBSC002,
+          StopsEndpoint.buses_OSMBSC003,
+          StopsEndpoint.buses_OSMBSC004,
+          StopsEndpoint.buses_OMBSC006,
+          StopsEndpoint.buses_OMBSC007,
+          StopsEndpoint.buses_OSMBSC008,
+          StopsEndpoint.buses_OSMBSC009,
+          StopsEndpoint.buses_OSMBSC010,
+          StopsEndpoint.buses_OSMBSC011,
+          StopsEndpoint.buses_OSMBSC012,
+          StopsEndpoint.buses_NISC001,
+          StopsEndpoint.buses_ReplacementBus,
         ];
       case TransportMode.ferry:
-        return ['ferries_sydneyferries', 'ferries_MFF'];
+        return [StopsEndpoint.ferries_sydneyferries, StopsEndpoint.ferries_MFF];
     }
   }
 
@@ -157,14 +157,14 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
     if (latLngs.isNotEmpty) {
       final bounds = LatLngBounds.fromPoints(latLngs);
-      final action = () {
+      void action() {
         _mapController.fitCamera(
           CameraFit.bounds(
             bounds: bounds,
             padding: const EdgeInsets.all(50.0),
           ),
         );
-      };
+      }
 
       if (_mapIsReady) {
         action();
@@ -236,7 +236,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                   : FlutterMap(
                       mapController: _mapController,
                       options: MapOptions(
-                        initialCenter: LatLng(-33.8688, 151.2093), // Sydney
+                        initialCenter:
+                            const LatLng(-33.8688, 151.2093), // Sydney
                         initialZoom: 10.0,
                         minZoom: 5.0,
                         maxZoom: 18.0,

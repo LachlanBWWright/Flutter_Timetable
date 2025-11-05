@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 // logger removed
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
@@ -7,7 +8,6 @@ import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
-import 'package:lbww_flutter/constants/transport_modes.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({super.key});
@@ -314,13 +314,13 @@ class _NewTripScreenState extends State<NewTripScreen>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-                children: [
-                  _buildStationTab(TransportMode.train),
-                  _buildStationTab(TransportMode.lightrail),
-                  _buildStationTab(TransportMode.metro),
-                  _buildStationTab(TransportMode.bus),
-                  _buildStationTab(TransportMode.ferry),
-                ],
+              children: [
+                _buildStationTab(TransportMode.train),
+                _buildStationTab(TransportMode.lightrail),
+                _buildStationTab(TransportMode.metro),
+                _buildStationTab(TransportMode.bus),
+                _buildStationTab(TransportMode.ferry),
+              ],
             ),
           ),
 

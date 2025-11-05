@@ -1,7 +1,7 @@
-import 'package:test/test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/services/new_trip_service.dart';
+import 'package:test/test.dart';
 
 void main() {
   setUpAll(() async {
@@ -19,7 +19,7 @@ void main() {
     expect(stations.isNotEmpty, isTrue);
     print(
         'First station (train): name=${stations.first.name}, id=${stations.first.id}');
-  }, timeout: Timeout(Duration(seconds: 120)));
+  }, timeout: const Timeout(Duration(seconds: 120)));
 
   test('loadStopsForMode returns Station list for bus', () async {
     final stations = await NewTripService.loadStopsForMode(TransportMode.bus);
@@ -27,5 +27,5 @@ void main() {
     expect(stations.isNotEmpty, isTrue);
     print(
         'First station (bus): name=${stations.first.name}, id=${stations.first.id}');
-  }, timeout: Timeout(Duration(seconds: 120)));
+  }, timeout: const Timeout(Duration(seconds: 120)));
 }

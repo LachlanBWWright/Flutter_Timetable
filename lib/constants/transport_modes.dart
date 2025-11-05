@@ -31,23 +31,3 @@ extension TransportModeExt on TransportMode {
     }
   }
 }
-
-/// Try to parse a transport mode from a string. Returns null if no match.
-TransportMode? transportModeFromString(String? s) {
-  if (s == null) return null;
-  switch (s.toLowerCase()) {
-    case 'train':
-      return TransportMode.train;
-    case 'lightrail':
-    case 'light rail':
-      return TransportMode.lightrail;
-    case 'metro':
-      return TransportMode.metro;
-    case 'bus':
-      return TransportMode.bus;
-    case 'ferry':
-      return TransportMode.ferry;
-    default:
-      return null;
-  }
-}

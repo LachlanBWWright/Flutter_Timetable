@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 import '../services/stops_service.dart';
+import '../utils/transport_display.dart';
 
 /// Widget for managing and displaying GTFS stops data
 class StopsManagementWidget extends StatefulWidget {
@@ -14,6 +18,7 @@ class StopsManagementWidget extends StatefulWidget {
 
 class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   Map<String, int> _stopsCount = {};
+  Map<TransportMode?, Map<String, int>> _stopsByMode = {};
   int _totalStops = 0;
   bool _isLoading = false;
   String? _error;
@@ -32,11 +37,20 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
     try {
       final count = await StopsService.getTotalStopsCount();
-      final countByEndpoint = await StopsService.getStopsCountByEndpoint();
+      final grouped = await StopsService.getStopsCountByEndpoint();
+
+      // Flatten grouped map for any places that still expect endpoint->count
+      final flattened = <String, int>{};
+      for (final grp in grouped.values) {
+        for (final e in grp.entries) {
+          flattened[e.key] = e.value;
+        }
+      }
 
       setState(() {
         _totalStops = count;
-        _stopsCount = countByEndpoint;
+        _stopsByMode = grouped;
+        _stopsCount = flattened;
         _isLoading = false;
       });
     } catch (e) {
@@ -76,8 +90,58 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       );
 
       if (confirmed == true) {
-        await StopsService.updateAllStopsFromApi();
-        await _loadStopsData(); // Refresh the counts
+        // Listen to the update stream and show a progress dialog
+        String dialogMessage = 'Preparing update...';
+        void Function(void Function())? dialogSetState;
+
+        final stream = StopsService.updateAllStopsFromApi();
+        late StreamSubscription subscription;
+
+        subscription = stream.listen((progress) {
+          final epLabel = progress.endpoint?.name ?? '';
+          final text =
+              '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
+          // Update dialog text if available
+          dialogSetState?.call(() {
+            dialogMessage = text;
+          });
+        }, onError: (e) {
+          dialogSetState?.call(() {
+            dialogMessage = 'Error: $e';
+          });
+        }, onDone: () async {
+          // Close the dialog when done
+          try {
+            if (mounted) Navigator.of(context, rootNavigator: true).pop();
+          } catch (_) {}
+          await subscription.cancel();
+        });
+
+        // Show modal progress dialog (not dismissible)
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return StatefulBuilder(builder: (context, setState) {
+              dialogSetState = setState;
+              return AlertDialog(
+                title: const Text('Updating stops from API'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(dialogMessage),
+                  ],
+                ),
+              );
+            });
+          },
+        );
+
+        // After dialog closes, refresh counts
+        await _loadStopsData();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -317,7 +381,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   }
 
   Widget _buildEndpointsList() {
-    final endpointGroups = _groupEndpoints();
+    // endpointGroups are now provided by the service as `_stopsByMode`.
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,11 +394,28 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
           ),
         ),
         const SizedBox(height: 8),
-        ...endpointGroups.entries.map((group) {
-          final mode = group.key;
+        ..._stopsByMode.entries.map((group) {
+          final TransportMode? modeKey = group.key;
           final endpoints = group.value;
           final totalCount =
               endpoints.values.fold(0, (sum, count) => sum + count);
+
+          final displayName = (() {
+            if (modeKey != null) {
+              // For buses we preserve the distinction between city and regional
+              // when the endpoints are exclusively one or the other.
+              if (modeKey == TransportMode.bus) {
+                final hasRegion =
+                    endpoints.keys.any((k) => k.startsWith('regionbuses'));
+                final hasCity =
+                    endpoints.keys.any((k) => k.startsWith('buses'));
+                if (hasRegion && !hasCity) return 'Regional Buses';
+                if (hasCity && !hasRegion) return 'City Buses';
+              }
+              return getDisplayNameForTransportMode(modeKey);
+            }
+            return 'Other';
+          })();
 
           return ExpansionTile(
             leading: Container(
@@ -342,30 +423,16 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               height: 30,
               decoration: BoxDecoration(
                 color: (() {
-                  final parsed = transportModeFromString(mode);
-                  if (parsed != null)
-                    return TransportColors.getColorByTransportMode(parsed);
-                  switch (mode) {
-                    case 'trains':
-                      return TransportColors.train;
-                    case 'metro':
-                      return TransportColors.metro;
-                    case 'buses':
-                    case 'regionbuses':
-                      return TransportColors.bus;
-                    case 'lightrail':
-                      return TransportColors.lightRail;
-                    case 'ferries':
-                      return TransportColors.ferry;
-                    default:
-                      return Colors.grey;
+                  if (modeKey != null) {
+                    return TransportColors.getColorByTransportMode(modeKey);
                   }
+                  return Colors.grey;
                 })(),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             title: Text(
-              '${_getDisplayName(mode)} ($totalCount stops)',
+              '$displayName ($totalCount stops)',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             children: endpoints.entries.map((endpoint) {
@@ -402,56 +469,6 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         }),
       ],
     );
-  }
-
-  Map<String, Map<String, int>> _groupEndpoints() {
-    final groups = <String, Map<String, int>>{};
-
-    for (final entry in _stopsCount.entries) {
-      final endpoint = entry.key;
-      final count = entry.value;
-
-      String mode;
-      if (endpoint.startsWith('buses')) {
-        mode = 'buses';
-      } else if (endpoint.startsWith('ferries')) {
-        mode = 'ferries';
-      } else if (endpoint.startsWith('lightrail')) {
-        mode = 'lightrail';
-      } else if (endpoint.startsWith('regionbuses')) {
-        mode = 'regionbuses';
-      } else if (endpoint.contains('trains')) {
-        mode = 'trains';
-      } else if (endpoint == 'metro') {
-        mode = 'metro';
-      } else {
-        mode = 'other';
-      }
-
-      groups.putIfAbsent(mode, () => {});
-      groups[mode]![endpoint] = count;
-    }
-
-    return groups;
-  }
-
-  String _getDisplayName(String mode) {
-    switch (mode) {
-      case 'trains':
-        return 'Trains';
-      case 'metro':
-        return 'Metro';
-      case 'buses':
-        return 'City Buses';
-      case 'regionbuses':
-        return 'Regional Buses';
-      case 'lightrail':
-        return 'Light Rail';
-      case 'ferries':
-        return 'Ferries';
-      default:
-        return mode;
-    }
   }
 }
 

@@ -6,6 +6,7 @@ import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart';
+import 'realtime_map_helpers.dart';
 
 /// Widget for displaying GTFS realtime vehicle positions on a map
 class RealtimeMapWidget extends StatefulWidget {
@@ -29,7 +30,7 @@ class RealtimeMapWidget extends StatefulWidget {
 // Small helper struct to keep a VehiclePosition together with its inferred mode
 class _VehicleWithMode {
   final VehiclePosition vehicle;
-  final String mode;
+  final TransportMode? mode;
 
   _VehicleWithMode(this.vehicle, this.mode);
 }
@@ -89,26 +90,21 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       final vehicles = <_VehicleWithMode>[];
 
       for (final entry in allPositions.entries) {
-        // If a TransportMode filter was provided, prefer that (map feed key -> mode and compare).
+        // entry.key is now a TransportMode (per RealtimeService changes).
+        final feedMode = entry.key;
+
+        // If a TransportMode filter was provided, prefer that and compare directly.
         if (widget.transportMode != null) {
-          final feedMode = _modeFromFeedKey(entry.key);
-          final parsed = transportModeFromString(feedMode);
-          if (parsed != widget.transportMode) continue;
+          if (feedMode != widget.transportMode) continue;
         } else if (widget.mode != null) {
-          // The provided mode is already a typed TransportMode; compare
-          // against the inferred feed mode.
           final requested = widget.mode!;
-          final feedMode = _modeFromFeedKey(entry.key);
-          final parsed = transportModeFromString(feedMode);
-          if (parsed != requested) continue;
+          if (feedMode != requested) continue;
         }
 
         final feedMessage = entry.value;
         if (feedMessage != null) {
           final vehiclePositions =
               RealtimeService.extractVehiclePositions(feedMessage);
-          // Determine a mode for this feed key so we can colour and icon each marker
-          final feedMode = _modeFromFeedKey(entry.key);
           vehicles.addAll(
               vehiclePositions.map((v) => _VehicleWithMode(v, feedMode)));
         }
@@ -154,7 +150,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             vw.vehicle.position.hasLongitude() &&
             // Only include vehicles whose mode is enabled in the filter
             (() {
-              final parsed = transportModeFromString(vw.mode);
+              final parsed = vw.mode;
               if (parsed != null) return _modeEnabled[parsed] ?? true;
               return true;
             })())
@@ -164,9 +160,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       final mode = vw.mode;
 
       // Use mode-based color and icon mapping. Prefer typed API when possible.
-      final parsed = transportModeFromString(mode);
-      final Color markerColor = parsed != null
-          ? TransportColors.getColorByTransportMode(parsed)
+      final Color markerColor = mode != null
+          ? TransportColors.getColorByTransportMode(mode)
           : Colors.grey;
 
       return Marker(
@@ -189,7 +184,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               ],
             ),
             child: Icon(
-              _getVehicleIconByTransportMode(parsed),
+              getVehicleIconByTransportMode(mode),
               color: Colors.white,
               size: 16,
             ),
@@ -207,7 +202,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       counts[m] = 0;
     }
     for (final vw in _vehicles) {
-      final parsed = transportModeFromString(vw.mode);
+      final parsed = vw.mode;
       if (parsed != null) counts[parsed] = (counts[parsed] ?? 0) + 1;
     }
 
@@ -233,7 +228,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                             fontSize: 18, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 12),
                     ..._allModes.map((mode) {
-                      final display = _modeDisplayNameForTransportMode(mode);
+                      final display = modeDisplayNameForTransportMode(mode);
                       final count = counts[mode] ?? 0;
                       return CheckboxListTile(
                         value: _modeEnabled[mode] ?? true,
@@ -259,51 +254,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     );
   }
 
-  // Legacy string-based display name helper removed. Use
-  // _modeDisplayNameForTransportMode(TransportMode) for typed mode names.
-
-  String _modeDisplayNameForTransportMode(TransportMode mode) {
-    switch (mode) {
-      case TransportMode.train:
-        return 'Trains';
-      case TransportMode.metro:
-        return 'Metro';
-      case TransportMode.bus:
-        return 'Buses';
-      case TransportMode.lightrail:
-        return 'Light Rail';
-      case TransportMode.ferry:
-        return 'Ferries';
-    }
-  }
-
-  // Infer a simple mode string from the feed key used in RealtimeService
-  String _modeFromFeedKey(String feedKey) {
-    final k = feedKey.toLowerCase();
-    if (k.contains('train')) return 'train';
-    if (k.contains('metro')) return 'metro';
-    if (k.contains('bus')) return 'bus';
-    if (k.contains('ferry') || k.contains('ferries')) return 'ferry';
-    if (k.contains('lightrail')) return 'lightrail';
-    if (k.contains('coach')) return 'coach';
-    return 'unknown';
-  }
-
-  IconData _getVehicleIconByTransportMode(TransportMode? mode) {
-    if (mode == null) return Icons.help_outline;
-    switch (mode) {
-      case TransportMode.train:
-        return Icons.train;
-      case TransportMode.metro:
-        return Icons.subway;
-      case TransportMode.lightrail:
-        return Icons.tram;
-      case TransportMode.ferry:
-        return Icons.directions_boat;
-      case TransportMode.bus:
-        return Icons.directions_bus;
-    }
-  }
+  // Helper functions moved to `realtime_map_helpers.dart`.
 
   // Non-nullable overload removed; use the nullable-accepting
   // _getVehicleIconByTransportMode(TransportMode?) instead.

@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Create an AppDatabase backed by the provided [QueryExecutor].
   /// Useful for tests where an in-memory or temporary file database is required.
-  AppDatabase.connect(QueryExecutor executor) : super(executor);
+  AppDatabase.connect(super.executor);
 
   @override
   int get schemaVersion => 3;
