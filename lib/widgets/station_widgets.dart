@@ -198,6 +198,7 @@ class SelectedStationCard extends StatelessWidget {
 class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isSearching;
   final TextEditingController searchController;
+  final FocusNode? searchFocusNode;
   final Function(String) onSearch;
   final VoidCallback onToggleSearch;
   final VoidCallback? onSaveTrip;
@@ -213,6 +214,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.searchController,
     required this.onSearch,
     required this.onToggleSearch,
+    this.searchFocusNode,
     this.onSaveTrip,
     required this.canSave,
     required this.onOpenMap,
@@ -226,6 +228,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: isSearching
           ? TextField(
+              focusNode: searchFocusNode,
               controller: searchController,
               decoration: const InputDecoration(
                 hintText: 'Search for a station',

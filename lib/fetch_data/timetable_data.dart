@@ -89,6 +89,19 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
         logger.d(
             'Sample stop[$i]: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}');
       }
+      // For buses and ferries, also log a sample of the first 10 routes
+      try {
+        if (endpoint.startsWith('/buses') || endpoint.startsWith('/ferries')) {
+          logger.i('routes.txt contains ${data.routes.length} rows');
+          for (var i = 0; i < data.routes.length && i < 10; i++) {
+            final r = data.routes[i];
+            logger.d(
+                'Sample route[$i]: id="${r.routeId}", short_name="${r.routeShortName}", long_name="${r.routeLongName}", type=${r.routeType}');
+          }
+        }
+      } catch (e) {
+        logger.w('Error logging routes sample for $endpoint: $e');
+      }
     } catch (e) {
       logger.w('Error logging parsed GTFS sample for $endpoint: $e');
     }
@@ -262,11 +275,15 @@ Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/farwest');
 
 List<Agency> parseAgencyCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  // Use a resilient CSV-to-rows helper that autodetects EOL and field delimiter.
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('agency.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'agency.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -282,11 +299,14 @@ List<Agency> parseAgencyCsv(String csv) {
 }
 
 List<Calendar> parseCalendarCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('calendar.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'calendar.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -302,11 +322,14 @@ List<Calendar> parseCalendarCsv(String csv) {
 }
 
 List<CalendarDate> parseCalendarDatesCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('calendar_dates.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'calendar_dates.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -322,11 +345,14 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
 }
 
 List<Route> parseRoutesCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('routes.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'routes.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -342,11 +368,16 @@ List<Route> parseRoutesCsv(String csv) {
 }
 
 List<Stop> parseStopsCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: true);
+  logger.i("Parsing stops.csv, total rows: ${rows.length}");
+
   if (rows.isEmpty) {
     throw const FormatException('stops.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'stops.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -362,11 +393,14 @@ List<Stop> parseStopsCsv(String csv) {
 }
 
 List<StopTime> parseStopTimesCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('stop_times.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'stop_times.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -382,11 +416,14 @@ List<StopTime> parseStopTimesCsv(String csv) {
 }
 
 List<Trip> parseTripsCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('trips.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'trips.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -402,11 +439,14 @@ List<Trip> parseTripsCsv(String csv) {
 }
 
 List<Shape> parseShapesCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('shapes.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'shapes.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -422,11 +462,14 @@ List<Shape> parseShapesCsv(String csv) {
 }
 
 List<Note> parseNotesCsv(String csv) {
-  final rows = const CsvToListConverter(shouldParseNumbers: false).convert(csv);
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
     throw const FormatException('notes.txt is empty');
   }
   if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'notes.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
     return [];
   }
 
@@ -443,7 +486,70 @@ List<Note> parseNotesCsv(String csv) {
 
 // Note: custom CSV line parser removed in favor of package:csv
 
+/// Convert a raw CSV string to rows while trying to autodetect EOL and field
+/// delimiter. This works around feeds that use different line endings or
+/// separators so the entire file isn't interpreted as a single row.
+List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
+  if (csv.isEmpty) return [];
+
+  // Detect end-of-line sequence: prefer CRLF, then LF, then CR.
+  String eol;
+  if (csv.contains('\r\n')) {
+    eol = '\r\n';
+  } else if (csv.contains('\n')) {
+    eol = '\n';
+  } else if (csv.contains('\r')) {
+    eol = '\r';
+  } else {
+    eol = '\n';
+  }
+
+  // Pick a likely field delimiter by checking the first non-empty line
+  final lines = csv.split(eol);
+  var firstLine = '';
+  for (final l in lines) {
+    if (l.trim().isNotEmpty) {
+      firstLine = l;
+      break;
+    }
+  }
+  if (firstLine.isEmpty && lines.isNotEmpty) firstLine = lines.first;
+
+  final delimiters = [',', ';', '\t', '|'];
+  var fieldDelimiter = ',';
+  var bestCount = -1;
+  for (final d in delimiters) {
+    final count = firstLine.split(d).length - 1;
+    if (count > bestCount) {
+      bestCount = count;
+      fieldDelimiter = d;
+    }
+  }
+
+  try {
+    return CsvToListConverter(shouldParseNumbers: shouldParseNumbers)
+        .convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
+  } catch (e) {
+    logger.w(
+        'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e');
+    // Fallback: try with a simple LF eol
+    try {
+      return CsvToListConverter(shouldParseNumbers: shouldParseNumbers)
+          .convert(csv, eol: '\n');
+    } catch (e2) {
+      logger.w('CSV parsing fallback failed: $e2');
+      return [];
+    }
+  }
+}
+
 GtfsData parseGtfsFiles(Map<String, String> files) {
+  logger.i("Files: ${files.keys.toString()}");
+  if (files['stops.txt'] == null) {
+    logger.e("Stops.txt is missing");
+  } else {
+    logger.i('stops.txt length: ${files['stops.txt']!.length} characters');
+  }
   return GtfsData(
     agencies:
         files['agency.txt'] != null ? parseAgencyCsv(files['agency.txt']!) : [],

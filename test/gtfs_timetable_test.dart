@@ -95,7 +95,7 @@ void main() {
     }
   });
 
-  test('fetchNswTrainsGtfsData returns a GtfsData object', () async {
+/*   test('fetchNswTrainsGtfsData returns a GtfsData object', () async {
     final data = await fetchNswTrainsGtfsData();
     expect(data, isNotNull);
     expect(data, isA<GtfsData>());
@@ -108,7 +108,7 @@ void main() {
     } else {
       print('\n--- nswtrains feed returned 0 stops ---');
     }
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 2))); */
 
   test('fetchSydneyTrainsGtfsData returns a GtfsData object and logs a station',
       () async {

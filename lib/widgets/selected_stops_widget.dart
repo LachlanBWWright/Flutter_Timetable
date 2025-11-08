@@ -10,6 +10,8 @@ class SelectedStopsWidget extends StatelessWidget {
   final String secondStation;
   final String secondStationId;
   final TransportMode currentMode;
+  final TransportMode? firstMode;
+  final TransportMode? secondMode;
   final VoidCallback onClearFirst;
   final VoidCallback onClearSecond;
 
@@ -20,12 +22,45 @@ class SelectedStopsWidget extends StatelessWidget {
     required this.secondStation,
     required this.secondStationId,
     required this.currentMode,
+    this.firstMode,
+    this.secondMode,
     required this.onClearFirst,
     required this.onClearSecond,
   });
 
   Color _getModeColor() {
     return TransportColors.getColorByTransportMode(currentMode);
+  }
+
+  Color _getAccentColor() {
+    // Determine header/accent color based on selected stop modes and current tab
+    final bothSelected = firstStation.isNotEmpty && secondStation.isNotEmpty;
+
+    // Helper to check equality
+    bool sameModes(TransportMode? a, TransportMode? b) => a != null && b != null && a == b;
+
+    if (bothSelected) {
+      if (sameModes(firstMode, secondMode) && firstMode == currentMode) {
+        return TransportColors.getColorByTransportMode(currentMode);
+      }
+      return Colors.grey;
+    }
+
+    // Only one selected
+    final selectedMode = firstStation.isNotEmpty ? firstMode : secondStation.isNotEmpty ? secondMode : null;
+    if (selectedMode != null && selectedMode == currentMode) {
+      return TransportColors.getColorByTransportMode(currentMode);
+    }
+
+    // Default to current mode color when no selection, otherwise neutral
+    if (!bothSelected && selectedMode == null) return TransportColors.getColorByTransportMode(currentMode);
+    return Colors.grey;
+  }
+
+  bool _showHeaderIcon() {
+    // Icon shown only when accent color is the current mode color
+    final accent = _getAccentColor();
+    return accent != Colors.grey;
   }
 
   IconData _getModeIcon() {
@@ -52,11 +87,11 @@ class SelectedStopsWidget extends StatelessWidget {
     }
 
     return Container(
-      decoration: BoxDecoration(
+        decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: _getModeColor(),
+            color: _getAccentColor(),
             width: 3.0,
           ),
         ),
@@ -78,14 +113,16 @@ class SelectedStopsWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8.0),
                 decoration: BoxDecoration(
-                  color: _getModeColor(),
+                  color: _getAccentColor(),
                   borderRadius: BorderRadius.circular(8.0),
                 ),
-                child: Icon(
-                  _getModeIcon(),
-                  color: Colors.white,
-                  size: 20.0,
-                ),
+                child: _showHeaderIcon()
+                    ? Icon(
+                        _getModeIcon(),
+                        color: Colors.white,
+                        size: 20.0,
+                      )
+                    : const SizedBox(width: 20.0, height: 20.0),
               ),
               const SizedBox(width: 12.0),
               Text(
@@ -110,6 +147,7 @@ class SelectedStopsWidget extends StatelessWidget {
                   isEmpty: firstStation.isEmpty,
                   onClear: onClearFirst,
                   isOrigin: true,
+                  stopMode: firstMode,
                 ),
               ),
               const SizedBox(width: 12.0),
@@ -123,6 +161,7 @@ class SelectedStopsWidget extends StatelessWidget {
                   isEmpty: secondStation.isEmpty,
                   onClear: onClearSecond,
                   isOrigin: false,
+                  stopMode: secondMode,
                 ),
               ),
             ],
@@ -139,8 +178,13 @@ class SelectedStopsWidget extends StatelessWidget {
     required bool isEmpty,
     required VoidCallback onClear,
     required bool isOrigin,
+    TransportMode? stopMode,
   }) {
-    final modeColor = _getModeColor();
+    // If a specific mode for this stop is provided, use its color; otherwise
+    // fall back to the current tab mode color.
+    final modeColor = stopMode != null
+        ? TransportColors.getColorByTransportMode(stopMode)
+        : _getModeColor();
 
     return Container(
       decoration: BoxDecoration(

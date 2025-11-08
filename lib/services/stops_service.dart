@@ -130,20 +130,10 @@ class StopsService {
     return stops;
   }
 
-  /// Store stops to database for a specific endpoint
-  /// Store stops to database for a specific endpoint.
-  ///
-  /// NOTE: previously this filtered to only store stations (location_type=1).
-  /// That caused many feeds to have very few stored stops because most
-  /// physical stops are marked with location_type=0. For now we store all
-  /// stops regardless of their `location_type` so no stops are discarded.
   static Future<void> storeStopsToDatabase(
       List<Stop> stops, StopsEndpoint endpoint) async {
     final db = database;
-    // Store all provided stop records (no filtering by location_type).
-    // However, skip any records that don't have a valid stopId because the
-    // table primary key includes stopId; empty IDs will cause replacements
-    // and may result in a single saved row. Also deduplicate by stopId.
+
     final cleaned = <String, Stop>{};
     var missingIdCount = 0;
     for (final s in stops) {
@@ -160,10 +150,6 @@ class StopsService {
     logger.i(
         'Storing ${stations.length} stops (from ${stops.length} total, skipped $missingIdCount missing-id rows) for endpoint ${endpoint.name}');
 
-    // Convert Stop objects to StopsCompanion objects for Drift
-    // Normalize IDs (trim) when creating DB companions to avoid accidental
-    // duplicates caused by trailing/leading whitespace. Also log a small
-    // sample to help diagnose feeds that produce few stored rows.
     final stopsCompanions = <StopsCompanion>[];
     for (final stop in stations) {
       final trimmedId = stop.stopId.trim();
@@ -522,6 +508,31 @@ class StopsService {
     }
 
     return grouped;
+  }
+
+  /// Infer the transport mode for a given stopId by looking up the DB
+  /// and mapping the stored endpoint to a TransportMode. Returns null if
+  /// no mapping can be inferred.
+  static Future<TransportMode?> getModeForStopId(String stopId) async {
+    final db = database;
+    try {
+      final rows = await db.getStopsById(stopId);
+      if (rows.isEmpty) return null;
+
+      // Use the first matching row's endpoint to infer mode
+  final endpoint = rows.first.endpoint;
+
+      if (endpoint.startsWith('buses') || endpoint.startsWith('regionbuses'))
+        return TransportMode.bus;
+      if (endpoint.startsWith('ferries')) return TransportMode.ferry;
+      if (endpoint.startsWith('lightrail')) return TransportMode.lightrail;
+      if (endpoint.contains('trains')) return TransportMode.train;
+      if (endpoint == 'metro') return TransportMode.metro;
+
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Wipe all stops data from the database

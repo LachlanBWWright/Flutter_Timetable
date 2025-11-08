@@ -56,8 +56,26 @@ class Stop {
           : defaultValue;
     }
 
+    // Resolve stop_id with fallbacks for feeds that omit stop_id values.
+    // Prefer stop_id, then stop_code, then derive a deterministic id from
+    // stop_name + lat/lon to ensure we can persist the stop rather than
+    // dropping rows silently.
+    String resolveStopId() {
+      final rawId = getField('stop_id');
+      if (rawId != null && rawId.trim().isNotEmpty) return rawId.trim();
+      final code = getField('stop_code');
+      if (code != null && code.trim().isNotEmpty) return code.trim();
+      final name = getField('stop_name') ?? 'unknown';
+      final lat = getField('stop_lat') ?? '';
+      final lon = getField('stop_lon') ?? '';
+      // Create a compact derived id. Replace whitespace with underscores and
+      // remove commas to keep the id DB-friendly.
+      final safeName = name.replaceAll(RegExp(r'[\s,]+'), '_');
+      return '${safeName}_${lat}_$lon';
+    }
+
     return Stop(
-      stopId: getField('stop_id') ?? '',
+      stopId: resolveStopId(),
       stopCode: getField('stop_code'),
       stopName: getField('stop_name') ?? '',
       ttsStopName: getField('tts_stop_name'),

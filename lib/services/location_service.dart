@@ -35,6 +35,34 @@ class LocationService {
     }
   }
 
+  /// Check and request location availability and permissions.
+  /// Returns null when location services and permissions are available.
+  /// Otherwise returns a human-friendly error message describing the problem.
+  static Future<String?> checkAndRequestLocationAvailability() async {
+    try {
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return 'Location services are disabled on this device.';
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return 'Location permission denied.';
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return 'Location permission permanently denied. Please enable it from device settings.';
+      }
+
+      return null;
+    } catch (e) {
+      return 'Error checking location permission: $e';
+    }
+  }
+
   /// Calculate distance between two coordinates in kilometers
   static double calculateDistance(
     double lat1,

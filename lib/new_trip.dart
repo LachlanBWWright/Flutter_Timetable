@@ -5,6 +5,8 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
+import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
@@ -25,12 +27,15 @@ class _NewTripScreenState extends State<NewTripScreen>
   List<Station> _metroStationList = [];
   String _firstStation = '';
   String _firstStationId = '';
+  TransportMode? _firstStationMode;
   String _secondStation = '';
   String _secondStationId = '';
+  TransportMode? _secondStationMode;
   bool _isSearching = false;
   bool _isLoading = false;
   SortMode _sortMode = SortMode.alphabetical;
   final keyController = TextEditingController();
+  late FocusNode _searchFocusNode;
   final AppDatabase _db = AppDatabase();
   late TabController _tabController;
   TransportMode _currentMode = TransportMode.train;
@@ -41,6 +46,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
     keyController.addListener(_applySearchFilter);
+    _searchFocusNode = FocusNode();
     _loadAllModes();
   }
 
@@ -92,49 +98,55 @@ class _NewTripScreenState extends State<NewTripScreen>
     _tabController.dispose();
     keyController.removeListener(_applySearchFilter);
     keyController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   void _onTabChanged() {
-    if (_tabController.indexIsChanging) {
-      final oldMode = _currentMode;
-      setState(() {
-        switch (_tabController.index) {
-          case 0:
-            _currentMode = TransportMode.train;
-            break;
-          case 1:
-            _currentMode = TransportMode.lightrail;
-            break;
-          case 2:
-            _currentMode = TransportMode.metro;
-            break;
-          case 3:
-            _currentMode = TransportMode.bus;
-            break;
-          case 4:
-            _currentMode = TransportMode.ferry;
-            break;
-        }
-      });
+    // Always update the current mode when the tab index changes. Using
+    // indexIsChanging caused cases where the index wasn't reflected yet and
+    // UI actions (like "Open stops map") used a stale mode. Update the
+    // mode immediately and trigger a rebuild only when it actually changes.
+    final oldMode = _currentMode;
+    switch (_tabController.index) {
+      case 0:
+        _currentMode = TransportMode.train;
+        break;
+      case 1:
+        _currentMode = TransportMode.lightrail;
+        break;
+      case 2:
+        _currentMode = TransportMode.metro;
+        break;
+      case 3:
+        _currentMode = TransportMode.bus;
+        break;
+      case 4:
+        _currentMode = TransportMode.ferry;
+        break;
+    }
 
-      if (oldMode != _currentMode) {
-        // Trigger rebuild for the new mode/tab. Per-tab filtering is handled
-        // by _buildStationTab (which reads the current search text).
-        setState(() {});
-      }
+    if (oldMode != _currentMode) {
+      // Trigger rebuild for the new mode/tab. Per-tab filtering is handled
+      // by _buildStationTab (which reads the current search text).
+      setState(() {});
     }
   }
 
   void setStation(String station, String id) async {
+    // Lookup the mode for this stop id
+    final mode = await StopsService.getModeForStopId(id);
+
     setState(() {
       if (_firstStation == '') {
         _firstStation = station;
         _firstStationId = id;
+        _firstStationMode = mode;
         keyController.text = '';
       } else {
         _secondStation = station;
         _secondStationId = id;
+        _secondStationMode = mode;
         keyController.text = '';
       }
     });
@@ -145,6 +157,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     setState(() {
       _firstStation = '';
       _firstStationId = '';
+      _firstStationMode = null;
     });
   }
 
@@ -152,6 +165,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     setState(() {
       _secondStation = '';
       _secondStationId = '';
+      _secondStationMode = null;
     });
   }
 
@@ -159,6 +173,16 @@ class _NewTripScreenState extends State<NewTripScreen>
     setState(() {
       if (keyController.text == '') {
         _isSearching = !_isSearching;
+        if (_isSearching) {
+          // Request focus for the search box after frame so the
+          // TextField receives focus and the keyboard opens.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) FocusScope.of(context).requestFocus(_searchFocusNode);
+          });
+        } else {
+          // When closing search, unfocus to hide keyboard
+          _searchFocusNode.unfocus();
+        }
       } else {
         keyController.text = '';
         _applySearchFilter();
@@ -167,11 +191,31 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _toggleSort() async {
-    setState(() {
-      _sortMode = _sortMode == SortMode.alphabetical
-          ? SortMode.distance
-          : SortMode.alphabetical;
-    });
+    // If switching to distance, ensure we have permission and location
+    if (_sortMode == SortMode.alphabetical) {
+      final error = await LocationService.checkAndRequestLocationAvailability();
+      if (error != null) {
+        // Show error and keep alphabetical sorting
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error)),
+          );
+        }
+        setState(() {
+          _sortMode = SortMode.alphabetical;
+        });
+        return;
+      }
+
+      setState(() {
+        _sortMode = SortMode.distance;
+      });
+    } else {
+      setState(() {
+        _sortMode = SortMode.alphabetical;
+      });
+    }
+
     await _applySorting();
   }
 
@@ -207,8 +251,10 @@ class _NewTripScreenState extends State<NewTripScreen>
           setState(() {
             _firstStation = '';
             _firstStationId = '';
+            _firstStationMode = null;
             _secondStation = '';
             _secondStationId = '';
+            _secondStationMode = null;
           });
         }
       } catch (e) {
@@ -297,6 +343,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       appBar: NewTripAppBar(
         isSearching: _isSearching,
         searchController: keyController,
+        searchFocusNode: _searchFocusNode,
         onSearch: (query) {
           // This will be handled by the text controller listener
         },
@@ -331,6 +378,8 @@ class _NewTripScreenState extends State<NewTripScreen>
             secondStation: _secondStation,
             secondStationId: _secondStationId,
             currentMode: _currentMode,
+            firstMode: _firstStationMode,
+            secondMode: _secondStationMode,
             onClearFirst: _clearFirstStation,
             onClearSecond: _clearSecondStation,
           ),
@@ -346,9 +395,11 @@ class _NewTripScreenState extends State<NewTripScreen>
     List<Station> displayList;
 
     if (_isLoading) {
-      return const Expanded(
-        child: Center(child: CircularProgressIndicator()),
-      );
+      // Don't return an Expanded here — callers place the tab widgets inside
+      // non-Flex parents (TabBarView). Returning Expanded without a Flex
+      // ancestor causes a ParentDataWidget assertion (Expanded must be
+      // a descendant of a Flex). Return a simple centered indicator instead.
+      return const Center(child: CircularProgressIndicator());
     }
 
     final query = keyController.text.trim();

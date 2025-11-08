@@ -76,6 +76,11 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit))
           .get();
 
+  /// Get all stop rows matching the provided stopId across endpoints
+  Future<List<Stop>> getStopsById(String stopId) => (select(stops)
+        ..where((tbl) => tbl.stopId.equals(stopId)))
+      .get();
+
   Future<int> deleteStopsForEndpoint(String endpoint) =>
       (delete(stops)..where((tbl) => tbl.endpoint.equals(endpoint))).go();
 

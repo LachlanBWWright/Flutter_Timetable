@@ -93,7 +93,9 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     for (final endpoint in endpoints) {
       try {
         final stops = await StopsService.getStopsForEndpoint(endpoint);
-        allStops.addAll(stops);
+        // Exclude child/platform stops (those with a parent_station) so the
+        // map shows only top-level stations.
+        allStops.addAll(stops.where((s) => s.parentStation == null));
       } catch (e) {
         // Error loading stops for endpoint: $endpoint
       }

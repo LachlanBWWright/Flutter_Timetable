@@ -117,6 +117,10 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
           await subscription.cancel();
         });
 
+        if (!mounted) {
+          return;
+        }
+
         // Show modal progress dialog (not dismissible)
         await showDialog<void>(
           context: context,

@@ -63,7 +63,8 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
   for (final endpoint in endpoints) {
     try {
       final stops = await StopsService.getStopsForEndpoint(endpoint);
-      allStops.addAll(stops);
+      // Exclude child/platform stops which have a parent_station value.
+      allStops.addAll(stops.where((s) => s.parentStation == null));
     } catch (_) {
       // ignore DB read errors for a single endpoint
     }
