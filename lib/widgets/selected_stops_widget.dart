@@ -37,7 +37,8 @@ class SelectedStopsWidget extends StatelessWidget {
     final bothSelected = firstStation.isNotEmpty && secondStation.isNotEmpty;
 
     // Helper to check equality
-    bool sameModes(TransportMode? a, TransportMode? b) => a != null && b != null && a == b;
+    bool sameModes(TransportMode? a, TransportMode? b) =>
+        a != null && b != null && a == b;
 
     if (bothSelected) {
       if (sameModes(firstMode, secondMode) && firstMode == currentMode) {
@@ -47,13 +48,18 @@ class SelectedStopsWidget extends StatelessWidget {
     }
 
     // Only one selected
-    final selectedMode = firstStation.isNotEmpty ? firstMode : secondStation.isNotEmpty ? secondMode : null;
+    final selectedMode = firstStation.isNotEmpty
+        ? firstMode
+        : secondStation.isNotEmpty
+            ? secondMode
+            : null;
     if (selectedMode != null && selectedMode == currentMode) {
       return TransportColors.getColorByTransportMode(currentMode);
     }
 
     // Default to current mode color when no selection, otherwise neutral
-    if (!bothSelected && selectedMode == null) return TransportColors.getColorByTransportMode(currentMode);
+    if (!bothSelected && selectedMode == null)
+      return TransportColors.getColorByTransportMode(currentMode);
     return Colors.grey;
   }
 
@@ -87,7 +93,7 @@ class SelectedStopsWidget extends StatelessWidget {
     }
 
     return Container(
-        decoration: BoxDecoration(
+      decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border(
           top: BorderSide(

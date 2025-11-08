@@ -520,7 +520,7 @@ class StopsService {
       if (rows.isEmpty) return null;
 
       // Use the first matching row's endpoint to infer mode
-  final endpoint = rows.first.endpoint;
+      final endpoint = rows.first.endpoint;
 
       if (endpoint.startsWith('buses') || endpoint.startsWith('regionbuses'))
         return TransportMode.bus;
