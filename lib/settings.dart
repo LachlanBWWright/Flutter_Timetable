@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 
 import 'services/location_service.dart';
+import 'set_home_stop_screen.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
@@ -97,6 +98,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _navigateToSetHomeStop(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SetHomeStopScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -175,6 +185,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       value: _isAlphabeticalSorting,
                       onChanged: _updateSortingPreference,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Home Stop Card
+            Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Home Stop',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Set your home stop for quick trip planning',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _navigateToSetHomeStop(context),
+                        icon: const Icon(Icons.home),
+                        label: const Text('Set Home Stop'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
                     ),
                   ],
                 ),
