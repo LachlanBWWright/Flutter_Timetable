@@ -35,6 +35,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   String? _error;
   bool _mapIsReady = false;
   VoidCallback? _pendingMapAction;
+  double _currentZoom = 10.0;
+  bool _showZoomWarning = false;
 
   @override
   void initState() {
@@ -176,6 +178,16 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     }
   }
 
+  /// Determine if markers should be shown based on zoom level
+  /// For buses, require higher zoom to prevent crashes from too many markers
+  bool _shouldShowMarkers() {
+    if (widget.transportMode == TransportMode.bus) {
+      return _currentZoom >= 13.0;
+    }
+    // Other modes can show markers at any zoom level
+    return true;
+  }
+
   Color _getModeColor() {
     switch (widget.transportMode) {
       case TransportMode.metro:
@@ -235,25 +247,36 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                         ],
                       ),
                     )
-                  : FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter:
-                            const LatLng(-33.8688, 151.2093), // Sydney
-                        initialZoom: 10.0,
-                        minZoom: 5.0,
-                        maxZoom: 18.0,
-                        onMapReady: () {
-                          // Mark map as ready and run any pending map action
-                          setState(() {
-                            _mapIsReady = true;
-                          });
-                          if (_pendingMapAction != null) {
-                            _pendingMapAction!();
-                            _pendingMapAction = null;
-                          }
-                        },
-                      ),
+                  : Stack(
+                      children: [
+                        FlutterMap(
+                          mapController: _mapController,
+                          options: MapOptions(
+                            initialCenter:
+                                const LatLng(-33.8688, 151.2093), // Sydney
+                            initialZoom: 10.0,
+                            minZoom: 5.0,
+                            maxZoom: 18.0,
+                            onPositionChanged: (position, hasGesture) {
+                              setState(() {
+                                _currentZoom = position.zoom ?? 10.0;
+                                // Show warning for buses if zoom is too low
+                                _showZoomWarning = widget.transportMode ==
+                                        TransportMode.bus &&
+                                    _currentZoom < 13.0;
+                              });
+                            },
+                            onMapReady: () {
+                              // Mark map as ready and run any pending map action
+                              setState(() {
+                                _mapIsReady = true;
+                              });
+                              if (_pendingMapAction != null) {
+                                _pendingMapAction!();
+                                _pendingMapAction = null;
+                              }
+                            },
+                          ),
                       children: [
                         TileLayer(
                           urlTemplate:
@@ -275,39 +298,91 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                                   size: 30.0,
                                 ),
                               ),
-                            // Stop markers
-                            ..._stops
-                                .where((stop) =>
-                                    stop.stopLat != 0.0 && stop.stopLon != 0.0)
-                                .map(
-                                  (stop) => Marker(
-                                    point: LatLng(stop.stopLat, stop.stopLon),
-                                    width: 20.0,
-                                    height: 20.0,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        _showStopDetails(stop);
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: _getModeColor(),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                              color: Colors.white, width: 2),
-                                        ),
-                                        child: Icon(
-                                          _getModeIcon(),
-                                          color: Colors.white,
-                                          size: 12.0,
+                            // Stop markers - only show when appropriately zoomed in
+                            if (_shouldShowMarkers())
+                              ..._stops
+                                  .where((stop) =>
+                                      stop.stopLat != 0.0 &&
+                                      stop.stopLon != 0.0)
+                                  .map(
+                                    (stop) => Marker(
+                                      point: LatLng(stop.stopLat, stop.stopLon),
+                                      width: 20.0,
+                                      height: 20.0,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          _showStopDetails(stop);
+                                        },
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: _getModeColor(),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                                color: Colors.white, width: 2),
+                                          ),
+                                          child: Icon(
+                                            _getModeIcon(),
+                                            color: Colors.white,
+                                            size: 12.0,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
                           ],
                         ),
-                      ],
-                    ),
+                        ],
+                      ),
+                      // Zoom warning overlay for buses
+                      if (_showZoomWarning)
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          right: 16,
+                          child: Card(
+                            color: Colors.orange.shade100,
+                            elevation: 4,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.warning,
+                                    color: Colors.orange,
+                                    size: 32,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          'Zoom In to View Stops',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Too many bus stops to display. Please zoom in to see stops.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey.shade800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [

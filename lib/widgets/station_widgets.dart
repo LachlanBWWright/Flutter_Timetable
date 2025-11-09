@@ -67,37 +67,16 @@ class StationView extends StatelessWidget {
   }
 
   Widget _buildSubtitle() {
-    final List<Widget> rows = [];
-
-    // Station ID
-    rows.add(Text(
-      'ID: ${station.id}',
-      style: const TextStyle(fontSize: 12, color: Colors.grey),
-    ));
-
-    // Latitude / Longitude if available
-    if (station.latitude != null && station.longitude != null) {
-      rows.add(const SizedBox(height: 4));
-      rows.add(Text(
-        'Lat: ${station.latitude!.toStringAsFixed(6)}, Lon: ${station.longitude!.toStringAsFixed(6)}',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-      ));
-    }
-
-    // Distance if available
+    // Only show distance if available
     if (station.distance != null) {
-      rows.add(const SizedBox(height: 4));
-      rows.add(Text(
+      return Text(
         '${station.distance!.toStringAsFixed(1)} km away',
         style: const TextStyle(fontSize: 12, color: Colors.grey),
-      ));
+      );
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: rows,
-    );
+    
+    // Don't show anything if distance is not available
+    return const SizedBox.shrink();
   }
 }
 
