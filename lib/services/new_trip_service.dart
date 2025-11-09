@@ -10,7 +10,11 @@ import '../widgets/station_widgets.dart';
 /// Service for managing stops data in the New Trip screen
 class NewTripService {
   /// Load stops for a specific transport mode from database or API
-  static Future<List<Station>> loadStopsForMode(TransportMode mode) async {
+  /// Optional progress callback for UI updates
+  static Future<List<Station>> loadStopsForMode(
+    TransportMode mode, {
+    Function(String message, int current, int total)? onProgress,
+  }) async {
     final endpoints = _getEndpointsForMode(mode);
     final List<Stop> allStops = [];
 
@@ -26,7 +30,7 @@ class NewTripService {
 
     // If no stops found in database, try to load from API
     if (!hasStops) {
-      await _loadStopsFromApi(endpoints);
+      await _loadStopsFromApi(endpoints, onProgress: onProgress);
 
       // Try loading from database again
       for (final endpoint in endpoints) {
@@ -94,22 +98,44 @@ class NewTripService {
   }
 
   /// Load stops from API endpoints and store in database
-  static Future<void> _loadStopsFromApi(List<StopsEndpoint> endpoints) async {
-    for (final endpoint in endpoints) {
+  /// Optional progress callback for UI updates
+  static Future<void> _loadStopsFromApi(
+    List<StopsEndpoint> endpoints, {
+    Function(String message, int current, int total)? onProgress,
+  }) async {
+    final total = endpoints.length;
+    for (var i = 0; i < endpoints.length; i++) {
+      final endpoint = endpoints[i];
       try {
-        // Loading stops from API for endpoint: $endpoint
+        onProgress?.call(
+          'Loading ${endpoint.name}...',
+          i + 1,
+          total,
+        );
 
         // Get GTFS data from the appropriate endpoint
         final gtfsData = await fetchGtfsDataForEndpoint(endpoint);
         if (gtfsData != null && gtfsData.stops.isNotEmpty) {
           // Store the stops to database
           await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
-          // Loaded ${gtfsData.stops.length} stops for $endpoint
+          onProgress?.call(
+            'Loaded ${gtfsData.stops.length} stops from ${endpoint.name}',
+            i + 1,
+            total,
+          );
         } else {
-          // No GTFS data found for $endpoint
+          onProgress?.call(
+            'No data found for ${endpoint.name}',
+            i + 1,
+            total,
+          );
         }
       } catch (e) {
-        // Error loading stops from endpoint $endpoint
+        onProgress?.call(
+          'Error loading ${endpoint.name}: $e',
+          i + 1,
+          total,
+        );
       }
     }
   }

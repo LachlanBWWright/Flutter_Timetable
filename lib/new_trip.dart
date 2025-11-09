@@ -77,6 +77,25 @@ class _NewTripScreenState extends State<NewTripScreen>
       });
 
       await _applySorting();
+      
+      // Check if any stops were loaded, show helpful message if not
+      final hasAnyStops = _trainStationList.isNotEmpty ||
+          _busStationList.isNotEmpty ||
+          _ferryStationList.isNotEmpty ||
+          _lightRailStationList.isNotEmpty ||
+          _metroStationList.isNotEmpty;
+      
+      if (!hasAnyStops && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No stops found in database. Please update stops data from Settings.',
+            ),
+            duration: Duration(seconds: 5),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
       // Error loading stations from DB
       if (mounted) {
