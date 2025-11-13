@@ -1,8 +1,8 @@
 import 'dart:isolate';
 import 'package:flutter/foundation.dart';
-import '../constants/transport_modes.dart';
 import '../fetch_data/timetable_data.dart';
-import '../gtfs/stop.dart';
+import '../gtfs/gtfs_data.dart';
+// stop type is available via GtfsData import
 import 'stops_service.dart';
 
 /// Message types for communication between isolate and main thread
@@ -26,7 +26,8 @@ class LoadStopsResult {
   final String? error;
   final int stopsLoaded;
 
-  LoadStopsResult({required this.success, this.error, required this.stopsLoaded});
+  LoadStopsResult(
+      {required this.success, this.error, required this.stopsLoaded});
 }
 
 /// Service for loading stops data in background using isolates
@@ -38,7 +39,7 @@ class StopsLoaderIsolate {
     required Function(LoadStopsResult) onComplete,
   }) async {
     final receivePort = ReceivePort();
-    
+
     try {
       await Isolate.spawn(
         _loadStopsWorker,
@@ -83,7 +84,7 @@ class StopsLoaderIsolate {
         try {
           // Fetch GTFS data from endpoint
           final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
-          
+
           if (gtfsData != null && gtfsData.stops.isNotEmpty) {
             // Store stops to database
             await StopsService.storeStopsToDatabase(
@@ -114,7 +115,8 @@ class StopsLoaderIsolate {
   }
 
   /// Helper function to fetch GTFS data for an endpoint
-  static Future<dynamic> _fetchGtfsDataForEndpoint(StopsEndpoint endpoint) async {
+  static Future<GtfsData?> _fetchGtfsDataForEndpoint(
+      StopsEndpoint endpoint) async {
     switch (endpoint) {
       // Trains
       case StopsEndpoint.nswtrains:
@@ -189,6 +191,9 @@ class StopsLoaderIsolate {
         return await fetchFerriesSydneyFerriesGtfsData();
       case StopsEndpoint.ferries_MFF:
         return await fetchFerriesMFFGtfsData();
+      // Unhandled endpoints fall through to null
+      default:
+        return null;
     }
   }
 }

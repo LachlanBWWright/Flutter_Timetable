@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../logs/logger.dart';
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
@@ -123,6 +124,8 @@ class TransportApiService {
         uri,
         headers: {'authorization': 'apikey $apiKey'},
       );
+      logger.i('Response code ${response.statusCode}');
+      logger.i('Response body ${response.body}');
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -130,7 +133,16 @@ class TransportApiService {
       }
 
       final data = jsonDecode(response.body);
-      // Received getTrips response
+      // Received getTrips response — log a short summary
+      int journeysCount = 0;
+      if (data is Map) {
+        final journeys = data['journeys'];
+        if (journeys is List) {
+          journeysCount = journeys.length;
+        }
+      }
+      logger.i(
+          'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId');
       return GetTripsResponse.fromJson(data);
     } catch (e) {
       // Error getting trips
@@ -159,6 +171,8 @@ class GetTripsResponse {
   factory GetTripsResponse.fromJson(Map<String, dynamic> json) {
     // GetTripsResponse raw json keys logged (removed)
 
+    logger.i('GetTripsResponse.fromJson: keys=${json.keys.toList()}');
+
     List<TripJourney> tripJourneys = [];
     SystemMessages? systemMessages;
     String? version;
@@ -167,22 +181,38 @@ class GetTripsResponse {
     try {
       final journeysJson = json['journeys'];
       if (journeysJson == null) {
-        // journeys is null or missing
+        logger
+            .w('GetTripsResponse.fromJson: "journeys" key is null or missing');
       } else if (journeysJson is! List) {
-        // journeys is not a List! Type: ${journeysJson.runtimeType}
+        logger.w(
+            'GetTripsResponse.fromJson: "journeys" is not a List, type=${journeysJson.runtimeType}');
       } else {
-        // journeys count: ${journeysJson.length}
+        logger.i(
+            'GetTripsResponse.fromJson: journeys count=${journeysJson.length}');
         tripJourneys = [];
-        for (final journey in journeysJson) {
+        for (var idx = 0; idx < journeysJson.length; idx++) {
+          final journey = journeysJson[idx];
           try {
-            tripJourneys.add(TripJourney.fromJson(journey));
-          } catch (e) {
-            // Error parsing TripJourney: $e
+            if (journey is! Map<String, dynamic>) {
+              logger.w(
+                  'GetTripsResponse.fromJson: journey #$idx is not a Map, type=${journey.runtimeType}');
+              logger.d('raw journey #$idx: ${jsonEncode(journey)}');
+              continue;
+            }
+            final parsed = TripJourney.fromJson(journey);
+            tripJourneys.add(parsed);
+          } catch (e, st) {
+            logger.e(
+                'GetTripsResponse.fromJson: failed parsing TripJourney #$idx: $e');
+            logger.d('raw journey #$idx: ${jsonEncode(journey)}');
+            logger.d('stack: $st');
           }
         }
       }
-    } catch (e) {
-      // Exception while parsing journeys: $e
+    } catch (e, st) {
+      logger
+          .e('GetTripsResponse.fromJson: exception while parsing journeys: $e');
+      logger.d('stack: $st');
     }
 
     // Parse systemMessages (handle both list and object)
@@ -233,17 +263,47 @@ class TripJourney {
 
   factory TripJourney.fromJson(Map<String, dynamic> json) {
     // TripJourney raw json keys logged (removed)
-    final legsJson = json['legs'] as List<dynamic>?;
-    if (legsJson == null) {
-      // legs is null or missing
-    } else {
-      // legs count: ${legsJson.length}
+    try {
+      final legsJson = json['legs'];
+      if (legsJson == null) {
+        logger.w(
+            'TripJourney.fromJson: "legs" is null or missing for journey keys=${json.keys.toList()}');
+      } else if (legsJson is! List) {
+        logger.w(
+            'TripJourney.fromJson: "legs" is not a List, type=${legsJson.runtimeType}');
+      }
+
+      final List<Leg> legsList = [];
+      if (legsJson is List) {
+        for (var i = 0; i < legsJson.length; i++) {
+          final legJson = legsJson[i];
+          try {
+            if (legJson is! Map<String, dynamic>) {
+              logger.w(
+                  'TripJourney.fromJson: leg #$i is not a Map, type=${legJson.runtimeType}');
+              logger.d('raw leg #$i: ${jsonEncode(legJson)}');
+              continue;
+            }
+            legsList.add(Leg.fromJson(legJson));
+          } catch (e, st) {
+            logger.e('TripJourney.fromJson: failed parsing Leg #$i: $e');
+            logger.d('raw leg #$i: ${jsonEncode(legJson)}');
+            logger.d('stack: $st');
+          }
+        }
+      }
+      return TripJourney(
+        isAdditional: json['isAdditional'],
+        legs: legsList,
+        rating: json['rating'],
+      );
+    } catch (e, st) {
+      logger.e('TripJourney.fromJson: unexpected error: $e');
+      logger.d('raw journey: ${jsonEncode(json)}');
+      logger.d('stack: $st');
+      // Return an empty TripJourney to allow higher-level parsing to continue
+      return TripJourney(isAdditional: null, legs: [], rating: null);
     }
-    return TripJourney(
-      isAdditional: json['isAdditional'],
-      legs: (legsJson ?? []).map((leg) => Leg.fromJson(leg)).toList(),
-      rating: json['rating'],
-    );
   }
 }
 
@@ -599,7 +659,9 @@ class Info {
   final Timestamps? timestamps;
   final String? url;
   final String? urlText;
-  final String? version;
+  // version is expected to be an integer (API often returns numeric versions).
+  // Keep it as `int?` and coerce safely from string when necessary.
+  final int? version;
 
   Info({
     this.content,
@@ -624,7 +686,23 @@ class Info {
           : null,
       url: json['url'],
       urlText: json['urlText'],
-      version: json['version'],
+      // Parse version as int when possible. Accept numeric or numeric string.
+      version: (() {
+        final v = json['version'];
+        if (v == null) return null;
+        if (v is int) return v;
+        if (v is String) {
+          final parsed = int.tryParse(v);
+          if (parsed == null) {
+            logger.w(
+                'Info.fromJson: could not parse version string to int: "$v"');
+          }
+          return parsed;
+        }
+        logger
+            .w('Info.fromJson: unexpected type for version: ${v.runtimeType}');
+        return null;
+      })(),
     );
   }
 }
@@ -938,20 +1016,35 @@ class ResponseMessage {
   final String? error;
   final String? module;
   final String? type;
+  // Some API responses include 'text' and 'subType' instead of 'error'/'type'.
+  // Keep these fields to preserve the raw values and provide backward-compatible
+  // fallback when 'error' or 'type' are missing.
+  final String? text;
+  final String? subType;
 
   ResponseMessage({
     this.code,
     this.error,
     this.module,
     this.type,
+    this.text,
+    this.subType,
   });
 
   factory ResponseMessage.fromJson(Map<String, dynamic> json) {
+    // The API sometimes uses 'text' instead of 'error', and 'subType' for
+    // additional categorisation. Use 'error' when present, otherwise fall
+    // back to 'text'. Keep both fields available.
+    final rawText = json['text']?.toString();
+    final rawError = json['error']?.toString();
     return ResponseMessage(
       code: json['code'],
-      error: json['error'],
-      module: json['module'],
-      type: json['type'],
+      // prefer explicit 'error' but fall back to 'text' to capture messages
+      error: rawError ?? rawText,
+      module: json['module']?.toString(),
+      type: json['type']?.toString(),
+      text: rawText,
+      subType: json['subType']?.toString(),
     );
   }
 }

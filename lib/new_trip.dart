@@ -77,14 +77,14 @@ class _NewTripScreenState extends State<NewTripScreen>
       });
 
       await _applySorting();
-      
+
       // Check if any stops were loaded, show helpful message if not
       final hasAnyStops = _trainStationList.isNotEmpty ||
           _busStationList.isNotEmpty ||
           _ferryStationList.isNotEmpty ||
           _lightRailStationList.isNotEmpty ||
           _metroStationList.isNotEmpty;
-      
+
       if (!hasAnyStops && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -401,6 +401,8 @@ class _NewTripScreenState extends State<NewTripScreen>
             secondMode: _secondStationMode,
             onClearFirst: _clearFirstStation,
             onClearSecond: _clearSecondStation,
+            onConfirm: _saveTrip,
+            canSave: canSave,
           ),
         ],
       ),

@@ -14,6 +14,8 @@ class SelectedStopsWidget extends StatelessWidget {
   final TransportMode? secondMode;
   final VoidCallback onClearFirst;
   final VoidCallback onClearSecond;
+  final VoidCallback? onConfirm;
+  final bool canSave;
 
   const SelectedStopsWidget({
     super.key,
@@ -26,6 +28,8 @@ class SelectedStopsWidget extends StatelessWidget {
     this.secondMode,
     required this.onClearFirst,
     required this.onClearSecond,
+    this.onConfirm,
+    this.canSave = false,
   });
 
   Color _getModeColor() {
@@ -172,6 +176,22 @@ class SelectedStopsWidget extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12.0),
+
+          // Confirm / Save button placed under the selected stops (full width)
+          if (canSave && onConfirm != null)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onConfirm,
+                icon: const Icon(Icons.check),
+                label: const Text('Confirm'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _getAccentColor(),
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                ),
+              ),
+            ),
         ],
       ),
     );

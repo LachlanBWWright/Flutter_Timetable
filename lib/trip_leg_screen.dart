@@ -391,7 +391,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trip Leg Details'),
+        title: const Text('Trip Leg Details:'),
         actions: [
           if (_isLoadingLocation || _isLoadingVehicles)
             const Padding(
@@ -506,9 +506,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   ),
                 ),
               ),
+            // (Debug card removed — moved to Trip Leg Detail screen)
           ],
         ),
       ),
     );
   }
+
+  // Debug pretty-printer moved to Trip Leg Detail screen
 }

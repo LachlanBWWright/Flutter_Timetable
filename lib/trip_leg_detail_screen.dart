@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
@@ -25,6 +26,52 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     super.initState();
     _updatedLeg = widget.leg;
     _refreshLegData();
+  }
+
+  String _legDebugString(Leg leg) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('Leg summary:');
+    buffer.writeln('  distance: ${leg.distance}');
+    buffer.writeln('  duration: ${leg.duration}');
+    buffer.writeln('  isRealtimeControlled: ${leg.isRealtimeControlled}');
+    buffer.writeln('  coords: ${leg.coords?.map((c) => c.join(', ')).toList() ?? 'N/A'}');
+
+    buffer.writeln('\nOrigin:');
+    buffer.writeln('  id: ${leg.origin.id}');
+    buffer.writeln('  name: ${leg.origin.name}');
+    buffer.writeln('  type: ${leg.origin.type}');
+    buffer.writeln('  coord: ${leg.origin.coord ?? 'N/A'}');
+
+    buffer.writeln('\nDestination:');
+    buffer.writeln('  id: ${leg.destination.id}');
+    buffer.writeln('  name: ${leg.destination.name}');
+    buffer.writeln('  type: ${leg.destination.type}');
+    buffer.writeln('  coord: ${leg.destination.coord ?? 'N/A'}');
+
+    buffer.writeln('\nTransportation:');
+    if (leg.transportation != null) {
+      buffer.writeln('  id: ${leg.transportation?.id}');
+      buffer.writeln('  name: ${leg.transportation?.name}');
+      buffer.writeln('  number: ${leg.transportation?.number}');
+      buffer.writeln('  product class: ${leg.transportation?.product?.classField}');
+    } else {
+      buffer.writeln('  N/A');
+    }
+
+    buffer.writeln('\nStops (${leg.stopSequence?.length ?? 0}):');
+    if (leg.stopSequence != null && leg.stopSequence!.isNotEmpty) {
+      for (var i = 0; i < leg.stopSequence!.length; i++) {
+        final s = leg.stopSequence![i];
+        buffer.writeln('  ${i + 1}. ${s.name} (id: ${s.id})');
+      }
+    }
+
+    buffer.writeln('\nProperties:');
+    buffer.writeln('  differentFares: ${leg.properties?.differentFares}');
+    buffer.writeln('  lineType: ${leg.properties?.lineType}');
+
+    return buffer.toString();
   }
 
   TransportMode? _getRealtimeModeFromClass(int? transportClass) {
@@ -370,6 +417,78 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         style: const TextStyle(color: Colors.red),
                       ),
                     ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Debug/info card showing detailed leg data
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Leg debug data',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Copy debug text to clipboard',
+                          onPressed: () async {
+                            try {
+                              await Clipboard.setData(
+                                ClipboardData(text: _legDebugString(leg)),
+                              );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'Copied leg debug data to clipboard')),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                          Text('Failed to copy to clipboard')),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.copy, size: 18),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Leg details (select or copy). Useful for debugging.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          _legDebugString(leg),
+                          style: const TextStyle(
+                              fontFamily: 'monospace', fontSize: 12),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

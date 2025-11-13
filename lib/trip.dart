@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 // logger removed
 import 'package:lbww_flutter/schema/database.dart';
 
@@ -30,7 +31,7 @@ class _TripScreenState extends State<TripScreen> {
 
     try {
       // Getting trip data for ${widget.trip.origin} to ${widget.trip.destination}
-
+      logger.i("Calling gettrips");
       final tripData = await TransportApiService.getTrips(
         originId: widget.trip.originId,
         destinationId: widget.trip.destinationId,

@@ -74,7 +74,7 @@ class StationView extends StatelessWidget {
         style: const TextStyle(fontSize: 12, color: Colors.grey),
       );
     }
-    
+
     // Don't show anything if distance is not available
     return const SizedBox.shrink();
   }
@@ -248,11 +248,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onToggleSearch,
               icon: const Icon(Icons.search),
             ),
-        ] else if (onSaveTrip != null)
-          IconButton(
-            onPressed: onSaveTrip,
-            icon: const Icon(Icons.arrow_forward),
-          ),
+        ],
       ],
       bottom: TabBar(
         controller: tabController,
