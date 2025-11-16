@@ -10,10 +10,12 @@ import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 class TripLegCard extends StatelessWidget {
   final Leg leg;
+  final TripJourney? trip;
 
   const TripLegCard({
     super.key,
     required this.leg,
+    this.trip,
   });
 
   String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
@@ -118,7 +120,7 @@ class TripLegCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TripLegDetailScreen(leg: leg),
+              builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
             ),
           );
         },

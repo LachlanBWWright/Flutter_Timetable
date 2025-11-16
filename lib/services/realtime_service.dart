@@ -139,6 +139,80 @@ class RealtimeService {
         .toList();
   }
 
+  /// Aggregate all vehicle positions across all feeds and return a deduplicated
+  /// list along with a breakdown of counts per feed group to aid debugging.
+  static Future<Map<String, dynamic>> getAllVehiclePositionsAggregated({
+    Future<Map<TransportMode, FeedMessage?>> Function()?
+        getAllPositionsOverride,
+    Future<List<FeedMessage?>> Function()? getRegionBusesOverride,
+    Future<List<FeedMessage?>> Function()? getAllFerriesOverride,
+    Future<List<FeedMessage?>> Function()? getAllLightRailOverride,
+  }) async {
+    final vehicles = <VehiclePosition>[];
+    final breakdown = <String, int>{};
+
+    final all = await (getAllPositionsOverride ?? getAllRealtimePositions)();
+    for (final entry in all.entries) {
+      final pack = extractVehiclePositions(entry.value);
+      vehicles.addAll(pack);
+      breakdown['${entry.key}'] =
+          (breakdown['${entry.key}'] ?? 0) + pack.length;
+    }
+
+    final regionBuses =
+        await (getRegionBusesOverride ?? getRegionBusPositions)();
+    var regionCount = 0;
+    for (final feed in regionBuses) {
+      final pack = extractVehiclePositions(feed);
+      regionCount += pack.length;
+      vehicles.addAll(pack);
+    }
+    breakdown['regionBuses'] = regionCount;
+
+    final allFerries = await (getAllFerriesOverride ?? getAllFerryPositions)();
+    var ferryCount = 0;
+    for (final feed in allFerries) {
+      final pack = extractVehiclePositions(feed);
+      ferryCount += pack.length;
+      vehicles.addAll(pack);
+    }
+    breakdown['ferries'] = ferryCount;
+
+    final allLightRail =
+        await (getAllLightRailOverride ?? getAllLightRailPositions)();
+    var lightrailCount = 0;
+    for (final feed in allLightRail) {
+      final pack = extractVehiclePositions(feed);
+      lightrailCount += pack.length;
+      vehicles.addAll(pack);
+    }
+    breakdown['lightrail'] = lightrailCount;
+
+    // Deduplicate using vehicle.id > tripId > position+timestamp
+    final unique = <String, VehiclePosition>{};
+    for (final v in vehicles) {
+      var key = 'unknown';
+      if (v.vehicle.hasId())
+        key = 'vid:${v.vehicle.id}';
+      else if (v.trip.hasTripId())
+        key = 'trip:${v.trip.tripId}';
+      else if (v.hasPosition() &&
+          v.position.hasLatitude() &&
+          v.position.hasLongitude()) {
+        final lat = v.position.latitude.toStringAsFixed(6);
+        final lng = v.position.longitude.toStringAsFixed(6);
+        final ts = v.hasTimestamp() ? v.timestamp.toString() : 'nots';
+        key = 'pos:${lat}:${lng}:${ts}';
+      }
+      if (!unique.containsKey(key)) unique[key] = v;
+    }
+
+    return {
+      'vehicles': unique.values.toList(),
+      'breakdown': breakdown,
+    };
+  }
+
   /// Get realtime status summary
   static Future<Map<TransportMode, Map<String, dynamic>>>
       getRealtimeStatusSummary() async {

@@ -9,6 +9,8 @@ import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
+import 'utils/color_utils.dart';
+
 class TripLegDetailScreen extends StatefulWidget {
   final Map<String, dynamic> leg;
   const TripLegDetailScreen({super.key, required this.leg});
@@ -32,6 +34,18 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     super.initState();
     _loadUserLocation();
     _loadRealtimeData();
+  }
+
+  int? _extractTransportClassFromLeg(Map<String, dynamic>? leg) {
+    if (leg == null) return 5;
+    final transportation = leg['transportation'];
+    if (transportation is! Map<String, dynamic>) return 5;
+    final product = transportation['product'];
+    if (product is! Map<String, dynamic>) return 5;
+    final raw = product['class'];
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    return int.tryParse(raw.toString());
   }
 
   Future<void> _loadUserLocation() async {
@@ -63,12 +77,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     try {
       // Get the transport mode from leg data
-      final transportation =
-          widget.leg['transportation'] as Map<String, dynamic>?;
-      final transportProduct =
-          transportation?['product'] as Map<String, dynamic>?;
-      final transportClass = transportProduct?['class'];
-      final tripId = transportation?['id'];
+      final dynamic transportationRaw = widget.leg['transportation'];
+      final Map<String, dynamic>? transportation =
+          transportationRaw is Map<String, dynamic> ? transportationRaw : null;
+      final int? transportClass = _extractTransportClassFromLeg(widget.leg);
+      String? tripId;
+      if (transportation is Map<String, dynamic>) {
+        final id = transportation['id'];
+        if (id != null) tripId = id.toString();
+      }
 
       if (transportClass != null) {
         // Determine which high-level transport mode to query based on transport class
@@ -160,6 +177,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   List<Marker> _buildMapMarkers() {
     final markers = <Marker>[];
+    final int transportClassForMarkers =
+        _extractTransportClassFromLeg(widget.leg) ?? 5;
 
     // Add user location marker
     if (_userLocation != null) {
@@ -186,9 +205,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           child: Icon(
             Icons.directions_bus,
             color: TransportModeUtils.getModeColor(
-              (widget.leg['transportation']
-                      as Map<String, dynamic>?)?['product']?['class'] ??
-                  5,
+              transportClassForMarkers,
             ),
             size: 25,
           ),
@@ -293,7 +310,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: isCurrentStop ? Colors.orange : Colors.grey,
-            foregroundColor: Colors.white,
+            foregroundColor: getContrastingForeground(
+                isCurrentStop ? Colors.orange : Colors.grey),
             child: Text('${index + 1}'),
           ),
           title: Text(
@@ -374,11 +392,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final transportation =
-        widget.leg['transportation'] as Map<String, dynamic>?;
-    final transportProduct =
-        transportation?['product'] as Map<String, dynamic>?;
-    final transportClass = transportProduct?['class'];
+    final dynamic transportationRaw = widget.leg['transportation'];
+    final Map<String, dynamic>? transportation =
+        transportationRaw is Map<String, dynamic> ? transportationRaw : null;
+    final int? transportClass = _extractTransportClassFromLeg(widget.leg);
 
     final origin = widget.leg['origin'] as Map<String, dynamic>?;
     final destination = widget.leg['destination'] as Map<String, dynamic>?;
@@ -455,15 +472,24 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.directions_bus,
-                              color: Colors.green, size: 16),
+                          Icon(
+                            Icons.directions_bus,
+                            color: TransportModeUtils.getModeColor(
+                                transportClass ?? 5),
+                            size: 16,
+                          ),
                           const SizedBox(width: 8),
-                          Text(
-                            'Vehicle ${_currentVehicle?.vehicle.label ?? _currentVehicle?.vehicle.id ?? 'Unknown'} is tracked',
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
+                          Expanded(
+                            child: Text(
+                              ((_currentVehicle != null &&
+                                      _currentVehicle!.vehicle.hasId()))
+                                  ? 'Vehicle ${_currentVehicle!.vehicle.id}'
+                                  : 'Vehicle (unknown)',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],

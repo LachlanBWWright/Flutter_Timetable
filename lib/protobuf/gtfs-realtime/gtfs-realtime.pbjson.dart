@@ -17,8 +17,22 @@ import 'dart:typed_data' as $typed_data;
 const FeedMessage$json = {
   '1': 'FeedMessage',
   '2': [
-    {'1': 'header', '3': 1, '4': 2, '5': 11, '6': '.transit_realtime.FeedHeader', '10': 'header'},
-    {'1': 'entity', '3': 2, '4': 3, '5': 11, '6': '.transit_realtime.FeedEntity', '10': 'entity'},
+    {
+      '1': 'header',
+      '3': 1,
+      '4': 2,
+      '5': 11,
+      '6': '.transit_realtime.FeedHeader',
+      '10': 'header'
+    },
+    {
+      '1': 'entity',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.transit_realtime.FeedEntity',
+      '10': 'entity'
+    },
   ],
   '5': [
     {'1': 1000, '2': 2000},
@@ -35,8 +49,22 @@ final $typed_data.Uint8List feedMessageDescriptor = $convert.base64Decode(
 const FeedHeader$json = {
   '1': 'FeedHeader',
   '2': [
-    {'1': 'gtfs_realtime_version', '3': 1, '4': 2, '5': 9, '10': 'gtfsRealtimeVersion'},
-    {'1': 'incrementality', '3': 2, '4': 1, '5': 14, '6': '.transit_realtime.FeedHeader.Incrementality', '7': 'FULL_DATASET', '10': 'incrementality'},
+    {
+      '1': 'gtfs_realtime_version',
+      '3': 1,
+      '4': 2,
+      '5': 9,
+      '10': 'gtfsRealtimeVersion'
+    },
+    {
+      '1': 'incrementality',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.FeedHeader.Incrementality',
+      '7': 'FULL_DATASET',
+      '10': 'incrementality'
+    },
     {'1': 'timestamp', '3': 3, '4': 1, '5': 4, '10': 'timestamp'},
   ],
   '4': [FeedHeader_Incrementality$json],
@@ -67,10 +95,38 @@ const FeedEntity$json = {
   '1': 'FeedEntity',
   '2': [
     {'1': 'id', '3': 1, '4': 2, '5': 9, '10': 'id'},
-    {'1': 'is_deleted', '3': 2, '4': 1, '5': 8, '7': 'false', '10': 'isDeleted'},
-    {'1': 'trip_update', '3': 3, '4': 1, '5': 11, '6': '.transit_realtime.TripUpdate', '10': 'tripUpdate'},
-    {'1': 'vehicle', '3': 4, '4': 1, '5': 11, '6': '.transit_realtime.VehiclePosition', '10': 'vehicle'},
-    {'1': 'alert', '3': 5, '4': 1, '5': 11, '6': '.transit_realtime.Alert', '10': 'alert'},
+    {
+      '1': 'is_deleted',
+      '3': 2,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'isDeleted'
+    },
+    {
+      '1': 'trip_update',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TripUpdate',
+      '10': 'tripUpdate'
+    },
+    {
+      '1': 'vehicle',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.VehiclePosition',
+      '10': 'vehicle'
+    },
+    {
+      '1': 'alert',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.Alert',
+      '10': 'alert'
+    },
   ],
   '5': [
     {'1': 1000, '2': 2000},
@@ -89,9 +145,30 @@ final $typed_data.Uint8List feedEntityDescriptor = $convert.base64Decode(
 const TripUpdate$json = {
   '1': 'TripUpdate',
   '2': [
-    {'1': 'trip', '3': 1, '4': 2, '5': 11, '6': '.transit_realtime.TripDescriptor', '10': 'trip'},
-    {'1': 'vehicle', '3': 3, '4': 1, '5': 11, '6': '.transit_realtime.VehicleDescriptor', '10': 'vehicle'},
-    {'1': 'stop_time_update', '3': 2, '4': 3, '5': 11, '6': '.transit_realtime.TripUpdate.StopTimeUpdate', '10': 'stopTimeUpdate'},
+    {
+      '1': 'trip',
+      '3': 1,
+      '4': 2,
+      '5': 11,
+      '6': '.transit_realtime.TripDescriptor',
+      '10': 'trip'
+    },
+    {
+      '1': 'vehicle',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.VehicleDescriptor',
+      '10': 'vehicle'
+    },
+    {
+      '1': 'stop_time_update',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.transit_realtime.TripUpdate.StopTimeUpdate',
+      '10': 'stopTimeUpdate'
+    },
     {'1': 'timestamp', '3': 4, '4': 1, '5': 4, '10': 'timestamp'},
     {'1': 'delay', '3': 5, '4': 1, '5': 5, '10': 'delay'},
   ],
@@ -120,9 +197,31 @@ const TripUpdate_StopTimeUpdate$json = {
   '2': [
     {'1': 'stop_sequence', '3': 1, '4': 1, '5': 13, '10': 'stopSequence'},
     {'1': 'stop_id', '3': 4, '4': 1, '5': 9, '10': 'stopId'},
-    {'1': 'arrival', '3': 2, '4': 1, '5': 11, '6': '.transit_realtime.TripUpdate.StopTimeEvent', '10': 'arrival'},
-    {'1': 'departure', '3': 3, '4': 1, '5': 11, '6': '.transit_realtime.TripUpdate.StopTimeEvent', '10': 'departure'},
-    {'1': 'schedule_relationship', '3': 5, '4': 1, '5': 14, '6': '.transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship', '7': 'SCHEDULED', '10': 'scheduleRelationship'},
+    {
+      '1': 'arrival',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TripUpdate.StopTimeEvent',
+      '10': 'arrival'
+    },
+    {
+      '1': 'departure',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TripUpdate.StopTimeEvent',
+      '10': 'departure'
+    },
+    {
+      '1': 'schedule_relationship',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship',
+      '7': 'SCHEDULED',
+      '10': 'scheduleRelationship'
+    },
   ],
   '4': [TripUpdate_StopTimeUpdate_ScheduleRelationship$json],
   '5': [
@@ -162,17 +261,70 @@ final $typed_data.Uint8List tripUpdateDescriptor = $convert.base64Decode(
 const VehiclePosition$json = {
   '1': 'VehiclePosition',
   '2': [
-    {'1': 'trip', '3': 1, '4': 1, '5': 11, '6': '.transit_realtime.TripDescriptor', '10': 'trip'},
-    {'1': 'vehicle', '3': 8, '4': 1, '5': 11, '6': '.transit_realtime.VehicleDescriptor', '10': 'vehicle'},
-    {'1': 'position', '3': 2, '4': 1, '5': 11, '6': '.transit_realtime.Position', '10': 'position'},
-    {'1': 'current_stop_sequence', '3': 3, '4': 1, '5': 13, '10': 'currentStopSequence'},
+    {
+      '1': 'trip',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TripDescriptor',
+      '10': 'trip'
+    },
+    {
+      '1': 'vehicle',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.VehicleDescriptor',
+      '10': 'vehicle'
+    },
+    {
+      '1': 'position',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.Position',
+      '10': 'position'
+    },
+    {
+      '1': 'current_stop_sequence',
+      '3': 3,
+      '4': 1,
+      '5': 13,
+      '10': 'currentStopSequence'
+    },
     {'1': 'stop_id', '3': 7, '4': 1, '5': 9, '10': 'stopId'},
-    {'1': 'current_status', '3': 4, '4': 1, '5': 14, '6': '.transit_realtime.VehiclePosition.VehicleStopStatus', '7': 'IN_TRANSIT_TO', '10': 'currentStatus'},
+    {
+      '1': 'current_status',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.VehiclePosition.VehicleStopStatus',
+      '7': 'IN_TRANSIT_TO',
+      '10': 'currentStatus'
+    },
     {'1': 'timestamp', '3': 5, '4': 1, '5': 4, '10': 'timestamp'},
-    {'1': 'congestion_level', '3': 6, '4': 1, '5': 14, '6': '.transit_realtime.VehiclePosition.CongestionLevel', '10': 'congestionLevel'},
-    {'1': 'occupancy_status', '3': 9, '4': 1, '5': 14, '6': '.transit_realtime.VehiclePosition.OccupancyStatus', '10': 'occupancyStatus'},
+    {
+      '1': 'congestion_level',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.VehiclePosition.CongestionLevel',
+      '10': 'congestionLevel'
+    },
+    {
+      '1': 'occupancy_status',
+      '3': 9,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.VehiclePosition.OccupancyStatus',
+      '10': 'occupancyStatus'
+    },
   ],
-  '4': [VehiclePosition_VehicleStopStatus$json, VehiclePosition_CongestionLevel$json, VehiclePosition_OccupancyStatus$json],
+  '4': [
+    VehiclePosition_VehicleStopStatus$json,
+    VehiclePosition_CongestionLevel$json,
+    VehiclePosition_OccupancyStatus$json
+  ],
   '5': [
     {'1': 1000, '2': 2000},
   ],
@@ -239,13 +391,64 @@ final $typed_data.Uint8List vehiclePositionDescriptor = $convert.base64Decode(
 const Alert$json = {
   '1': 'Alert',
   '2': [
-    {'1': 'active_period', '3': 1, '4': 3, '5': 11, '6': '.transit_realtime.TimeRange', '10': 'activePeriod'},
-    {'1': 'informed_entity', '3': 5, '4': 3, '5': 11, '6': '.transit_realtime.EntitySelector', '10': 'informedEntity'},
-    {'1': 'cause', '3': 6, '4': 1, '5': 14, '6': '.transit_realtime.Alert.Cause', '7': 'UNKNOWN_CAUSE', '10': 'cause'},
-    {'1': 'effect', '3': 7, '4': 1, '5': 14, '6': '.transit_realtime.Alert.Effect', '7': 'UNKNOWN_EFFECT', '10': 'effect'},
-    {'1': 'url', '3': 8, '4': 1, '5': 11, '6': '.transit_realtime.TranslatedString', '10': 'url'},
-    {'1': 'header_text', '3': 10, '4': 1, '5': 11, '6': '.transit_realtime.TranslatedString', '10': 'headerText'},
-    {'1': 'description_text', '3': 11, '4': 1, '5': 11, '6': '.transit_realtime.TranslatedString', '10': 'descriptionText'},
+    {
+      '1': 'active_period',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.transit_realtime.TimeRange',
+      '10': 'activePeriod'
+    },
+    {
+      '1': 'informed_entity',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.transit_realtime.EntitySelector',
+      '10': 'informedEntity'
+    },
+    {
+      '1': 'cause',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.Alert.Cause',
+      '7': 'UNKNOWN_CAUSE',
+      '10': 'cause'
+    },
+    {
+      '1': 'effect',
+      '3': 7,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.Alert.Effect',
+      '7': 'UNKNOWN_EFFECT',
+      '10': 'effect'
+    },
+    {
+      '1': 'url',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TranslatedString',
+      '10': 'url'
+    },
+    {
+      '1': 'header_text',
+      '3': 10,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TranslatedString',
+      '10': 'headerText'
+    },
+    {
+      '1': 'description_text',
+      '3': 11,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TranslatedString',
+      '10': 'descriptionText'
+    },
   ],
   '4': [Alert_Cause$json, Alert_Effect$json],
   '5': [
@@ -355,7 +558,14 @@ const TripDescriptor$json = {
     {'1': 'direction_id', '3': 6, '4': 1, '5': 13, '10': 'directionId'},
     {'1': 'start_time', '3': 2, '4': 1, '5': 9, '10': 'startTime'},
     {'1': 'start_date', '3': 3, '4': 1, '5': 9, '10': 'startDate'},
-    {'1': 'schedule_relationship', '3': 4, '4': 1, '5': 14, '6': '.transit_realtime.TripDescriptor.ScheduleRelationship', '10': 'scheduleRelationship'},
+    {
+      '1': 'schedule_relationship',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.TripDescriptor.ScheduleRelationship',
+      '10': 'scheduleRelationship'
+    },
   ],
   '4': [TripDescriptor_ScheduleRelationship$json],
   '5': [
@@ -409,7 +619,14 @@ const EntitySelector$json = {
     {'1': 'agency_id', '3': 1, '4': 1, '5': 9, '10': 'agencyId'},
     {'1': 'route_id', '3': 2, '4': 1, '5': 9, '10': 'routeId'},
     {'1': 'route_type', '3': 3, '4': 1, '5': 5, '10': 'routeType'},
-    {'1': 'trip', '3': 4, '4': 1, '5': 11, '6': '.transit_realtime.TripDescriptor', '10': 'trip'},
+    {
+      '1': 'trip',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.transit_realtime.TripDescriptor',
+      '10': 'trip'
+    },
     {'1': 'stop_id', '3': 5, '4': 1, '5': 9, '10': 'stopId'},
   ],
   '5': [
@@ -428,7 +645,14 @@ final $typed_data.Uint8List entitySelectorDescriptor = $convert.base64Decode(
 const TranslatedString$json = {
   '1': 'TranslatedString',
   '2': [
-    {'1': 'translation', '3': 1, '4': 3, '5': 11, '6': '.transit_realtime.TranslatedString.Translation', '10': 'translation'},
+    {
+      '1': 'translation',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.transit_realtime.TranslatedString.Translation',
+      '10': 'translation'
+    },
   ],
   '3': [TranslatedString_Translation$json],
   '5': [
@@ -454,4 +678,3 @@ final $typed_data.Uint8List translatedStringDescriptor = $convert.base64Decode(
     'ltZS5UcmFuc2xhdGVkU3RyaW5nLlRyYW5zbGF0aW9uUgt0cmFuc2xhdGlvbhpFCgtUcmFuc2xh'
     'dGlvbhISCgR0ZXh0GAEgAigJUgR0ZXh0EhoKCGxhbmd1YWdlGAIgASgJUghsYW5ndWFnZSoGCO'
     'gHENAPKgYI6AcQ0A8=');
-

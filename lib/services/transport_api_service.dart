@@ -76,15 +76,16 @@ class TransportApiService {
             'Failed to search stations: ${response.statusCode}, ${response.body}');
       }
 
-      final data = jsonDecode(response.body);
-      final locations = data['locations'] as List? ?? [];
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final locations = (data['locations'] as List?) ?? [];
 
-      return locations
-          .map((location) => {
-                'name': location['disassembledName'] ?? location['name'] ?? '',
-                'id': location['id']?.toString() ?? '',
-              })
-          .toList();
+      return locations.map((location) {
+        final Map<String, dynamic>? loc = location as Map<String, dynamic>?;
+        final name =
+            (loc?['disassembledName'] ?? loc?['name'])?.toString() ?? '';
+        final id = loc?['id']?.toString() ?? '';
+        return {'name': name, 'id': id};
+      }).toList();
     } catch (e) {
       // Error searching stations
       return [];
@@ -254,11 +255,16 @@ class TripJourney {
   final bool? isAdditional;
   final List<Leg> legs;
   final int? rating;
+  // Keep the original raw JSON for this TripJourney as returned by the API.
+  // This ensures that any unmapped or subsequently-added fields are retained
+  // and accessible for debug/diagnostic features.
+  final Map<String, dynamic>? rawJson;
 
   TripJourney({
     this.isAdditional,
     required this.legs,
     this.rating,
+    this.rawJson,
   });
 
   factory TripJourney.fromJson(Map<String, dynamic> json) {
@@ -296,6 +302,7 @@ class TripJourney {
         isAdditional: json['isAdditional'],
         legs: legsList,
         rating: json['rating'],
+        rawJson: json,
       );
     } catch (e, st) {
       logger.e('TripJourney.fromJson: unexpected error: $e');
@@ -322,6 +329,9 @@ class Leg {
   final LegProperties? properties;
   final List<Stop>? stopSequence;
   final Transportation? transportation;
+  // Keep the raw API JSON for the leg to preserve any fields not mapped into
+  // explicit model properties (e.g., realtimeStatus, niveau, etc.).
+  final Map<String, dynamic>? rawJson;
 
   Leg({
     this.coords,
@@ -338,6 +348,7 @@ class Leg {
     this.properties,
     this.stopSequence,
     this.transportation,
+    this.rawJson,
   });
 
   factory Leg.fromJson(Map<String, dynamic> json) {
@@ -377,9 +388,10 @@ class Leg {
       stopSequence: (json['stopSequence'] as List<dynamic>?)
           ?.map((stop) => Stop.fromJson(stop))
           .toList(),
-      transportation: json['transportation'] != null
+        transportation: json['transportation'] != null
           ? Transportation.fromJson(json['transportation'])
           : null,
+        rawJson: json,
     );
   }
 }
@@ -396,6 +408,8 @@ class Stop {
   final Parent? parent;
   final StopProperties? properties;
   final String type;
+  // Raw JSON that was used to populate this Stop (if available).
+  final Map<String, dynamic>? rawJson;
 
   Stop({
     this.arrivalTimeEstimated,
@@ -409,6 +423,7 @@ class Stop {
     this.parent,
     this.properties,
     required this.type,
+    this.rawJson,
   });
 
   factory Stop.fromJson(Map<String, dynamic> json) {
@@ -429,6 +444,7 @@ class Stop {
           ? StopProperties.fromJson(json['properties'])
           : null,
       type: json['type']?.toString() ?? '',
+      rawJson: json,
     );
   }
 }
@@ -866,6 +882,8 @@ class Transportation {
   final Operator? operator;
   final Product? product;
   final TransportationProperties? properties;
+  // Raw JSON used to create this `Transportation` instance.
+  final Map<String, dynamic>? rawJson;
 
   Transportation({
     this.description,
@@ -878,6 +896,7 @@ class Transportation {
     this.operator,
     this.product,
     this.properties,
+    this.rawJson,
   });
 
   factory Transportation.fromJson(Map<String, dynamic> json) {
@@ -898,6 +917,7 @@ class Transportation {
       properties: json['properties'] != null
           ? TransportationProperties.fromJson(json['properties'])
           : null,
+      rawJson: json,
     );
   }
 }

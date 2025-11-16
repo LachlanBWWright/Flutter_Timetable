@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 // logger removed
 import 'package:lbww_flutter/schema/database.dart';
-
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/trip_legs_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
@@ -31,7 +31,7 @@ class _TripScreenState extends State<TripScreen> {
 
     try {
       // Getting trip data for ${widget.trip.origin} to ${widget.trip.destination}
-      logger.i("Calling gettrips");
+      logger.i('Calling gettrips');
       final tripData = await TransportApiService.getTrips(
         originId: widget.trip.originId,
         destinationId: widget.trip.destinationId,
@@ -123,13 +123,25 @@ class _TripScreenState extends State<TripScreen> {
                   return TripCard(
                     trip: trips[index],
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              TripLegScreen(trip: trips[index]),
-                        ),
-                      );
+                      final tripJourney = trips[index];
+                      if (tripJourney.legs.length == 1) {
+                        final singleLeg = tripJourney.legs.first;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                                builder: (context) =>
+                                TripLegDetailScreen(leg: singleLeg, trip: tripJourney),
+                          ),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TripLegScreen(trip: tripJourney),
+                          ),
+                        );
+                      }
                     },
                   );
                 },

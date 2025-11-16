@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 // logger removed
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
-import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
@@ -52,6 +52,8 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   Future<void> _loadAllModes() async {
     // Load all modes from local database (no network fetch)
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -66,6 +68,8 @@ class _NewTripScreenState extends State<NewTripScreen>
       ];
 
       final results = await Future.wait(futures);
+
+      if (!mounted) return;
 
       setState(() {
         _trainStationList = results[0];
@@ -155,6 +159,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   void setStation(String station, String id) async {
     // Lookup the mode for this stop id
     final mode = await StopsService.getModeForStopId(id);
+    if (!mounted) return;
 
     setState(() {
       if (_firstStation == '') {
@@ -236,6 +241,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
 
     await _applySorting();
+    if (!mounted) return;
   }
 
   void _openMap() {
@@ -342,7 +348,7 @@ class _NewTripScreenState extends State<NewTripScreen>
           break;
       }
       // Trigger a rebuild so the tab lists reflect the new sort order.
-      if (mounted) setState(() {});
+      // rebuild request completed
     });
   }
 

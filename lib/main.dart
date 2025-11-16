@@ -70,6 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       final allJourneys = [...pinnedJourneys, ...sortedUnpinned];
 
+      if (!mounted) return;
       setState(() {
         _journeys = allJourneys;
         _filteredJourneys = allJourneys;
@@ -113,10 +114,12 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> checkApiKey() async {
     try {
       final isValid = await TransportApiService.isApiKeyValid();
+      if (!mounted) return;
       setState(() {
         _hasApiKey = isValid;
       });
     } catch (err) {
+      if (!mounted) return;
       setState(() {
         _hasApiKey = false;
       });

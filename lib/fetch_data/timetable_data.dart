@@ -283,7 +283,7 @@ List<Agency> parseAgencyCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'agency.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'agency.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -306,7 +306,7 @@ List<Calendar> parseCalendarCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'calendar.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'calendar.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -329,7 +329,7 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'calendar_dates.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'calendar_dates.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -352,7 +352,7 @@ List<Route> parseRoutesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'routes.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'routes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -369,7 +369,7 @@ List<Route> parseRoutesCsv(String csv) {
 
 List<Stop> parseStopsCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: true);
-  logger.i("Parsing stops.csv, total rows: ${rows.length}");
+  logger.i('Parsing stops.csv, total rows: $rows.length');
 
   if (rows.isEmpty) {
     throw const FormatException('stops.txt is empty');
@@ -377,7 +377,7 @@ List<Stop> parseStopsCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'stops.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'stops.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -400,7 +400,7 @@ List<StopTime> parseStopTimesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'stop_times.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'stop_times.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -423,7 +423,7 @@ List<Trip> parseTripsCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'trips.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'trips.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -446,7 +446,7 @@ List<Shape> parseShapesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'shapes.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'shapes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -469,7 +469,7 @@ List<Note> parseNotesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'notes.txt contains less than 2 rows; using fallback empty list; sample="${sample}"');
+        'notes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
     return [];
   }
 
@@ -544,9 +544,9 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
 }
 
 GtfsData parseGtfsFiles(Map<String, String> files) {
-  logger.i("Files: ${files.keys.toString()}");
+  logger.i('Files: ${files.keys.toString()}');
   if (files['stops.txt'] == null) {
-    logger.e("Stops.txt is missing");
+    logger.e('Stops.txt is missing');
   } else {
     logger.i('stops.txt length: ${files['stops.txt']!.length} characters');
   }

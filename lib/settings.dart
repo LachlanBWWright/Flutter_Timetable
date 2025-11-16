@@ -4,6 +4,8 @@ import 'package:lbww_flutter/schema/database.dart' as db;
 
 import 'services/location_service.dart';
 import 'set_home_stop_screen.dart';
+import 'utils/button_styles.dart';
+import 'utils/color_utils.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
@@ -54,6 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Simulate partial progress updates for UI clarity
       await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
       setState(() => _updateStatus = 'Updating stops...');
       await Future.delayed(const Duration(milliseconds: 400));
       // pretend we updated some stops (the real implementation should set this)
@@ -61,13 +64,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       setState(() => _updateStatus = 'Updating realtime feeds...');
       await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
       _realtimeFeedsUpdated = 3;
 
+      if (!mounted) return;
       setState(() {
         _updateStatus = 'Update completed successfully';
         _isUpdating = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _updateStatus = 'Update failed: $e';
         _isUpdating = false;
@@ -77,6 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSortingPreference() async {
     final isAlphabetical = await LocationService.isAlphabeticalSorting();
+    if (!mounted) return;
     setState(() {
       _isAlphabeticalSorting = isAlphabetical;
     });
@@ -84,6 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _updateSortingPreference(bool value) async {
     await LocationService.setSortingPreference(value);
+    if (!mounted) return;
     setState(() {
       _isAlphabeticalSorting = value;
     });
@@ -113,6 +121,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         title: const Text('Settings & Management'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        foregroundColor: getContrastingForeground(
+            Theme.of(context).colorScheme.inversePrimary),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -144,11 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: () => _navigateToRealtimeMap(context),
                         icon: const Icon(Icons.map),
                         label: const Text('Open Realtime Map'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: Colors.blueAccent,
-                          foregroundColor: Colors.white,
-                        ),
+                        style: ButtonStyles.elevated(Colors.blueAccent),
                       ),
                     ),
                   ],
@@ -217,11 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: () => _navigateToSetHomeStop(context),
                         icon: const Icon(Icons.home),
                         label: const Text('Set Home Stop'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
-                        ),
+                        style: ButtonStyles.elevated(Colors.teal),
                       ),
                     ),
                   ],
@@ -274,12 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onPressed: _performUpdate,
                               icon: const Icon(Icons.download),
                               label: const Text('Update now'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
+                              style: ButtonStyles.elevated(Colors.green),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -289,12 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onPressed: _performUpdate,
                               icon: const Icon(Icons.refresh),
                               label: const Text('Force refresh'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
+                              style: ButtonStyles.elevated(Colors.orange),
                             ),
                           ),
                         ],
@@ -322,45 +314,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
                               setState(() {
                                 _isUpdating = true;
                                 _updateStatus = 'Resetting database...';
                               });
                               try {
                                 await db.AppDatabase.resetDatabase();
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content:
-                                          Text('Database reset successfully'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text('Database reset successfully'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
                               } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text('Database reset failed: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('Database reset failed: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
                               } finally {
-                                setState(() {
-                                  _isUpdating = false;
-                                  _updateStatus = null;
-                                });
+                                if (mounted) {
+                                  setState(() {
+                                    _isUpdating = false;
+                                    _updateStatus = null;
+                                  });
+                                }
                               }
                             },
                             icon: const Icon(Icons.restore),
                             label: const Text('Reset DB (dev)'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
+                            style: ButtonStyles.elevated(Colors.redAccent),
                           ),
                         ),
                       ),

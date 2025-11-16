@@ -5,6 +5,7 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
+import '../logs/logger.dart';
 import '../services/transport_api_service.dart';
 import 'realtime_map_helpers.dart';
 
@@ -15,12 +16,29 @@ class RealtimeMapWidget extends StatefulWidget {
   final String? routeFilter;
   final Leg? leg;
 
+  /// Optional exact vehicle id filter. If provided, only the vehicle whose
+  /// vehicle.id equals this value will be shown on the map.
+  final String? vehicleId;
+
+  /// Optional override function to fetch the realtime positions for the map.
+  /// This allows tests to provide a predictable feed without hitting real
+  /// network providers. If omitted, the widget uses [RealtimeService.getAllRealtimePositions].
+  final Future<Map<TransportMode, FeedMessage?>> Function()? getPositions;
+
+  /// Optional override to fetch aggregated vehicle positions + breakdown.
+  /// Use this to include all partitioned feeds (region buses, ferries, lightrail)
+  /// and facilitate tests.
+  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+
   const RealtimeMapWidget({
     super.key,
     this.mode,
     this.transportMode,
     this.routeFilter,
     this.leg,
+    this.vehicleId,
+    this.getPositions,
+    this.getAllVehiclesAggregated,
   });
 
   @override
@@ -79,6 +97,39 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     _loadVehiclePositions();
   }
 
+  // Build polyline(s) for leg stops if provided (in order)
+  List<Polyline> _buildRoutePolylines() {
+    final leg = widget.leg;
+    if (leg == null) return [];
+
+    final points = <LatLng>[];
+    if (leg.stopSequence != null && leg.stopSequence!.isNotEmpty) {
+      for (final s in leg.stopSequence!) {
+        if (s.coord != null && s.coord!.length >= 2) {
+          points.add(LatLng(s.coord![0], s.coord![1]));
+        }
+      }
+    }
+
+    // Fall back to leg.coords (route polyline) if stop sequence coords are
+    // not available or insufficient.
+    if (points.length < 2 && leg.coords != null && leg.coords!.length >= 2) {
+      for (final c in leg.coords!) {
+        if (c.length >= 2) {
+          points.add(LatLng(c[0], c[1]));
+        }
+      }
+    }
+    if (points.length < 2) return [];
+
+    // Determine color from provided transportMode or fallback to grey
+    final Color routeColor = widget.transportMode != null
+        ? TransportColors.getColorByTransportMode(widget.transportMode!)
+        : Colors.blue;
+
+    return [Polyline(points: points, strokeWidth: 4.0, color: routeColor)];
+  }
+
   Future<void> _loadVehiclePositions() async {
     setState(() {
       _isLoading = true;
@@ -86,28 +137,42 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     });
 
     try {
-      final allPositions = await RealtimeService.getAllRealtimePositions();
+      Map<TransportMode, FeedMessage?>? mapPositions;
+      List<VehiclePosition>? aggregatedVehicles;
+      if (widget.getAllVehiclesAggregated != null) {
+        final agg = await widget.getAllVehiclesAggregated!();
+        aggregatedVehicles = agg['vehicles'] as List<VehiclePosition>?;
+      } else if (widget.getPositions != null) {
+        mapPositions = await widget.getPositions!();
+      } else {
+        mapPositions = await RealtimeService.getAllRealtimePositions();
+      }
       final vehicles = <_VehicleWithMode>[];
 
-      for (final entry in allPositions.entries) {
-        // entry.key is now a TransportMode (per RealtimeService changes).
-        final feedMode = entry.key;
-
-        // If a TransportMode filter was provided, prefer that and compare directly.
-        if (widget.transportMode != null) {
-          if (feedMode != widget.transportMode) continue;
-        } else if (widget.mode != null) {
-          final requested = widget.mode!;
-          if (feedMode != requested) continue;
+      if (mapPositions != null) {
+        for (final entry in mapPositions.entries) {
+          final feedMode = entry.key;
+          if (widget.transportMode != null) {
+            if (feedMode != widget.transportMode) continue;
+          } else if (widget.mode != null) {
+            final requested = widget.mode!;
+            if (feedMode != requested) continue;
+          }
+          final feedMessage = entry.value;
+          if (feedMessage != null) {
+            final vehiclePositions =
+                RealtimeService.extractVehiclePositions(feedMessage);
+            vehicles.addAll(
+                vehiclePositions.map((v) => _VehicleWithMode(v, feedMode)));
+          }
         }
-
-        final feedMessage = entry.value;
-        if (feedMessage != null) {
-          final vehiclePositions =
-              RealtimeService.extractVehiclePositions(feedMessage);
-          vehicles.addAll(
-              vehiclePositions.map((v) => _VehicleWithMode(v, feedMode)));
-        }
+      } else if (aggregatedVehicles != null) {
+        // The aggregated list is untyped to a mode; keep mode as null so using
+        // the default color/icon for unknown modes. This is acceptable for a
+        // generic debug map view. Further enhancements could annotate each
+        // position with a mode if desired by the caller.
+        vehicles
+            .addAll(aggregatedVehicles.map((v) => _VehicleWithMode(v, null)));
       }
 
       // Filter by route if specified
@@ -120,7 +185,12 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       }
 
       // If a leg is provided, filter vehicles to those matching the leg's route id
-      if (widget.leg != null &&
+      // If a vehicle id filter is provided, prefer filtering by vehicle id
+      // (VehicleDescriptor.id) rather than trip/route id. This allows showing
+      // the exact tracked vehicle associated with a leg, when the leg's
+      // transportation.id contains a vehicle id.
+      if (widget.vehicleId == null &&
+          widget.leg != null &&
           widget.leg!.transportation != null &&
           widget.leg!.transportation!.id != null) {
         final legRouteId = widget.leg!.transportation!.id!;
@@ -130,11 +200,42 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             vw.vehicle.trip.routeId != legRouteId);
       }
 
+      if (!mounted) return;
+      // If a specific vehicle id was requested, prefer matching by vehicle id
+      // (VehicleDescriptor.id). If none are found, fall back to treating the
+      // requested id as a route id and show vehicles for that route instead.
+      if (widget.vehicleId != null) {
+        final requestedId = widget.vehicleId!;
+        // Keep an unfiltered copy for fallback matching by route id
+        final unfiltered = List<_VehicleWithMode>.from(vehicles);
+        // Try to match by vehicle descriptor id first
+        vehicles.removeWhere((vw) =>
+            !vw.vehicle.vehicle.hasId() ||
+            vw.vehicle.vehicle.id != requestedId);
+
+        if (vehicles.isEmpty) {
+          // No vehicle found by vehicleDescriptor id; try matching as route id
+          final routeMatches = unfiltered.where((vw) =>
+              vw.vehicle.trip.hasRouteId() &&
+              vw.vehicle.trip.routeId == requestedId);
+          final routeList = routeMatches.toList();
+          if (routeList.isNotEmpty) {
+            logger.i(
+                'RealtimeMapWidget: vehicle id $requestedId not found as vehicle id. Falling back to route id and showing ${routeList.length} vehicle(s).');
+            vehicles.clear();
+            vehicles.addAll(routeList);
+          } else {
+            logger.i(
+                'RealtimeMapWidget: vehicle id $requestedId not found in feeds');
+          }
+        }
+      }
       setState(() {
         _vehicles = vehicles;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -192,6 +293,75 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         ),
       );
     }).toList();
+  }
+
+  /// Build stop markers from a provided `leg` stopSequence
+  List<Marker> _buildStopMarkers() {
+    final leg = widget.leg;
+    if (leg == null) return [];
+    final stops = leg.stopSequence;
+    if (stops == null || stops.isEmpty) return [];
+    // Determine color/icon from the provided transportMode (or fallback)
+    final markerColor = widget.transportMode != null
+        ? TransportColors.getColorByTransportMode(widget.transportMode!)
+        : Colors.grey;
+
+    return stops
+        .where((s) => s.coord != null && s.coord!.length >= 2)
+        .map((s) => Marker(
+              point: LatLng(s.coord![0], s.coord![1]),
+              width: 22,
+              height: 22,
+              child: GestureDetector(
+                onTap: () => _showStopDetails(s),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: markerColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      widget.transportMode != null
+                          ? getVehicleIconByTransportMode(widget.transportMode)
+                          : Icons.place,
+                      color: Colors.white,
+                      size: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ))
+        .toList();
+  }
+
+  void _showStopDetails(Stop stop) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(stop.name, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            _buildInfoRow('Stop ID', stop.id),
+            if (stop.disassembledName != null)
+              _buildInfoRow('Name', stop.disassembledName!),
+            if (stop.arrivalTimePlanned != null)
+              _buildInfoRow('Arrive (planned)', stop.arrivalTimePlanned!),
+            if (stop.departureTimePlanned != null)
+              _buildInfoRow('Depart (planned)', stop.departureTimePlanned!),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _openModeFilterSheet(BuildContext context) async {
@@ -391,6 +561,11 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.lbww.flutter_timetable',
                         ),
+                        // Draw the route polyline if available
+                        PolylineLayer(polylines: _buildRoutePolylines()),
+                        // Show stop markers (if the leg has stops)
+                        MarkerLayer(markers: _buildStopMarkers()),
+                        // Show vehicle markers above stops so they remain visible
                         MarkerLayer(
                           markers: _buildVehicleMarkers(),
                         ),
@@ -416,6 +591,28 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                         ),
                       ),
                     ),
+                    // Show an overlay if a vehicleId was requested but no vehicle
+                    // (by vehicle id or fallback route id) was found in the latest feed.
+                    if (widget.vehicleId != null && _vehicles.isEmpty)
+                      Positioned(
+                        top: 16,
+                        left: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'No vehicle found for id ${widget.vehicleId}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
       floatingActionButton: FloatingActionButton(

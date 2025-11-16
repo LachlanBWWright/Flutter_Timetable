@@ -60,40 +60,40 @@ class NewTripService {
         return [StopsEndpoint.metro];
       case TransportMode.lightrail:
         return [
-          StopsEndpoint.lightrail_innerwest,
-          StopsEndpoint.lightrail_newcastle,
-          StopsEndpoint.lightrail_cbdandsoutheast,
-          StopsEndpoint.lightrail_parramatta,
+          StopsEndpoint.lightrailInnerwest,
+          StopsEndpoint.lightrailNewcastle,
+          StopsEndpoint.lightrailCbdandsoutheast,
+          StopsEndpoint.lightrailParramatta,
         ];
       case TransportMode.bus:
         return [
           StopsEndpoint.buses,
-          StopsEndpoint.buses_SBSC006,
-          StopsEndpoint.buses_GSBC001,
-          StopsEndpoint.buses_GSBC002,
-          StopsEndpoint.buses_GSBC003,
-          StopsEndpoint.buses_GSBC004,
-          StopsEndpoint.buses_GSBC007,
-          StopsEndpoint.buses_GSBC008,
-          StopsEndpoint.buses_GSBC009,
-          StopsEndpoint.buses_GSBC010,
-          StopsEndpoint.buses_GSBC014,
-          StopsEndpoint.buses_OSMBSC001,
-          StopsEndpoint.buses_OSMBSC002,
-          StopsEndpoint.buses_OSMBSC003,
-          StopsEndpoint.buses_OSMBSC004,
-          StopsEndpoint.buses_OMBSC006,
-          StopsEndpoint.buses_OMBSC007,
-          StopsEndpoint.buses_OSMBSC008,
-          StopsEndpoint.buses_OSMBSC009,
-          StopsEndpoint.buses_OSMBSC010,
-          StopsEndpoint.buses_OSMBSC011,
-          StopsEndpoint.buses_OSMBSC012,
-          StopsEndpoint.buses_NISC001,
-          StopsEndpoint.buses_ReplacementBus,
+          StopsEndpoint.busesSbsc006,
+          StopsEndpoint.busesGbsc001,
+          StopsEndpoint.busesGsbc002,
+          StopsEndpoint.busesGsbc003,
+          StopsEndpoint.busesGsbc004,
+          StopsEndpoint.busesGsbc007,
+          StopsEndpoint.busesGsbc008,
+          StopsEndpoint.busesGsbc009,
+          StopsEndpoint.busesGsbc010,
+          StopsEndpoint.busesGsbc014,
+          StopsEndpoint.busesOsmbsc001,
+          StopsEndpoint.busesOsmbsc002,
+          StopsEndpoint.busesOsmbsc003,
+          StopsEndpoint.busesOsmbsc004,
+          StopsEndpoint.busesOmbsc006,
+          StopsEndpoint.busesOmbsc007,
+          StopsEndpoint.busesOsmbsc008,
+          StopsEndpoint.busesOsmbsc009,
+          StopsEndpoint.busesOsmbsc010,
+          StopsEndpoint.busesOsmbsc011,
+          StopsEndpoint.busesOsmbsc012,
+          StopsEndpoint.busesNisc001,
+          StopsEndpoint.busesReplacementBus,
         ];
       case TransportMode.ferry:
-        return [StopsEndpoint.ferries_sydneyferries, StopsEndpoint.ferries_MFF];
+        return [StopsEndpoint.ferriesSydneyFerries, StopsEndpoint.ferriesMff];
     }
   }
 
@@ -108,7 +108,7 @@ class NewTripService {
       final endpoint = endpoints[i];
       try {
         onProgress?.call(
-          'Loading ${endpoint.name}...',
+          'Loading ${endpoint.key}...',
           i + 1,
           total,
         );
@@ -119,20 +119,20 @@ class NewTripService {
           // Store the stops to database
           await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
           onProgress?.call(
-            'Loaded ${gtfsData.stops.length} stops from ${endpoint.name}',
+            'Loaded ${gtfsData.stops.length} stops from ${endpoint.key}',
             i + 1,
             total,
           );
         } else {
           onProgress?.call(
-            'No data found for ${endpoint.name}',
+            'No data found for ${endpoint.key}',
             i + 1,
             total,
           );
         }
       } catch (e) {
         onProgress?.call(
-          'Error loading ${endpoint.name}: $e',
+          'Error loading ${endpoint.key}: $e',
           i + 1,
           total,
         );
@@ -151,69 +151,69 @@ class NewTripService {
         return await fetchSydneyTrainsGtfsData();
 
       // Light Rail
-      case StopsEndpoint.lightrail_innerwest:
+      case StopsEndpoint.lightrailInnerwest:
         return await fetchLightRailInnerWestGtfsData();
-      case StopsEndpoint.lightrail_newcastle:
+      case StopsEndpoint.lightrailNewcastle:
         return await fetchLightRailNewcastleGtfsData();
-      case StopsEndpoint.lightrail_cbdandsoutheast:
+      case StopsEndpoint.lightrailCbdandsoutheast:
         return await fetchLightRailCbdAndSoutheastGtfsData();
-      case StopsEndpoint.lightrail_parramatta:
+      case StopsEndpoint.lightrailParramatta:
         return await fetchLightRailParramattaGtfsData();
 
       // Buses
       case StopsEndpoint.buses:
         return await fetchBusesGtfsData();
-      case StopsEndpoint.buses_SBSC006:
+      case StopsEndpoint.busesSbsc006:
         return await fetchBusesSBSC006GtfsData();
-      case StopsEndpoint.buses_GSBC001:
+      case StopsEndpoint.busesGbsc001:
         return await fetchBusesGSBC001GtfsData();
-      case StopsEndpoint.buses_GSBC002:
+      case StopsEndpoint.busesGsbc002:
         return await fetchBusesGSBC002GtfsData();
-      case StopsEndpoint.buses_GSBC003:
+      case StopsEndpoint.busesGsbc003:
         return await fetchBusesGSBC003GtfsData();
-      case StopsEndpoint.buses_GSBC004:
+      case StopsEndpoint.busesGsbc004:
         return await fetchBusesGSBC004GtfsData();
-      case StopsEndpoint.buses_GSBC007:
+      case StopsEndpoint.busesGsbc007:
         return await fetchBusesGSBC007GtfsData();
-      case StopsEndpoint.buses_GSBC008:
+      case StopsEndpoint.busesGsbc008:
         return await fetchBusesGSBC008GtfsData();
-      case StopsEndpoint.buses_GSBC009:
+      case StopsEndpoint.busesGsbc009:
         return await fetchBusesGSBC009GtfsData();
-      case StopsEndpoint.buses_GSBC010:
+      case StopsEndpoint.busesGsbc010:
         return await fetchBusesGSBC010GtfsData();
-      case StopsEndpoint.buses_GSBC014:
+      case StopsEndpoint.busesGsbc014:
         return await fetchBusesGSBC014GtfsData();
-      case StopsEndpoint.buses_OSMBSC001:
+      case StopsEndpoint.busesOsmbsc001:
         return await fetchBusesOSMBSC001GtfsData();
-      case StopsEndpoint.buses_OSMBSC002:
+      case StopsEndpoint.busesOsmbsc002:
         return await fetchBusesOSMBSC002GtfsData();
-      case StopsEndpoint.buses_OSMBSC003:
+      case StopsEndpoint.busesOsmbsc003:
         return await fetchBusesOSMBSC003GtfsData();
-      case StopsEndpoint.buses_OSMBSC004:
+      case StopsEndpoint.busesOsmbsc004:
         return await fetchBusesOSMBSC004GtfsData();
-      case StopsEndpoint.buses_OMBSC006:
+      case StopsEndpoint.busesOmbsc006:
         return await fetchBusesOMBSC006GtfsData();
-      case StopsEndpoint.buses_OMBSC007:
+      case StopsEndpoint.busesOmbsc007:
         return await fetchBusesOMBSC007GtfsData();
-      case StopsEndpoint.buses_OSMBSC008:
+      case StopsEndpoint.busesOsmbsc008:
         return await fetchBusesOSMBSC008GtfsData();
-      case StopsEndpoint.buses_OSMBSC009:
+      case StopsEndpoint.busesOsmbsc009:
         return await fetchBusesOSMBSC009GtfsData();
-      case StopsEndpoint.buses_OSMBSC010:
+      case StopsEndpoint.busesOsmbsc010:
         return await fetchBusesOSMBSC010GtfsData();
-      case StopsEndpoint.buses_OSMBSC011:
+      case StopsEndpoint.busesOsmbsc011:
         return await fetchBusesOSMBSC011GtfsData();
-      case StopsEndpoint.buses_OSMBSC012:
+      case StopsEndpoint.busesOsmbsc012:
         return await fetchBusesOSMBSC012GtfsData();
-      case StopsEndpoint.buses_NISC001:
+      case StopsEndpoint.busesNisc001:
         return await fetchBusesNISC001GtfsData();
-      case StopsEndpoint.buses_ReplacementBus:
+      case StopsEndpoint.busesReplacementBus:
         return await fetchBusesReplacementBusGtfsData();
 
       // Ferries
-      case StopsEndpoint.ferries_sydneyferries:
+      case StopsEndpoint.ferriesSydneyFerries:
         return await fetchFerriesSydneyFerriesGtfsData();
-      case StopsEndpoint.ferries_MFF:
+      case StopsEndpoint.ferriesMff:
         return await fetchFerriesMFFGtfsData();
 
       default:

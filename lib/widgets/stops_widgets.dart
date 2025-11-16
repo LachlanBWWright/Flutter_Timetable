@@ -6,6 +6,7 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 import '../services/stops_service.dart';
+import '../utils/button_styles.dart';
 import '../utils/transport_display.dart';
 
 /// Widget for managing and displaying GTFS stops data
@@ -39,6 +40,8 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       final count = await StopsService.getTotalStopsCount();
       final grouped = await StopsService.getStopsCountByEndpoint();
 
+      if (!mounted) return;
+
       // Flatten grouped map for any places that still expect endpoint->count
       final flattened = <String, int>{};
       for (final grp in grouped.values) {
@@ -54,6 +57,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -98,7 +102,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         late StreamSubscription subscription;
 
         subscription = stream.listen((progress) {
-          final epLabel = progress.endpoint?.name ?? '';
+          final epLabel = progress.endpoint?.key ?? '';
           final text =
               '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
           // Update dialog text if available
@@ -161,6 +165,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -194,10 +199,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
+            style: ButtonStyles.elevatedSmall(Colors.red),
             child: const Text('Delete All'),
           ),
         ],
@@ -223,6 +225,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
           );
         }
       } catch (e) {
+        if (!mounted) return;
         setState(() {
           _error = e.toString();
           _isLoading = false;
@@ -321,10 +324,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                     onPressed: _isLoading ? null : _updateFromApi,
                     icon: const Icon(Icons.cloud_download),
                     label: const Text('Update from API'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                    ),
+                    style: ButtonStyles.elevated(Colors.orange),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -341,10 +341,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                 onPressed: _isLoading ? null : _wipeStopsData,
                 icon: const Icon(Icons.delete_sweep),
                 label: const Text('Wipe All Stops Data'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
+                style: ButtonStyles.elevated(Colors.red),
               ),
             ),
 
@@ -503,6 +500,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
 
     try {
       final results = await StopsService.searchStops(query);
+      if (!mounted) return;
       setState(() {
         _searchResults = results;
         _isSearching = false;

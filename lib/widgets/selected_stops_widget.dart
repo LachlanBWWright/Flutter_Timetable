@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
+import '../utils/button_styles.dart';
 
 /// Widget for displaying selected stops at the bottom of the new trip screen
 /// with mode-specific accents and two-column layout
@@ -62,8 +64,9 @@ class SelectedStopsWidget extends StatelessWidget {
     }
 
     // Default to current mode color when no selection, otherwise neutral
-    if (!bothSelected && selectedMode == null)
+    if (!bothSelected && selectedMode == null) {
       return TransportColors.getColorByTransportMode(currentMode);
+    }
     return Colors.grey;
   }
 
@@ -186,10 +189,7 @@ class SelectedStopsWidget extends StatelessWidget {
                 onPressed: onConfirm,
                 icon: const Icon(Icons.check),
                 label: const Text('Confirm'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _getAccentColor(),
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                ),
+                style: ButtonStyles.elevated(_getAccentColor()),
               ),
             ),
         ],

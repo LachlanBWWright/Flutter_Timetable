@@ -9,6 +9,7 @@ import '../gtfs/stop.dart';
 // logger removed
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
+import '../utils/color_utils.dart';
 
 /// Widget for displaying stops on a map for a specific transport mode
 class StopsMapWidget extends StatefulWidget {
@@ -57,6 +58,8 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
       // Load stops for the transport mode
       final allStops = await _getStopsForTransportMode(widget.transportMode);
 
+      if (!mounted) return;
+
       setState(() {
         _stops = allStops;
         _isLoading = false;
@@ -81,6 +84,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
         _centerMapOnStops();
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -114,40 +118,40 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
         return [StopsEndpoint.nswtrains, StopsEndpoint.sydneytrains];
       case TransportMode.lightrail:
         return [
-          StopsEndpoint.lightrail_innerwest,
-          StopsEndpoint.lightrail_newcastle,
-          StopsEndpoint.lightrail_cbdandsoutheast,
-          StopsEndpoint.lightrail_parramatta,
+          StopsEndpoint.lightrailInnerwest,
+          StopsEndpoint.lightrailNewcastle,
+          StopsEndpoint.lightrailCbdandsoutheast,
+          StopsEndpoint.lightrailParramatta,
         ];
       case TransportMode.bus:
         return [
           StopsEndpoint.buses,
-          StopsEndpoint.buses_SBSC006,
-          StopsEndpoint.buses_GSBC001,
-          StopsEndpoint.buses_GSBC002,
-          StopsEndpoint.buses_GSBC003,
-          StopsEndpoint.buses_GSBC004,
-          StopsEndpoint.buses_GSBC007,
-          StopsEndpoint.buses_GSBC008,
-          StopsEndpoint.buses_GSBC009,
-          StopsEndpoint.buses_GSBC010,
-          StopsEndpoint.buses_GSBC014,
-          StopsEndpoint.buses_OSMBSC001,
-          StopsEndpoint.buses_OSMBSC002,
-          StopsEndpoint.buses_OSMBSC003,
-          StopsEndpoint.buses_OSMBSC004,
-          StopsEndpoint.buses_OMBSC006,
-          StopsEndpoint.buses_OMBSC007,
-          StopsEndpoint.buses_OSMBSC008,
-          StopsEndpoint.buses_OSMBSC009,
-          StopsEndpoint.buses_OSMBSC010,
-          StopsEndpoint.buses_OSMBSC011,
-          StopsEndpoint.buses_OSMBSC012,
-          StopsEndpoint.buses_NISC001,
-          StopsEndpoint.buses_ReplacementBus,
+          StopsEndpoint.busesSbsc006,
+          StopsEndpoint.busesGbsc001,
+          StopsEndpoint.busesGsbc002,
+          StopsEndpoint.busesGsbc003,
+          StopsEndpoint.busesGsbc004,
+          StopsEndpoint.busesGsbc007,
+          StopsEndpoint.busesGsbc008,
+          StopsEndpoint.busesGsbc009,
+          StopsEndpoint.busesGsbc010,
+          StopsEndpoint.busesGsbc014,
+          StopsEndpoint.busesOsmbsc001,
+          StopsEndpoint.busesOsmbsc002,
+          StopsEndpoint.busesOsmbsc003,
+          StopsEndpoint.busesOsmbsc004,
+          StopsEndpoint.busesOmbsc006,
+          StopsEndpoint.busesOmbsc007,
+          StopsEndpoint.busesOsmbsc008,
+          StopsEndpoint.busesOsmbsc009,
+          StopsEndpoint.busesOsmbsc010,
+          StopsEndpoint.busesOsmbsc011,
+          StopsEndpoint.busesOsmbsc012,
+          StopsEndpoint.busesNisc001,
+          StopsEndpoint.busesReplacementBus,
         ];
       case TransportMode.ferry:
-        return [StopsEndpoint.ferries_sydneyferries, StopsEndpoint.ferries_MFF];
+        return [StopsEndpoint.ferriesSydneyFerries, StopsEndpoint.ferriesMff];
     }
   }
 
@@ -209,7 +213,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
       appBar: AppBar(
         title: Text('${widget.modeDisplayName} Stops Map'),
         backgroundColor: _getModeColor(),
-        foregroundColor: Colors.white,
+        foregroundColor: getContrastingForeground(_getModeColor()),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -259,11 +263,11 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                             maxZoom: 18.0,
                             onPositionChanged: (position, hasGesture) {
                               setState(() {
-                                _currentZoom = position.zoom ?? 10.0;
+                                _currentZoom = position.zoom;
                                 // Show warning for buses if zoom is too low
-                                _showZoomWarning = widget.transportMode ==
-                                        TransportMode.bus &&
-                                    _currentZoom < 13.0;
+                                _showZoomWarning =
+                                    widget.transportMode == TransportMode.bus &&
+                                        _currentZoom < 13.0;
                               });
                             },
                             onMapReady: () {
@@ -277,112 +281,115 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                               }
                             },
                           ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.flutter_timetable',
-                        ),
-                        MarkerLayer(
-                          markers: [
-                            // User location marker
-                            if (_userLocation != null)
-                              Marker(
-                                point: LatLng(_userLocation!.latitude,
-                                    _userLocation!.longitude),
-                                width: 30.0,
-                                height: 30.0,
-                                child: const Icon(
-                                  Icons.person_pin_circle,
-                                  color: Colors.blue,
-                                  size: 30.0,
-                                ),
-                              ),
-                            // Stop markers - only show when appropriately zoomed in
-                            if (_shouldShowMarkers())
-                              ..._stops
-                                  .where((stop) =>
-                                      stop.stopLat != 0.0 &&
-                                      stop.stopLon != 0.0)
-                                  .map(
-                                    (stop) => Marker(
-                                      point: LatLng(stop.stopLat, stop.stopLon),
-                                      width: 20.0,
-                                      height: 20.0,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          _showStopDetails(stop);
-                                        },
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: _getModeColor(),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                                color: Colors.white, width: 2),
-                                          ),
-                                          child: Icon(
-                                            _getModeIcon(),
-                                            color: Colors.white,
-                                            size: 12.0,
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName:
+                                  'com.example.flutter_timetable',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                // User location marker
+                                if (_userLocation != null)
+                                  Marker(
+                                    point: LatLng(_userLocation!.latitude,
+                                        _userLocation!.longitude),
+                                    width: 30.0,
+                                    height: 30.0,
+                                    child: const Icon(
+                                      Icons.person_pin_circle,
+                                      color: Colors.blue,
+                                      size: 30.0,
+                                    ),
+                                  ),
+                                // Stop markers - only show when appropriately zoomed in
+                                if (_shouldShowMarkers())
+                                  ..._stops
+                                      .where((stop) =>
+                                          stop.stopLat != 0.0 &&
+                                          stop.stopLon != 0.0)
+                                      .map(
+                                        (stop) => Marker(
+                                          point: LatLng(
+                                              stop.stopLat, stop.stopLon),
+                                          width: 20.0,
+                                          height: 20.0,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              _showStopDetails(stop);
+                                            },
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: _getModeColor(),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2),
+                                              ),
+                                              child: Icon(
+                                                _getModeIcon(),
+                                                color: Colors.white,
+                                                size: 12.0,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
+                              ],
+                            ),
                           ],
                         ),
-                        ],
-                      ),
-                      // Zoom warning overlay for buses
-                      if (_showZoomWarning)
-                        Positioned(
-                          top: 16,
-                          left: 16,
-                          right: 16,
-                          child: Card(
-                            color: Colors.orange.shade100,
-                            elevation: 4,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.warning,
-                                    color: Colors.orange,
-                                    size: 32,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text(
-                                          'Zoom In to View Stops',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Too many bus stops to display. Please zoom in to see stops.',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey.shade800,
-                                          ),
-                                        ),
-                                      ],
+                        // Zoom warning overlay for buses
+                        if (_showZoomWarning)
+                          Positioned(
+                            top: 16,
+                            left: 16,
+                            right: 16,
+                            child: Card(
+                              color: Colors.orange.shade100,
+                              elevation: 4,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.warning,
+                                      color: Colors.orange,
+                                      size: 32,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text(
+                                            'Zoom In to View Stops',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Too many bus stops to display. Please zoom in to see stops.',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey.shade800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [

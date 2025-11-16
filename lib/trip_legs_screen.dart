@@ -69,7 +69,8 @@ class _TripLegScreenState extends State<TripLegScreen> {
             decoration: BoxDecoration(
               color: Colors.orange.withAlpha((255 * 0.1).round()),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withAlpha((255 * 0.3).round())),
+              border: Border.all(
+                  color: Colors.orange.withAlpha((255 * 0.3).round())),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -103,7 +104,7 @@ class _TripLegScreenState extends State<TripLegScreen> {
         itemBuilder: (context, index) {
           final legByIdx = legs[index];
 
-          return TripLegCard(leg: legByIdx);
+          return TripLegCard(leg: legByIdx, trip: widget.trip);
         },
         separatorBuilder: (context, index) {
           return _buildSeparator(index, legs);

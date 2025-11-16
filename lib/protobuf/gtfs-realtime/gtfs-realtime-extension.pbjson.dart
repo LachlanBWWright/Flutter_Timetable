@@ -23,8 +23,8 @@ const TrackDirection$json = {
 };
 
 /// Descriptor for `TrackDirection`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List trackDirectionDescriptor = $convert.base64Decode(
-    'Cg5UcmFja0RpcmVjdGlvbhIGCgJVUBAAEggKBERPV04QAQ==');
+final $typed_data.Uint8List trackDirectionDescriptor =
+    $convert.base64Decode('Cg5UcmFja0RpcmVjdGlvbhIGCgJVUBAAEggKBERPV04QAQ==');
 
 @$core.Deprecated('Use updateBundleDescriptor instead')
 const UpdateBundle$json = {
@@ -46,11 +46,39 @@ final $typed_data.Uint8List updateBundleDescriptor = $convert.base64Decode(
 const TfnswVehicleDescriptor$json = {
   '1': 'TfnswVehicleDescriptor',
   '2': [
-    {'1': 'air_conditioned', '3': 1, '4': 1, '5': 8, '7': 'false', '10': 'airConditioned'},
-    {'1': 'wheelchair_accessible', '3': 2, '4': 1, '5': 5, '7': '0', '10': 'wheelchairAccessible'},
+    {
+      '1': 'air_conditioned',
+      '3': 1,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'airConditioned'
+    },
+    {
+      '1': 'wheelchair_accessible',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '7': '0',
+      '10': 'wheelchairAccessible'
+    },
     {'1': 'vehicle_model', '3': 3, '4': 1, '5': 9, '10': 'vehicleModel'},
-    {'1': 'performing_prior_trip', '3': 4, '4': 1, '5': 8, '7': 'false', '10': 'performingPriorTrip'},
-    {'1': 'special_vehicle_attributes', '3': 5, '4': 1, '5': 5, '7': '0', '10': 'specialVehicleAttributes'},
+    {
+      '1': 'performing_prior_trip',
+      '3': 4,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'performingPriorTrip'
+    },
+    {
+      '1': 'special_vehicle_attributes',
+      '3': 5,
+      '4': 1,
+      '5': 5,
+      '7': '0',
+      '10': 'specialVehicleAttributes'
+    },
   ],
 };
 
@@ -68,14 +96,58 @@ const CarriageDescriptor$json = {
   '1': 'CarriageDescriptor',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'position_in_consist', '3': 2, '4': 2, '5': 5, '10': 'positionInConsist'},
-    {'1': 'occupancy_status', '3': 3, '4': 1, '5': 14, '6': '.transit_realtime.CarriageDescriptor.OccupancyStatus', '10': 'occupancyStatus'},
-    {'1': 'quiet_carriage', '3': 4, '4': 1, '5': 8, '7': 'false', '10': 'quietCarriage'},
-    {'1': 'toilet', '3': 5, '4': 1, '5': 14, '6': '.transit_realtime.CarriageDescriptor.ToiletStatus', '10': 'toilet'},
-    {'1': 'luggage_rack', '3': 6, '4': 1, '5': 8, '7': 'false', '10': 'luggageRack'},
-    {'1': 'departure_occupancy_status', '3': 7, '4': 1, '5': 14, '6': '.transit_realtime.CarriageDescriptor.OccupancyStatus', '10': 'departureOccupancyStatus'},
+    {
+      '1': 'position_in_consist',
+      '3': 2,
+      '4': 2,
+      '5': 5,
+      '10': 'positionInConsist'
+    },
+    {
+      '1': 'occupancy_status',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.CarriageDescriptor.OccupancyStatus',
+      '10': 'occupancyStatus'
+    },
+    {
+      '1': 'quiet_carriage',
+      '3': 4,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'quietCarriage'
+    },
+    {
+      '1': 'toilet',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.CarriageDescriptor.ToiletStatus',
+      '10': 'toilet'
+    },
+    {
+      '1': 'luggage_rack',
+      '3': 6,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'luggageRack'
+    },
+    {
+      '1': 'departure_occupancy_status',
+      '3': 7,
+      '4': 1,
+      '5': 14,
+      '6': '.transit_realtime.CarriageDescriptor.OccupancyStatus',
+      '10': 'departureOccupancyStatus'
+    },
   ],
-  '4': [CarriageDescriptor_OccupancyStatus$json, CarriageDescriptor_ToiletStatus$json],
+  '4': [
+    CarriageDescriptor_OccupancyStatus$json,
+    CarriageDescriptor_ToiletStatus$json
+  ],
   '5': [
     {'1': 1000, '2': 2000},
   ],
@@ -119,4 +191,3 @@ final $typed_data.Uint8List carriageDescriptorDescriptor = $convert.base64Decode
     'SU5HX1JPT01fT05MWRADEh4KGkNSVVNIRURfU1RBTkRJTkdfUk9PTV9PTkxZEAQSCAoERlVMTB'
     'AFIjQKDFRvaWxldFN0YXR1cxIICgROT05FEAASCgoGTk9STUFMEAESDgoKQUNDRVNTSUJMRRAC'
     'KgYI6AcQ0A8=');
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'constants/transport_modes.dart';
 import 'services/location_service.dart';
@@ -44,6 +45,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
 
   Future<void> _loadCurrentHomeStop() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _currentHomeStop = prefs.getString('home_stop_name');
     });
@@ -64,6 +66,8 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       ];
 
       final results = await Future.wait(futures);
+
+      if (!mounted) return;
 
       setState(() {
         _trainStationList = results[0];
@@ -148,6 +152,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     if (_sortMode == SortMode.distance) {
       final position = await LocationService.getCurrentLocation();
       if (position != null) {
+        if (!mounted) return;
         setState(() {
           _trainStationList = _sortByDistance(_trainStationList, position);
           _busStationList = _sortByDistance(_busStationList, position);
@@ -168,7 +173,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     }
   }
 
-  List<Station> _sortByDistance(List<Station> stations, position) {
+  List<Station> _sortByDistance(List<Station> stations, Position position) {
     final stationsWithDistance = stations
         .where((s) => s.latitude != null && s.longitude != null)
         .map((station) {

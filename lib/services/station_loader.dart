@@ -17,44 +17,44 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
       break;
     case TransportMode.lightrail:
       endpoints = [
-        StopsEndpoint.lightrail_innerwest,
-        StopsEndpoint.lightrail_newcastle,
-        StopsEndpoint.lightrail_cbdandsoutheast,
-        StopsEndpoint.lightrail_parramatta,
+        StopsEndpoint.lightrailInnerwest,
+        StopsEndpoint.lightrailNewcastle,
+        StopsEndpoint.lightrailCbdandsoutheast,
+        StopsEndpoint.lightrailParramatta,
       ];
       break;
     case TransportMode.bus:
       endpoints = [
         StopsEndpoint.buses,
-        StopsEndpoint.buses_SBSC006,
-        StopsEndpoint.buses_GSBC001,
-        StopsEndpoint.buses_GSBC002,
-        StopsEndpoint.buses_GSBC003,
-        StopsEndpoint.buses_GSBC004,
-        StopsEndpoint.buses_GSBC007,
-        StopsEndpoint.buses_GSBC008,
-        StopsEndpoint.buses_GSBC009,
-        StopsEndpoint.buses_GSBC010,
-        StopsEndpoint.buses_GSBC014,
-        StopsEndpoint.buses_OSMBSC001,
-        StopsEndpoint.buses_OSMBSC002,
-        StopsEndpoint.buses_OSMBSC003,
-        StopsEndpoint.buses_OSMBSC004,
-        StopsEndpoint.buses_OMBSC006,
-        StopsEndpoint.buses_OMBSC007,
-        StopsEndpoint.buses_OSMBSC008,
-        StopsEndpoint.buses_OSMBSC009,
-        StopsEndpoint.buses_OSMBSC010,
-        StopsEndpoint.buses_OSMBSC011,
-        StopsEndpoint.buses_OSMBSC012,
-        StopsEndpoint.buses_NISC001,
-        StopsEndpoint.buses_ReplacementBus,
+        StopsEndpoint.busesSbsc006,
+        StopsEndpoint.busesGbsc001,
+        StopsEndpoint.busesGsbc002,
+        StopsEndpoint.busesGsbc003,
+        StopsEndpoint.busesGsbc004,
+        StopsEndpoint.busesGsbc007,
+        StopsEndpoint.busesGsbc008,
+        StopsEndpoint.busesGsbc009,
+        StopsEndpoint.busesGsbc010,
+        StopsEndpoint.busesGsbc014,
+        StopsEndpoint.busesOsmbsc001,
+        StopsEndpoint.busesOsmbsc002,
+        StopsEndpoint.busesOsmbsc003,
+        StopsEndpoint.busesOsmbsc004,
+        StopsEndpoint.busesOmbsc006,
+        StopsEndpoint.busesOmbsc007,
+        StopsEndpoint.busesOsmbsc008,
+        StopsEndpoint.busesOsmbsc009,
+        StopsEndpoint.busesOsmbsc010,
+        StopsEndpoint.busesOsmbsc011,
+        StopsEndpoint.busesOsmbsc012,
+        StopsEndpoint.busesNisc001,
+        StopsEndpoint.busesReplacementBus,
       ];
       break;
     case TransportMode.ferry:
       endpoints = [
-        StopsEndpoint.ferries_sydneyferries,
-        StopsEndpoint.ferries_MFF
+        StopsEndpoint.ferriesSydneyFerries,
+        StopsEndpoint.ferriesMff
       ];
       break;
   }

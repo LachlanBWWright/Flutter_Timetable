@@ -32,6 +32,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
     });
 
     final summary = await RealtimeService.getRealtimeStatusSummary();
+    if (!mounted) return;
     setState(() {
       _statusSummary = summary;
       _isLoading = false;
@@ -216,11 +217,13 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
         feed = null;
       }
       final positions = RealtimeService.extractVehiclePositions(feed);
+      if (!mounted) return;
       setState(() {
         _positions = positions;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
