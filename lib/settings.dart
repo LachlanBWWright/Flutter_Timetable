@@ -9,6 +9,7 @@ import 'utils/color_utils.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
+import 'services/debug_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -230,6 +231,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+              // Debug toggle (persisted via DebugService)
+              Card(
+                margin: const EdgeInsets.all(8.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Developer Options',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Toggle visibility of debug information throughout the app',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: DebugService.showDebugData,
+                        builder: (context, showDebug, child) {
+                          return SwitchListTile(
+                            title: const Text('Show debug data'),
+                            value: showDebug,
+                            onChanged: (val) async {
+                              await DebugService.setShowDebugData(val);
+                              if (!mounted) return;
+                              setState(() {});
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             const StopsManagementWidget(),
             const StopsSearchWidget(),
             // Data update / management card

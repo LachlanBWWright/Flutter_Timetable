@@ -39,5 +39,9 @@ linter:
     directives_ordering: true
     sort_child_properties_last: true
 
+analyzer:
+  exclude:
+    - lib/swagger_generated/**
+
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

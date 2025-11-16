@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
@@ -16,8 +17,16 @@ import 'utils/color_utils.dart';
 class TripLegDetailScreen extends StatefulWidget {
   final Leg leg;
   final TripJourney? trip;
+  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+  // Allow skipping artificial initial delays in scenarios like widget tests.
+  final bool skipInitialLoadDelay;
 
-  const TripLegDetailScreen({super.key, required this.leg, this.trip});
+    const TripLegDetailScreen(
+      {super.key,
+      required this.leg,
+      this.trip,
+      this.getAllVehiclesAggregated,
+      this.skipInitialLoadDelay = false});
 
   @override
   State<TripLegDetailScreen> createState() => _TripLegDetailScreenState();
@@ -36,8 +45,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   void initState() {
     super.initState();
     _updatedLeg = widget.leg;
-    _refreshLegData();
-    _loadVehiclesForLeg();
+    if (widget.skipInitialLoadDelay) {
+      // For tests, skip the simulated 1s delay and avoid scheduling delayed timers.
+      _loadVehiclesForLeg();
+    } else {
+      _refreshLegData();
+    }
   }
 
   String _legDebugString(Leg leg) {
@@ -178,7 +191,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     try {
       // For now, just use the original leg data since real-time updates
       // would require additional API endpoints
-      await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+      if (!widget.skipInitialLoadDelay) {
+        await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+      }
 
       if (!mounted) return;
       setState(() {
@@ -224,8 +239,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     try {
       // Always fetch from all available feeds so the debug card shows
       // the entire current feed state rather than just vehicles for the leg.
-      final aggregate =
-          await RealtimeService.getAllVehiclePositionsAggregated();
+        final aggregate = await (widget.getAllVehiclesAggregated?.call() ??
+          RealtimeService.getAllVehiclePositionsAggregated());
       final dedupedVehicles =
           (aggregate['vehicles'] as List<VehiclePosition>?) ?? [];
       final breakdown = (aggregate['breakdown'] as Map<String, int>?) ?? {};
@@ -565,10 +580,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Debug/info card showing trip data (excluding legs) and detailed leg data
-            if ((widget.trip) != null)
-              Card(
-                child: Padding(
+            // Debug/info card showing trip data (including legs and raw json) and detailed leg data
+            ValueListenableBuilder<bool>(
+              valueListenable: DebugService.showDebugData,
+              builder: (context, showDebug, child) {
+                if (!showDebug) return const SizedBox.shrink();
+                return widget.trip != null
+                  ? Card(
+                    child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -591,12 +610,17 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               final messenger = ScaffoldMessenger.of(context);
                               try {
                                 final text = _tripDebugString(widget.trip!);
-                                await Clipboard.setData(ClipboardData(text: text));
+                                await Clipboard.setData(
+                                    ClipboardData(text: text));
                                 if (!mounted) return;
-                                messenger.showSnackBar(const SnackBar(content: Text('Copied trip debug data to clipboard')));
+                                messenger.showSnackBar(const SnackBar(
+                                    content: Text(
+                                        'Copied trip debug data to clipboard')));
                               } catch (e) {
                                 if (!mounted) return;
-                                messenger.showSnackBar(const SnackBar(content: Text('Failed to copy trip debug data')));
+                                messenger.showSnackBar(const SnackBar(
+                                    content: Text(
+                                        'Failed to copy trip debug data')));
                               }
                             },
                             icon: const Icon(Icons.copy, size: 18),
@@ -606,7 +630,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Full Trip data (includes legs and raw JSON below):',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
                       ConstrainedBox(
@@ -614,17 +641,24 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         child: SingleChildScrollView(
                           child: SelectableText(
                             _tripDebugString(widget.trip!),
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                            style: const TextStyle(
+                                fontFamily: 'monospace', fontSize: 12),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
+                        ),
+                      )
+                    : const SizedBox.shrink();
+              },
+            ),
             const SizedBox(height: 16),
-            // Debug/info card showing detailed leg data
-            Card(
+            ValueListenableBuilder<bool>(
+              valueListenable: DebugService.showDebugData,
+              builder: (context, showDebug, child) {
+                if (!showDebug) return const SizedBox.shrink();
+                return Card(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -691,11 +725,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   ],
                 ),
               ),
-            ),
+            );
+          },
+        ),
             const SizedBox(height: 16),
 
-            // Vehicle debug data card
-            Card(
+            ValueListenableBuilder<bool>(
+              valueListenable: DebugService.showDebugData,
+              builder: (context, showDebug, child) {
+                if (!showDebug) return const SizedBox.shrink();
+                return Card(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -862,6 +901,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   ],
                 ),
               ),
+                );
+              },
             ),
           ],
         ),

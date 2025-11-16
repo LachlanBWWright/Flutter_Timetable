@@ -5,7 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 
 void main() {
-  test('TripJourney.fromJson preserves rawJson on trip, leg, and stops', () async {
+  test('TripJourney.fromJson preserves rawJson on trip, leg, and stops',
+      () async {
     final file = File('lib/trip_leg_raw_json.json');
     final contents = await file.readAsString();
     final data = jsonDecode(contents) as Map<String, dynamic>;

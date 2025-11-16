@@ -51,6 +51,8 @@ dependencies:
   collection: ^1.18.0
   fixnum: ^1.1.1
   logger: ^2.6.2
+  chopper: ^8.0.3
+  json_annotation: ^4.9.0
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +60,9 @@ dev_dependencies:
   sqlite3: ^2.8.0
   drift_dev: ^2.10.0
   build_runner: ^2.3.0
+  chopper_generator: ^8.0.3
+  json_serializable: ^6.8.0
+  swagger_dart_code_generator: ^3.0.3
   flutter_lints: ^3.0.0
 
   test: ^1.26.2

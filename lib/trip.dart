@@ -129,8 +129,8 @@ class _TripScreenState extends State<TripScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                                builder: (context) =>
-                                TripLegDetailScreen(leg: singleLeg, trip: tripJourney),
+                            builder: (context) => TripLegDetailScreen(
+                                leg: singleLeg, trip: tripJourney),
                           ),
                         );
                       } else {

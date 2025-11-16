@@ -1,0 +1,1540 @@
+basePath: /v1/gtfs/realtime
+consumes:
+- '*/*'
+definitions:
+    ErrorDetails:
+        description: Error response
+        example:
+            ErrorDetails:
+                ErrorDateTime: XXXXXXXXXX
+                Message: XXXXXXXXXX
+                RequestedMethod: XXXXXXXXXX
+                RequestedUrl: XXXXXXXXXX
+                TransactionId: XXXXXXXXXX
+        properties:
+            ErrorDateTime:
+                type: string
+            Message:
+                type: string
+            RequestedMethod:
+                type: string
+            RequestedUrl:
+                type: string
+            TransactionId:
+                type: string
+        required:
+        - TransactionId
+        - ErrorDateTime
+        - Message
+        - RequestedUrl
+        - RequestedMethod
+        type: object
+host: api.transport.nsw.gov.au
+info:
+    title: Get Realtime Trip Updates
+    version: '1.0'
+paths:
+    /buses:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Buses Technical Documentation - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                Known issues:
+
+                <ul>
+
+                <li>The text format may be truncated.</li>
+
+                <li>Stop time updates may be inconsistent.</li>
+
+                </ul>
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetBuses
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occured.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Buses
+            tags:
+            - buses
+    /ferries/sydneyferries:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Sydney Ferries Technical Documentation
+                - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                Known issues:
+
+
+                <ul>
+
+                <li>The text format may be truncated.</li>
+
+                <li>Stop time updates may be inconsistent.</li>
+
+                </ul>
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetSydneyFerries
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Sydney Ferries
+            tags:
+            - ferries
+    /ferries/MFF:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Sydney Ferries Technical Documentation
+                - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                Known issues:
+
+
+                <ul>
+
+                <li>The text format may be truncated.</li>
+
+                <li>Stop time updates may be inconsistent.</li>
+
+                </ul>
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetMFF
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Manly Fast Ferry
+            tags:
+            - ferries        
+    /lightrail/cbdandsoutheast:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time CBD & South East Light Rail Technical
+                Documentation - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                Known issues:
+
+
+                <ul>
+
+                <li>The text format may be truncated.</li>
+
+                <li>Stop time updates may be inconsistent.</li>
+
+                </ul>
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetLightRailCBDandSouthEast
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for CBD & South East Light Rail
+            tags:
+            - lightrail
+    /lightrail/newcastle:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Newcastle Light Rail Technical Documentation
+                - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                Known issues:
+
+
+                <ul>
+
+                <li>The text format may be truncated.</li>
+
+                <li>Stop time updates may be inconsistent.</li>
+
+                </ul>
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetLightRailNewcastle
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Newcastle Light Rail
+            tags:
+            - lightrail
+    /lightrail/parramatta:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Parramatta Technical Documentation
+                - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                Known issues:
+
+
+                <ul>
+
+                <li>The text format may be truncated.</li>
+
+                <li>Stop time updates may be inconsistent.</li>
+
+                </ul>
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetLightRailParramatta
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Parramatta Light Rail
+            tags:
+            - lightrail
+    /nswtrains:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time NSW Trains Technical Documentation - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                Known issues:
+
+
+                <ul>
+
+                <li>The text format may be truncated.</li>
+
+                <li>Stop time updates may be inconsistent.</li>
+
+                </ul>
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetNSWTrains
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for NSW Trains
+            tags:
+            - nswtrains
+    /regionbuses/centralwestandorana:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionCentralWestAndOrana
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/centralwestandorana2:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionCentralWestAndOrana2
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/farwest:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionFarWest
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/newcastlehunter:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionNewcastleHunter
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/newenglandnorthwest:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionNewEnglandNorthWest
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/northcoast:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionBusesNorthCoast
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/northcoast2:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionBusesNorthCoast2
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/northcoast3:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionBusesNorthCoast3
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/riverinamurray:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionBusesRiverinaMurray
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/riverinamurray2:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionRiverinaMurray2
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/southeasttablelands:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionBusesSouthEastTablelands
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/southeasttablelands2:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionBusesSouthEastTablelands2
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+    /regionbuses/sydneysurrounds:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetRegionSydneySurrounds
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime stop time updates for Regional Buses
+            tags:
+            - regionbuses
+produces:
+- application/x-google-protobuf
+schemes:
+- https
+security:
+-   APIKey: []
+securityDefinitions:
+    APIKey:
+        description: 'Expected Format: apikey [TOKEN]'
+        in: header
+        name: Authorization
+        type: apiKey
+swagger: '2.0'
+tags:
+-   name: buses
+-   name: ferries
+-   name: lightrail
+-   name: nswtrains
+-   name: regionbuses

@@ -388,10 +388,10 @@ class Leg {
       stopSequence: (json['stopSequence'] as List<dynamic>?)
           ?.map((stop) => Stop.fromJson(stop))
           .toList(),
-        transportation: json['transportation'] != null
+      transportation: json['transportation'] != null
           ? Transportation.fromJson(json['transportation'])
           : null,
-        rawJson: json,
+      rawJson: json,
     );
   }
 }
