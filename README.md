@@ -33,4 +33,3 @@ You can also run the helper script:
 ```
 
 Generated files will be emitted to `lib/swagger_generated` per `build.yaml`.
-

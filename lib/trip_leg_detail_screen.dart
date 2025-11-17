@@ -21,7 +21,7 @@ class TripLegDetailScreen extends StatefulWidget {
   // Allow skipping artificial initial delays in scenarios like widget tests.
   final bool skipInitialLoadDelay;
 
-    const TripLegDetailScreen(
+  const TripLegDetailScreen(
       {super.key,
       required this.leg,
       this.trip,
@@ -239,7 +239,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     try {
       // Always fetch from all available feeds so the debug card shows
       // the entire current feed state rather than just vehicles for the leg.
-        final aggregate = await (widget.getAllVehiclesAggregated?.call() ??
+      final aggregate = await (widget.getAllVehiclesAggregated?.call() ??
           RealtimeService.getAllVehiclePositionsAggregated());
       final dedupedVehicles =
           (aggregate['vehicles'] as List<VehiclePosition>?) ?? [];
@@ -586,68 +586,73 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               builder: (context, showDebug, child) {
                 if (!showDebug) return const SizedBox.shrink();
                 return widget.trip != null
-                  ? Card(
-                    child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Trip debug data',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
+                    ? Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Trip debug data',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Copy trip debug to clipboard',
+                                    onPressed: () async {
+                                      final messenger =
+                                          ScaffoldMessenger.of(context);
+                                      try {
+                                        final text =
+                                            _tripDebugString(widget.trip!);
+                                        await Clipboard.setData(
+                                            ClipboardData(text: text));
+                                        if (!mounted) return;
+                                        messenger.showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Copied trip debug data to clipboard')));
+                                      } catch (e) {
+                                        if (!mounted) return;
+                                        messenger.showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Failed to copy trip debug data')));
+                                      }
+                                    },
+                                    icon: const Icon(Icons.copy, size: 18),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Full Trip data (includes legs and raw JSON below):',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: Colors.grey),
+                              ),
+                              const SizedBox(height: 8),
+                              ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxHeight: 320),
+                                child: SingleChildScrollView(
+                                  child: SelectableText(
+                                    _tripDebugString(widget.trip!),
+                                    style: const TextStyle(
+                                        fontFamily: 'monospace', fontSize: 12),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            tooltip: 'Copy trip debug to clipboard',
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              try {
-                                final text = _tripDebugString(widget.trip!);
-                                await Clipboard.setData(
-                                    ClipboardData(text: text));
-                                if (!mounted) return;
-                                messenger.showSnackBar(const SnackBar(
-                                    content: Text(
-                                        'Copied trip debug data to clipboard')));
-                              } catch (e) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(const SnackBar(
-                                    content: Text(
-                                        'Failed to copy trip debug data')));
-                              }
-                            },
-                            icon: const Icon(Icons.copy, size: 18),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Full Trip data (includes legs and raw JSON below):',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 320),
-                        child: SingleChildScrollView(
-                          child: SelectableText(
-                            _tripDebugString(widget.trip!),
-                            style: const TextStyle(
-                                fontFamily: 'monospace', fontSize: 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                         ),
                       )
                     : const SizedBox.shrink();
@@ -659,159 +664,43 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               builder: (context, showDebug, child) {
                 if (!showDebug) return const SizedBox.shrink();
                 return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            'Leg debug data',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Copy debug text to clipboard',
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            try {
-                              await Clipboard.setData(
-                                ClipboardData(text: _legDebugString(leg)),
-                              );
-                              if (!mounted) return;
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        'Copied leg debug data to clipboard')),
-                              );
-                            } catch (e) {
-                              if (!mounted) return;
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                    content:
-                                        Text('Failed to copy to clipboard')),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.copy, size: 18),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Leg details (select or copy). Useful for debugging.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 320),
-                      child: SingleChildScrollView(
-                        child: SelectableText(
-                          _legDebugString(leg),
-                          style: const TextStyle(
-                              fontFamily: 'monospace', fontSize: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-            const SizedBox(height: 16),
-
-            ValueListenableBuilder<bool>(
-              valueListenable: DebugService.showDebugData,
-              builder: (context, showDebug, child) {
-                if (!showDebug) return const SizedBox.shrink();
-                return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header row: title + actions (filter toggle + copy button)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Vehicle debug data',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            if (transportId != null && transportId.isNotEmpty)
-                              Row(
-                                children: [
-                                  const Text('Filter by route'),
-                                  const SizedBox(width: 8),
-                                  Switch.adaptive(
-                                    value: _filterByLegRoute,
-                                    onChanged: (v) {
-                                      setState(() {
-                                        _filterByLegRoute = v;
-                                      });
-                                    },
-                                  ),
-                                ],
+                            Expanded(
+                              child: Text(
+                                'Leg debug data',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
+                            ),
                             IconButton(
-                              tooltip: 'Copy vehicle debug to clipboard',
+                              tooltip: 'Copy debug text to clipboard',
                               onPressed: () async {
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
-                                  final lines = _displayedVehicles.map((v) {
-                                    final id = v.vehicle.hasId()
-                                        ? v.vehicle.id
-                                        : 'N/A';
-                                    final tripId = v.trip.hasTripId()
-                                        ? v.trip.tripId
-                                        : 'N/A';
-                                    final routeId = v.trip.hasRouteId()
-                                        ? v.trip.routeId
-                                        : 'N/A';
-                                    final pos = v.hasPosition() &&
-                                            v.position.hasLatitude() &&
-                                            v.position.hasLongitude()
-                                        ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
-                                        : 'N/A';
-                                    final ts = v.hasTimestamp()
-                                        ? DateTime.fromMillisecondsSinceEpoch(
-                                                v.timestamp.toInt() * 1000)
-                                            .toIso8601String()
-                                        : 'N/A';
-                                    return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
-                                  }).join('\n');
-
                                   await Clipboard.setData(
-                                      ClipboardData(text: lines));
+                                    ClipboardData(text: _legDebugString(leg)),
+                                  );
                                   if (!mounted) return;
                                   messenger.showSnackBar(
                                     const SnackBar(
                                         content: Text(
-                                            'Copied vehicle debug data to clipboard')),
+                                            'Copied leg debug data to clipboard')),
                                   );
                                 } catch (e) {
                                   if (!mounted) return;
                                   messenger.showSnackBar(
                                     const SnackBar(
                                         content: Text(
-                                            'Failed to copy vehicle debug data')),
+                                            'Failed to copy to clipboard')),
                                   );
                                 }
                               },
@@ -819,88 +708,213 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Leg details (select or copy). Useful for debugging.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 320),
+                          child: SingleChildScrollView(
+                            child: SelectableText(
+                              _legDebugString(leg),
+                              style: const TextStyle(
+                                  fontFamily: 'monospace', fontSize: 12),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Showing ${_displayedVehicles.length} of ${_vehicles.length} realtime vehicles (sorted alphabetically):',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 6),
-                    if (_vehicleBreakdown.isNotEmpty)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: _vehicleBreakdown.entries
-                            .map((e) => Chip(
-                                  label: Text('${e.key}: ${e.value}'),
-                                  backgroundColor: Colors.grey.shade100,
-                                  visualDensity: VisualDensity.compact,
-                                ))
-                            .toList(),
-                      ),
-                    const SizedBox(height: 8),
-                    if (_isLoadingVehicles)
-                      const Center(child: CircularProgressIndicator())
-                    else if (_vehicles.isEmpty)
-                      const ListTile(
-                        leading: Icon(Icons.location_off, color: Colors.grey),
-                        title: Text('No vehicles found'),
-                      )
-                    else if (_displayedVehicles.isEmpty)
-                      const ListTile(
-                        leading: Icon(Icons.filter_alt_off, color: Colors.grey),
-                        title:
-                            Text('No vehicles match the current route filter'),
-                      )
-                    else
-                      SizedBox(
-                        height: 320,
-                        child: ListView.builder(
-                          itemCount: _displayedVehicles.length,
-                          padding: EdgeInsets.zero,
-                          itemBuilder: (context, index) {
-                            final v = _displayedVehicles[index];
-                            final id = v.vehicle.hasId() ? v.vehicle.id : 'N/A';
-                            final tripId =
-                                v.trip.hasTripId() ? v.trip.tripId : 'N/A';
-                            final routeId =
-                                v.trip.hasRouteId() ? v.trip.routeId : 'N/A';
-                            final pos = v.hasPosition() &&
-                                    v.position.hasLatitude() &&
-                                    v.position.hasLongitude()
-                                ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
-                                : 'N/A';
-                            final routeMatch = transportId != null &&
-                                v.trip.hasRouteId() &&
-                                v.trip.routeId == transportId;
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    routeMatch ? Colors.orange : modeColor,
-                                foregroundColor:
-                                    getContrastingForeground(modeColor),
-                                child: Text(
-                                    id == 'N/A' ? '?' : id[0].toUpperCase()),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            ValueListenableBuilder<bool>(
+              valueListenable: DebugService.showDebugData,
+              builder: (context, showDebug, child) {
+                if (!showDebug) return const SizedBox.shrink();
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header row: title + actions (filter toggle + copy button)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Vehicle debug data',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
-                              title: Text(id),
-                              subtitle: Text(
-                                  'Trip: $tripId • Route: $routeId • Pos: $pos'),
-                              dense: true,
-                              trailing: routeMatch
-                                  ? const Icon(Icons.check_circle,
-                                      color: Colors.orange, size: 18)
-                                  : null,
-                            );
-                          },
+                            ),
+                            Row(
+                              children: [
+                                if (transportId != null &&
+                                    transportId.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      const Text('Filter by route'),
+                                      const SizedBox(width: 8),
+                                      Switch.adaptive(
+                                        value: _filterByLegRoute,
+                                        onChanged: (v) {
+                                          setState(() {
+                                            _filterByLegRoute = v;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                IconButton(
+                                  tooltip: 'Copy vehicle debug to clipboard',
+                                  onPressed: () async {
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    try {
+                                      final lines = _displayedVehicles.map((v) {
+                                        final id = v.vehicle.hasId()
+                                            ? v.vehicle.id
+                                            : 'N/A';
+                                        final tripId = v.trip.hasTripId()
+                                            ? v.trip.tripId
+                                            : 'N/A';
+                                        final routeId = v.trip.hasRouteId()
+                                            ? v.trip.routeId
+                                            : 'N/A';
+                                        final pos = v.hasPosition() &&
+                                                v.position.hasLatitude() &&
+                                                v.position.hasLongitude()
+                                            ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
+                                            : 'N/A';
+                                        final ts = v.hasTimestamp()
+                                            ? DateTime
+                                                    .fromMillisecondsSinceEpoch(
+                                                        v.timestamp.toInt() *
+                                                            1000)
+                                                .toIso8601String()
+                                            : 'N/A';
+                                        return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
+                                      }).join('\n');
+
+                                      await Clipboard.setData(
+                                          ClipboardData(text: lines));
+                                      if (!mounted) return;
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Copied vehicle debug data to clipboard')),
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Failed to copy vehicle debug data')),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.copy, size: 18),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
-                  ],
-                ),
-              ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Showing ${_displayedVehicles.length} of ${_vehicles.length} realtime vehicles (sorted alphabetically):',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 6),
+                        if (_vehicleBreakdown.isNotEmpty)
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: _vehicleBreakdown.entries
+                                .map((e) => Chip(
+                                      label: Text('${e.key}: ${e.value}'),
+                                      backgroundColor: Colors.grey.shade100,
+                                      visualDensity: VisualDensity.compact,
+                                    ))
+                                .toList(),
+                          ),
+                        const SizedBox(height: 8),
+                        if (_isLoadingVehicles)
+                          const Center(child: CircularProgressIndicator())
+                        else if (_vehicles.isEmpty)
+                          const ListTile(
+                            leading:
+                                Icon(Icons.location_off, color: Colors.grey),
+                            title: Text('No vehicles found'),
+                          )
+                        else if (_displayedVehicles.isEmpty)
+                          const ListTile(
+                            leading:
+                                Icon(Icons.filter_alt_off, color: Colors.grey),
+                            title: Text(
+                                'No vehicles match the current route filter'),
+                          )
+                        else
+                          SizedBox(
+                            height: 320,
+                            child: ListView.builder(
+                              itemCount: _displayedVehicles.length,
+                              padding: EdgeInsets.zero,
+                              itemBuilder: (context, index) {
+                                final v = _displayedVehicles[index];
+                                final id =
+                                    v.vehicle.hasId() ? v.vehicle.id : 'N/A';
+                                final tripId =
+                                    v.trip.hasTripId() ? v.trip.tripId : 'N/A';
+                                final routeId = v.trip.hasRouteId()
+                                    ? v.trip.routeId
+                                    : 'N/A';
+                                final pos = v.hasPosition() &&
+                                        v.position.hasLatitude() &&
+                                        v.position.hasLongitude()
+                                    ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
+                                    : 'N/A';
+                                final routeMatch = transportId != null &&
+                                    v.trip.hasRouteId() &&
+                                    v.trip.routeId == transportId;
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor:
+                                        routeMatch ? Colors.orange : modeColor,
+                                    foregroundColor:
+                                        getContrastingForeground(modeColor),
+                                    child: Text(id == 'N/A'
+                                        ? '?'
+                                        : id[0].toUpperCase()),
+                                  ),
+                                  title: Text(id),
+                                  subtitle: Text(
+                                      'Trip: $tripId • Route: $routeId • Pos: $pos'),
+                                  dense: true,
+                                  trailing: routeMatch
+                                      ? const Icon(Icons.check_circle,
+                                          color: Colors.orange, size: 18)
+                                      : null,
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
