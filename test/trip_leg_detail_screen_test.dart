@@ -1,19 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lbww_flutter/trip_leg_detail_screen.dart';
+
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/swagger_generated/trip_planner.enums.swagger.dart';
+import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
 void main() {
   testWidgets('TripLegDetailScreen hides map button when transport id missing',
       (tester) async {
-    final leg = Leg(
-      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+    const leg = Leg(
+      origin: Stop(
+        id: 'O1',
+        name: 'Origin',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.0, 0.0],
+      ),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.1, 0.1],
+      ),
       transportation: null,
     );
 
@@ -36,11 +48,20 @@ void main() {
 
   testWidgets('TripLegDetailScreen shows map button when transport id present',
       (tester) async {
-    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
-    final leg = Leg(
-      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+    const transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    const leg = Leg(
+      origin: Stop(
+        id: 'O1',
+        name: 'Origin',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.0, 0.0],
+      ),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.1, 0.1],
+      ),
       transportation: transportation,
     );
 
@@ -62,29 +83,26 @@ void main() {
 
   testWidgets('Trip debug card displayed when TripJourney passed',
       (tester) async {
-    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
-    final leg = Leg(
-      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+    const transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    const leg = Leg(
+      origin: Stop(
+        id: 'O1',
+        name: 'Origin',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.0, 0.0],
+      ),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.1, 0.1],
+      ),
       transportation: transportation,
     );
-    final trip = TripJourney(
+    const trip = TripJourney(
       isAdditional: false,
       legs: [leg],
       rating: 7,
-      rawJson: {
-        'isAdditional': false,
-        'rating': 7,
-        'customField': 'customValue',
-        'legs': [
-          {
-            'origin': {'id': 'O1', 'name': 'Origin', 'type': 'stop'},
-            'destination': {'id': 'D1', 'name': 'Destination', 'type': 'stop'},
-            'transportation': {'id': 'ROUTE1', 'name': 'Line 1'}
-          }
-        ]
-      },
     );
 
     await tester.pumpWidget(MaterialApp(
@@ -135,28 +153,26 @@ void main() {
 
   testWidgets('TripLegDetailScreen respects DebugService.showDebugData toggle',
       (tester) async {
-    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
-    final leg = Leg(
-      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+    const transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    const leg = Leg(
+      origin: Stop(
+        id: 'O1',
+        name: 'Origin',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.0, 0.0],
+      ),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: TripRequestResponseJourneyLegStopType.stop,
+        coord: [0.1, 0.1],
+      ),
       transportation: transportation,
     );
-    final trip = TripJourney(
+    const trip = TripJourney(
       isAdditional: false,
       legs: [leg],
       rating: 5,
-      rawJson: {
-        'isAdditional': false,
-        'rating': 5,
-        'legs': [
-          {
-            'origin': {'id': 'O1', 'name': 'Origin', 'type': 'stop'},
-            'destination': {'id': 'D1', 'name': 'Destination', 'type': 'stop'},
-            'transportation': {'id': 'ROUTE1', 'name': 'Line 1'}
-          }
-        ]
-      },
     );
 
     // Hide debug data first

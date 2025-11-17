@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
+import '../logs/logger.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
-import '../logs/logger.dart';
 import '../services/transport_api_service.dart';
 import 'realtime_map_helpers.dart';
 
@@ -117,8 +118,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     // not available or insufficient.
     if (points.length < 2 && leg.coords != null && leg.coords!.length >= 2) {
       for (final c in leg.coords!) {
-        if (c.length >= 2) {
-          points.add(LatLng(c[0], c[1]));
+        if (c.length >= 2 && c[0] != null && c[1] != null) {
+          points.add(LatLng(c[0]!, c[1]!));
         }
       }
     }
@@ -346,9 +347,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(stop.name, style: Theme.of(context).textTheme.titleMedium),
+            Text(stop.name ?? 'Unknown', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            _buildInfoRow('Stop ID', stop.id),
+            _buildInfoRow('Stop ID', stop.id ?? ''),
             if (stop.disassembledName != null)
               _buildInfoRow('Name', stop.disassembledName!),
             if (stop.arrivalTimePlanned != null)

@@ -20,7 +20,10 @@ class _TripLegScreenState extends State<TripLegScreen> {
           currentDestination.arrivalTimePlanned;
 
       // Get departure time of next leg
-      final nextOrigin = nextLeg.origin;
+      if (!nextLeg.isValid) {
+        return 'Wait time unknown';
+      }
+      final nextOrigin = nextLeg.originStop;
       final nextDeparture =
           nextOrigin.departureTimeEstimated ?? nextOrigin.departureTimePlanned;
 

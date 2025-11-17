@@ -110,7 +110,7 @@ class TripLegCard extends StatelessWidget {
 
     final transportation = leg.transportation;
     final transportProduct = transportation?.product;
-    final transportClass = transportProduct?.classField;
+    final transportClass = transportProduct?.$class;
 
     final originName = leg.originStop.displayName;
     final destinationName = leg.destinationStop.displayName;
