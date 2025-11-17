@@ -124,7 +124,7 @@ class _TripScreenState extends State<TripScreen> {
                     trip: trips[index],
                     onTap: () {
                       final tripJourney = trips[index];
-                      final legs = tripJourney.legs ?? [];
+                      final legs = tripJourney.legsList;
                       if (legs.length == 1) {
                         final singleLeg = legs.first;
                         Navigator.push(

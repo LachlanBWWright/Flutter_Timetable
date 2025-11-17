@@ -84,11 +84,13 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   void initState() {
     super.initState();
     // If a leg is provided, use its origin as the map center
-    if (widget.leg != null &&
-        widget.leg!.origin.coord != null &&
-        widget.leg!.origin.coord!.length == 2) {
-      _mapCenter =
-          LatLng(widget.leg!.origin.coord![0], widget.leg!.origin.coord![1]);
+    if (widget.leg != null && widget.leg!.isValid) {
+      final coord = widget.leg!.originStop.coord;
+      if (coord != null && coord.length == 2) {
+        _mapCenter = LatLng(coord[0], coord[1]);
+      } else {
+        _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
+      }
     } else {
       _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
     }
@@ -629,21 +631,22 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             } else {
               _pendingFit = fit;
             }
-          } else if (widget.leg != null &&
-              widget.leg!.origin.coord != null &&
-              widget.leg!.destination.coord != null) {
-            final bounds = LatLngBounds(
-              LatLng(
-                  widget.leg!.origin.coord![0], widget.leg!.origin.coord![1]),
-              LatLng(widget.leg!.destination.coord![0],
-                  widget.leg!.destination.coord![1]),
-            );
-            final fit = CameraFit.bounds(
-                bounds: bounds, padding: const EdgeInsets.all(50));
-            if (_mapIsReady) {
-              _mapController.fitCamera(fit);
-            } else {
-              _pendingFit = fit;
+          } else if (widget.leg != null && widget.leg!.isValid) {
+            final originCoord = widget.leg!.originStop.coord;
+            final destCoord = widget.leg!.destinationStop.coord;
+            if (originCoord != null && originCoord.length == 2 &&
+                destCoord != null && destCoord.length == 2) {
+              final bounds = LatLngBounds(
+                LatLng(originCoord[0], originCoord[1]),
+                LatLng(destCoord[0], destCoord[1]),
+              );
+              final fit = CameraFit.bounds(
+                  bounds: bounds, padding: const EdgeInsets.all(50));
+              if (_mapIsReady) {
+                _mapController.fitCamera(fit);
+              } else {
+                _pendingFit = fit;
+              }
             }
           } else {
             if (_mapIsReady) {

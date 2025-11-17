@@ -52,16 +52,20 @@ class TripLegCard extends StatelessWidget {
   }
 
   Widget _buildTimingInfo() {
-    final origin = leg.origin;
-    final destination = leg.destination;
+    if (!leg.isValid) {
+      return const Text('Invalid leg data', style: TextStyle(fontSize: 12));
+    }
+
+    final origin = leg.originStop;
+    final destination = leg.destinationStop;
 
     // Get first stop timing info
-    final originDeparturePlanned = origin?.departureTimePlanned;
-    final originDepartureEstimated = origin?.departureTimeEstimated;
+    final originDeparturePlanned = origin.departureTimePlanned;
+    final originDepartureEstimated = origin.departureTimeEstimated;
 
     // Get last stop timing info
-    final destinationArrivalPlanned = destination?.arrivalTimePlanned;
-    final destinationArrivalEstimated = destination?.arrivalTimeEstimated;
+    final destinationArrivalPlanned = destination.arrivalTimePlanned;
+    final destinationArrivalEstimated = destination.arrivalTimeEstimated;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,20 +99,31 @@ class TripLegCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!leg.isValid) {
+      return const Card(
+        child: ListTile(
+          title: Text('Invalid leg data'),
+          subtitle: Text('Origin or destination is missing'),
+        ),
+      );
+    }
+
     final transportation = leg.transportation;
     final transportProduct = transportation?.product;
     final transportClass = transportProduct?.classField;
 
-    final origin = leg.origin;
-    final destination = leg.destination;
-    final originName = origin.disassembledName ?? origin.name;
-    final destinationName = destination.disassembledName ?? destination.name;
+    final originName = leg.originStop.displayName;
+    final destinationName = leg.destinationStop.displayName;
     final transportName =
         transportation?.name ?? transportation?.disassembledName ?? '';
 
     if (transportClass == null) {
       // Missing transport class
-      return const Text('Unknown transport class');
+      return const Card(
+        child: ListTile(
+          title: Text('Unknown transport class'),
+        ),
+      );
     }
 
     final modeColor = TransportModeUtils.getModeColor(transportClass);

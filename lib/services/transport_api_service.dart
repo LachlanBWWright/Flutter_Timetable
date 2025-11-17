@@ -140,7 +140,7 @@ class TransportApiService {
   }
 }
 
-// Export Swagger-generated types for backward compatibility
+// Export Swagger-generated types for easier access
 typedef GetTripsResponse = TripRequestResponse;
 typedef TripJourney = TripRequestResponseJourney;
 typedef Leg = TripRequestResponseJourneyLeg;
@@ -159,9 +159,35 @@ typedef PathDescription = TripRequestResponseJourneyLegPathDescription;
 typedef Interchange = TripRequestResponseJourneyLegInterchange;
 typedef Download = TripRequestResponseJourneyLegStopDownload;
 
-// Legacy class definitions removed - now using Swagger-generated types
-// The following backward-compatible wrappers provide access to Swagger types
-
-extension GetTripsResponseExtension on TripRequestResponse {
+// Extensions to provide non-nullable access to required fields
+extension TripRequestResponseExtension on TripRequestResponse {
+  /// Get journeys list (never null, defaults to empty list)
   List<TripJourney> get tripJourneys => journeys ?? [];
+}
+
+extension TripJourneyExtension on TripRequestResponseJourney {
+  /// Get legs list (never null, defaults to empty list)
+  List<Leg> get legsList => legs ?? [];
+  
+  /// Check if trip has valid legs
+  bool get hasLegs => legs != null && legs!.isNotEmpty;
+}
+
+extension LegExtension on TripRequestResponseJourneyLeg {
+  /// Get origin stop (throws if null - indicates invalid data)
+  Stop get originStop => origin ?? (throw StateError('Leg has no origin'));
+  
+  /// Get destination stop (throws if null - indicates invalid data)
+  Stop get destinationStop => destination ?? (throw StateError('Leg has no destination'));
+  
+  /// Check if leg has valid origin and destination
+  bool get isValid => origin != null && destination != null;
+}
+
+extension StopExtension on TripRequestResponseJourneyLegStop {
+  /// Get display name (prefers disassembled name, falls back to name or 'Unknown')
+  String get displayName => disassembledName ?? name ?? 'Unknown';
+  
+  /// Get stop ID (falls back to empty string if null)
+  String get stopId => id ?? '';
 }

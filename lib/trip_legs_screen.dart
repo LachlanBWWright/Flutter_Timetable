@@ -96,7 +96,7 @@ class _TripLegScreenState extends State<TripLegScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final legs = widget.trip.legs ?? [];
+    final legs = widget.trip.legsList;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Legs')),

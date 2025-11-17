@@ -63,17 +63,21 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln(
         '  coords: ${leg.coords?.map((c) => c.join(', ')).toList() ?? 'N/A'}');
 
-    buffer.writeln('\nOrigin:');
-    buffer.writeln('  id: ${leg.origin.id}');
-    buffer.writeln('  name: ${leg.origin.name}');
-    buffer.writeln('  type: ${leg.origin.type}');
-    buffer.writeln('  coord: ${leg.origin.coord ?? 'N/A'}');
+    if (leg.isValid) {
+      buffer.writeln('\nOrigin:');
+      buffer.writeln('  id: ${leg.originStop.stopId}');
+      buffer.writeln('  name: ${leg.originStop.name}');
+      buffer.writeln('  type: ${leg.originStop.type}');
+      buffer.writeln('  coord: ${leg.originStop.coord ?? 'N/A'}');
 
-    buffer.writeln('\nDestination:');
-    buffer.writeln('  id: ${leg.destination.id}');
-    buffer.writeln('  name: ${leg.destination.name}');
-    buffer.writeln('  type: ${leg.destination.type}');
-    buffer.writeln('  coord: ${leg.destination.coord ?? 'N/A'}');
+      buffer.writeln('\nDestination:');
+      buffer.writeln('  id: ${leg.destinationStop.stopId}');
+      buffer.writeln('  name: ${leg.destinationStop.name}');
+      buffer.writeln('  type: ${leg.destinationStop.type}');
+      buffer.writeln('  coord: ${leg.destinationStop.coord ?? 'N/A'}');
+    } else {
+      buffer.writeln('\n[Invalid leg: missing origin or destination]');
+    }
 
     buffer.writeln('\nTransportation:');
     if (leg.transportation != null) {
@@ -108,20 +112,22 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     // Raw JSON for origin/destination Stops
-    buffer.writeln('\nOrigin raw JSON:');
-    try {
-      final enc = JsonEncoder.withIndent('  ');
-      buffer.writeln(enc.convert(leg.origin?.toJson() ?? {}));
-    } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for origin: $e>');
-    }
+    if (leg.isValid) {
+      buffer.writeln('\nOrigin raw JSON:');
+      try {
+        final enc = JsonEncoder.withIndent('  ');
+        buffer.writeln(enc.convert(leg.originStop.toJson()));
+      } catch (e) {
+        buffer.writeln('  <failed to pretty-print raw JSON for origin: $e>');
+      }
 
-    buffer.writeln('\nDestination raw JSON:');
-    try {
-      final enc = JsonEncoder.withIndent('  ');
-      buffer.writeln(enc.convert(leg.destination?.toJson() ?? {}));
-    } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for destination: $e>');
+      buffer.writeln('\nDestination raw JSON:');
+      try {
+        final enc = JsonEncoder.withIndent('  ');
+        buffer.writeln(enc.convert(leg.destinationStop.toJson()));
+      } catch (e) {
+        buffer.writeln('  <failed to pretty-print raw JSON for destination: $e>');
+      }
     }
 
     return buffer.toString();
@@ -132,11 +138,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln('Trip summary:');
     buffer.writeln('  isAdditional: ${trip.isAdditional}');
     buffer.writeln('  rating: ${trip.rating}');
-    buffer.writeln('  legsCount: ${trip.legs.length}');
+    buffer.writeln('  legsCount: ${trip.legsList.length}');
     buffer.writeln('\nTrip legs (full details):');
-    for (var i = 0; i < trip.legs.length; i++) {
+    for (var i = 0; i < trip.legsList.length; i++) {
       buffer.writeln('\n--- Leg ${i + 1} ---');
-      final leg = trip.legs[i];
+      final leg = trip.legsList[i];
       buffer.writeln(_legDebugString(leg));
     }
     buffer.writeln('\nRaw JSON:');
