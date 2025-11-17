@@ -56,12 +56,12 @@ class TripLegCard extends StatelessWidget {
     final destination = leg.destination;
 
     // Get first stop timing info
-    final originDeparturePlanned = origin.departureTimePlanned;
-    final originDepartureEstimated = origin.departureTimeEstimated;
+    final originDeparturePlanned = origin?.departureTimePlanned;
+    final originDepartureEstimated = origin?.departureTimeEstimated;
 
     // Get last stop timing info
-    final destinationArrivalPlanned = destination.arrivalTimePlanned;
-    final destinationArrivalEstimated = destination.arrivalTimeEstimated;
+    final destinationArrivalPlanned = destination?.arrivalTimePlanned;
+    final destinationArrivalEstimated = destination?.arrivalTimeEstimated;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

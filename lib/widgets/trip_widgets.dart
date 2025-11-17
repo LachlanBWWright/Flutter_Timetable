@@ -87,7 +87,16 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final legs = trip.legs;
+    final legs = trip.legs ?? [];
+    if (legs.isEmpty) {
+      return Card(
+        child: ListTile(
+          onTap: onTap,
+          title: const Text('Invalid trip (no legs)'),
+        ),
+      );
+    }
+
     final firstLeg = legs.first;
     final lastLeg = legs.last;
 
@@ -95,7 +104,7 @@ class TripCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         title: Text(
-          '${firstLeg.origin.disassembledName} to ${lastLeg.destination.disassembledName}',
+          '${firstLeg.origin?.disassembledName ?? 'Unknown'} to ${lastLeg.destination?.disassembledName ?? 'Unknown'}',
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,15 +113,15 @@ class TripCard extends StatelessWidget {
               children: [
                 Text(
                   _formatTimeDifference(
-                    firstLeg.origin.departureTimePlanned,
-                    firstLeg.origin.departureTimeEstimated,
+                    firstLeg.origin?.departureTimePlanned,
+                    firstLeg.origin?.departureTimeEstimated,
                   ),
                 ),
                 const Text(' - '),
                 Text(
                   _formatTimeDifference(
-                    lastLeg.destination.arrivalTimePlanned,
-                    lastLeg.destination.arrivalTimeEstimated,
+                    lastLeg.destination?.arrivalTimePlanned,
+                    lastLeg.destination?.arrivalTimeEstimated,
                   ),
                 ),
               ],

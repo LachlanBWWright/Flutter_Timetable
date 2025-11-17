@@ -96,21 +96,23 @@ class _TripLegScreenState extends State<TripLegScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final legs = widget.trip.legs;
+    final legs = widget.trip.legs ?? [];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Legs')),
-      body: ListView.separated(
-        itemBuilder: (context, index) {
-          final legByIdx = legs[index];
+      body: legs.isEmpty
+          ? const Center(child: Text('No legs found for this trip'))
+          : ListView.separated(
+              itemBuilder: (context, index) {
+                final legByIdx = legs[index];
 
-          return TripLegCard(leg: legByIdx, trip: widget.trip);
-        },
-        separatorBuilder: (context, index) {
-          return _buildSeparator(index, legs);
-        },
-        itemCount: legs.length,
-      ),
+                return TripLegCard(leg: legByIdx, trip: widget.trip);
+              },
+              separatorBuilder: (context, index) {
+                return _buildSeparator(index, legs);
+              },
+              itemCount: legs.length,
+            ),
     );
   }
 }

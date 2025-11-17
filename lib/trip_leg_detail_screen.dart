@@ -102,38 +102,26 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln('\nRaw leg JSON:');
     try {
       final enc = JsonEncoder.withIndent('  ');
-      if (leg.rawJson != null) {
-        buffer.writeln(enc.convert(leg.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for leg>');
-      }
+      buffer.writeln(enc.convert(leg.toJson()));
     } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for leg>');
+      buffer.writeln('  <failed to pretty-print raw JSON for leg: $e>');
     }
 
     // Raw JSON for origin/destination Stops
     buffer.writeln('\nOrigin raw JSON:');
     try {
       final enc = JsonEncoder.withIndent('  ');
-      if (leg.origin.rawJson != null) {
-        buffer.writeln(enc.convert(leg.origin.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for origin>');
-      }
+      buffer.writeln(enc.convert(leg.origin?.toJson() ?? {}));
     } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for origin>');
+      buffer.writeln('  <failed to pretty-print raw JSON for origin: $e>');
     }
 
     buffer.writeln('\nDestination raw JSON:');
     try {
       final enc = JsonEncoder.withIndent('  ');
-      if (leg.destination.rawJson != null) {
-        buffer.writeln(enc.convert(leg.destination.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for destination>');
-      }
+      buffer.writeln(enc.convert(leg.destination?.toJson() ?? {}));
     } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for destination>');
+      buffer.writeln('  <failed to pretty-print raw JSON for destination: $e>');
     }
 
     return buffer.toString();
@@ -152,15 +140,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln(_legDebugString(leg));
     }
     buffer.writeln('\nRaw JSON:');
-    if (trip.rawJson != null) {
-      try {
-        final enc = JsonEncoder.withIndent('  ');
-        buffer.writeln(enc.convert(trip.rawJson));
-      } catch (e) {
-        buffer.writeln('  <failed to pretty-print raw JSON>');
-      }
-    } else {
-      buffer.writeln('  <no raw JSON available>');
+    try {
+      final enc = JsonEncoder.withIndent('  ');
+      buffer.writeln(enc.convert(trip.toJson()));
+    } catch (e) {
+      buffer.writeln('  <failed to pretty-print raw JSON: $e>');
     }
     return buffer.toString();
   }
