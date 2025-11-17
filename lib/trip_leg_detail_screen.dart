@@ -85,7 +85,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln('  name: ${leg.transportation?.name}');
       buffer.writeln('  number: ${leg.transportation?.number}');
       buffer.writeln(
-          '  product class: ${leg.transportation?.product?.classField}');
+          '  product class: ${leg.transportation?.product?.$class}');
     } else {
       buffer.writeln('  N/A');
     }
@@ -99,7 +99,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     buffer.writeln('\nProperties:');
-    buffer.writeln('  differentFares: ${leg.properties?.differentFares}');
+    buffer.writeln('  differentfares: ${leg.properties?.differentfares}');
     buffer.writeln('  lineType: ${leg.properties?.lineType}');
 
     // Raw JSON for the leg
@@ -293,12 +293,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final leg = _updatedLeg ?? widget.leg;
     final transportation = leg.transportation;
     final transportProduct = transportation?.product;
-    final transportClass = transportProduct?.classField;
+    final transportClass = transportProduct?.$class;
 
     final origin = leg.origin;
     final destination = leg.destination;
-    final originName = origin.disassembledName ?? origin.name;
-    final destinationName = destination.disassembledName ?? destination.name;
+    final originName = origin?.disassembledName ?? origin?.name ?? 'Unknown';
+    final destinationName = destination?.disassembledName ?? destination?.name ?? 'Unknown';
     final transportName =
         transportation?.name ?? transportation?.disassembledName ?? '';
     final String? transportId = transportation?.id;
@@ -477,8 +477,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               ),
                               Text(
                                 _formatTimeDifference(
-                                  origin.departureTimePlanned,
-                                  origin.departureTimeEstimated,
+                                  origin?.departureTimePlanned,
+                                  origin?.departureTimeEstimated,
                                 ),
                                 style: const TextStyle(
                                   fontSize: 16,
@@ -509,8 +509,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               ),
                               Text(
                                 _formatTimeDifference(
-                                  destination.arrivalTimePlanned,
-                                  destination.arrivalTimeEstimated,
+                                  destination?.arrivalTimePlanned,
+                                  destination?.arrivalTimeEstimated,
                                 ),
                                 style: const TextStyle(
                                   fontSize: 16,

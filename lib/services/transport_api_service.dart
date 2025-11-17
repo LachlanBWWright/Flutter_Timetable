@@ -70,7 +70,7 @@ class TransportApiService {
         nameSf: query,
         typeSf: StopFinderGetTypeSf.any,
         coordOutputFormat: StopFinderGetCoordOutputFormat.epsg4326,
-        tfNswsf: true,
+        tfNSWSF: StopFinderGetTfNSWSF.$true,
         version: '10.2.1.42',
       );
 
@@ -110,9 +110,9 @@ class TransportApiService {
         nameDestination: destinationId,
         calcNumberOfTrips: 20,
         excludedMeans: TripGetExcludedMeans.checkbox,
-        exclMOT7: TripGetExclMOT7.$1,  // Exclude coach
-        exclMOT11: TripGetExclMOT11.$1,  // Exclude school bus
-        tfNswtr: TripGetTfNSWTR.$true,
+        exclMOT7: TripGetExclMOT7.value_1,  // Exclude coach
+        exclMOT11: TripGetExclMOT11.value_1,  // Exclude school bus
+        tfNSWTR: TripGetTfNSWTR.$true,
         version: '10.2.1.42',
         itOptionsActive: 0,
       );
@@ -150,7 +150,7 @@ typedef ResponseMessage = TripRequestResponseMessage;
 typedef Transportation = TripTransportation;
 typedef LegProperties = TripRequestResponseJourneyLeg$Properties;
 typedef StopProperties = TripRequestResponseJourneyLegStop$Properties;
-typedef Parent = TripRequestResponseJourneyLegStop$Parent;
+typedef Parent = ParentLocation;
 typedef FootPathInfo = TripRequestResponseJourneyLegStopFootpathInfo;
 typedef FootPathElem = TripRequestResponseJourneyLegStopFootpathInfoFootpathElem;
 typedef Hint = TripRequestResponseJourneyLeg$Hints$Item;

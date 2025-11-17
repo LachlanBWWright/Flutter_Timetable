@@ -15,7 +15,10 @@ class _TripLegScreenState extends State<TripLegScreen> {
   String _calculateWaitTime(Leg currentLeg, Leg nextLeg) {
     try {
       // Get arrival time of current leg
-      final currentDestination = currentLeg.destination;
+      if (!currentLeg.isValid) {
+        return 'Wait time unknown';
+      }
+      final currentDestination = currentLeg.destinationStop;
       final currentArrival = currentDestination.arrivalTimeEstimated ??
           currentDestination.arrivalTimePlanned;
 
