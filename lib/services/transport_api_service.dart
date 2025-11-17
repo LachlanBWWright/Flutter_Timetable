@@ -1,11 +1,9 @@
-import 'dart:convert';
-
-import 'package:chopper/chopper.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+
 import '../logs/logger.dart';
-import '../swagger_generated/trip_planner.swagger.dart';
 import '../swagger_clients/swagger_backend.dart';
+import '../swagger_generated/trip_planner.swagger.dart';
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
