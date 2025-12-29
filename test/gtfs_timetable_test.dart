@@ -7,13 +7,13 @@ void main() {
   // Helper to print first N stops and a frequency map of locationType values
   void logStopsSummary(GtfsData data, String name, int showCount) {
     final stops = data.stops;
-    print(
-        '\n--- $name feed: ${stops.length} stops (showing up to $showCount) ---');
+    // print(
+    //     '\n--- $name feed: ${stops.length} stops (showing up to $showCount) ---');
     final count = stops.length < showCount ? stops.length : showCount;
     for (var i = 0; i < count; i++) {
-      final s = stops[i];
-      print(
-          '$name Stop ${i + 1}: id=${s.stopId}, name=${s.stopName}, locationType=${s.locationType}, parentStation=${s.parentStation}');
+      // final s = stops[i];
+      // print(
+      //     '$name Stop ${i + 1}: id=${s.stopId}, name=${s.stopName}, locationType=${s.locationType}, parentStation=${s.parentStation}');
     }
 
     // Frequency map of locationType
@@ -22,10 +22,10 @@ void main() {
       freq[s.locationType] = (freq[s.locationType] ?? 0) + 1;
     }
     if (freq.isEmpty) {
-      print('LocationType counts for $name: (none)');
+      // print('LocationType counts for $name: (none)');
     } else {
-      final summary = freq.entries.map((e) => '${e.key}:${e.value}').join(', ');
-      print('LocationType counts for $name: $summary');
+      // final summary = freq.entries.map((e) => '${e.key}:${e.value}').join(', ');
+      // print('LocationType counts for $name: $summary');
     }
   }
 
@@ -53,7 +53,7 @@ void main() {
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'buses', 10);
     } else {
-      print('\n--- buses feed returned 0 stops ---');
+      // print('\n--- buses feed returned 0 stops ---');
     }
   }, timeout: const Timeout(Duration(minutes: 2)));
 
@@ -65,7 +65,7 @@ void main() {
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'ferries', 10);
     } else {
-      print('\n--- ferries feed returned 0 stops ---');
+      // print('\n--- ferries feed returned 0 stops ---');
     }
   });
 
@@ -79,7 +79,7 @@ void main() {
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'metro', 50);
     } else {
-      print('No stops returned for Metro feed');
+      // print('No stops returned for Metro feed');
     }
   }, timeout: const Timeout(Duration(minutes: 2)));
 
@@ -91,7 +91,7 @@ void main() {
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'lightrail', 10);
     } else {
-      print('\n--- lightrail feed returned 0 stops ---');
+      // print('\n--- lightrail feed returned 0 stops ---');
     }
   });
 
@@ -121,7 +121,7 @@ void main() {
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'sydneytrains', 100);
     } else {
-      print('No stops returned for SydneyTrains feed');
+      // print('No stops returned for SydneyTrains feed');
     }
   });
 
@@ -134,7 +134,7 @@ void main() {
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'metro', 100);
     } else {
-      print('No stops returned for Metro feed');
+      // print('No stops returned for Metro feed');
     }
   }, timeout: const Timeout(Duration(minutes: 2)));
 }

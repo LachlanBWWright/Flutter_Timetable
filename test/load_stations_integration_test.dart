@@ -17,15 +17,15 @@ void main() {
     final stations = await NewTripService.loadStopsForMode(TransportMode.train);
     expect(stations, isNotNull);
     expect(stations.isNotEmpty, isTrue);
-    print(
-        'First station (train): name=${stations.first.name}, id=${stations.first.id}');
+    // print(
+    //     'First station (train): name=${stations.first.name}, id=${stations.first.id}');
   }, timeout: const Timeout(Duration(seconds: 120)));
 
   test('loadStopsForMode returns Station list for bus', () async {
     final stations = await NewTripService.loadStopsForMode(TransportMode.bus);
     expect(stations, isNotNull);
     expect(stations.isNotEmpty, isTrue);
-    print(
-        'First station (bus): name=${stations.first.name}, id=${stations.first.id}');
+    // print(
+    //     'First station (bus): name=${stations.first.name}, id=${stations.first.id}');
   }, timeout: const Timeout(Duration(seconds: 120)));
 }
