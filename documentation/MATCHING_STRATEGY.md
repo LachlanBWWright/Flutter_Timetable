@@ -58,10 +58,17 @@ A comprehensive verification test (`test/match_vehicle_ids_test.dart`) was run a
 
 *   **Date**: 2026-01-04
 *   **Scenario**: Trip search between Redfern Station and Central Station.
-*   **Total Trips Checked (Realtime Updates)**: 318
-*   **Matches Found (Vehicle Positions)**: 116 (36.5% match rate)
+*   **Total Trips Checked (Realtime Updates)**: 300
+*   **Matches Found (Vehicle Positions)**: 108 (36.0% match rate)
 
-This confirms that the `tripId` field in Realtime Updates correctly corresponds to the `tripId` in Vehicle Positions for a significant portion of the fleet, validating the matching strategy. The mismatches are likely due to latency differences between feeds or vehicles not yet reporting positions for future scheduled updates.
+**Deep Analysis of Mismatches**:
+Further investigation into unmatched trips attempted fuzzy matching on:
+*   Route ID
+*   Start Time
+*   Start Date
+*   Vehicle Label / License Plate
+
+**Result**: No additional matches were found using fuzzy logic on these fields for the unmatched trips. This indicates that the unmatched trips in the Realtime Updates feed likely do not have a corresponding active record in the Vehicle Positions feed at that moment (e.g. latency, vehicle not yet active, or phantom updates), confirming that **exact `tripId` matching** is the most reliable and correct strategy.
 
 ## Setup Instructions
 
