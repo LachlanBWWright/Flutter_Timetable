@@ -111,31 +111,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln('  <failed to pretty-print raw JSON for leg>');
     }
 
-    // Raw JSON for origin/destination Stops
-    buffer.writeln('\nOrigin raw JSON:');
-    try {
-      final enc = JsonEncoder.withIndent('  ');
-      if (leg.origin.rawJson != null) {
-        buffer.writeln(enc.convert(leg.origin.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for origin>');
-      }
-    } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for origin>');
-    }
-
-    buffer.writeln('\nDestination raw JSON:');
-    try {
-      final enc = JsonEncoder.withIndent('  ');
-      if (leg.destination.rawJson != null) {
-        buffer.writeln(enc.convert(leg.destination.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for destination>');
-      }
-    } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for destination>');
-    }
-
     return buffer.toString();
   }
 
@@ -150,17 +125,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln('\n--- Leg ${i + 1} ---');
       final leg = trip.legs[i];
       buffer.writeln(_legDebugString(leg));
-    }
-    buffer.writeln('\nRaw JSON:');
-    if (trip.rawJson != null) {
-      try {
-        final enc = JsonEncoder.withIndent('  ');
-        buffer.writeln(enc.convert(trip.rawJson));
-      } catch (e) {
-        buffer.writeln('  <failed to pretty-print raw JSON>');
-      }
-    } else {
-      buffer.writeln('  <no raw JSON available>');
     }
     return buffer.toString();
   }
@@ -189,8 +153,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     });
 
     try {
-      // For now, just use the original leg data since real-time updates
-      // would require additional API endpoints
       if (!widget.skipInitialLoadDelay) {
         await Future.delayed(const Duration(seconds: 1)); // Simulate API call
       }
@@ -209,8 +171,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       });
     }
   }
-
-  // Deduplication is handled in RealtimeService.getAllVehiclePositionsAggregated.
 
   String _vehicleDisplayId(VehiclePosition v) {
     final desc = v.vehicle;
@@ -237,15 +197,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       _isLoadingVehicles = true;
     });
     try {
-      // Always fetch from all available feeds so the debug card shows
-      // the entire current feed state rather than just vehicles for the leg.
       final aggregate = await (widget.getAllVehiclesAggregated?.call() ??
           RealtimeService.getAllVehiclePositionsAggregated());
       final dedupedVehicles =
           (aggregate['vehicles'] as List<VehiclePosition>?) ?? [];
       final breakdown = (aggregate['breakdown'] as Map<String, int>?) ?? {};
 
-      // Sort alphabetically by display id
       dedupedVehicles.sort((a, b) => _vehicleDisplayId(a)
           .toLowerCase()
           .compareTo(_vehicleDisplayId(b).toLowerCase()));
@@ -317,6 +274,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         ? TransportModeUtils.getModeColor(transportClass)
         : Colors.blue;
 
+    final mode = _getRealtimeModeFromClass(transportClass);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Leg Details'),
@@ -331,14 +290,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             IconButton(
               icon: const Icon(Icons.map),
               onPressed: () {
-                final mode = _getRealtimeModeFromClass(transportClass);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => RealtimeMapWidget(
                       leg: leg,
                       transportMode: mode,
-                      vehicleId: transportId,
+                      // Pass route filter to show vehicles on this route
+                      routeFilter: transportId,
+                      // We don't have the exact vehicle ID easily from static leg data,
+                      // so we rely on route matching.
                       getAllVehiclesAggregated:
                           RealtimeService.getAllVehiclePositionsAggregated,
                     ),
@@ -353,6 +314,53 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
+            // Map View Embed (New Feature)
+            if (transportId != null && transportId.isNotEmpty)
+              Card(
+                elevation: 4,
+                clipBehavior: Clip.antiAlias,
+                margin: const EdgeInsets.only(bottom: 16.0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: SizedBox(
+                  height: 300,
+                  child: Stack(
+                    children: [
+                      RealtimeMapWidget(
+                        leg: leg,
+                        transportMode: mode,
+                        routeFilter: transportId,
+                        getAllVehiclesAggregated: RealtimeService.getAllVehiclePositionsAggregated,
+                      ),
+                      // Overlay to indicate it's interactive or just a preview
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white,
+                          child: IconButton(
+                            icon: const Icon(Icons.fullscreen),
+                            color: modeColor,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RealtimeMapWidget(
+                                    leg: leg,
+                                    transportMode: mode,
+                                    routeFilter: transportId,
+                                    getAllVehiclesAggregated: RealtimeService.getAllVehiclePositionsAggregated,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+
             // Header card
             Card(
               child: Padding(
