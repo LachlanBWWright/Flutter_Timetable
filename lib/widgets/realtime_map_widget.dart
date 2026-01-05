@@ -84,11 +84,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   void initState() {
     super.initState();
     // If a leg is provided, use its origin as the map center
-    if (widget.leg != null &&
-        widget.leg!.origin.coord != null &&
-        widget.leg!.origin.coord!.length == 2) {
-      _mapCenter =
-          LatLng(widget.leg!.origin.coord![0], widget.leg!.origin.coord![1]);
+    final legOriginCoord = widget.leg?.origin.coord;
+    if (legOriginCoord != null && legOriginCoord.length == 2) {
+      _mapCenter = LatLng(legOriginCoord[0], legOriginCoord[1]);
     } else {
       _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
     }
@@ -103,18 +101,21 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     if (leg == null) return [];
 
     final points = <LatLng>[];
-    if (leg.stopSequence != null && leg.stopSequence!.isNotEmpty) {
-      for (final s in leg.stopSequence!) {
-        if (s.coord != null && s.coord!.length >= 2) {
-          points.add(LatLng(s.coord![0], s.coord![1]));
+    final stopSequence = leg.stopSequence;
+    if (stopSequence != null && stopSequence.isNotEmpty) {
+      for (final s in stopSequence) {
+        final coord = s.coord;
+        if (coord != null && coord.length >= 2) {
+          points.add(LatLng(coord[0], coord[1]));
         }
       }
     }
 
     // Fall back to leg.coords (route polyline) if stop sequence coords are
     // not available or insufficient.
-    if (points.length < 2 && leg.coords != null && leg.coords!.length >= 2) {
-      for (final c in leg.coords!) {
+    final legCoords = leg.coords;
+    if (points.length < 2 && legCoords != null && legCoords.length >= 2) {
+      for (final c in legCoords) {
         if (c.length >= 2) {
           points.add(LatLng(c[0], c[1]));
         }
@@ -123,9 +124,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     if (points.length < 2) return [];
 
     // Determine color from provided transportMode or fallback to grey
-    final Color routeColor = widget.transportMode != null
-        ? TransportColors.getColorByTransportMode(widget.transportMode!)
-        : Colors.blue;
+    final mode = widget.transportMode;
+    final Color routeColor =
+        mode != null ? TransportColors.getColorByTransportMode(mode) : Colors.blue;
 
     return [Polyline(points: points, strokeWidth: 4.0, color: routeColor)];
   }
@@ -152,11 +153,11 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       if (mapPositions != null) {
         for (final entry in mapPositions.entries) {
           final feedMode = entry.key;
+          final mode = widget.mode;
           if (widget.transportMode != null) {
             if (feedMode != widget.transportMode) continue;
-          } else if (widget.mode != null) {
-            final requested = widget.mode!;
-            if (feedMode != requested) continue;
+          } else if (mode != null) {
+            if (feedMode != mode) continue;
           }
           final feedMessage = entry.value;
           if (feedMessage != null) {
@@ -189,44 +190,46 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       // (VehicleDescriptor.id) rather than trip/route id. This allows showing
       // the exact tracked vehicle associated with a leg, when the leg's
       // transportation.id contains a vehicle id.
+      final leg = widget.leg;
+      final transportation = leg?.transportation;
+      final transportationId = transportation?.id;
       if (widget.vehicleId == null &&
-          widget.leg != null &&
-          widget.leg!.transportation != null &&
-          widget.leg!.transportation!.id != null) {
-        final legRouteId = widget.leg!.transportation!.id!;
+          leg != null &&
+          transportation != null &&
+          transportationId != null) {
         // Only remove vehicles that have a routeId and it doesn't match the leg.
         vehicles.removeWhere((vw) =>
             vw.vehicle.trip.hasRouteId() &&
-            vw.vehicle.trip.routeId != legRouteId);
+            vw.vehicle.trip.routeId != transportationId);
       }
 
       if (!mounted) return;
       // If a specific vehicle id was requested, prefer matching by vehicle id
       // (VehicleDescriptor.id). If none are found, fall back to treating the
       // requested id as a route id and show vehicles for that route instead.
-      if (widget.vehicleId != null) {
-        final requestedId = widget.vehicleId!;
+      final vehicleId = widget.vehicleId;
+      if (vehicleId != null) {
         // Keep an unfiltered copy for fallback matching by route id
         final unfiltered = List<_VehicleWithMode>.from(vehicles);
         // Try to match by vehicle descriptor id first
         vehicles.removeWhere((vw) =>
             !vw.vehicle.vehicle.hasId() ||
-            vw.vehicle.vehicle.id != requestedId);
+            vw.vehicle.vehicle.id != vehicleId);
 
         if (vehicles.isEmpty) {
           // No vehicle found by vehicleDescriptor id; try matching as route id
           final routeMatches = unfiltered.where((vw) =>
               vw.vehicle.trip.hasRouteId() &&
-              vw.vehicle.trip.routeId == requestedId);
+              vw.vehicle.trip.routeId == vehicleId);
           final routeList = routeMatches.toList();
           if (routeList.isNotEmpty) {
             logger.i(
-                'RealtimeMapWidget: vehicle id $requestedId not found as vehicle id. Falling back to route id and showing ${routeList.length} vehicle(s).');
+                'RealtimeMapWidget: vehicle id $vehicleId not found as vehicle id. Falling back to route id and showing ${routeList.length} vehicle(s).');
             vehicles.clear();
             vehicles.addAll(routeList);
           } else {
             logger.i(
-                'RealtimeMapWidget: vehicle id $requestedId not found in feeds');
+                'RealtimeMapWidget: vehicle id $vehicleId not found in feeds');
           }
         }
       }
@@ -302,8 +305,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     final stops = leg.stopSequence;
     if (stops == null || stops.isEmpty) return [];
     // Determine color/icon from the provided transportMode (or fallback)
-    final markerColor = widget.transportMode != null
-        ? TransportColors.getColorByTransportMode(widget.transportMode!)
+    final mode = widget.transportMode;
+    final markerColor = mode != null
+        ? TransportColors.getColorByTransportMode(mode)
         : Colors.grey;
 
     return stops
@@ -322,8 +326,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                   ),
                   child: Center(
                     child: Icon(
-                      widget.transportMode != null
-                          ? getVehicleIconByTransportMode(widget.transportMode)
+                      mode != null
+                          ? getVehicleIconByTransportMode(mode)
                           : Icons.place,
                       color: Colors.white,
                       size: 12,
@@ -629,27 +633,33 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             } else {
               _pendingFit = fit;
             }
-          } else if (widget.leg != null &&
-              widget.leg!.origin.coord != null &&
-              widget.leg!.destination.coord != null) {
-            final bounds = LatLngBounds(
-              LatLng(
-                  widget.leg!.origin.coord![0], widget.leg!.origin.coord![1]),
-              LatLng(widget.leg!.destination.coord![0],
-                  widget.leg!.destination.coord![1]),
-            );
-            final fit = CameraFit.bounds(
-                bounds: bounds, padding: const EdgeInsets.all(50));
-            if (_mapIsReady) {
-              _mapController.fitCamera(fit);
-            } else {
-              _pendingFit = fit;
-            }
           } else {
-            if (_mapIsReady) {
-              _mapController.move(_mapCenter, 11.0);
+            final leg = widget.leg;
+            final originCoord = leg?.origin.coord;
+            final destCoord = leg?.destination.coord;
+
+            if (leg != null &&
+                originCoord != null &&
+                originCoord.length == 2 &&
+                destCoord != null &&
+                destCoord.length == 2) {
+              final bounds = LatLngBounds(
+                LatLng(originCoord[0], originCoord[1]),
+                LatLng(destCoord[0], destCoord[1]),
+              );
+              final fit = CameraFit.bounds(
+                  bounds: bounds, padding: const EdgeInsets.all(50));
+              if (_mapIsReady) {
+                _mapController.fitCamera(fit);
+              } else {
+                _pendingFit = fit;
+              }
             } else {
-              _pendingCenter = _mapCenter;
+              if (_mapIsReady) {
+                _mapController.move(_mapCenter, 11.0);
+              } else {
+                _pendingCenter = _mapCenter;
+              }
             }
           }
         },

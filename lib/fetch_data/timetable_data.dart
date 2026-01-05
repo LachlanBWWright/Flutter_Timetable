@@ -548,7 +548,10 @@ GtfsData parseGtfsFiles(Map<String, String> files) {
   if (files['stops.txt'] == null) {
     logger.e('Stops.txt is missing');
   } else {
-    logger.i('stops.txt length: ${files['stops.txt']!.length} characters');
+    final stopsContent = files['stops.txt'];
+    if (stopsContent != null) {
+      logger.i('stops.txt length: ${stopsContent.length} characters');
+    }
   }
   return GtfsData(
     agencies:

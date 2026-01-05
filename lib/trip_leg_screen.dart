@@ -82,7 +82,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           transportationRaw is Map<String, dynamic> ? transportationRaw : null;
       final int? transportClass = _extractTransportClassFromLeg(widget.leg);
       String? tripId;
-      if (transportation is Map<String, dynamic>) {
+      if (transportation != null) {
         final id = transportation['id'];
         if (id != null) tripId = id.toString();
       }
@@ -143,10 +143,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   LatLng _getMapCenter() {
     // Prefer current vehicle position
-    if (_currentVehicle?.position != null) {
+    final currentVehicle = _currentVehicle;
+    if (currentVehicle != null &&
+        currentVehicle.hasPosition() &&
+        currentVehicle.position.hasLatitude() &&
+        currentVehicle.position.hasLongitude()) {
       return LatLng(
-        _currentVehicle!.position.latitude,
-        _currentVehicle!.position.longitude,
+        currentVehicle.position.latitude,
+        currentVehicle.position.longitude,
       );
     }
 
@@ -167,8 +171,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     // Fall back to user location
-    if (_userLocation != null) {
-      return LatLng(_userLocation!.latitude, _userLocation!.longitude);
+    final userLocation = _userLocation;
+    if (userLocation != null) {
+      return LatLng(userLocation.latitude, userLocation.longitude);
     }
 
     // Default to Sydney CBD
@@ -181,10 +186,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         _extractTransportClassFromLeg(widget.leg) ?? 5;
 
     // Add user location marker
-    if (_userLocation != null) {
+    final userLocation = _userLocation;
+    if (userLocation != null) {
       markers.add(
         Marker(
-          point: LatLng(_userLocation!.latitude, _userLocation!.longitude),
+          point: LatLng(userLocation.latitude, userLocation.longitude),
           child: const Icon(
             Icons.person_pin_circle,
             color: Colors.blue,
@@ -195,12 +201,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     // Add current vehicle marker if available
-    if (_currentVehicle?.position != null) {
+    final currentVehicle = _currentVehicle;
+    if (currentVehicle != null &&
+        currentVehicle.hasPosition() &&
+        currentVehicle.position.hasLatitude() &&
+        currentVehicle.position.hasLongitude()) {
       markers.add(
         Marker(
           point: LatLng(
-            _currentVehicle!.position.latitude,
-            _currentVehicle!.position.longitude,
+            currentVehicle.position.latitude,
+            currentVehicle.position.longitude,
           ),
           child: Icon(
             Icons.directions_bus,
@@ -290,8 +300,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     // Check if this stop is where the vehicle currently is
     bool isCurrentStop = false;
-    if (_currentVehicle != null) {
-      final currentStopSequence = _currentVehicle!.currentStopSequence;
+    final currentVehicle = _currentVehicle;
+    if (currentVehicle != null) {
+      final currentStopSequence = currentVehicle.currentStopSequence;
       if (currentStopSequence > 0 && currentStopSequence == index + 1) {
         isCurrentStop = true;
       }
@@ -406,6 +417,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         transportation?['name'] ?? transportation?['disassembledName'] ?? '';
     final stopSequence = widget.leg['stopSequence'] as List?;
 
+    final currentVehicle = _currentVehicle;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Leg Details:'),
@@ -460,7 +473,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       ],
                     ),
                   ],
-                  if (_currentVehicle != null) ...[
+                  if (currentVehicle != null) ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -481,9 +494,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              ((_currentVehicle != null &&
-                                      _currentVehicle!.vehicle.hasId()))
-                                  ? 'Vehicle ${_currentVehicle!.vehicle.id}'
+                              (currentVehicle.vehicle.hasId())
+                                  ? 'Vehicle ${currentVehicle.vehicle.id}'
                                   : 'Vehicle (unknown)',
                               style: const TextStyle(
                                 color: Colors.green,
