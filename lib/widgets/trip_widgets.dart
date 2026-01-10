@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'dart:convert';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 
@@ -88,6 +89,16 @@ class TripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final legs = trip.legs;
+    if (legs.isEmpty) {
+      return Card(
+        child: ListTile(
+          onTap: onTap,
+          title: const Text('Unknown trip'),
+          subtitle: const Text('No legs available'),
+        ),
+      );
+    }
+
     final firstLeg = legs.first;
     final lastLeg = legs.last;
 
@@ -117,6 +128,69 @@ class TripCard extends StatelessWidget {
                 ),
               ],
             ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Builder(builder: (context) {
+              final rawLegsCount =
+                  (trip.rawJson != null && trip.rawJson!['legs'] is List)
+                      ? (trip.rawJson!['legs'] as List).length
+                      : legs.length;
+              final bool mismatch = rawLegsCount != legs.length;
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Chip(
+                    label: Text(mismatch
+                        ? '${legs.length}/${rawLegsCount} legs'
+                        : '${legs.length} ${legs.length == 1 ? 'leg' : 'legs'}'),
+                    backgroundColor: mismatch
+                        ? Colors.orange.shade100
+                        : Colors.grey.shade200,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  if (mismatch) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.warning, color: Colors.orange, size: 18),
+                  ],
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'View raw trip JSON',
+                    icon: const Icon(Icons.info_outline, size: 20),
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        final pretty = trip.rawJson != null
+                            ? const JsonEncoder.withIndent('  ')
+                                .convert(trip.rawJson)
+                            : '<no raw JSON available for this trip>';
+                        await showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Trip raw JSON'),
+                            content: SingleChildScrollView(
+                              child: SelectableText(pretty,
+                                  style: const TextStyle(
+                                      fontFamily: 'monospace', fontSize: 12)),
+                            ),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Close')),
+                            ],
+                          ),
+                        );
+                      } catch (e) {
+                        messenger.showSnackBar(const SnackBar(
+                            content: Text('Failed to show trip JSON')));
+                      }
+                    },
+                  ),
+                ],
+              );
+            }),
           ],
         ),
       ),
