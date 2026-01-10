@@ -117,6 +117,94 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String _tripDebugString(TripJourney trip) {
     final buffer = StringBuffer();
+
+    // Collect any trip IDs present in the raw JSON (if the API provides them)
+    final tripIds = <String>{};
+    if (trip.rawJson != null) {
+      final r = trip.rawJson!;
+      if (r['tripId'] != null && r['tripId'].toString().isNotEmpty) {
+        tripIds.add(r['tripId'].toString());
+      }
+      if (r['id'] != null && r['id'].toString().isNotEmpty) {
+        tripIds.add(r['id'].toString());
+      }
+      if (r['trip_id'] != null && r['trip_id'].toString().isNotEmpty) {
+        tripIds.add(r['trip_id'].toString());
+      }
+
+      // Also check for RealtimeTripId / AVMSTripID in top-level transportation properties
+      if (r['transportation'] is Map) {
+        final tp = r['transportation'];
+        if (tp['properties'] is Map) {
+          final p = tp['properties'];
+          if (p['RealtimeTripId'] != null &&
+              p['RealtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['RealtimeTripId'].toString());
+          }
+          if (p['AVMSTripID'] != null &&
+              p['AVMSTripID'].toString().isNotEmpty) {
+            tripIds.add(p['AVMSTripID'].toString());
+          }
+          if (p['realtimeTripId'] != null &&
+              p['realtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['realtimeTripId'].toString());
+          }
+        }
+      }
+
+      final legsJson = r['legs'];
+      if (legsJson is List) {
+        for (var l in legsJson) {
+          if (l is Map<String, dynamic>) {
+            if (l['tripId'] != null && l['tripId'].toString().isNotEmpty) {
+              tripIds.add(l['tripId'].toString());
+            }
+            if (l['trip_id'] != null && l['trip_id'].toString().isNotEmpty) {
+              tripIds.add(l['trip_id'].toString());
+            }
+
+            // Check leg.transportation.properties for RealtimeTripId / AVMSTripID
+            final ttp = l['transportation'];
+            if (ttp is Map && ttp['properties'] is Map) {
+              final p = ttp['properties'];
+              if (p['RealtimeTripId'] != null &&
+                  p['RealtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['RealtimeTripId'].toString());
+              }
+              if (p['AVMSTripID'] != null &&
+                  p['AVMSTripID'].toString().isNotEmpty) {
+                tripIds.add(p['AVMSTripID'].toString());
+              }
+              if (p['realtimeTripId'] != null &&
+                  p['realtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['realtimeTripId'].toString());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Collect route IDs from the mapped legs and raw leg JSON
+    final routeIds = <String>{};
+    for (final leg in trip.legs) {
+      final rid = leg.transportation?.id;
+      if (rid != null && rid.isNotEmpty) routeIds.add(rid);
+      final lr = leg.rawJson;
+      if (lr != null) {
+        final t = lr['transportation'];
+        if (t is Map && t['id'] != null && t['id'].toString().isNotEmpty) {
+          routeIds.add(t['id'].toString());
+        }
+      }
+    }
+
+    buffer.writeln(
+        'Trip IDs (from trip JSON): ${tripIds.isNotEmpty ? tripIds.join(', ') : 'N/A'}');
+    buffer.writeln(
+        'Route IDs (from trip JSON): ${routeIds.isNotEmpty ? routeIds.join(', ') : 'N/A'}');
+    buffer.writeln();
+
     buffer.writeln('Trip summary:');
     buffer.writeln('  isAdditional: ${trip.isAdditional}');
     buffer.writeln('  rating: ${trip.rating}');
@@ -183,11 +271,195 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String? _legRouteId() => (_updatedLeg ?? widget.leg).transportation?.id;
 
+  /// Collect trip IDs from TripJourney and leg raw JSON which may include
+  /// RealtimeTripId / AVMSTripID or other identifiers used by realtime feeds.
+  Set<String> _collectTripIds() {
+    final trip = widget.trip;
+    final tripIds = <String>{};
+
+    if (trip?.rawJson != null) {
+      final r = trip!.rawJson!;
+      if (r['tripId'] != null && r['tripId'].toString().isNotEmpty)
+        tripIds.add(r['tripId'].toString());
+      if (r['id'] != null && r['id'].toString().isNotEmpty)
+        tripIds.add(r['id'].toString());
+      if (r['trip_id'] != null && r['trip_id'].toString().isNotEmpty)
+        tripIds.add(r['trip_id'].toString());
+
+      if (r['transportation'] is Map) {
+        final tp = r['transportation'];
+        if (tp['properties'] is Map) {
+          final p = tp['properties'];
+          if (p['RealtimeTripId'] != null &&
+              p['RealtimeTripId'].toString().isNotEmpty)
+            tripIds.add(p['RealtimeTripId'].toString());
+          if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty)
+            tripIds.add(p['AVMSTripID'].toString());
+          if (p['realtimeTripId'] != null &&
+              p['realtimeTripId'].toString().isNotEmpty)
+            tripIds.add(p['realtimeTripId'].toString());
+        }
+      }
+
+      final legsJson = r['legs'];
+      if (legsJson is List) {
+        for (var l in legsJson) {
+          if (l is Map<String, dynamic>) {
+            if (l['tripId'] != null && l['tripId'].toString().isNotEmpty)
+              tripIds.add(l['tripId'].toString());
+            if (l['trip_id'] != null && l['trip_id'].toString().isNotEmpty)
+              tripIds.add(l['trip_id'].toString());
+            final ttp = l['transportation'];
+            if (ttp is Map && ttp['properties'] is Map) {
+              final p = ttp['properties'];
+              if (p['RealtimeTripId'] != null &&
+                  p['RealtimeTripId'].toString().isNotEmpty)
+                tripIds.add(p['RealtimeTripId'].toString());
+              if (p['AVMSTripID'] != null &&
+                  p['AVMSTripID'].toString().isNotEmpty)
+                tripIds.add(p['AVMSTripID'].toString());
+              if (p['realtimeTripId'] != null &&
+                  p['realtimeTripId'].toString().isNotEmpty)
+                tripIds.add(p['realtimeTripId'].toString());
+            }
+          }
+        }
+      }
+    }
+
+    final legObj = _updatedLeg ?? widget.leg;
+    final lr = legObj.rawJson;
+    if (lr != null) {
+      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty)
+        tripIds.add(lr['tripId'].toString());
+      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty)
+        tripIds.add(lr['trip_id'].toString());
+      final t = lr['transportation'];
+      if (t is Map && t['properties'] is Map) {
+        final p = t['properties'];
+        if (p['RealtimeTripId'] != null &&
+            p['RealtimeTripId'].toString().isNotEmpty)
+          tripIds.add(p['RealtimeTripId'].toString());
+        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty)
+          tripIds.add(p['AVMSTripID'].toString());
+        if (p['realtimeTripId'] != null &&
+            p['realtimeTripId'].toString().isNotEmpty)
+          tripIds.add(p['realtimeTripId'].toString());
+      }
+    }
+
+    return tripIds;
+  }
+
   List<VehiclePosition> get _displayedVehicles {
     final routeId = _legRouteId();
-    if (!_filterByLegRoute || routeId == null || routeId.isEmpty) {
+    if (!_filterByLegRoute) {
       return _vehicles;
     }
+
+    // If the trip/leg contains any explicit trip IDs (e.g., RealtimeTripId),
+    // prefer filtering vehicles by trip id rather than by route id.
+    final tripIds = <String>{};
+
+    // Collect trip IDs from provided TripJourney raw JSON
+    if (widget.trip?.rawJson != null) {
+      final r = widget.trip!.rawJson!;
+      if (r['tripId'] != null && r['tripId'].toString().isNotEmpty) {
+        tripIds.add(r['tripId'].toString());
+      }
+      if (r['id'] != null && r['id'].toString().isNotEmpty) {
+        tripIds.add(r['id'].toString());
+      }
+      if (r['trip_id'] != null && r['trip_id'].toString().isNotEmpty) {
+        tripIds.add(r['trip_id'].toString());
+      }
+
+      if (r['transportation'] is Map) {
+        final tp = r['transportation'];
+        if (tp['properties'] is Map) {
+          final p = tp['properties'];
+          if (p['RealtimeTripId'] != null &&
+              p['RealtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['RealtimeTripId'].toString());
+          }
+          if (p['AVMSTripID'] != null &&
+              p['AVMSTripID'].toString().isNotEmpty) {
+            tripIds.add(p['AVMSTripID'].toString());
+          }
+          if (p['realtimeTripId'] != null &&
+              p['realtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['realtimeTripId'].toString());
+          }
+        }
+      }
+
+      final legsJson = r['legs'];
+      if (legsJson is List) {
+        for (var l in legsJson) {
+          if (l is Map<String, dynamic>) {
+            if (l['tripId'] != null && l['tripId'].toString().isNotEmpty) {
+              tripIds.add(l['tripId'].toString());
+            }
+            if (l['trip_id'] != null && l['trip_id'].toString().isNotEmpty) {
+              tripIds.add(l['trip_id'].toString());
+            }
+
+            final ttp = l['transportation'];
+            if (ttp is Map && ttp['properties'] is Map) {
+              final p = ttp['properties'];
+              if (p['RealtimeTripId'] != null &&
+                  p['RealtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['RealtimeTripId'].toString());
+              }
+              if (p['AVMSTripID'] != null &&
+                  p['AVMSTripID'].toString().isNotEmpty) {
+                tripIds.add(p['AVMSTripID'].toString());
+              }
+              if (p['realtimeTripId'] != null &&
+                  p['realtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['realtimeTripId'].toString());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Also collect trip IDs from the active leg's raw JSON or transportation raw JSON
+    final legObj = _updatedLeg ?? widget.leg;
+    final lr = legObj.rawJson;
+    if (lr != null) {
+      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty) {
+        tripIds.add(lr['tripId'].toString());
+      }
+      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty) {
+        tripIds.add(lr['trip_id'].toString());
+      }
+
+      final t = lr['transportation'];
+      if (t is Map && t['properties'] is Map) {
+        final p = t['properties'];
+        if (p['RealtimeTripId'] != null &&
+            p['RealtimeTripId'].toString().isNotEmpty) {
+          tripIds.add(p['RealtimeTripId'].toString());
+        }
+        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty) {
+          tripIds.add(p['AVMSTripID'].toString());
+        }
+        if (p['realtimeTripId'] != null &&
+            p['realtimeTripId'].toString().isNotEmpty) {
+          tripIds.add(p['realtimeTripId'].toString());
+        }
+      }
+    }
+
+    // If we found any trip IDs, filter vehicles by trip id; otherwise fallback to route id filter
+    if (tripIds.isNotEmpty) {
+      return _vehicles
+          .where((v) => v.trip.hasTripId() && tripIds.contains(v.trip.tripId))
+          .toList();
+    }
+
     return _vehicles
         .where((v) => v.trip.hasRouteId() && v.trip.routeId == routeId)
         .toList();
@@ -256,8 +528,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
-  Widget _buildMapCard(String? transportId, TransportMode? mode, Leg leg, Color modeColor) {
-    if (transportId == null || transportId.isEmpty) return const SizedBox.shrink();
+  Widget _buildMapCard(
+      String? transportId, TransportMode? mode, Leg leg, Color modeColor) {
+    if (transportId == null || transportId.isEmpty)
+      return const SizedBox.shrink();
 
     return Card(
       elevation: 4,
@@ -272,7 +546,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               leg: leg,
               transportMode: mode,
               routeFilter: transportId,
-              getAllVehiclesAggregated: RealtimeService.getAllVehiclePositionsAggregated,
+              // Always enable trip/route filtering for the map (independent of debug toggle)
+              filterByLegTrip: true,
+              tripIds: _collectTripIds(),
+              getAllVehiclesAggregated:
+                  RealtimeService.getAllVehiclePositionsAggregated,
             ),
             Positioned(
               bottom: 8,
@@ -286,11 +564,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => RealtimeMapWidget(
+                        builder: (context) => RealtimeMapPage(
                           leg: leg,
                           transportMode: mode,
                           routeFilter: transportId,
-                          getAllVehiclesAggregated: RealtimeService.getAllVehiclePositionsAggregated,
+                          // Always enable trip/route filtering on the full-screen map
+                          filterByLegTrip: true,
+                          tripIds: _collectTripIds(),
+                          getAllVehiclesAggregated:
+                              RealtimeService.getAllVehiclePositionsAggregated,
                         ),
                       ),
                     );
@@ -304,7 +586,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  Widget _buildHeaderCard(String? transportName, int? transportClass, String originName, String destinationName, Color modeColor) {
+  Widget _buildHeaderCard(String? transportName, int? transportClass,
+      String originName, String destinationName, Color modeColor) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -611,7 +894,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
                         IconButton(
@@ -632,7 +915,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               if (!mounted) return;
                               messenger.showSnackBar(
                                 const SnackBar(
-                                    content: Text('Failed to copy to clipboard')),
+                                    content:
+                                        Text('Failed to copy to clipboard')),
                               );
                             }
                           },
@@ -684,29 +968,29 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         ),
                         Row(
                           children: [
-                            if (transportId != null && transportId.isNotEmpty)
-                              Row(
-                                children: [
-                                  const Text('Filter by route'),
-                                  const SizedBox(width: 8),
-                                  Switch.adaptive(
-                                    value: _filterByLegRoute,
-                                    onChanged: (v) {
-                                      setState(() {
-                                        _filterByLegRoute = v;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
+                            Row(
+                              children: [
+                                const Text('Filter by trip/route'),
+                                const SizedBox(width: 8),
+                                Switch.adaptive(
+                                  value: _filterByLegRoute,
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _filterByLegRoute = v;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
                             IconButton(
                               tooltip: 'Copy vehicle debug to clipboard',
                               onPressed: () async {
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   final lines = _displayedVehicles.map((v) {
-                                    final id =
-                                        v.vehicle.hasId() ? v.vehicle.id : 'N/A';
+                                    final id = v.vehicle.hasId()
+                                        ? v.vehicle.id
+                                        : 'N/A';
                                     final tripId = v.trip.hasTripId()
                                         ? v.trip.tripId
                                         : 'N/A';
@@ -781,7 +1065,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     else if (_displayedVehicles.isEmpty)
                       const ListTile(
                         leading: Icon(Icons.filter_alt_off, color: Colors.grey),
-                        title: Text('No vehicles match the current route filter'),
+                        title: Text(
+                            'No vehicles match the current trip/route filter'),
                       )
                     else
                       SizedBox(
@@ -791,8 +1076,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           padding: EdgeInsets.zero,
                           itemBuilder: (context, index) {
                             final v = _displayedVehicles[index];
-                            final id =
-                                v.vehicle.hasId() ? v.vehicle.id : 'N/A';
+                            final id = v.vehicle.hasId() ? v.vehicle.id : 'N/A';
                             final tripId =
                                 v.trip.hasTripId() ? v.trip.tripId : 'N/A';
                             final routeId =
@@ -874,7 +1158,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => RealtimeMapWidget(
+                    builder: (context) => RealtimeMapPage(
                       leg: leg,
                       transportMode: mode,
                       routeFilter: transportId,
@@ -893,7 +1177,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           padding: const EdgeInsets.all(16.0),
           children: [
             _buildMapCard(transportId, mode, leg, modeColor),
-            _buildHeaderCard(transportName, transportClass, originName, destinationName, modeColor),
+            _buildHeaderCard(transportName, transportClass, originName,
+                destinationName, modeColor),
             const SizedBox(height: 16),
             _buildTimingCard(origin, destination),
             const SizedBox(height: 16),

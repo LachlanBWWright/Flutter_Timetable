@@ -16,6 +16,14 @@ class RealtimeMapWidget extends StatefulWidget {
   final String? routeFilter;
   final Leg? leg;
 
+  /// If true, attempt to filter vehicles to only those matching the trip ids
+  /// for this trip/leg (fall back to route filtering when no trip ids are
+  /// available). When false, the map shows all vehicles (diagnostic mode).
+  final bool filterByLegTrip;
+
+  /// Trip ids (if known) to match vehicles against when `filterByLegTrip` is true.
+  final Set<String>? tripIds;
+
   /// Optional exact vehicle id filter. If provided, only the vehicle whose
   /// vehicle.id equals this value will be shown on the map.
   final String? vehicleId;
@@ -36,6 +44,8 @@ class RealtimeMapWidget extends StatefulWidget {
     this.transportMode,
     this.routeFilter,
     this.leg,
+    this.filterByLegTrip = false,
+    this.tripIds,
     this.vehicleId,
     this.getPositions,
     this.getAllVehiclesAggregated,
@@ -61,7 +71,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   bool _isLoading = false;
   String? _error;
   // Map readiness and pending actions
-  bool _mapIsReady = false;
+  // map readiness flag removed (not required for current behaviour)
   CameraFit? _pendingFit;
   LatLng? _pendingCenter;
 
@@ -125,8 +135,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
     // Determine color from provided transportMode or fallback to grey
     final mode = widget.transportMode;
-    final Color routeColor =
-        mode != null ? TransportColors.getColorByTransportMode(mode) : Colors.blue;
+    final Color routeColor = mode != null
+        ? TransportColors.getColorByTransportMode(mode)
+        : Colors.blue;
 
     return [Polyline(points: points, strokeWidth: 4.0, color: routeColor)];
   }
@@ -176,13 +187,19 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             .addAll(aggregatedVehicles.map((v) => _VehicleWithMode(v, null)));
       }
 
-      // Filter by route if specified
-      if (widget.routeFilter != null) {
-        // Only remove vehicles that have a routeId and do not match the filter.
-        // Do not drop vehicles that lack routeId information.
-        vehicles.removeWhere((vw) =>
-            vw.vehicle.trip.hasRouteId() &&
-            !vw.vehicle.trip.routeId.contains(widget.routeFilter!));
+      // Apply trip/route filter when requested (match trip ids first, then route id fallback).
+      if (widget.filterByLegTrip) {
+        final ids = widget.tripIds ?? <String>{};
+        if (ids.isNotEmpty) {
+          vehicles.retainWhere((vw) =>
+              vw.vehicle.trip.hasTripId() &&
+              ids.contains(vw.vehicle.trip.tripId));
+        } else if (widget.routeFilter != null &&
+            widget.routeFilter!.isNotEmpty) {
+          vehicles.removeWhere((vw) =>
+              vw.vehicle.trip.hasRouteId() &&
+              vw.vehicle.trip.routeId != widget.routeFilter);
+        }
       }
 
       // If a leg is provided, filter vehicles to those matching the leg's route id
@@ -190,18 +207,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       // (VehicleDescriptor.id) rather than trip/route id. This allows showing
       // the exact tracked vehicle associated with a leg, when the leg's
       // transportation.id contains a vehicle id.
-      final leg = widget.leg;
-      final transportation = leg?.transportation;
-      final transportationId = transportation?.id;
-      if (widget.vehicleId == null &&
-          leg != null &&
-          transportation != null &&
-          transportationId != null) {
-        // Only remove vehicles that have a routeId and it doesn't match the leg.
-        vehicles.removeWhere((vw) =>
-            vw.vehicle.trip.hasRouteId() &&
-            vw.vehicle.trip.routeId != transportationId);
-      }
+      // Leg-specific filtering disabled (show all vehicles)
 
       if (!mounted) return;
       // If a specific vehicle id was requested, prefer matching by vehicle id
@@ -213,8 +219,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         final unfiltered = List<_VehicleWithMode>.from(vehicles);
         // Try to match by vehicle descriptor id first
         vehicles.removeWhere((vw) =>
-            !vw.vehicle.vehicle.hasId() ||
-            vw.vehicle.vehicle.id != vehicleId);
+            !vw.vehicle.vehicle.hasId() || vw.vehicle.vehicle.id != vehicleId);
 
         if (vehicles.isEmpty) {
           // No vehicle found by vehicleDescriptor id; try matching as route id
@@ -368,65 +373,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     );
   }
 
-  void _openModeFilterSheet(BuildContext context) async {
-    // Compute vehicle counts per transport mode from the current loaded
-    // vehicles so we can show counts next to each mode in the toggle list.
-    final counts = <TransportMode, int>{};
-    for (final m in _allModes) {
-      counts[m] = 0;
-    }
-    for (final vw in _vehicles) {
-      final parsed = vw.mode;
-      if (parsed != null) counts[parsed] = (counts[parsed] ?? 0) + 1;
-    }
-
-    await showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setSheetState) {
-          // Constrain the bottom sheet height and make contents scrollable so
-          // a long list of modes doesn't overflow on smaller screens.
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                // Allow the sheet to grow but cap at 70% of the screen height
-                maxHeight: MediaQuery.of(context).size.height * 0.7,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Show modes',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 12),
-                    ..._allModes.map((mode) {
-                      final display = modeDisplayNameForTransportMode(mode);
-                      final count = counts[mode] ?? 0;
-                      return CheckboxListTile(
-                        value: _modeEnabled[mode] ?? true,
-                        title: Text('$display (${count.toString()})'),
-                        onChanged: (v) {
-                          setSheetState(() => _modeEnabled[mode] = v ?? false);
-                          setState(() {});
-                        },
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Done'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        });
-      },
-    );
-  }
+  // Mode filter sheet removed (map no longer exposes a mode filter control).
 
   // Helper functions moved to `realtime_map_helpers.dart`.
 
@@ -499,198 +446,166 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Return embeddable map content without top-level scaffold/appbar
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error: $_error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadVehiclePositions,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _mapCenter,
+            initialZoom: 11.0,
+            minZoom: 8.0,
+            maxZoom: 18.0,
+            onMapReady: () {
+              if (_pendingFit != null) {
+                _mapController.fitCamera(_pendingFit!);
+                _pendingFit = null;
+              } else if (_pendingCenter != null) {
+                _mapController.move(_pendingCenter!, 11.0);
+                _pendingCenter = null;
+              }
+            },
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.lbww.flutter_timetable',
+            ),
+            // Draw the route polyline if available
+            PolylineLayer(polylines: _buildRoutePolylines()),
+            // Show stop markers (if the leg has stops)
+            MarkerLayer(markers: _buildStopMarkers()),
+            // Show vehicle markers above stops so they remain visible
+            MarkerLayer(
+              markers: _buildVehicleMarkers(),
+            ),
+          ],
+        ),
+        // Vehicle count overlay
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${_vehicles.length} vehicles',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        // Show an overlay if a vehicleId was requested but no vehicle
+        // (by vehicle id or fallback route id) was found in the latest feed.
+        if (widget.vehicleId != null && _vehicles.isEmpty)
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'No vehicle found for id ${widget.vehicleId}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // _calculateBounds not needed with current embeddable map view - remove for now.
+}
+
+/// Page wrapper that provides a Scaffold/AppBar for the map when it's
+/// shown as a full page. For embedded uses (e.g., inside a Card) use
+/// `RealtimeMapWidget` directly so the parent can provide navigation chrome.
+class RealtimeMapPage extends StatelessWidget {
+  final TransportMode? mode;
+  final TransportMode? transportMode;
+  final String? routeFilter;
+  final Leg? leg;
+  final String? vehicleId;
+  final Future<Map<TransportMode, FeedMessage?>> Function()? getPositions;
+  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+  final bool filterByLegTrip;
+  final Set<String>? tripIds;
+
+  const RealtimeMapPage({
+    super.key,
+    this.mode,
+    this.transportMode,
+    this.routeFilter,
+    this.leg,
+    this.vehicleId,
+    this.getPositions,
+    this.getAllVehiclesAggregated,
+    this.filterByLegTrip = false,
+    this.tripIds,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final GlobalKey<_RealtimeMapWidgetState> mapKey = GlobalKey();
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.mode != null
-            ? '${widget.mode} Map'
-            : widget.leg != null
+        title: Text(mode != null
+            ? '${mode} Map'
+            : leg != null
                 ? 'Trip Leg Map'
                 : 'Realtime Map'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _isLoading ? null : _loadVehiclePositions,
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            tooltip: 'Filter modes',
-            onPressed: () => _openModeFilterSheet(context),
+            onPressed: () => mapKey.currentState?._loadVehiclePositions(),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('Error: $_error'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadVehiclePositions,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : Stack(
-                  children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: _mapCenter,
-                        initialZoom: 11.0,
-                        minZoom: 8.0,
-                        maxZoom: 18.0,
-                        onMapReady: () {
-                          setState(() {
-                            _mapIsReady = true;
-                          });
-                          if (_pendingFit != null) {
-                            _mapController.fitCamera(_pendingFit!);
-                            _pendingFit = null;
-                          } else if (_pendingCenter != null) {
-                            _mapController.move(_pendingCenter!, 11.0);
-                            _pendingCenter = null;
-                          }
-                        },
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.lbww.flutter_timetable',
-                        ),
-                        // Draw the route polyline if available
-                        PolylineLayer(polylines: _buildRoutePolylines()),
-                        // Show stop markers (if the leg has stops)
-                        MarkerLayer(markers: _buildStopMarkers()),
-                        // Show vehicle markers above stops so they remain visible
-                        MarkerLayer(
-                          markers: _buildVehicleMarkers(),
-                        ),
-                      ],
-                    ),
-                    // Vehicle count overlay
-                    Positioned(
-                      top: 16,
-                      right: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_vehicles.length} vehicles',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Show an overlay if a vehicleId was requested but no vehicle
-                    // (by vehicle id or fallback route id) was found in the latest feed.
-                    if (widget.vehicleId != null && _vehicles.isEmpty)
-                      Positioned(
-                        top: 16,
-                        left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black87,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'No vehicle found for id ${widget.vehicleId}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Fit map to show all vehicles or leg. If the map isn't ready,
-          // store the intent and apply when onMapReady fires.
-          if (_vehicles.isNotEmpty) {
-            final bounds =
-                _calculateBounds(_vehicles.map((vw) => vw.vehicle).toList());
-            final fit = CameraFit.bounds(
-                bounds: bounds, padding: const EdgeInsets.all(50));
-            if (_mapIsReady) {
-              _mapController.fitCamera(fit);
-            } else {
-              _pendingFit = fit;
-            }
-          } else {
-            final leg = widget.leg;
-            final originCoord = leg?.origin.coord;
-            final destCoord = leg?.destination.coord;
-
-            if (leg != null &&
-                originCoord != null &&
-                originCoord.length == 2 &&
-                destCoord != null &&
-                destCoord.length == 2) {
-              final bounds = LatLngBounds(
-                LatLng(originCoord[0], originCoord[1]),
-                LatLng(destCoord[0], destCoord[1]),
-              );
-              final fit = CameraFit.bounds(
-                  bounds: bounds, padding: const EdgeInsets.all(50));
-              if (_mapIsReady) {
-                _mapController.fitCamera(fit);
-              } else {
-                _pendingFit = fit;
-              }
-            } else {
-              if (_mapIsReady) {
-                _mapController.move(_mapCenter, 11.0);
-              } else {
-                _pendingCenter = _mapCenter;
-              }
-            }
-          }
-        },
-        child: const Icon(Icons.my_location),
+      body: RealtimeMapWidget(
+        key: mapKey,
+        mode: mode,
+        transportMode: transportMode,
+        routeFilter: routeFilter,
+        leg: leg,
+        filterByLegTrip: filterByLegTrip,
+        tripIds: tripIds,
+        vehicleId: vehicleId,
+        getPositions: getPositions,
+        getAllVehiclesAggregated: getAllVehiclesAggregated,
       ),
-    );
-  }
-
-  LatLngBounds _calculateBounds(List<VehiclePosition> vehicles) {
-    double minLat = double.infinity;
-    double maxLat = -double.infinity;
-    double minLng = double.infinity;
-    double maxLng = -double.infinity;
-
-    for (final vehicle in vehicles) {
-      if (vehicle.hasPosition() &&
-          vehicle.position.hasLatitude() &&
-          vehicle.position.hasLongitude()) {
-        final lat = vehicle.position.latitude;
-        final lng = vehicle.position.longitude;
-
-        minLat = lat < minLat ? lat : minLat;
-        maxLat = lat > maxLat ? lat : maxLat;
-        minLng = lng < minLng ? lng : minLng;
-        maxLng = lng > maxLng ? lng : maxLng;
-      }
-    }
-
-    return LatLngBounds(
-      LatLng(minLat, minLng),
-      LatLng(maxLat, maxLng),
     );
   }
 }
