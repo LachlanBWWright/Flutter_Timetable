@@ -163,26 +163,15 @@ class _TripScreenState extends State<TripScreen> {
                 itemBuilder: (context, index) {
                   return TripCard(
                     trip: trips[index],
-                    onTap: () {
+                    onSelectLeg: (leg) {
                       final tripJourney = trips[index];
-                      if (tripJourney.legs.length == 1) {
-                        final singleLeg = tripJourney.legs.first;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TripLegDetailScreen(
-                                leg: singleLeg, trip: tripJourney),
-                          ),
-                        );
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TripLegScreen(trip: tripJourney),
-                          ),
-                        );
-                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              TripLegDetailScreen(leg: leg, trip: tripJourney),
+                        ),
+                      );
                     },
                   );
                 },

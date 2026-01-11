@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
-import 'dart:convert';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 
@@ -41,24 +40,32 @@ class TransportModeUtils {
         return 'Coach';
       case 9:
         return 'Ferry';
+      case 99:
       case 100:
         return 'Walk';
       default:
-        return '(Unknown)';
+        return 'Mode $id';
     }
   }
 }
 
 /// Widget for displaying a single trip card
-class TripCard extends StatelessWidget {
+class TripCard extends StatefulWidget {
   final TripJourney trip;
-  final VoidCallback onTap;
+  final void Function(Leg) onSelectLeg;
 
   const TripCard({
     super.key,
     required this.trip,
-    required this.onTap,
+    required this.onSelectLeg,
   });
+
+  @override
+  State<TripCard> createState() => _TripCardState();
+}
+
+class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
+  bool _expanded = false;
 
   String _formatTimeDifference(String? planned, String? estimated) {
     if (planned == null || estimated == null) {
@@ -88,13 +95,12 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final legs = trip.legs;
+    final legs = widget.trip.legs;
     if (legs.isEmpty) {
       return Card(
-        child: ListTile(
-          onTap: onTap,
-          title: const Text('Unknown trip'),
-          subtitle: const Text('No legs available'),
+        child: const ListTile(
+          title: Text('Unknown trip'),
+          subtitle: Text('No legs available'),
         ),
       );
     }
@@ -102,97 +108,130 @@ class TripCard extends StatelessWidget {
     final firstLeg = legs.first;
     final lastLeg = legs.last;
 
+    // Build sequential segments per-leg, inserting grey waiting segments between legs where applicable
+    final segments = <Widget>[];
+    for (var i = 0; i < legs.length; i++) {
+      final l = legs[i];
+      final transportClass = l.transportation?.product?.classField;
+      // Convert leg duration (which is seconds in the API) to minutes so the visual
+      // proportion between travel time and waiting time makes sense.
+      final legDurationSeconds = l.duration ?? 0;
+      final legDurationMinutes =
+          legDurationSeconds > 0 ? (legDurationSeconds / 60).ceil() : 1;
+      final color = transportClass != null
+          ? TransportModeUtils.getModeColor(transportClass)
+          : Colors.grey;
+      segments.add(Expanded(
+          flex: legDurationMinutes, child: Container(height: 6, color: color)));
+
+      // If there's a next leg, compute waiting time (in minutes) and add a grey segment if > 0
+      if (i < legs.length - 1) {
+        final curDest = l.destination;
+        final nextOrigin = legs[i + 1].origin;
+        final curArrival =
+            curDest.arrivalTimeEstimated ?? curDest.arrivalTimePlanned;
+        final nextDeparture = nextOrigin.departureTimeEstimated ??
+            nextOrigin.departureTimePlanned;
+        final a = curArrival != null
+            ? DateTimeUtils.parseTimeToDateTime(curArrival)
+            : null;
+        final b = nextDeparture != null
+            ? DateTimeUtils.parseTimeToDateTime(nextDeparture)
+            : null;
+        if (a != null && b != null) {
+          final diffMinutes = b.difference(a).inMinutes;
+          if (diffMinutes > 0) {
+            final waitFlex =
+                diffMinutes < 1 ? 1 : (diffMinutes > 60 ? 60 : diffMinutes);
+            segments.add(Expanded(
+              flex: waitFlex,
+              child: Container(height: 8, color: Colors.grey.shade700),
+            ));
+          }
+        }
+      }
+    }
+
     return Card(
-      child: ListTile(
-        onTap: onTap,
-        title: Text(
-          '${firstLeg.origin.disassembledName} to ${lastLeg.destination.disassembledName}',
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  _formatTimeDifference(
-                    firstLeg.origin.departureTimePlanned,
-                    firstLeg.origin.departureTimeEstimated,
-                  ),
-                ),
-                const Text(' - '),
-                Text(
-                  _formatTimeDifference(
-                    lastLeg.destination.arrivalTimePlanned,
-                    lastLeg.destination.arrivalTimeEstimated,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Builder(builder: (context) {
-              final rawLegsCount =
-                  (trip.rawJson != null && trip.rawJson!['legs'] is List)
-                      ? (trip.rawJson!['legs'] as List).length
-                      : legs.length;
-              final bool mismatch = rawLegsCount != legs.length;
-              return Row(
-                mainAxisSize: MainAxisSize.min,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: single-leg trips navigate directly; multi-leg trips expand/collapse
+          InkWell(
+            onTap: () {
+              if (legs.length == 1) {
+                widget.onSelectLeg(legs.first);
+              } else {
+                setState(() => _expanded = !_expanded);
+              }
+            },
+            child: ListTile(
+              title: Text(
+                '${firstLeg.origin.disassembledName} to ${lastLeg.destination.disassembledName}',
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Chip(
-                    label: Text(mismatch
-                        ? '${legs.length}/${rawLegsCount} legs'
-                        : '${legs.length} ${legs.length == 1 ? 'leg' : 'legs'}'),
-                    backgroundColor: mismatch
-                        ? Colors.orange.shade100
-                        : Colors.grey.shade200,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  if (mismatch) ...[
-                    const SizedBox(width: 6),
-                    const Icon(Icons.warning, color: Colors.orange, size: 18),
-                  ],
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: 'View raw trip JSON',
-                    icon: const Icon(Icons.info_outline, size: 20),
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      try {
-                        final pretty = trip.rawJson != null
-                            ? const JsonEncoder.withIndent('  ')
-                                .convert(trip.rawJson)
-                            : '<no raw JSON available for this trip>';
-                        await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Trip raw JSON'),
-                            content: SingleChildScrollView(
-                              child: SelectableText(pretty,
-                                  style: const TextStyle(
-                                      fontFamily: 'monospace', fontSize: 12)),
-                            ),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Close')),
-                            ],
-                          ),
-                        );
-                      } catch (e) {
-                        messenger.showSnackBar(const SnackBar(
-                            content: Text('Failed to show trip JSON')));
-                      }
-                    },
+                  Row(
+                    children: [
+                      Text(
+                        _formatTimeDifference(
+                          firstLeg.origin.departureTimePlanned,
+                          firstLeg.origin.departureTimeEstimated,
+                        ),
+                      ),
+                      const Text(' - '),
+                      Text(
+                        _formatTimeDifference(
+                          lastLeg.destination.arrivalTimePlanned,
+                          lastLeg.destination.arrivalTimeEstimated,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              );
-            }),
+              ),
+              trailing: AnimatedRotation(
+                turns: _expanded ? 0.25 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(Icons.chevron_right, size: 28),
+              ),
+            ),
+          ),
+
+          // Expanded legs list (multileg trips)
+          if (_expanded && legs.length > 1) ...[
+            const Divider(height: 1),
+            for (final leg in legs)
+              ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+                title: Text(
+                    '${leg.origin.disassembledName} → ${leg.destination.disassembledName}'),
+                dense: true,
+                trailing: const Padding(
+                  padding: EdgeInsets.only(right: 24.0),
+                  child: Icon(Icons.chevron_right, size: 20),
+                ),
+                onTap: () => widget.onSelectLeg(leg),
+              ),
+            const Divider(height: 1),
           ],
-        ),
+          SizedBox(
+            height: 6,
+            width: double.infinity,
+            child: ClipRRect(
+              borderRadius: BorderRadius.zero,
+              child: Row(
+                children: segments.isNotEmpty
+                    ? segments
+                    : [Expanded(child: Container(color: Colors.grey))],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

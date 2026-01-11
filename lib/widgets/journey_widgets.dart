@@ -24,84 +24,81 @@ class JourneyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Row(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Origin column (left) with accent strip
-          Expanded(
-            child: InkWell(
-              onTap: onTap,
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: const BorderSide(
-                      color: TransportColors.train,
-                      width: 4.0,
-                    ),
-                    right: BorderSide(
-                      color: Colors.grey.shade300,
-                      width: 1.0,
-                    ),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      journey.origin,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Destination column (right) with accent strip
-          Expanded(
-            child: InkWell(
-              onTap: onReverseTap,
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    right: BorderSide(
-                      color: TransportColors.train,
-                      width: 4.0,
+          Row(
+            children: [
+              // Origin column
+              Expanded(
+                child: InkWell(
+                  onTap: onTap,
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          journey.origin,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      journey.destination,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              ),
+              // Vertical divider between origin and destination
+              VerticalDivider(
+                width: 12,
+                thickness: 1,
+                color: Colors.grey.shade400,
+                indent: 8,
+                endIndent: 8,
+              ),
+              // Destination column
+              Expanded(
+                child: InkWell(
+                  onTap: onReverseTap,
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          journey.destination,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              // Action buttons (pin/delete)
+              if (isEditingMode) ...[
+                IconButton(
+                  icon: Icon(
+                    journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    color: journey.isPinned ? Colors.blue : Colors.grey,
+                  ),
+                  onPressed: onTogglePin,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: onDelete,
+                ),
+              ],
+            ],
           ),
-          // Action buttons (pin/delete)
-          if (isEditingMode) ...[
-            IconButton(
-              icon: Icon(
-                journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                color: journey.isPinned ? Colors.blue : Colors.grey,
-              ),
-              onPressed: onTogglePin,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: onDelete,
-            ),
-          ],
+          // Bottom accent strip to match TripCard
+          Container(
+              height: 6, width: double.infinity, color: TransportColors.train),
         ],
       ),
     );

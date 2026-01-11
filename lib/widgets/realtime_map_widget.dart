@@ -38,6 +38,10 @@ class RealtimeMapWidget extends StatefulWidget {
   /// and facilitate tests.
   final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
 
+  /// Whether to show the small vehicle count overlay in the top-right.
+  /// Defaults to true; set false for embedded maps where it is redundant.
+  final bool showVehicleCount;
+
   const RealtimeMapWidget({
     super.key,
     this.mode,
@@ -49,6 +53,7 @@ class RealtimeMapWidget extends StatefulWidget {
     this.vehicleId,
     this.getPositions,
     this.getAllVehiclesAggregated,
+    this.showVehicleCount = true,
   });
 
   @override
@@ -503,25 +508,25 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             ),
           ],
         ),
-        // Vehicle count overlay
-        Positioned(
-          top: 16,
-          right: 16,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${_vehicles.length} vehicles',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+        if (widget.showVehicleCount)
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${_vehicles.length} vehicles',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
-        ),
         // Show an overlay if a vehicleId was requested but no vehicle
         // (by vehicle id or fallback route id) was found in the latest feed.
         if (widget.vehicleId != null && _vehicles.isEmpty)

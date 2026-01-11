@@ -271,84 +271,30 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String? _legRouteId() => (_updatedLeg ?? widget.leg).transportation?.id;
 
-  /// Collect trip IDs from TripJourney and leg raw JSON which may include
-  /// RealtimeTripId / AVMSTripID or other identifiers used by realtime feeds.
-  Set<String> _collectTripIds() {
-    final trip = widget.trip;
-    final tripIds = <String>{};
-
-    if (trip?.rawJson != null) {
-      final r = trip!.rawJson!;
-      if (r['tripId'] != null && r['tripId'].toString().isNotEmpty)
-        tripIds.add(r['tripId'].toString());
-      if (r['id'] != null && r['id'].toString().isNotEmpty)
-        tripIds.add(r['id'].toString());
-      if (r['trip_id'] != null && r['trip_id'].toString().isNotEmpty)
-        tripIds.add(r['trip_id'].toString());
-
-      if (r['transportation'] is Map) {
-        final tp = r['transportation'];
-        if (tp['properties'] is Map) {
-          final p = tp['properties'];
-          if (p['RealtimeTripId'] != null &&
-              p['RealtimeTripId'].toString().isNotEmpty)
-            tripIds.add(p['RealtimeTripId'].toString());
-          if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty)
-            tripIds.add(p['AVMSTripID'].toString());
-          if (p['realtimeTripId'] != null &&
-              p['realtimeTripId'].toString().isNotEmpty)
-            tripIds.add(p['realtimeTripId'].toString());
-        }
-      }
-
-      final legsJson = r['legs'];
-      if (legsJson is List) {
-        for (var l in legsJson) {
-          if (l is Map<String, dynamic>) {
-            if (l['tripId'] != null && l['tripId'].toString().isNotEmpty)
-              tripIds.add(l['tripId'].toString());
-            if (l['trip_id'] != null && l['trip_id'].toString().isNotEmpty)
-              tripIds.add(l['trip_id'].toString());
-            final ttp = l['transportation'];
-            if (ttp is Map && ttp['properties'] is Map) {
-              final p = ttp['properties'];
-              if (p['RealtimeTripId'] != null &&
-                  p['RealtimeTripId'].toString().isNotEmpty)
-                tripIds.add(p['RealtimeTripId'].toString());
-              if (p['AVMSTripID'] != null &&
-                  p['AVMSTripID'].toString().isNotEmpty)
-                tripIds.add(p['AVMSTripID'].toString());
-              if (p['realtimeTripId'] != null &&
-                  p['realtimeTripId'].toString().isNotEmpty)
-                tripIds.add(p['realtimeTripId'].toString());
-            }
-          }
-        }
-      }
-    }
-
+  /// Collect only the trip IDs that belong to the active leg (not the whole trip)
+  Set<String> _collectLegTripIds() {
+    final ids = <String>{};
     final legObj = _updatedLeg ?? widget.leg;
     final lr = legObj.rawJson;
     if (lr != null) {
       if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty)
-        tripIds.add(lr['tripId'].toString());
+        ids.add(lr['tripId'].toString());
       if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty)
-        tripIds.add(lr['trip_id'].toString());
+        ids.add(lr['trip_id'].toString());
       final t = lr['transportation'];
       if (t is Map && t['properties'] is Map) {
         final p = t['properties'];
         if (p['RealtimeTripId'] != null &&
             p['RealtimeTripId'].toString().isNotEmpty)
-          tripIds.add(p['RealtimeTripId'].toString());
+          ids.add(p['RealtimeTripId'].toString());
         if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty)
-          tripIds.add(p['AVMSTripID'].toString());
+          ids.add(p['AVMSTripID'].toString());
         if (p['realtimeTripId'] != null &&
             p['realtimeTripId'].toString().isNotEmpty)
-          tripIds.add(p['realtimeTripId'].toString());
+          ids.add(p['realtimeTripId'].toString());
       }
     }
-
-    return tripIds;
+    return ids;
   }
 
   List<VehiclePosition> get _displayedVehicles {
@@ -548,7 +494,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               routeFilter: transportId,
               // Always enable trip/route filtering for the map (independent of debug toggle)
               filterByLegTrip: true,
-              tripIds: _collectTripIds(),
+              tripIds: _collectLegTripIds(),
+              showVehicleCount: false,
               getAllVehiclesAggregated:
                   RealtimeService.getAllVehiclePositionsAggregated,
             ),
@@ -570,7 +517,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           routeFilter: transportId,
                           // Always enable trip/route filtering on the full-screen map
                           filterByLegTrip: true,
-                          tripIds: _collectTripIds(),
+                          tripIds: _collectLegTripIds(),
                           getAllVehiclesAggregated:
                               RealtimeService.getAllVehiclePositionsAggregated,
                         ),
