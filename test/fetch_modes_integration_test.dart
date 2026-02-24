@@ -55,5 +55,5 @@ void main() {
       expect(data!.stops, isNotEmpty);
       // logStop(data.stops.first);
     }, timeout: const Timeout(Duration(seconds: 60)));
-  });
+  }, skip: 'Requires live API key');
 }

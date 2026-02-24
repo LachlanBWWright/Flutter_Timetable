@@ -25,6 +25,7 @@ void main() {
       expect((data!.agencies.isNotEmpty || data.stops.isNotEmpty), isTrue);
     },
     timeout: const Timeout(Duration(seconds: 60)),
+    skip: 'Requires live API key',
   );
 
   test(
@@ -37,5 +38,6 @@ void main() {
       expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
     },
     timeout: const Timeout(Duration(seconds: 60)),
+    skip: 'Requires live API key',
   );
 }

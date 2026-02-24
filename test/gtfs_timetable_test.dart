@@ -63,6 +63,7 @@ void main() {
       }
     },
     timeout: const Timeout(Duration(minutes: 2)),
+    skip: 'Requires live API key',
   );
 
   test('fetchFerriesSydneyFerriesGtfsData returns a GtfsData object', () async {
@@ -75,7 +76,7 @@ void main() {
     } else {
       // print('\n--- ferries feed returned 0 stops ---');
     }
-  });
+  }, skip: 'Requires live API key');
 
   test(
     'fetchMetroGtfsData returns a GtfsData object and logs stops',
@@ -96,6 +97,7 @@ void main() {
       }
     },
     timeout: const Timeout(Duration(minutes: 2)),
+    skip: 'Requires live API key',
   );
 
   test('fetchLightRailInnerWestGtfsData returns a GtfsData object', () async {
@@ -108,7 +110,7 @@ void main() {
     } else {
       // print('\n--- lightrail feed returned 0 stops ---');
     }
-  });
+  }, skip: 'Requires live API key');
 
   /*   test('fetchNswTrainsGtfsData returns a GtfsData object', () async {
     final data = await fetchNswTrainsGtfsData();
@@ -143,6 +145,7 @@ void main() {
         // print('No stops returned for SydneyTrains feed');
       }
     },
+    skip: 'Requires live API key',
   );
 
   test(
@@ -160,5 +163,6 @@ void main() {
       }
     },
     timeout: const Timeout(Duration(minutes: 2)),
+    skip: 'Requires live API key',
   );
 }

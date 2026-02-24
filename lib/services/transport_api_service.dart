@@ -135,15 +135,10 @@ class TransportApiService {
         );
       }
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
       // Received getTrips response — log a short summary
-      int journeysCount = 0;
-      if (data is Map) {
-        final journeys = data['journeys'];
-        if (journeys is List) {
-          journeysCount = journeys.length;
-        }
-      }
+      final journeys = data['journeys'];
+      final journeysCount = journeys is List ? journeys.length : 0;
       logger.i(
         'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId',
       );

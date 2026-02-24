@@ -48,7 +48,7 @@ jobs:
 
       - name: Build Flutter web
         run: |
-          flutter build web --release --web-renderer html
+          flutter build web --release
           echo "Flutter web build completed"
 
       - name: Prepare web artifacts

@@ -102,5 +102,5 @@ void main() {
         expect(feed!.entity.isNotEmpty, true);
       },
     );
-  });
+  }, skip: 'Requires live API key');
 }

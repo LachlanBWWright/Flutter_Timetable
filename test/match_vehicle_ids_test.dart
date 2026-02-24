@@ -11,7 +11,7 @@ void main() {
     'Match Vehicle IDs between Trip Planner, Realtime Updates, and Vehicle Positions',
     () async {
       // Load .env file
-      await dotenv.load(fileName: ".env");
+      await dotenv.load(fileName: '.env');
 
       // 1. Find station IDs
       print('Searching for Redfern Station...');
@@ -214,5 +214,6 @@ void main() {
       // Since we can't guarantee live data quality in CI, we won't fail the test on 0 matches,
       // but we will print the results.
     },
+    skip: 'Requires live API key',
   );
 }
