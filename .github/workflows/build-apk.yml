@@ -1,0 +1,78 @@
+name: Build APK
+
+on:
+  pull_request:
+    branches:
+      - master
+      - dev
+  push:
+    branches:
+      - master
+      - dev
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Create .env file
+        run: |
+          if [ -f .env.template ]; then
+            cp .env.template .env
+            echo "Created .env file from template"
+          else
+            touch .env
+            echo "Created empty .env file"
+          fi
+
+      - name: Build APK (Release)
+        run: flutter build apk --release
+
+      - name: Build APK (Debug)
+        run: flutter build apk --debug
+
+      - name: Rename APK files
+        run: |
+          mkdir -p build/outputs
+          cp build/app/outputs/flutter-apk/app-release.apk build/outputs/app-release.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk build/outputs/app-debug.apk
+
+          # Add version info to filename
+          VERSION=$(grep "version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          cp build/outputs/app-release.apk build/outputs/lbww_flutter-${VERSION}-release.apk
+
+          echo "Built APK version: ${VERSION}"
+
+      - name: Upload APK artifacts (Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-release
+          path: |
+            build/outputs/app-release.apk
+            build/outputs/lbww_flutter-*.apk
+          retention-days: 30
+
+      - name: Upload APK artifacts (Debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-debug
+          path: build/outputs/app-debug.apk
+          retention-days: 7
