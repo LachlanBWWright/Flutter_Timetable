@@ -31,10 +31,17 @@ linter:
     
     # Improve error handling
     avoid_print: false  # Allow print statements for debugging
+    # Avoid calling methods or getters on values typed as `dynamic`.
+    # See: https://dart.dev/tools/linter-rules/avoid_dynamic_calls
+    avoid_dynamic_calls: true
     
     # Code organization
     directives_ordering: true
     sort_child_properties_last: true
+
+analyzer:
+  exclude:
+    - lib/swagger_generated/**
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

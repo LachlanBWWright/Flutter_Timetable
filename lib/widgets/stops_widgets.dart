@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../constants/transport_colors.dart';
+import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 import '../services/stops_service.dart';
+import '../utils/button_styles.dart';
+import '../utils/transport_display.dart';
 
 /// Widget for managing and displaying GTFS stops data
 class StopsManagementWidget extends StatefulWidget {
@@ -13,6 +19,7 @@ class StopsManagementWidget extends StatefulWidget {
 
 class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   Map<String, int> _stopsCount = {};
+  Map<TransportMode?, Map<String, int>> _stopsByMode = {};
   int _totalStops = 0;
   bool _isLoading = false;
   String? _error;
@@ -31,40 +38,26 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
     try {
       final count = await StopsService.getTotalStopsCount();
-      final countByEndpoint = await StopsService.getStopsCountByEndpoint();
+      final grouped = await StopsService.getStopsCountByEndpoint();
+
+      if (!mounted) return;
+
+      // Flatten grouped map for any places that still expect endpoint->count
+      final flattened = <String, int>{};
+      for (final grp in grouped.values) {
+        for (final e in grp.entries) {
+          flattened[e.key] = e.value;
+        }
+      }
 
       setState(() {
         _totalStops = count;
-        _stopsCount = countByEndpoint;
+        _stopsByMode = grouped;
+        _stopsCount = flattened;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadPlaceholderData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      await StopsService.loadAllPlaceholderStops();
-      await _loadStopsData(); // Refresh the counts
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Placeholder stops data loaded successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -101,8 +94,62 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       );
 
       if (confirmed == true) {
-        await StopsService.updateAllStopsFromApi();
-        await _loadStopsData(); // Refresh the counts
+        // Listen to the update stream and show a progress dialog
+        String dialogMessage = 'Preparing update...';
+        void Function(void Function())? dialogSetState;
+
+        final stream = StopsService.updateAllStopsFromApi();
+        late StreamSubscription subscription;
+
+        subscription = stream.listen((progress) {
+          final epLabel = progress.endpoint?.key ?? '';
+          final text =
+              '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
+          // Update dialog text if available
+          dialogSetState?.call(() {
+            dialogMessage = text;
+          });
+        }, onError: (e) {
+          dialogSetState?.call(() {
+            dialogMessage = 'Error: $e';
+          });
+        }, onDone: () async {
+          // Close the dialog when done
+          try {
+            if (mounted) Navigator.of(context, rootNavigator: true).pop();
+          } catch (_) {}
+          await subscription.cancel();
+        });
+
+        if (!mounted) {
+          return;
+        }
+
+        // Show modal progress dialog (not dismissible)
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return StatefulBuilder(builder: (context, setState) {
+              dialogSetState = setState;
+              return AlertDialog(
+                title: const Text('Updating stops from API'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(dialogMessage),
+                  ],
+                ),
+              );
+            });
+          },
+        );
+
+        // After dialog closes, refresh counts
+        await _loadStopsData();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -118,6 +165,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -134,6 +182,67 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     }
   }
 
+  Future<void> _wipeStopsData() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Wipe Stops Data'),
+        content: const Text(
+            'This will permanently delete all stops data from the local database. '
+            'You will need to reload the data from API or placeholders afterwards. '
+            'Continue?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ButtonStyles.elevatedSmall(Colors.red),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      try {
+        await StopsService.wipeAllStopsData();
+        await _loadStopsData(); // Refresh the counts
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('All stops data wiped successfully'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error wiping stops data: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -143,43 +252,59 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Stops Database Management',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Stops Database Management',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _isLoading ? null : _loadStopsData,
+                  tooltip: 'Refresh data',
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
-            // Summary card
+            // Summary card — use theme colors for improved contrast
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: Colors.blue[200]!),
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.save, color: Colors.blue[700], size: 32),
+                  Icon(Icons.save,
+                      color: Theme.of(context).colorScheme.primary, size: 32),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Total Stops: $_totalStops',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                       ),
                       Text(
                         'Endpoints: ${_stopsCount.length}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                     ],
                   ),
@@ -189,38 +314,35 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
             const SizedBox(height: 16),
 
-            // Action buttons
-            Row(
+            // Action buttons — stacked and full width for better accessibility
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _loadPlaceholderData,
-                    icon: const Icon(Icons.file_download),
-                    label: const Text('Load Placeholders'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _updateFromApi,
                     icon: const Icon(Icons.cloud_download),
                     label: const Text('Update from API'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                    ),
+                    style: ButtonStyles.elevated(Colors.orange),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _isLoading ? null : _loadStopsData,
-                  icon: const Icon(Icons.refresh),
-                ),
+                const SizedBox(height: 8),
+                // refresh button moved to title row above
               ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Wipe data button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _wipeStopsData,
+                icon: const Icon(Icons.delete_sweep),
+                label: const Text('Wipe All Stops Data'),
+                style: ButtonStyles.elevated(Colors.red),
+              ),
             ),
 
             const SizedBox(height: 16),
@@ -260,7 +382,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   }
 
   Widget _buildEndpointsList() {
-    final endpointGroups = _groupEndpoints();
+    // endpointGroups are now provided by the service as `_stopsByMode`.
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,23 +395,45 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
           ),
         ),
         const SizedBox(height: 8),
-        ...endpointGroups.entries.map((group) {
-          final mode = group.key;
+        ..._stopsByMode.entries.map((group) {
+          final TransportMode? modeKey = group.key;
           final endpoints = group.value;
           final totalCount =
               endpoints.values.fold(0, (sum, count) => sum + count);
+
+          final displayName = (() {
+            if (modeKey != null) {
+              // For buses we preserve the distinction between city and regional
+              // when the endpoints are exclusively one or the other.
+              if (modeKey == TransportMode.bus) {
+                final hasRegion =
+                    endpoints.keys.any((k) => k.startsWith('regionbuses'));
+                final hasCity =
+                    endpoints.keys.any((k) => k.startsWith('buses'));
+                if (hasRegion && !hasCity) return 'Regional Buses';
+                if (hasCity && !hasRegion) return 'City Buses';
+              }
+              return getDisplayNameForTransportMode(modeKey);
+            }
+            return 'Other';
+          })();
 
           return ExpansionTile(
             leading: Container(
               width: 4,
               height: 30,
               decoration: BoxDecoration(
-                color: _getModeColor(mode),
+                color: (() {
+                  if (modeKey != null) {
+                    return TransportColors.getColorByTransportMode(modeKey);
+                  }
+                  return Colors.grey;
+                })(),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             title: Text(
-              '${_getDisplayName(mode)} ($totalCount stops)',
+              '$displayName ($totalCount stops)',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             children: endpoints.entries.map((endpoint) {
@@ -323,77 +467,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               );
             }).toList(),
           );
-        }).toList(),
+        }),
       ],
     );
-  }
-
-  Map<String, Map<String, int>> _groupEndpoints() {
-    final groups = <String, Map<String, int>>{};
-
-    for (final entry in _stopsCount.entries) {
-      final endpoint = entry.key;
-      final count = entry.value;
-
-      String mode;
-      if (endpoint.startsWith('buses')) {
-        mode = 'buses';
-      } else if (endpoint.startsWith('ferries')) {
-        mode = 'ferries';
-      } else if (endpoint.startsWith('lightrail')) {
-        mode = 'lightrail';
-      } else if (endpoint.startsWith('regionbuses')) {
-        mode = 'regionbuses';
-      } else if (endpoint.contains('trains')) {
-        mode = 'trains';
-      } else if (endpoint == 'metro') {
-        mode = 'metro';
-      } else {
-        mode = 'other';
-      }
-
-      groups.putIfAbsent(mode, () => {});
-      groups[mode]![endpoint] = count;
-    }
-
-    return groups;
-  }
-
-  Color _getModeColor(String mode) {
-    switch (mode) {
-      case 'trains':
-        return TransportColors.train;
-      case 'metro':
-        return TransportColors.metro;
-      case 'buses':
-      case 'regionbuses':
-        return TransportColors.bus;
-      case 'lightrail':
-        return TransportColors.lightRail;
-      case 'ferries':
-        return TransportColors.ferry;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getDisplayName(String mode) {
-    switch (mode) {
-      case 'trains':
-        return 'Trains';
-      case 'metro':
-        return 'Metro';
-      case 'buses':
-        return 'City Buses';
-      case 'regionbuses':
-        return 'Regional Buses';
-      case 'lightrail':
-        return 'Light Rail';
-      case 'ferries':
-        return 'Ferries';
-      default:
-        return mode;
-    }
   }
 }
 
@@ -424,6 +500,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
 
     try {
       final results = await StopsService.searchStops(query);
+      if (!mounted) return;
       setState(() {
         _searchResults = results;
         _isSearching = false;

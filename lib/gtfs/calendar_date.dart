@@ -9,9 +9,37 @@ class CalendarDate {
     required this.exceptionType,
   });
 
-  factory CalendarDate.fromCsv(List<String> row) => CalendarDate(
-        serviceId: row[0],
-        date: row[1],
-        exceptionType: row[2],
-      );
+  /// Create a CalendarDate from a CSV row using header-based field mapping
+  factory CalendarDate.fromCsv(List<String> header, List<String> row) {
+    String getField(String fieldName, {String defaultValue = ''}) {
+      final index = header.indexOf(fieldName);
+      if (index == -1 || index >= row.length) return defaultValue;
+      final value = row[index];
+      return value.isEmpty ? defaultValue : value;
+    }
+
+    return CalendarDate(
+      serviceId: getField('service_id'),
+      date: getField('date'),
+      exceptionType: getField('exception_type'),
+    );
+  }
+
+  /// Expected CSV header for calendar_dates.txt per GTFS specification
+  static List<String> expectedCsvHeader() => [
+        'service_id',
+        'date',
+        'exception_type',
+      ];
+
+  static void validateCsvHeader(List<String> header) {
+    // All fields are required in calendar_dates.txt per GTFS spec
+    final required = expectedCsvHeader();
+    for (final col in required) {
+      if (!header.contains(col)) {
+        throw FormatException(
+            'calendar_dates.txt missing required column "$col"');
+      }
+    }
+  }
 }

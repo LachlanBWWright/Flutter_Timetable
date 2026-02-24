@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/schema/database.dart';
-
-import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
@@ -27,84 +24,81 @@ class JourneyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Row(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Origin column (left) with accent strip
-          Expanded(
-            child: InkWell(
-              onTap: onTap,
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: TransportColors.train,
-                      width: 4.0,
-                    ),
-                    right: BorderSide(
-                      color: Colors.grey.shade300,
-                      width: 1.0,
-                    ),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      journey.origin,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Destination column (right) with accent strip
-          Expanded(
-            child: InkWell(
-              onTap: onReverseTap,
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: BorderSide(
-                      color: TransportColors.train,
-                      width: 4.0,
+          Row(
+            children: [
+              // Origin column
+              Expanded(
+                child: InkWell(
+                  onTap: onTap,
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          journey.origin,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      journey.destination,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              ),
+              // Vertical divider between origin and destination
+              VerticalDivider(
+                width: 12,
+                thickness: 1,
+                color: Colors.grey.shade400,
+                indent: 8,
+                endIndent: 8,
+              ),
+              // Destination column
+              Expanded(
+                child: InkWell(
+                  onTap: onReverseTap,
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          journey.destination,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              // Action buttons (pin/delete)
+              if (isEditingMode) ...[
+                IconButton(
+                  icon: Icon(
+                    journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    color: journey.isPinned ? Colors.blue : Colors.grey,
+                  ),
+                  onPressed: onTogglePin,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: onDelete,
+                ),
+              ],
+            ],
           ),
-          // Action buttons (pin/delete)
-          if (isEditingMode) ...[
-            IconButton(
-              icon: Icon(
-                journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                color: journey.isPinned ? Colors.blue : Colors.grey,
-              ),
-              onPressed: onTogglePin,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: onDelete,
-            ),
-          ],
+          // Bottom accent strip to match TripCard
+          Container(
+              height: 6, width: double.infinity, color: TransportColors.train),
         ],
       ),
     );
@@ -114,10 +108,10 @@ class JourneyCard extends StatelessWidget {
 /// A widget that displays a list of journeys
 class JourneyList extends StatelessWidget {
   final List<Journey> journeys;
-  final Function(Journey) onJourneyTap;
-  final Function(Journey) onReverseJourneyTap;
-  final Function(int) onDeleteJourney;
-  final Function(int, bool) onTogglePin;
+  final void Function(Journey) onJourneyTap;
+  final void Function(Journey) onReverseJourneyTap;
+  final void Function(int) onDeleteJourney;
+  final void Function(int, bool) onTogglePin;
   final bool isEditingMode;
   final bool isPinnedSection;
 
@@ -144,7 +138,8 @@ class JourneyList extends StatelessWidget {
           onTap: () => onJourneyTap(journeys[index]),
           onReverseTap: () => onReverseJourneyTap(journeys[index]),
           onDelete: () => onDeleteJourney(journeys[index].id),
-          onTogglePin: () => onTogglePin(journeys[index].id, journeys[index].isPinned),
+          onTogglePin: () =>
+              onTogglePin(journeys[index].id, journeys[index].isPinned),
           isEditingMode: isEditingMode,
         );
       },
@@ -158,6 +153,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool hasApiKey;
   final bool isSearching;
   final bool isEditingMode;
+  final bool hasTrips;
   final VoidCallback onAddTrip;
   final VoidCallback onSettings;
   final VoidCallback onToggleSearch;
@@ -171,6 +167,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.hasApiKey,
     required this.isSearching,
     required this.isEditingMode,
+    required this.hasTrips,
     required this.onAddTrip,
     required this.onSettings,
     required this.onToggleSearch,
@@ -197,14 +194,16 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           : Text(title),
       actions: <Widget>[
         if (!isSearching) ...[
-          IconButton(
-            onPressed: onToggleSearch,
-            icon: const Icon(Icons.search),
-          ),
-          IconButton(
-            onPressed: onToggleEdit,
-            icon: Icon(isEditingMode ? Icons.done : Icons.edit),
-          ),
+          if (hasTrips)
+            IconButton(
+              onPressed: onToggleSearch,
+              icon: const Icon(Icons.search),
+            ),
+          if (hasTrips)
+            IconButton(
+              onPressed: onToggleEdit,
+              icon: Icon(isEditingMode ? Icons.done : Icons.edit),
+            ),
           if (hasApiKey)
             IconButton(
               onPressed: onAddTrip,

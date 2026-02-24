@@ -1,0 +1,4 @@
+stop_id,stop_code,stop_name,tts_stop_name,stop_desc,stop_lat,stop_lon,zone_id,stop_url,location_type,parent_station,stop_timezone,wheelchair_boarding,level_id,platform_code
+S1,1234,First Street Station,First Street,A major transit hub,37.7897,-122.4009,1,http://example.com/stops/s1,0,,America/Los_Angeles,1,,A
+S2,5678,Second Avenue Stop,Second Avenue,Near downtown,37.7950,-122.3937,1,http://example.com/stops/s2,0,,,1,,
+STATION1,,Main Station,Main Station,Central transit station,37.7900,-122.4010,,,1,,,1,,

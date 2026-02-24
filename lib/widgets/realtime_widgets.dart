@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../constants/transport_colors.dart';
+import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
+import '../utils/transport_display.dart';
 
 /// Widget displaying realtime transport information
 class RealtimeInfoWidget extends StatefulWidget {
@@ -12,7 +15,7 @@ class RealtimeInfoWidget extends StatefulWidget {
 }
 
 class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
-  Map<String, dynamic>? _statusSummary;
+  Map<TransportMode, Map<String, dynamic>>? _statusSummary;
   bool _isLoading = false;
   String? _error;
 
@@ -28,18 +31,12 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
       _error = null;
     });
 
-    try {
-      final summary = await RealtimeService.getRealtimeStatusSummary();
-      setState(() {
-        _statusSummary = summary;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+    final summary = await RealtimeService.getRealtimeStatusSummary();
+    if (!mounted) return;
+    setState(() {
+      _statusSummary = summary;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -88,18 +85,33 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   List<Widget> _buildStatusList() {
     final summary = _statusSummary!;
     return summary.entries.map((entry) {
-      final mode = entry.key;
-      final data = entry.value as Map<String, dynamic>;
+      final modeKey = entry.key;
+      final data = entry.value;
       final vehicleCount = data['vehicles'] as int;
       final updateCount = data['updates'] as int;
+
+      // modeKey is a TransportMode enum per service contract. Use it
+      // directly for display and color. Keep a modeString for any
+      // legacy string-based fallbacks (not expected here).
+      final TransportMode parsedMode = modeKey;
+
+      // Resolve display name: prefer typed TransportMode helper, otherwise
+      // fall back to a generic formatted fallback.
+      final displayName = getDisplayNameForTransportMode(parsedMode);
 
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: _getModeColor(mode).withOpacity(0.1),
+          color: (() {
+            return TransportColors.getColorByTransportMode(parsedMode)
+                .withValues(alpha: 0.1);
+          })(),
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: _getModeColor(mode).withOpacity(0.3)),
+          border: Border.all(color: (() {
+            return TransportColors.getColorByTransportMode(parsedMode)
+                .withValues(alpha: 0.3);
+          })()),
         ),
         child: Row(
           children: [
@@ -107,7 +119,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
               width: 4,
               height: 40,
               decoration: BoxDecoration(
-                color: _getModeColor(mode),
+                color: TransportColors.getColorByTransportMode(parsedMode),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -117,7 +129,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _getDisplayName(mode),
+                    displayName,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -152,57 +164,23 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
     }).toList();
   }
 
-  Color _getModeColor(String mode) {
-    if (mode.contains('trains')) return TransportColors.train;
-    if (mode.contains('metro')) return TransportColors.metro;
-    if (mode.contains('buses')) return TransportColors.bus;
-    if (mode.contains('lightrail')) return TransportColors.lightRail;
-    if (mode.contains('ferries')) return TransportColors.ferry;
-    return Colors.grey;
-  }
+  // Color selection is performed inline where feed keys or group keys are
+  // available so that transport modes are always represented by the
+  // `TransportMode` enum when possible.
 
-  String _getDisplayName(String mode) {
-    switch (mode) {
-      case 'sydney_trains':
-        return 'Sydney Trains';
-      case 'nsw_trains':
-        return 'NSW Trains';
-      case 'metro':
-        return 'Sydney Metro';
-      case 'buses':
-        return 'Buses';
-      case 'lightrail_cbd_southeast':
-        return 'Light Rail CBD & SE';
-      case 'lightrail_innerwest':
-        return 'Light Rail Inner West';
-      case 'lightrail_newcastle':
-        return 'Light Rail Newcastle';
-      case 'lightrail_parramatta':
-        return 'Light Rail Parramatta';
-      case 'ferries_sydney':
-        return 'Sydney Ferries';
-      case 'ferries_mff':
-        return 'Manly Fast Ferry';
-      default:
-        return mode
-            .replaceAll('_', ' ')
-            .split(' ')
-            .map((word) => word.isNotEmpty
-                ? word[0].toUpperCase() + word.substring(1)
-                : word)
-            .join(' ');
-    }
-  }
+  // _getDisplayName removed — display name resolution is inlined where needed
 }
 
 /// Widget for displaying specific transport mode positions
 class TransportPositionsWidget extends StatefulWidget {
-  final String mode;
+  final TransportMode? mode;
+  final TransportMode? transportMode;
   final String displayName;
 
   const TransportPositionsWidget({
     super.key,
-    required this.mode,
+    this.mode,
+    this.transportMode,
     required this.displayName,
   });
 
@@ -229,13 +207,23 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
     });
 
     try {
-      final feed = await RealtimeService.getPositionsForMode(widget.mode);
+      FeedMessage? feed;
+      if (widget.transportMode != null) {
+        feed = await RealtimeService.getPositionsForTransportMode(
+            widget.transportMode!);
+      } else if (widget.mode != null) {
+        feed = await RealtimeService.getPositionsForTransportMode(widget.mode!);
+      } else {
+        feed = null;
+      }
       final positions = RealtimeService.extractVehiclePositions(feed);
+      if (!mounted) return;
       setState(() {
         _positions = positions;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -315,7 +303,14 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: TransportColors.getColorByMode(widget.mode),
+                      color: (() {
+                        final parsed = widget.mode;
+                        if (parsed != null) {
+                          return TransportColors.getColorByTransportMode(
+                              parsed);
+                        }
+                        return Colors.grey;
+                      })(),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

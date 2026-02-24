@@ -1,0 +1,272 @@
+basePath: /v2/gtfs/vehiclepos
+consumes:
+- '*/*'
+definitions:
+    ErrorDetails:
+        description: Error response
+        example:
+            ErrorDetails:
+                ErrorDateTime: XXXXXXXXXX
+                Message: XXXXXXXXXX
+                RequestedMethod: XXXXXXXXXX
+                RequestedUrl: XXXXXXXXXX
+                TransactionId: XXXXXXXXXX
+        properties:
+            ErrorDateTime:
+                type: string
+            Message:
+                type: string
+            RequestedMethod:
+                type: string
+            RequestedUrl:
+                type: string
+            TransactionId:
+                type: string
+        required:
+        - TransactionId
+        - ErrorDateTime
+        - Message
+        - RequestedUrl
+        - RequestedMethod
+        type: object
+host: api.transport.nsw.gov.au
+info:
+    title: Get Vehicle Position
+    version: '1.0'
+paths:
+    /sydneytrains:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Sydney Trains Technical Documentation
+                - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetSydneyTrains
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime vehicle positions for Sydney Trains
+            tags:
+            - sydneytrains
+    /metro:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Sydney Trains Technical Documentation
+                - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetSydneyMetro
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime vehicle positions for Sydney Trains
+            tags:
+            - sydneymetro
+    /lightrail/innerwest:
+        get:
+            consumes: []
+            description: 'Please see the General Transit Feed Specification GTFS-realtime
+                documentation here:
+
+                https://gtfs.org/realtime/reference/
+
+
+                The GTFS-realtime data exchange format is based on Protocol Buffers:
+
+                https://protobuf.dev/overview/
+
+
+                Please review the Real time Sydney Trains Technical Documentation
+                - https://opendata.transport.nsw.gov.au/documentation
+
+
+                You may optionally add a parameter ''debug'' of value ''true'' and
+                type ''query'' to retrieve protocol messages in a text-based format.
+
+
+                The HEAD operation can be used to tell you if the content has changed
+                (as GET may not return an HTTP 304 when no content has changed.)
+
+
+                For example, you may compare the Last-Modified header retrieved during
+                a HEAD operation with the Last-Modified header retrieved during a
+                previous GET operation. If the headers are the same, the content has
+                not changed since the previous GET operation. If the headers are different,
+                the content has changed since the previous GET operation.'
+            operationId: GetLightRailInnerwest
+            parameters:
+            -   default: ''
+                description: Retrieve protocol messages in a text, text-based format.  <br>
+                    Note return message may be truncated
+                enum:
+                - 'true'
+                in: query
+                name: debug
+                required: false
+                type: string
+            produces:
+            - application/x-google-protobuf
+            responses:
+                '200':
+                    description: The request has been processed successfully.
+                    examples: {}
+                    schema:
+                        type: file
+                '401':
+                    description: The application calling the API has not been authenticated.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '404':
+                    description: The requested resource could not be found.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '500':
+                    description: An internal error has occurred.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+                '503':
+                    description: The server is currently unavailable.
+                    examples: {}
+                    schema:
+                        $ref: '#/definitions/ErrorDetails'
+            summary: GTFS-realtime vehicle positions for Inner West Light Rail
+            tags:
+            - lightrail
+produces:
+- application/x-google-protobuf
+schemes:
+- https
+security:
+-   APIKey: []
+securityDefinitions:
+    APIKey:
+        description: 'Expected Format: apikey [TOKEN]'
+        in: header
+        name: Authorization
+        type: apiKey
+swagger: '2.0'
+tags:
+-   name: sydneytrains
+-   name: sydneymetro
+-   name: lightrail

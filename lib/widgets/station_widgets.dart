@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
+import '../constants/transport_colors.dart';
 
 /// A model class for station data
 class Station {
@@ -6,40 +8,118 @@ class Station {
   final String id;
   final double? latitude;
   final double? longitude;
+  final double? distance; // Distance from user location in km
 
   Station({
     required this.name,
     required this.id,
     this.latitude,
     this.longitude,
+    this.distance,
   });
+
+  /// Create a new Station with updated distance
+  Station copyWith({
+    String? name,
+    String? id,
+    double? latitude,
+    double? longitude,
+    double? distance,
+  }) {
+    return Station(
+      name: name ?? this.name,
+      id: id ?? this.id,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      distance: distance ?? this.distance,
+    );
+  }
 }
 
-/// Widget for displaying a single station item
+/// Widget for displaying a single station item with optional distance
 class StationView extends StatelessWidget {
   final Station station;
   final Function(String, String) setStation;
+  final SortMode sortMode;
+  final TransportMode? mode;
 
   const StationView({
     super.key,
     required this.station,
     required this.setStation,
+    required this.sortMode,
+    this.mode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = mode != null
+        ? TransportColors.getColorByTransportMode(mode!)
+        : Colors.grey;
     return Container(
       margin: const EdgeInsets.all(1.0),
       child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: InkWell(
           onTap: () {
             setStation(station.name, station.id);
           },
-          child: ListTile(
-            title: Text(station.name),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                title: Text(station.name),
+                subtitle: _buildSubtitle(),
+              ),
+              Container(height: 6, width: double.infinity, color: accentColor),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSubtitle() {
+    // Only show distance if available
+    if (station.distance != null) {
+      return Text(
+        '${station.distance!.toStringAsFixed(1)} km away',
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      );
+    }
+
+    // Don't show anything if distance is not available
+    return const SizedBox.shrink();
+  }
+}
+
+/// Enhanced widget for displaying a list of stations with distance support
+class EnhancedStationList extends StatelessWidget {
+  final List<Station> listItems;
+  final Function(String, String) setStation;
+  final SortMode sortMode;
+  final TransportMode? mode;
+
+  const EnhancedStationList({
+    super.key,
+    required this.listItems,
+    required this.setStation,
+    required this.sortMode,
+    this.mode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: listItems.length,
+      itemBuilder: (context, index) {
+        return StationView(
+          station: listItems[index],
+          setStation: setStation,
+          sortMode: sortMode,
+          mode: mode,
+        );
+      },
     );
   }
 }
@@ -60,14 +140,19 @@ class StationList extends StatelessWidget {
     return ListView.builder(
       itemCount: listItems.length,
       itemBuilder: (context, index) {
+        // Default to alphabetical if not specified
         return StationView(
           station: listItems[index],
           setStation: setStation,
+          sortMode: SortMode.alphabetical,
         );
       },
     );
   }
 }
+
+/// Sort mode for station lists
+enum SortMode { alphabetical, distance }
 
 /// Widget for displaying selected station with cancel option
 class SelectedStationCard extends StatelessWidget {
@@ -108,10 +193,15 @@ class SelectedStationCard extends StatelessWidget {
 class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isSearching;
   final TextEditingController searchController;
+  final FocusNode? searchFocusNode;
   final Function(String) onSearch;
   final VoidCallback onToggleSearch;
   final VoidCallback? onSaveTrip;
   final bool canSave;
+  final VoidCallback onOpenMap;
+  final VoidCallback onToggleSort;
+  final SortMode sortMode;
+  final TabController? tabController;
 
   const NewTripAppBar({
     super.key,
@@ -119,8 +209,13 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.searchController,
     required this.onSearch,
     required this.onToggleSearch,
+    this.searchFocusNode,
     this.onSaveTrip,
     required this.canSave,
+    required this.onOpenMap,
+    required this.onToggleSort,
+    required this.sortMode,
+    this.tabController,
   });
 
   @override
@@ -128,6 +223,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: isSearching
           ? TextField(
+              focusNode: searchFocusNode,
               controller: searchController,
               decoration: const InputDecoration(
                 hintText: 'Search for a station',
@@ -138,7 +234,26 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : const Text('Add New Trip'),
       actions: [
-        if (!canSave)
+        if (!canSave) ...[
+          // Sort button (only show when not searching and not ready to save)
+          if (!isSearching)
+            IconButton(
+              onPressed: onToggleSort,
+              icon: Icon(sortMode == SortMode.alphabetical
+                  ? Icons.sort_by_alpha
+                  : Icons.near_me),
+              tooltip: sortMode == SortMode.alphabetical
+                  ? 'Sort by distance'
+                  : 'Sort alphabetically',
+            ),
+          // Map button (only show when not searching)
+          if (!isSearching)
+            IconButton(
+              onPressed: onOpenMap,
+              icon: const Icon(Icons.map),
+              tooltip: 'Open stops map',
+            ),
+          // Search/cancel button
           if (isSearching)
             IconButton(
               onPressed: onToggleSearch,
@@ -148,15 +263,12 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
             IconButton(
               onPressed: onToggleSearch,
               icon: const Icon(Icons.search),
-            )
-        else if (onSaveTrip != null)
-          IconButton(
-            onPressed: onSaveTrip,
-            icon: const Icon(Icons.arrow_forward),
-          ),
+            ),
+        ],
       ],
-      bottom: const TabBar(
-        tabs: [
+      bottom: TabBar(
+        controller: tabController,
+        tabs: const [
           Tab(
             icon: Icon(
               Icons.directions_train,
@@ -171,6 +283,12 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           Tab(
             icon: Icon(
+              Icons.subway,
+              color: TransportColors.metro,
+            ),
+          ),
+          Tab(
+            icon: Icon(
               Icons.directions_bus,
               color: Color.fromARGB(255, 82, 186, 255),
             ),
@@ -181,12 +299,12 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: Color.fromARGB(255, 68, 240, 91),
             ),
           ),
-          Tab(icon: Icon(Icons.map)),
         ],
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
+  Size get preferredSize =>
+      const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
 }

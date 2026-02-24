@@ -1,8 +1,10 @@
-import 'dart:convert';
+// dart:convert not required now - CSV parsing uses package:csv
 
 import 'package:archive/archive.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
 import '../gtfs/agency.dart';
 import '../gtfs/calendar.dart';
@@ -14,6 +16,10 @@ import '../gtfs/shape.dart';
 import '../gtfs/stop.dart';
 import '../gtfs/stop_time.dart';
 import '../gtfs/trip.dart';
+import '../logs/logger.dart';
+
+/// Which schedule surface to use when fetching GTFS schedule ZIPs
+enum GtfsScheduleVersion { v1, v2 }
 
 //V1
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime
@@ -22,17 +28,26 @@ import '../gtfs/trip.dart';
 
 /*
 
-The endpoints return a ZIP with the following files of CSV values, with the according headers: 
+The endpoints return a ZIP with GTFS (General Transit Feed Specification) files.
+These files follow the official GTFS standard defined at https://gtfs.org/documentation/schedule/reference/
 
-agency.txt - agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url,agency_email
-calendar.txt - service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
-calendar_dates.txt - service_id,date,exception_type
-routes.txt - route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_color,route_text_color,route_url
-stops.txt - stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,wheelchair_boarding,platform_code
-stop_times.txt - trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled,timepoint,stop_note
-trips.txt - route_id,service_id,trip_id,shape_id,trip_headsign,direction_id,trip_short_name,block_id,wheelchair_accessible,trip_note,route_direction,bikes_allowed
-shapes.txt - shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence,shape_dist_traveled
-notes.txt - note_id,note_text
+Standard GTFS files and their required/optional fields:
+
+agency.txt - agency_name*, agency_url*, agency_timezone*, agency_id, agency_lang, agency_phone, agency_fare_url, agency_email
+calendar.txt - service_id*, monday*, tuesday*, wednesday*, thursday*, friday*, saturday*, sunday*, start_date*, end_date*
+calendar_dates.txt - service_id*, date*, exception_type*
+routes.txt - route_id*, route_short_name*, route_long_name*, route_type*, agency_id, route_desc, route_url, route_color, route_text_color, route_sort_order
+stops.txt - stop_id*, stop_name, stop_lat, stop_lon, stop_code, tts_stop_name, stop_desc, zone_id, stop_url, location_type, parent_station, stop_timezone, wheelchair_boarding, level_id, platform_code
+stop_times.txt - trip_id*, arrival_time*, departure_time*, stop_id*, stop_sequence*, stop_headsign, pickup_type, drop_off_type, continuous_pickup, continuous_drop_off, shape_dist_traveled, timepoint
+trips.txt - route_id*, service_id*, trip_id*, trip_headsign, trip_short_name, direction_id, block_id, shape_id, wheelchair_accessible, bikes_allowed
+shapes.txt - shape_id*, shape_pt_lat*, shape_pt_lon*, shape_pt_sequence*, shape_dist_traveled
+
+Non-standard extensions used by NSW Transport API:
+- stop_times.txt: stop_note
+- trips.txt: trip_note, route_direction  
+- notes.txt: note_id, note_text (custom file)
+
+* = Required field per GTFS specification
 
 */
 
@@ -44,48 +59,126 @@ Map<String, String> getHeaders() {
   };
 }
 
-Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint) async {
-  final url =
-      Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/timetable$endpoint');
-  final response = await http.get(url, headers: getHeaders());
-  if (response.statusCode != 200) {
-    print('Failed to fetch GTFS data for $endpoint: ${response.statusCode}');
+Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
+    {GtfsScheduleVersion version = GtfsScheduleVersion.v1}) async {
+  try {
+    final versionPath = version == GtfsScheduleVersion.v2 ? 'v2' : 'v1';
+    final url = Uri.parse(
+        'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule$endpoint');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch GTFS data for $endpoint (version=$versionPath): ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    final archive = ZipDecoder().decodeBytes(response.bodyBytes);
+    final Map<String, String> csvFiles = {};
+    for (final file in archive) {
+      if (file.isFile && file.name.endsWith('.txt')) {
+        csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
+      }
+    }
+    final data = parseGtfsFiles(csvFiles);
+    // Debug logging: report how many stops were parsed and sample a few rows
+    try {
+      logger.i(
+          'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files');
+      logger.i('stops.txt contains ${data.stops.length} rows');
+      for (var i = 0; i < data.stops.length && i < 10; i++) {
+        final s = data.stops[i];
+        logger.d(
+            'Sample stop[$i]: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}');
+      }
+      // For buses and ferries, also log a sample of the first 10 routes
+      try {
+        if (endpoint.startsWith('/buses') || endpoint.startsWith('/ferries')) {
+          logger.i('routes.txt contains ${data.routes.length} rows');
+          for (var i = 0; i < data.routes.length && i < 10; i++) {
+            final r = data.routes[i];
+            logger.d(
+                'Sample route[$i]: id="${r.routeId}", short_name="${r.routeShortName}", long_name="${r.routeLongName}", type=${r.routeType}');
+          }
+        }
+      } catch (e) {
+        logger.w('Error logging routes sample for $endpoint: $e');
+      }
+    } catch (e) {
+      logger.w('Error logging parsed GTFS sample for $endpoint: $e');
+    }
+
+    return data;
+  } catch (e, st) {
+    logger.e('Error fetching GTFS data for $endpoint: $e\n$st');
     return null;
   }
-  final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-  final Map<String, String> csvFiles = {};
-  for (final file in archive) {
-    if (file.isFile && file.name.endsWith('.txt')) {
-      csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-    }
-  }
-  return parseGtfsFiles(csvFiles);
 }
 
-/// Fetches the Metro GTFS schedule zip, extracts CSV files, and returns a map of filename to CSV string.
-Future<Map<String, String>?> fetchMetroScheduleRealtime() async {
-  final url =
-      Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/schedule/metro');
-  final response = await http.get(
-    url,
-    headers: getHeaders(),
-  );
-  if (response.statusCode != 200) {
-    print('Failed to fetch Metro schedule realtime: ${response.statusCode}');
+/// Fetches the Metro GTFS-realtime trip updates feed (protobuf) and
+/// returns a parsed [FeedMessage]. The previous implementation returned a
+/// CSV map from a schedule ZIP; the tests expect a realtime FeedMessage so
+/// this function now calls the realtime endpoint.
+Future<FeedMessage?> fetchMetroScheduleRealtime() async {
+  try {
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch Metro realtime: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    return FeedMessage.fromBuffer(response.bodyBytes);
+  } catch (e, st) {
+    logger.e('Error fetching Metro realtime: $e\n$st');
     return null;
   }
-
-  // Unzip the response body in memory
-  final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-  final Map<String, String> csvFiles = {};
-  for (final file in archive) {
-    print(file.name);
-    if (file.isFile && file.name.endsWith('.txt')) {
-      //csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
-    }
-  }
-  return csvFiles;
 }
+
+/// Fetches a GTFS-realtime feed from the v1 realtime surface and parses it
+/// into a [FeedMessage]. Append the endpoint path (for example '/metro' or
+/// '/sydneytrains') to the base URL when calling.
+Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV1(
+    String endpoint) async {
+  try {
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/realtime$endpoint');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch GTFS realtime (v1) for $endpoint: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    return FeedMessage.fromBuffer(response.bodyBytes);
+  } catch (e, st) {
+    logger.e('Error fetching GTFS realtime (v1) for $endpoint: $e\n$st');
+    return null;
+  }
+}
+
+/// Fetches a GTFS-realtime feed from the v2 realtime surface and parses it
+/// into a [FeedMessage]. Append the endpoint path (for example '/metro' or
+/// '/sydneytrains') to the base URL when calling.
+Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV2(
+    String endpoint) async {
+  try {
+    final url =
+        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/realtime$endpoint');
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+          'Failed to fetch GTFS realtime (v2) for $endpoint: ${response.statusCode}, ${response.body}');
+      return null;
+    }
+    return FeedMessage.fromBuffer(response.bodyBytes);
+  } catch (e, st) {
+    logger.e('Error fetching GTFS realtime (v2) for $endpoint: $e\n$st');
+    return null;
+  }
+}
+
+/// Fetch Metro schedule GTFS using the v2 schedule surface
+Future<GtfsData?> fetchMetroGtfsData() =>
+    _fetchGtfsDataFromEndpoint('/metro', version: GtfsScheduleVersion.v2);
 
 Future<GtfsData?> fetchBusesGtfsData() => _fetchGtfsDataFromEndpoint('/buses');
 Future<GtfsData?> fetchBusesSBSC006GtfsData() =>
@@ -182,89 +275,284 @@ Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/farwest');
 
 List<Agency> parseAgencyCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  // Use a resilient CSV-to-rows helper that autodetects EOL and field delimiter.
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('agency.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'agency.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('agency.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++)
-      Agency.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Agency.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Calendar> parseCalendarCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('calendar.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'calendar.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('calendar.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++)
-      Calendar.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Calendar.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<CalendarDate> parseCalendarDatesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('calendar_dates.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'calendar_dates.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('calendar_dates.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++)
-      CalendarDate.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      CalendarDate.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Route> parseRoutesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('routes.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'routes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('routes.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++)
-      Route.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Route.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Stop> parseStopsCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: true);
+  logger.i('Parsing stops.csv, total rows: $rows.length');
+
+  if (rows.isEmpty) {
+    throw const FormatException('stops.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'stops.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('stops.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++) Stop.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Stop.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<StopTime> parseStopTimesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('stop_times.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'stop_times.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('stop_times.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++)
-      StopTime.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      StopTime.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Trip> parseTripsCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('trips.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'trips.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('trips.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++) Trip.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Trip.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Shape> parseShapesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('shapes.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'shapes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('shapes.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++)
-      Shape.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Shape.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
 List<Note> parseNotesCsv(String csv) {
-  final lines = LineSplitter.split(csv).toList();
+  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  if (rows.isEmpty) {
+    throw const FormatException('notes.txt is empty');
+  }
+  if (rows.length < 2) {
+    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
+    logger.w(
+        'notes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+    return [];
+  }
+
+  // Use header-based parsing for better compatibility
+  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  logger.i('notes.txt header: $header');
+
   return [
-    for (var i = 1; i < lines.length; i++) Note.fromCsv(_parseCsvLine(lines[i]))
+    for (var i = 1; i < rows.length; i++)
+      Note.fromCsv(
+          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
   ];
 }
 
-List<String> _parseCsvLine(String line) {
-  // Handles quoted fields and commas inside quotes
-  final List<String> result = [];
-  final RegExp regExp = RegExp(r'((?:"[^"]*")|[^,]+|(?<=,)(?=,))');
-  for (final match in regExp.allMatches(line)) {
-    var value = match.group(0) ?? '';
-    if (value.startsWith('"') && value.endsWith('"')) {
-      value = value.substring(1, value.length - 1);
-    }
-    result.add(value);
+// Note: custom CSV line parser removed in favor of package:csv
+
+/// Convert a raw CSV string to rows while trying to autodetect EOL and field
+/// delimiter. This works around feeds that use different line endings or
+/// separators so the entire file isn't interpreted as a single row.
+List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
+  if (csv.isEmpty) return [];
+
+  // Detect end-of-line sequence: prefer CRLF, then LF, then CR.
+  String eol;
+  if (csv.contains('\r\n')) {
+    eol = '\r\n';
+  } else if (csv.contains('\n')) {
+    eol = '\n';
+  } else if (csv.contains('\r')) {
+    eol = '\r';
+  } else {
+    eol = '\n';
   }
-  return result;
+
+  // Pick a likely field delimiter by checking the first non-empty line
+  final lines = csv.split(eol);
+  var firstLine = '';
+  for (final l in lines) {
+    if (l.trim().isNotEmpty) {
+      firstLine = l;
+      break;
+    }
+  }
+  if (firstLine.isEmpty && lines.isNotEmpty) firstLine = lines.first;
+
+  final delimiters = [',', ';', '\t', '|'];
+  var fieldDelimiter = ',';
+  var bestCount = -1;
+  for (final d in delimiters) {
+    final count = firstLine.split(d).length - 1;
+    if (count > bestCount) {
+      bestCount = count;
+      fieldDelimiter = d;
+    }
+  }
+
+  try {
+    return CsvToListConverter(shouldParseNumbers: shouldParseNumbers)
+        .convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
+  } catch (e) {
+    logger.w(
+        'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e');
+    // Fallback: try with a simple LF eol
+    try {
+      return CsvToListConverter(shouldParseNumbers: shouldParseNumbers)
+          .convert(csv, eol: '\n');
+    } catch (e2) {
+      logger.w('CSV parsing fallback failed: $e2');
+      return [];
+    }
+  }
 }
 
 GtfsData parseGtfsFiles(Map<String, String> files) {
+  logger.i('Files: ${files.keys.toString()}');
+  if (files['stops.txt'] == null) {
+    logger.e('Stops.txt is missing');
+  } else {
+    final stopsContent = files['stops.txt'];
+    if (stopsContent != null) {
+      logger.i('stops.txt length: ${stopsContent.length} characters');
+    }
+  }
   return GtfsData(
     agencies:
         files['agency.txt'] != null ? parseAgencyCsv(files['agency.txt']!) : [],

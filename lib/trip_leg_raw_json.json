@@ -1,0 +1,522 @@
+
+{
+  "rating": 0,
+  "isAdditional": false,
+  "interchanges": 0,
+  "legs": [
+    {
+      "duration": 132,
+      "isRealtimeControlled": true,
+      "realtimeStatus": [
+        "MONITORED"
+      ],
+      "origin": {
+        "isGlobalId": true,
+        "id": "2000339",
+        "name": "Central Station, Platform 19, Sydney",
+        "disassembledName": "Central Station, Platform 19",
+        "type": "platform",
+        "coord": [
+          -33.884094,
+          151.20706
+        ],
+        "niveau": 1,
+        "parent": {
+          "isGlobalId": true,
+          "id": "200060",
+          "name": "Central Station, Platform 19, Sydney",
+          "disassembledName": "Central Station, Platform 19",
+          "type": "stop",
+          "parent": {
+            "id": "placeID:95301001:1",
+            "name": "Sydney",
+            "type": "locality"
+          },
+          "properties": {
+            "stopId": "10101100"
+          },
+          "coord": [
+            -33.884024,
+            151.206203
+          ],
+          "niveau": 0
+        },
+        "departureTimeBaseTimetable": "2025-11-16T06:18:00Z",
+        "departureTimePlanned": "2025-11-16T06:18:00Z",
+        "departureTimeEstimated": "2025-11-16T06:21:36Z",
+        "properties": {
+          "downloads": [
+            {
+              "type": "RM",
+              "url": "FILELOAD?Filename=7_172117232dep_7_2439678_43560561_12d23dc.pdf"
+            }
+          ],
+          "WheelchairAccess": "true",
+          "AREA_NIVEAU_DIVA": "1",
+          "AREA_NIVEAU_GIS": "1.00",
+          "NumberOfCars": "8",
+          "TravelInCarsFrom": "1",
+          "TravelInCarsTo": "8",
+          "TravelInCarsMessage": "any",
+          "stoppingPointPlanned": "Platform 19",
+          "area": "10",
+          "platform": "CE19",
+          "platformName": "Platform 19",
+          "plannedPlatformName": "Platform 19",
+          "accessArray": [
+            {
+              "stoppointAccess": {
+                "height": 780,
+                "equipment": 0,
+                "maxWeight": 0,
+                "distanceTrack": 0,
+                "lengthAvail": 0,
+                "widthAvail": 0,
+                "attributes": 0,
+                "stepFromStreet": 0
+              }
+            }
+          ]
+        },
+        "modes": [
+          1,
+          2,
+          4,
+          5,
+          7,
+          11
+        ]
+      },
+      "destination": {
+        "isGlobalId": true,
+        "id": "2015136",
+        "name": "Redfern Station, Platform 6, Eveleigh",
+        "disassembledName": "Redfern Station, Platform 6",
+        "type": "platform",
+        "coord": [
+          -33.892164,
+          151.198457
+        ],
+        "niveau": -1,
+        "parent": {
+          "isGlobalId": true,
+          "id": "201510",
+          "name": "Redfern Station, Platform 6, Eveleigh",
+          "disassembledName": "Redfern Station, Platform 6",
+          "type": "stop",
+          "parent": {
+            "id": "placeID:95301014:1",
+            "name": "Eveleigh",
+            "type": "locality"
+          },
+          "properties": {
+            "stopId": "10101421"
+          },
+          "coord": [
+            -33.892048,
+            151.198419
+          ],
+          "niveau": 0
+        },
+        "arrivalTimeBaseTimetable": "2025-11-16T06:20:12Z",
+        "arrivalTimePlanned": "2025-11-16T06:20:12Z",
+        "arrivalTimeEstimated": "2025-11-16T06:23:48Z",
+        "properties": {
+          "downloads": [
+            {
+              "type": "RM",
+              "url": "FILELOAD?Filename=7_172117233arr_7_2439678_43560561_12d23dc.pdf"
+            }
+          ],
+          "WheelchairAccess": "true",
+          "AREA_NIVEAU_DIVA": "-1",
+          "stoppingPointPlanned": "Platform 6",
+          "occupancy": "MANY_SEATS",
+          "area": "4",
+          "platform": "RD06",
+          "platformName": "Platform 6",
+          "plannedPlatformName": "Platform 6",
+          "accessArray": [
+            {
+              "stoppointAccess": {
+                "height": 780,
+                "equipment": 0,
+                "maxWeight": 0,
+                "distanceTrack": 0,
+                "lengthAvail": 0,
+                "widthAvail": 0,
+                "attributes": 0
+              }
+            }
+          ]
+        },
+        "modes": [
+          1,
+          5
+        ]
+      },
+      "transportation": {
+        "id": "nsw:020T2: :H:sj2",
+        "name": "Sydney Trains Network T2 Leppington & Inner West Line",
+        "disassembledName": "T2",
+        "number": "T2 Leppington & Inner West Line",
+        "description": "City to Parramatta or Leppington",
+        "product": {
+          "id": 1,
+          "class": 1,
+          "name": "Sydney Trains Network",
+          "iconId": 1
+        },
+        "operator": {
+          "id": "x0001",
+          "name": "Sydney Trains"
+        },
+        "destination": {
+          "id": "10101216",
+          "name": "Homebush via Strathfield",
+          "type": "stop"
+        },
+        "properties": {
+          "isTTB": true,
+          "tripCode": 659,
+          "timetablePeriod": "NSW JP",
+          "lineDisplay": "LINE",
+          "globalId": "3001",
+          "AVMSTripID": "15-M.951.145.2.B.8.87185004",
+          "RealtimeTripId": "15-M.951.145.2.B.8.87185004",
+          "OperatorURL": "http://www.sydneytrains.info/"
+        },
+        "iconId": 1
+      },
+      "stopSequence": [
+        {
+          "isGlobalId": true,
+          "id": "2000339",
+          "name": "Central Station, Platform 19, Sydney",
+          "disassembledName": "Central Station, Platform 19",
+          "type": "platform",
+          "coord": [
+            -33.884094,
+            151.20706
+          ],
+          "niveau": 1,
+          "parent": {
+            "isGlobalId": true,
+            "id": "200060",
+            "name": "Central Station, Platform 19, Sydney",
+            "disassembledName": "Central Station, Platform 19",
+            "type": "stop",
+            "parent": {
+              "id": "placeID:95301001:1",
+              "name": "Sydney",
+              "type": "locality"
+            },
+            "properties": {
+              "stopId": "10101100"
+            },
+            "coord": [
+              -33.884024,
+              151.206203
+            ],
+            "niveau": 0
+          },
+          "properties": {
+            "WheelchairAccess": "true",
+            "AREA_NIVEAU_DIVA": "1",
+            "AREA_NIVEAU_GIS": "1.00",
+            "stoppingPointPlanned": "Platform 19",
+            "area": "10",
+            "platform": "CE19",
+            "platformName": "Platform 19",
+            "plannedPlatformName": "Platform 19",
+            "accessArray": [
+              {
+                "stoppointAccess": {
+                  "height": 780,
+                  "equipment": 0,
+                  "maxWeight": 0,
+                  "distanceTrack": 0,
+                  "lengthAvail": 0,
+                  "widthAvail": 0,
+                  "attributes": 0,
+                  "stepFromStreet": 0
+                }
+              }
+            ]
+          },
+          "departureTimePlanned": "2025-11-16T06:18:00Z",
+          "departureTimeEstimated": "2025-11-16T06:21:36Z",
+          "modes": [
+            1,
+            2,
+            4,
+            5,
+            7,
+            11
+          ]
+        },
+        {
+          "isGlobalId": true,
+          "id": "2015136",
+          "name": "Redfern Station, Platform 6, Eveleigh",
+          "disassembledName": "Redfern Station, Platform 6",
+          "type": "platform",
+          "coord": [
+            -33.892164,
+            151.198457
+          ],
+          "niveau": -1,
+          "parent": {
+            "isGlobalId": true,
+            "id": "201510",
+            "name": "Redfern Station, Platform 6, Eveleigh",
+            "disassembledName": "Redfern Station, Platform 6",
+            "type": "stop",
+            "parent": {
+              "id": "placeID:95301014:1",
+              "name": "Eveleigh",
+              "type": "locality"
+            },
+            "properties": {
+              "stopId": "10101421"
+            },
+            "coord": [
+              -33.892048,
+              151.198419
+            ],
+            "niveau": 0
+          },
+          "properties": {
+            "WheelchairAccess": "true",
+            "AREA_NIVEAU_DIVA": "-1",
+            "stoppingPointPlanned": "Platform 6",
+            "occupancy": "MANY_SEATS",
+            "area": "4",
+            "platform": "RD06",
+            "platformName": "Platform 6",
+            "plannedPlatformName": "Platform 6",
+            "accessArray": [
+              {
+                "stoppointAccess": {
+                  "height": 780,
+                  "equipment": 0,
+                  "maxWeight": 0,
+                  "distanceTrack": 0,
+                  "lengthAvail": 0,
+                  "widthAvail": 0,
+                  "attributes": 0
+                }
+              }
+            ]
+          },
+          "arrivalTimePlanned": "2025-11-16T06:20:12Z",
+          "arrivalTimeEstimated": "2025-11-16T06:23:48Z",
+          "modes": [
+            1,
+            5
+          ]
+        }
+      ],
+      "infos": [
+        {
+          "priority": "normal",
+          "id": "d16d28f0d2c82056b98913c6268f4a92b0ccbf78",
+          "version": 8619341,
+          "type": "stopInfo",
+          "properties": {
+            "publisher": "ems.comm.addinfo",
+            "infoType": "stopInfo",
+            "appliesTo": "departingArriving",
+            "stopIDglobalID": "200060",
+            "smsText": "Station Update - Central",
+            "speechText": "From Monday 16 June 2025, Eddy Avenue Plaza in front of the entrance into Central Station will be closed for construction works.\nFor access from Eddy Avenue into Central Station, use the covered walkway by going through the sandstone archway located to the right of the pedestrian traffic crossing. \nFollow the signs for the footpath detour.\nPlease allow for additional travel time to get to the station entrance."
+          },
+          "infoLinks": [
+            {
+              "urlText": "Station Update - Central",
+              "url": "https://transportnsw.info/alerts/details#/d16d28f0d2c82056b98913c6268f4a92b0ccbf78",
+              "content": "From Monday 16 June 2025, Eddy Avenue Plaza in front of the entrance into Central Station will be closed for construction works.\nFor access from Eddy Avenue into Central Station, use the covered walkway by going through the sandstone archway located to the right of the pedestrian traffic crossing. \nFollow the signs for the footpath detour.\nPlease allow for additional travel time to get to the station entrance.",
+              "subtitle": "Station Update - Central",
+              "smsText": "Station Update - Central",
+              "speechText": "From Monday 16 June 2025, Eddy Avenue Plaza in front of the entrance into Central Station will be closed for construction works.\nFor access from Eddy Avenue into Central Station, use the covered walkway by going through the sandstone archway located to the right of the pedestrian traffic crossing. \nFollow the signs for the footpath detour.\nPlease allow for additional travel time to get to the station entrance."
+            }
+          ],
+          "urlText": "Station Update - Central",
+          "url": "https://transportnsw.info/alerts/details#/d16d28f0d2c82056b98913c6268f4a92b0ccbf78",
+          "content": "From Monday 16 June 2025, Eddy Avenue Plaza in front of the entrance into Central Station will be closed for construction works.\nFor access from Eddy Avenue into Central Station, use the covered walkway by going through the sandstone archway located to the right of the pedestrian traffic crossing. \nFollow the signs for the footpath detour.\nPlease allow for additional travel time to get to the station entrance.",
+          "subtitle": "Station Update - Central"
+        }
+      ],
+      "coords": [
+        [
+          -33.884105,
+          151.207088
+        ],
+        [
+          -33.884763,
+          151.206573
+        ],
+        [
+          -33.884941,
+          151.206421
+        ],
+        [
+          -33.885032,
+          151.206328
+        ],
+        [
+          -33.885187,
+          151.206166
+        ],
+        [
+          -33.885387,
+          151.205925
+        ],
+        [
+          -33.885749,
+          151.205429
+        ],
+        [
+          -33.886479,
+          151.204405
+        ],
+        [
+          -33.886836,
+          151.20392
+        ],
+        [
+          -33.887168,
+          151.203481
+        ],
+        [
+          -33.887384,
+          151.203182
+        ],
+        [
+          -33.887667,
+          151.202797
+        ],
+        [
+          -33.887975,
+          151.202403
+        ],
+        [
+          -33.888252,
+          151.202103
+        ],
+        [
+          -33.888524,
+          151.201844
+        ],
+        [
+          -33.888694,
+          151.201696
+        ],
+        [
+          -33.889152,
+          151.201344
+        ],
+        [
+          -33.889426,
+          151.201122
+        ],
+        [
+          -33.889765,
+          151.20082
+        ],
+        [
+          -33.890329,
+          151.200321
+        ],
+        [
+          -33.890741,
+          151.199945
+        ],
+        [
+          -33.890988,
+          151.199739
+        ],
+        [
+          -33.891242,
+          151.19949
+        ],
+        [
+          -33.891557,
+          151.199158
+        ],
+        [
+          -33.891791,
+          151.198892
+        ],
+        [
+          -33.89194,
+          151.198717
+        ],
+        [
+          -33.892149,
+          151.19845
+        ]
+      ],
+      "coupledTripsInfo": [
+        {
+          "positionInTrain": "-1",
+          "usableForLeg": true,
+          "infoOnCarLevel": true,
+          "transportation": {
+            "id": "nsw:020T2: :H:sj2",
+            "tripCode": "659",
+            "name": "Sydney Trains Network T2 Leppington & Inner West Line",
+            "disassembledName": "T2",
+            "number": "T2 Leppington & Inner West Line",
+            "product": {
+              "id": 1,
+              "class": 1,
+              "name": "Sydney Trains Network",
+              "iconId": 1
+            },
+            "destination": {
+              "name": "Homebush via Strathfield",
+              "type": "stop"
+            },
+            "properties": {
+              "lineDisplay": "LINE",
+              "globalId": "3001"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "vehicleAccess": [
+          {
+            "height": 0,
+            "halfWidth": 0,
+            "doorWidth": 0,
+            "attributes": 1073741824,
+            "areaToStay": 0,
+            "areaToMove": 0,
+            "equipments": [
+              {
+                "vehicleEquipment": {
+                  "equipmentType": 1,
+                  "length": 0,
+                  "width": 0,
+                  "lengthAtPl": 0,
+                  "widthAtPl": 0,
+                  "maxWeight": 0
+                }
+              }
+            ]
+          }
+        ],
+        "PlanLowFloorVehicle": "1",
+        "PlanWheelChairAccess": "1"
+      }
+    }
+  ],
+  "fare": {
+    "tickets": []
+  },
+  "daysOfService": {
+    "rvb": "000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  }
+}
