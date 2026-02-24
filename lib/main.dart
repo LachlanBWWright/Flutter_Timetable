@@ -72,8 +72,9 @@ class _MyHomePageState extends State<MyHomePage> {
       final unpinnedJourneys = await _database.getUnpinnedJourneys();
 
       // Sort unpinned journeys based on user preference
-      final sortedUnpinned =
-          await LocationService.sortJourneys(unpinnedJourneys);
+      final sortedUnpinned = await LocationService.sortJourneys(
+        unpinnedJourneys,
+      );
 
       final allJourneys = [...pinnedJourneys, ...sortedUnpinned];
 
@@ -183,9 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _navigateToTrip(db.Journey journey) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => TripScreen(trip: journey),
-      ),
+      MaterialPageRoute(builder: (context) => TripScreen(trip: journey)),
     );
   }
 
@@ -211,8 +210,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final pinnedJourneys = _filteredJourneys.where((j) => j.isPinned).toList();
-    final unpinnedJourneys =
-        _filteredJourneys.where((j) => !j.isPinned).toList();
+    final unpinnedJourneys = _filteredJourneys
+        .where((j) => !j.isPinned)
+        .toList();
 
     return Scaffold(
       appBar: HomeAppBar(
@@ -242,11 +242,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.train,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
+                          const Icon(Icons.train, size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
                           Text(
                             _journeys.isEmpty

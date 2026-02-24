@@ -27,10 +27,10 @@ class CalendarDate {
 
   /// Expected CSV header for calendar_dates.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'service_id',
-        'date',
-        'exception_type',
-      ];
+    'service_id',
+    'date',
+    'exception_type',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // All fields are required in calendar_dates.txt per GTFS spec
@@ -38,7 +38,8 @@ class CalendarDate {
     for (final col in required) {
       if (!header.contains(col)) {
         throw FormatException(
-            'calendar_dates.txt missing required column "$col"');
+          'calendar_dates.txt missing required column "$col"',
+        );
       }
     }
   }

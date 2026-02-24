@@ -39,23 +39,31 @@ void main() {
         apiKey.toLowerCase() == 'your_api_key_here' ||
         apiKey.toLowerCase() == 'your_api_key') {
       fail(
-          'API_KEY not set in .env. Please create a .env file in the project root with a valid NSW Transport API key, e.g.:\n\nAPI_KEY=your_real_api_key_here');
+        'API_KEY not set in .env. Please create a .env file in the project root with a valid NSW Transport API key, e.g.:\n\nAPI_KEY=your_real_api_key_here',
+      );
     }
   });
 
-  test('fetchBusesGtfsData returns a GtfsData object', () async {
-    final data = await fetchBusesGtfsData();
-    expect(data, isNotNull);
-    expect(data, isA<GtfsData>());
-    expect(data!.stops, isA<List>());
-    expect(data.stops.length, greaterThanOrEqualTo(5),
-        reason: 'Expected at least 5 stops for buses feed');
-    if (data.stops.isNotEmpty) {
-      logStopsSummary(data, 'buses', 10);
-    } else {
-      // print('\n--- buses feed returned 0 stops ---');
-    }
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  test(
+    'fetchBusesGtfsData returns a GtfsData object',
+    () async {
+      final data = await fetchBusesGtfsData();
+      expect(data, isNotNull);
+      expect(data, isA<GtfsData>());
+      expect(data!.stops, isA<List>());
+      expect(
+        data.stops.length,
+        greaterThanOrEqualTo(5),
+        reason: 'Expected at least 5 stops for buses feed',
+      );
+      if (data.stops.isNotEmpty) {
+        logStopsSummary(data, 'buses', 10);
+      } else {
+        // print('\n--- buses feed returned 0 stops ---');
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 
   test('fetchFerriesSydneyFerriesGtfsData returns a GtfsData object', () async {
     final data = await fetchFerriesSydneyFerriesGtfsData();
@@ -69,19 +77,26 @@ void main() {
     }
   });
 
-  test('fetchMetroGtfsData returns a GtfsData object and logs stops', () async {
-    final data = await fetchMetroGtfsData();
-    expect(data, isNotNull);
-    expect(data, isA<GtfsData>());
-    expect(data!.stops, isA<List>());
-    expect(data.stops.length, greaterThanOrEqualTo(5),
-        reason: 'Expected at least 5 stops for metro feed');
-    if (data.stops.isNotEmpty) {
-      logStopsSummary(data, 'metro', 50);
-    } else {
-      // print('No stops returned for Metro feed');
-    }
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  test(
+    'fetchMetroGtfsData returns a GtfsData object and logs stops',
+    () async {
+      final data = await fetchMetroGtfsData();
+      expect(data, isNotNull);
+      expect(data, isA<GtfsData>());
+      expect(data!.stops, isA<List>());
+      expect(
+        data.stops.length,
+        greaterThanOrEqualTo(5),
+        reason: 'Expected at least 5 stops for metro feed',
+      );
+      if (data.stops.isNotEmpty) {
+        logStopsSummary(data, 'metro', 50);
+      } else {
+        // print('No stops returned for Metro feed');
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 
   test('fetchLightRailInnerWestGtfsData returns a GtfsData object', () async {
     final data = await fetchLightRailInnerWestGtfsData();
@@ -95,7 +110,7 @@ void main() {
     }
   });
 
-/*   test('fetchNswTrainsGtfsData returns a GtfsData object', () async {
+  /*   test('fetchNswTrainsGtfsData returns a GtfsData object', () async {
     final data = await fetchNswTrainsGtfsData();
     expect(data, isNotNull);
     expect(data, isA<GtfsData>());
@@ -110,31 +125,40 @@ void main() {
     }
   }, timeout: const Timeout(Duration(minutes: 2))); */
 
-  test('fetchSydneyTrainsGtfsData returns a GtfsData object and logs a station',
-      () async {
-    final data = await fetchSydneyTrainsGtfsData();
-    expect(data, isNotNull);
-    expect(data, isA<GtfsData>());
-    expect(data!.stops, isA<List>());
-    expect(data.stops.length, greaterThanOrEqualTo(5),
-        reason: 'Expected at least 5 stops for sydneytrains feed');
-    if (data.stops.isNotEmpty) {
-      logStopsSummary(data, 'sydneytrains', 100);
-    } else {
-      // print('No stops returned for SydneyTrains feed');
-    }
-  });
+  test(
+    'fetchSydneyTrainsGtfsData returns a GtfsData object and logs a station',
+    () async {
+      final data = await fetchSydneyTrainsGtfsData();
+      expect(data, isNotNull);
+      expect(data, isA<GtfsData>());
+      expect(data!.stops, isA<List>());
+      expect(
+        data.stops.length,
+        greaterThanOrEqualTo(5),
+        reason: 'Expected at least 5 stops for sydneytrains feed',
+      );
+      if (data.stops.isNotEmpty) {
+        logStopsSummary(data, 'sydneytrains', 100);
+      } else {
+        // print('No stops returned for SydneyTrains feed');
+      }
+    },
+  );
 
-  test('fetchMetroGtfsData returns a GtfsData object (v2 endpoint)', () async {
-    // Metro is exposed under the v2 schedule surface — use the v2 fetcher
-    final data = await fetchMetroGtfsData();
-    expect(data, isNotNull);
-    expect(data, isA<GtfsData>());
-    expect(data!.stops, isA<List>());
-    if (data.stops.isNotEmpty) {
-      logStopsSummary(data, 'metro', 100);
-    } else {
-      // print('No stops returned for Metro feed');
-    }
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  test(
+    'fetchMetroGtfsData returns a GtfsData object (v2 endpoint)',
+    () async {
+      // Metro is exposed under the v2 schedule surface — use the v2 fetcher
+      final data = await fetchMetroGtfsData();
+      expect(data, isNotNull);
+      expect(data, isA<GtfsData>());
+      expect(data!.stops, isA<List>());
+      if (data.stops.isNotEmpty) {
+        logStopsSummary(data, 'metro', 100);
+      } else {
+        // print('No stops returned for Metro feed');
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 }

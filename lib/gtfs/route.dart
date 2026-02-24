@@ -57,20 +57,20 @@ class Route {
 
   /// Expected CSV header for routes.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'route_id',
-        'agency_id',
-        'route_short_name',
-        'route_long_name',
-        'route_desc',
-        'route_type',
-        'route_url',
-        'route_color',
-        'route_text_color',
-        'route_sort_order',
-        'continuous_pickup',
-        'continuous_drop_off',
-        'network_id',
-      ];
+    'route_id',
+    'agency_id',
+    'route_short_name',
+    'route_long_name',
+    'route_desc',
+    'route_type',
+    'route_url',
+    'route_color',
+    'route_text_color',
+    'route_sort_order',
+    'continuous_pickup',
+    'continuous_drop_off',
+    'network_id',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // Require presence of required columns per GTFS spec
@@ -78,7 +78,7 @@ class Route {
       'route_id',
       'route_short_name',
       'route_long_name',
-      'route_type'
+      'route_type',
     ];
     for (final col in required) {
       if (!header.contains(col)) {

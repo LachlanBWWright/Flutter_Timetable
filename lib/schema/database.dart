@@ -36,10 +36,10 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (Migrator m) {
-          return m.createAll();
-        },
-      );
+    onCreate: (Migrator m) {
+      return m.createAll();
+    },
+  );
 
   // Journey operations
   Future<int> insertJourney(JourneysCompanion journey) =>
@@ -54,8 +54,9 @@ class AppDatabase extends _$AppDatabase {
       (select(journeys)..where((tbl) => tbl.isPinned.equals(false))).get();
 
   Future<int> toggleJourneyPin(int id, bool isPinned) =>
-      (update(journeys)..where((tbl) => tbl.id.equals(id)))
-          .write(JourneysCompanion(isPinned: Value(isPinned)));
+      (update(journeys)..where((tbl) => tbl.id.equals(id))).write(
+        JourneysCompanion(isPinned: Value(isPinned)),
+      );
 
   Future<int> deleteJourney(int id) =>
       (delete(journeys)..where((tbl) => tbl.id.equals(id))).go();
@@ -64,10 +65,11 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertStop(StopsCompanion stop) =>
       into(stops).insert(stop, mode: InsertMode.replace);
 
-  Future<List<Stop>> getAllStopsForEndpoint(String endpoint) => (select(stops)
-        ..where((tbl) => tbl.endpoint.equals(endpoint))
-        ..orderBy([(t) => OrderingTerm(expression: t.stopName)]))
-      .get();
+  Future<List<Stop>> getAllStopsForEndpoint(String endpoint) =>
+      (select(stops)
+            ..where((tbl) => tbl.endpoint.equals(endpoint))
+            ..orderBy([(t) => OrderingTerm(expression: t.stopName)]))
+          .get();
 
   Future<List<Stop>> searchStops(String query, {int limit = 50}) =>
       (select(stops)
@@ -98,15 +100,18 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([OrderingTerm(expression: stops.endpoint)]);
 
     final results = await query.get();
-    return Map.fromEntries(results.map((row) => MapEntry(
-          row.read(stops.endpoint)!,
-          row.read(countExp) ?? 0,
-        )));
+    return Map.fromEntries(
+      results.map(
+        (row) => MapEntry(row.read(stops.endpoint)!, row.read(countExp) ?? 0),
+      ),
+    );
   }
 
   // Batch insert stops with transaction
   Future<void> insertStopsForEndpoint(
-      List<StopsCompanion> stopsList, String endpoint) async {
+    List<StopsCompanion> stopsList,
+    String endpoint,
+  ) async {
     await transaction(() async {
       // Clear existing stops for this endpoint
       await deleteStopsForEndpoint(endpoint);

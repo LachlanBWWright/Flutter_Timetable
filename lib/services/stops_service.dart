@@ -113,8 +113,9 @@ class StopsService {
 
   /// Parse CSV string and return list of Stop objects
   static List<Stop> _parseStopsFromCsv(String csvString) {
-    final List<List<dynamic>> csvData =
-        const CsvToListConverter().convert(csvString);
+    final List<List<dynamic>> csvData = const CsvToListConverter().convert(
+      csvString,
+    );
 
     if (csvData.isEmpty || csvData.length < 2) return [];
 
@@ -136,7 +137,9 @@ class StopsService {
   }
 
   static Future<void> storeStopsToDatabase(
-      List<Stop> stops, StopsEndpoint endpoint) async {
+    List<Stop> stops,
+    StopsEndpoint endpoint,
+  ) async {
     final db = database;
 
     final cleaned = <String, Stop>{};
@@ -153,29 +156,33 @@ class StopsService {
     final stations = cleaned.values.toList();
 
     logger.i(
-        'Storing ${stations.length} stops (from ${stops.length} total, skipped $missingIdCount missing-id rows) for endpoint ${endpoint.key}');
+      'Storing ${stations.length} stops (from ${stops.length} total, skipped $missingIdCount missing-id rows) for endpoint ${endpoint.key}',
+    );
 
     final stopsCompanions = <StopsCompanion>[];
     for (final stop in stations) {
       final trimmedId = stop.stopId.trim();
-      stopsCompanions.add(StopsCompanion.insert(
-        stopId: trimmedId,
-        stopName: stop.stopName,
-        stopLat: Value(stop.stopLat),
-        stopLon: Value(stop.stopLon),
-        locationType: Value(stop.locationType),
-        parentStation: Value(stop.parentStation),
-        wheelchairBoarding: Value(stop.wheelchairBoarding),
-        platformCode: Value(stop.platformCode),
-        endpoint: endpoint.key,
-      ));
+      stopsCompanions.add(
+        StopsCompanion.insert(
+          stopId: trimmedId,
+          stopName: stop.stopName,
+          stopLat: Value(stop.stopLat),
+          stopLon: Value(stop.stopLon),
+          locationType: Value(stop.locationType),
+          parentStation: Value(stop.parentStation),
+          wheelchairBoarding: Value(stop.wheelchairBoarding),
+          platformCode: Value(stop.platformCode),
+          endpoint: endpoint.key,
+        ),
+      );
     }
 
     try {
       for (var i = 0; i < stations.length && i < 5; i++) {
         final s = stations[i];
         logger.d(
-            'Inserting sample stop for ${endpoint.key}: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}');
+          'Inserting sample stop for ${endpoint.key}: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}',
+        );
       }
     } catch (_) {}
 
@@ -190,16 +197,18 @@ class StopsService {
 
     // Convert Drift Stop objects back to our Stop objects
     return dbStops
-        .map((dbStop) => Stop(
-              stopId: dbStop.stopId,
-              stopName: dbStop.stopName,
-              stopLat: dbStop.stopLat ?? 0.0,
-              stopLon: dbStop.stopLon ?? 0.0,
-              locationType: dbStop.locationType ?? 0,
-              parentStation: dbStop.parentStation,
-              wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
-              platformCode: dbStop.platformCode,
-            ))
+        .map(
+          (dbStop) => Stop(
+            stopId: dbStop.stopId,
+            stopName: dbStop.stopName,
+            stopLat: dbStop.stopLat ?? 0.0,
+            stopLon: dbStop.stopLon ?? 0.0,
+            locationType: dbStop.locationType ?? 0,
+            parentStation: dbStop.parentStation,
+            wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+            platformCode: dbStop.platformCode,
+          ),
+        )
         .toList();
   }
 
@@ -210,16 +219,18 @@ class StopsService {
 
     // Convert Drift Stop objects back to our Stop objects
     return dbStops
-        .map((dbStop) => Stop(
-              stopId: dbStop.stopId,
-              stopName: dbStop.stopName,
-              stopLat: dbStop.stopLat ?? 0.0,
-              stopLon: dbStop.stopLon ?? 0.0,
-              locationType: dbStop.locationType ?? 0,
-              parentStation: dbStop.parentStation,
-              wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
-              platformCode: dbStop.platformCode,
-            ))
+        .map(
+          (dbStop) => Stop(
+            stopId: dbStop.stopId,
+            stopName: dbStop.stopName,
+            stopLat: dbStop.stopLat ?? 0.0,
+            stopLon: dbStop.stopLon ?? 0.0,
+            locationType: dbStop.locationType ?? 0,
+            parentStation: dbStop.parentStation,
+            wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+            platformCode: dbStop.platformCode,
+          ),
+        )
         .toList();
   }
 
@@ -239,10 +250,12 @@ class StopsService {
       try {
         await storeStopsToDatabase(gtfsData.stops, endpoint);
         logger.i(
-            'Updated ${gtfsData.stops.length} stops for ${endpoint.key} from API');
+          'Updated ${gtfsData.stops.length} stops for ${endpoint.key} from API',
+        );
       } catch (e, st) {
         logger.e(
-            'Database error while storing stops for ${endpoint.key}: $e\n$st');
+          'Database error while storing stops for ${endpoint.key}: $e\n$st',
+        );
       }
     } catch (e) {
       logger.e('Error updating stops from endpoint ${endpoint.key}: $e');
@@ -251,7 +264,8 @@ class StopsService {
 
   /// Helper function to call the appropriate GTFS fetch function for an endpoint
   static Future<GtfsData?> _fetchGtfsDataForEndpoint(
-      StopsEndpoint endpoint) async {
+    StopsEndpoint endpoint,
+  ) async {
     switch (endpoint) {
       // Buses
       case StopsEndpoint.buses:
@@ -423,50 +437,55 @@ class StopsService {
 
     // Emit initial event
     yield StopsUpdateProgress(
-        endpoint: null,
-        completed: 0,
-        total: total,
-        success: true,
-        message: 'Starting update of $total endpoints');
+      endpoint: null,
+      completed: 0,
+      total: total,
+      success: true,
+      message: 'Starting update of $total endpoints',
+    );
 
     var completed = 0;
 
     for (final endpoint in endpoints) {
       // Emit event that we're starting this endpoint
       yield StopsUpdateProgress(
-          endpoint: endpoint,
-          completed: completed,
-          total: total,
-          success: true,
-          message: 'Starting ${endpoint.key}');
+        endpoint: endpoint,
+        completed: completed,
+        total: total,
+        success: true,
+        message: 'Starting ${endpoint.key}',
+      );
 
       try {
         await updateStopsFromEndpoint(endpoint);
         completed += 1;
         yield StopsUpdateProgress(
-            endpoint: endpoint,
-            completed: completed,
-            total: total,
-            success: true,
-            message: 'Completed ${endpoint.key}');
+          endpoint: endpoint,
+          completed: completed,
+          total: total,
+          success: true,
+          message: 'Completed ${endpoint.key}',
+        );
       } catch (e) {
         logger.w('Failed to update ${endpoint.key}: $e');
         yield StopsUpdateProgress(
-            endpoint: endpoint,
-            completed: completed,
-            total: total,
-            success: false,
-            message: 'Failed ${endpoint.key}: $e');
+          endpoint: endpoint,
+          completed: completed,
+          total: total,
+          success: false,
+          message: 'Failed ${endpoint.key}: $e',
+        );
       }
     }
 
     // Final completion event
     yield StopsUpdateProgress(
-        endpoint: null,
-        completed: completed,
-        total: total,
-        success: true,
-        message: 'Finished updating stops ($completed/$total)');
+      endpoint: null,
+      completed: completed,
+      total: total,
+      success: true,
+      message: 'Finished updating stops ($completed/$total)',
+    );
   }
 
   /// Get total number of stops in database
@@ -481,7 +500,7 @@ class StopsService {
   /// endpoints that couldn't be mapped to a known transport mode. Each
   /// value is a map of endpoint string -> count as returned by the DB.
   static Future<Map<TransportMode?, Map<String, int>>>
-      getStopsCountByEndpoint() async {
+  getStopsCountByEndpoint() async {
     final db = database;
     final raw = await db.getStopsCountByEndpoint();
 

@@ -26,8 +26,11 @@ class LoadStopsResult {
   final String? error;
   final int stopsLoaded;
 
-  LoadStopsResult(
-      {required this.success, this.error, required this.stopsLoaded});
+  LoadStopsResult({
+    required this.success,
+    this.error,
+    required this.stopsLoaded,
+  });
 }
 
 /// Service for loading stops data in background using isolates
@@ -56,11 +59,9 @@ class StopsLoaderIsolate {
         }
       }
     } catch (e) {
-      onComplete(LoadStopsResult(
-        success: false,
-        error: e.toString(),
-        stopsLoaded: 0,
-      ));
+      onComplete(
+        LoadStopsResult(success: false, error: e.toString(), stopsLoaded: 0),
+      );
       receivePort.close();
     }
   }
@@ -75,11 +76,9 @@ class StopsLoaderIsolate {
     try {
       for (final endpoint in message.endpoints) {
         current++;
-        sendPort.send(LoadStopsProgress(
-          'Loading ${endpoint.key}...',
-          current,
-          total,
-        ));
+        sendPort.send(
+          LoadStopsProgress('Loading ${endpoint.key}...', current, total),
+        );
 
         try {
           // Fetch GTFS data from endpoint
@@ -87,10 +86,7 @@ class StopsLoaderIsolate {
 
           if (gtfsData != null && gtfsData.stops.isNotEmpty) {
             // Store stops to database
-            await StopsService.storeStopsToDatabase(
-              gtfsData.stops,
-              endpoint,
-            );
+            await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
             totalLoaded += gtfsData.stops.length;
           }
         } catch (e) {
@@ -101,22 +97,22 @@ class StopsLoaderIsolate {
         }
       }
 
-      sendPort.send(LoadStopsResult(
-        success: true,
-        stopsLoaded: totalLoaded,
-      ));
+      sendPort.send(LoadStopsResult(success: true, stopsLoaded: totalLoaded));
     } catch (e) {
-      sendPort.send(LoadStopsResult(
-        success: false,
-        error: e.toString(),
-        stopsLoaded: totalLoaded,
-      ));
+      sendPort.send(
+        LoadStopsResult(
+          success: false,
+          error: e.toString(),
+          stopsLoaded: totalLoaded,
+        ),
+      );
     }
   }
 
   /// Helper function to fetch GTFS data for an endpoint
   static Future<GtfsData?> _fetchGtfsDataForEndpoint(
-      StopsEndpoint endpoint) async {
+    StopsEndpoint endpoint,
+  ) async {
     switch (endpoint) {
       // Trains
       case StopsEndpoint.nswtrains:

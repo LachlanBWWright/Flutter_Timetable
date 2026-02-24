@@ -55,17 +55,17 @@ class Trip {
 
   /// Expected CSV header for trips.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'route_id',
-        'service_id',
-        'trip_id',
-        'trip_headsign',
-        'trip_short_name',
-        'direction_id',
-        'block_id',
-        'shape_id',
-        'wheelchair_accessible',
-        'bikes_allowed',
-      ];
+    'route_id',
+    'service_id',
+    'trip_id',
+    'trip_headsign',
+    'trip_short_name',
+    'direction_id',
+    'block_id',
+    'shape_id',
+    'wheelchair_accessible',
+    'bikes_allowed',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // Require presence of required columns per GTFS spec

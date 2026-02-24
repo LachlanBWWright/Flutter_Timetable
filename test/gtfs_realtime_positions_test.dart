@@ -36,54 +36,71 @@ void main() {
       expect(feeds[0]!.entity.isNotEmpty, true);
     });
 
-    test('getAllLightRail returns list with valid FeedMessage or null',
-        () async {
+    test('getAllLightRail returns list with valid FeedMessage or null', () async {
       final feeds = await getAllLightRail();
       expect(feeds.length, 4);
-      expect(feeds[0], isNotNull,
-          reason: 'All Light Rail: No data or API error');
+      expect(
+        feeds[0],
+        isNotNull,
+        reason: 'All Light Rail: No data or API error',
+      );
       // logger.d(
       //     'All Light Rail: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
       expect(feeds[0]!.entity.isNotEmpty, true);
     });
 
-    test('getAllRegionBuses returns list with valid FeedMessage or null',
-        () async {
-      final feeds = await getAllRegionBuses();
-      expect(feeds.length, 13);
-      expect(feeds[0], isNotNull,
-          reason: 'All Region Buses: No data or API error');
-      // logger.d(
-      //     'All Region Buses: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
-      expect(feeds[0]!.entity.isNotEmpty, true);
-    });
+    test(
+      'getAllRegionBuses returns list with valid FeedMessage or null',
+      () async {
+        final feeds = await getAllRegionBuses();
+        expect(feeds.length, 13);
+        expect(
+          feeds[0],
+          isNotNull,
+          reason: 'All Region Buses: No data or API error',
+        );
+        // logger.d(
+        //     'All Region Buses: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
+        expect(feeds[0]!.entity.isNotEmpty, true);
+      },
+    );
 
-    test('Sydney Metro GTFS-realtime endpoint returns valid FeedMessage',
-        () async {
-      final feed = await fetchSydneyMetroPositions();
-      expect(feed, isNotNull,
-          reason: 'FeedMessage was null (API error or bad response)');
-      // logger.d('GTFS version: ${feed!.header.gtfsRealtimeVersion}');
-      // logger.d('Number of entities: ${feed.entity.length}');
-      // for (var i = 0; i < feed.entity.length; i++) {
-      //   logger.d('Entity #$i: ${feed.entity[i].toString()}');
-      // }
-      expect(feed!.header.hasGtfsRealtimeVersion(), true);
-      expect(feed!.entity.isNotEmpty, true);
-    });
+    test(
+      'Sydney Metro GTFS-realtime endpoint returns valid FeedMessage',
+      () async {
+        final feed = await fetchSydneyMetroPositions();
+        expect(
+          feed,
+          isNotNull,
+          reason: 'FeedMessage was null (API error or bad response)',
+        );
+        // logger.d('GTFS version: ${feed!.header.gtfsRealtimeVersion}');
+        // logger.d('Number of entities: ${feed.entity.length}');
+        // for (var i = 0; i < feed.entity.length; i++) {
+        //   logger.d('Entity #$i: ${feed.entity[i].toString()}');
+        // }
+        expect(feed!.header.hasGtfsRealtimeVersion(), true);
+        expect(feed!.entity.isNotEmpty, true);
+      },
+    );
 
-    test('Sydney Trains GTFS-realtime endpoint returns valid FeedMessage',
-        () async {
-      final feed = await fetchSydneyTrainsPositions();
-      expect(feed, isNotNull,
-          reason: 'FeedMessage was null (API error or bad response)');
-      // logger.d('GTFS version: ${feed!.header.gtfsRealtimeVersion}');
-      // logger.d('Number of entities: ${feed.entity.length}');
-      // for (var i = 0; i < feed.entity.length; i++) {
-      //   logger.d('Entity #$i: ${feed.entity[i].toString()}');
-      // }
-      expect(feed!.header.hasGtfsRealtimeVersion(), true);
-      expect(feed!.entity.isNotEmpty, true);
-    });
+    test(
+      'Sydney Trains GTFS-realtime endpoint returns valid FeedMessage',
+      () async {
+        final feed = await fetchSydneyTrainsPositions();
+        expect(
+          feed,
+          isNotNull,
+          reason: 'FeedMessage was null (API error or bad response)',
+        );
+        // logger.d('GTFS version: ${feed!.header.gtfsRealtimeVersion}');
+        // logger.d('Number of entities: ${feed.entity.length}');
+        // for (var i = 0; i < feed.entity.length; i++) {
+        //   logger.d('Entity #$i: ${feed.entity[i].toString()}');
+        // }
+        expect(feed!.header.hasGtfsRealtimeVersion(), true);
+        expect(feed!.entity.isNotEmpty, true);
+      },
+    );
   });
 }

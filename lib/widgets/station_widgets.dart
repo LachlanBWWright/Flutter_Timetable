@@ -67,10 +67,7 @@ class StationView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ListTile(
-                title: Text(station.name),
-                subtitle: _buildSubtitle(),
-              ),
+              ListTile(title: Text(station.name), subtitle: _buildSubtitle()),
               Container(height: 6, width: double.infinity, color: accentColor),
             ],
           ),
@@ -171,12 +168,7 @@ class SelectedStationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Align(
-          child: Text(
-            '$label: $stationName',
-            textAlign: TextAlign.center,
-          ),
-        ),
+        Align(child: Text('$label: $stationName', textAlign: TextAlign.center)),
         Positioned(
           right: 0,
           child: InkWell(
@@ -239,9 +231,11 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           if (!isSearching)
             IconButton(
               onPressed: onToggleSort,
-              icon: Icon(sortMode == SortMode.alphabetical
-                  ? Icons.sort_by_alpha
-                  : Icons.near_me),
+              icon: Icon(
+                sortMode == SortMode.alphabetical
+                    ? Icons.sort_by_alpha
+                    : Icons.near_me,
+              ),
               tooltip: sortMode == SortMode.alphabetical
                   ? 'Sort by distance'
                   : 'Sort alphabetically',
@@ -275,18 +269,8 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: Color.fromARGB(255, 255, 97, 35),
             ),
           ),
-          Tab(
-            icon: Icon(
-              Icons.tram,
-              color: Color.fromARGB(255, 255, 82, 82),
-            ),
-          ),
-          Tab(
-            icon: Icon(
-              Icons.subway,
-              color: TransportColors.metro,
-            ),
-          ),
+          Tab(icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82))),
+          Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
           Tab(
             icon: Icon(
               Icons.directions_bus,

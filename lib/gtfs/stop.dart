@@ -95,28 +95,29 @@ class Stop {
 
   /// Expected CSV header for stops.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'stop_id',
-        'stop_code',
-        'stop_name',
-        'tts_stop_name',
-        'stop_desc',
-        'stop_lat',
-        'stop_lon',
-        'zone_id',
-        'stop_url',
-        'location_type',
-        'parent_station',
-        'stop_timezone',
-        'wheelchair_boarding',
-        'level_id',
-        'platform_code',
-      ];
+    'stop_id',
+    'stop_code',
+    'stop_name',
+    'tts_stop_name',
+    'stop_desc',
+    'stop_lat',
+    'stop_lon',
+    'zone_id',
+    'stop_url',
+    'location_type',
+    'parent_station',
+    'stop_timezone',
+    'wheelchair_boarding',
+    'level_id',
+    'platform_code',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // Only require stop_id per GTFS spec (other fields are conditionally required)
     if (!header.contains('stop_id')) {
       throw const FormatException(
-          'stops.txt missing required column "stop_id"');
+        'stops.txt missing required column "stop_id"',
+      );
     }
   }
 

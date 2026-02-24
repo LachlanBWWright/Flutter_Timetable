@@ -9,14 +9,19 @@ void main() {
     final apiKey = dotenv.env['API_KEY'];
     if (apiKey == null || apiKey.isEmpty) {
       fail(
-          'API_KEY not set in .env — integration tests require a valid API key.');
+        'API_KEY not set in .env — integration tests require a valid API key.',
+      );
     }
   });
 
-  test('fetchBusesGtfsData calls live API and parses GTFS', () async {
-    final GtfsData? data = await fetchBusesGtfsData();
-    expect(data, isNotNull);
-    // The feed should contain at least stops or routes
-    expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
-  }, timeout: const Timeout(Duration(seconds: 60)));
+  test(
+    'fetchBusesGtfsData calls live API and parses GTFS',
+    () async {
+      final GtfsData? data = await fetchBusesGtfsData();
+      expect(data, isNotNull);
+      // The feed should contain at least stops or routes
+      expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 }

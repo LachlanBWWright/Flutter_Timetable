@@ -48,17 +48,17 @@ class Calendar {
 
   /// Expected CSV header for calendar.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'service_id',
-        'monday',
-        'tuesday',
-        'wednesday',
-        'thursday',
-        'friday',
-        'saturday',
-        'sunday',
-        'start_date',
-        'end_date',
-      ];
+    'service_id',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+    'start_date',
+    'end_date',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // All fields are required in calendar.txt per GTFS spec

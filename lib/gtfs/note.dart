@@ -3,10 +3,7 @@ class Note {
   final String noteId;
   final String noteText;
 
-  Note({
-    required this.noteId,
-    required this.noteText,
-  });
+  Note({required this.noteId, required this.noteText});
 
   /// Create a Note from a CSV row using header-based field mapping
   factory Note.fromCsv(List<String> header, List<String> row) {
@@ -17,10 +14,7 @@ class Note {
       return value.isEmpty ? defaultValue : value;
     }
 
-    return Note(
-      noteId: getField('note_id'),
-      noteText: getField('note_text'),
-    );
+    return Note(noteId: getField('note_id'), noteText: getField('note_text'));
   }
 
   /// Expected CSV header for notes.txt (non-standard NSW Transport API extension)

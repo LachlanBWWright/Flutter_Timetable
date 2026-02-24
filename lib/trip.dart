@@ -48,7 +48,8 @@ class _TripScreenState extends State<TripScreen> {
         DateTime? _getDeparture(TripJourney t) {
           if (t.legs.isEmpty) return null;
           final firstLeg = t.legs.first;
-          final dep = firstLeg.origin.departureTimeEstimated ??
+          final dep =
+              firstLeg.origin.departureTimeEstimated ??
               firstLeg.origin.departureTimePlanned;
           return dep != null ? DateTimeUtils.parseTimeToDateTime(dep) : null;
         }
@@ -123,17 +124,23 @@ class _TripScreenState extends State<TripScreen> {
                           if (_isLoading)
                             const CircularProgressIndicator()
                           else
-                            const Icon(Icons.info_outline,
-                                size: 48, color: Colors.grey),
+                            const Icon(
+                              Icons.info_outline,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
                           const SizedBox(height: 12),
                           if (_isLoading)
                             Text(
-                                'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...')
+                              'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...',
+                            )
                           else if (_error != null)
                             Column(
                               children: [
-                                Text('Error loading trips:\n$_error',
-                                    textAlign: TextAlign.center),
+                                Text(
+                                  'Error loading trips:\n$_error',
+                                  textAlign: TextAlign.center,
+                                ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
                                   onPressed: getTripData,
@@ -145,7 +152,8 @@ class _TripScreenState extends State<TripScreen> {
                             Column(
                               children: [
                                 Text(
-                                    'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.'),
+                                  'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.',
+                                ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
                                   onPressed: getTripData,

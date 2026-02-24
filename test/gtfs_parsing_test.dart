@@ -22,8 +22,9 @@ void main() {
       stopsCsv = await File('test/fixtures/sample_stops.txt').readAsString();
       routesCsv = await File('test/fixtures/sample_routes.txt').readAsString();
       tripsCsv = await File('test/fixtures/sample_trips.txt').readAsString();
-      stopTimesCsv =
-          await File('test/fixtures/sample_stop_times.txt').readAsString();
+      stopTimesCsv = await File(
+        'test/fixtures/sample_stop_times.txt',
+      ).readAsString();
     });
 
     group('Agency Parsing', () {
@@ -47,10 +48,15 @@ void main() {
       });
 
       test('Agency validates required fields', () {
-        Agency.validateCsvHeader(
-            ['agency_name', 'agency_url', 'agency_timezone']);
-        expect(() => Agency.validateCsvHeader(['agency_name']),
-            throwsA(isA<FormatException>()));
+        Agency.validateCsvHeader([
+          'agency_name',
+          'agency_url',
+          'agency_timezone',
+        ]);
+        expect(
+          () => Agency.validateCsvHeader(['agency_name']),
+          throwsA(isA<FormatException>()),
+        );
       });
     });
 
@@ -106,8 +112,10 @@ void main() {
 
       test('Stop validates required fields', () {
         Stop.validateCsvHeader(['stop_id', 'stop_name', 'stop_lat']);
-        expect(() => Stop.validateCsvHeader(['stop_name']),
-            throwsA(isA<FormatException>()));
+        expect(
+          () => Stop.validateCsvHeader(['stop_name']),
+          throwsA(isA<FormatException>()),
+        );
       });
     });
 
@@ -143,10 +151,16 @@ void main() {
       });
 
       test('Route validates required fields', () {
-        Route.validateCsvHeader(
-            ['route_id', 'route_short_name', 'route_long_name', 'route_type']);
-        expect(() => Route.validateCsvHeader(['route_id']),
-            throwsA(isA<FormatException>()));
+        Route.validateCsvHeader([
+          'route_id',
+          'route_short_name',
+          'route_long_name',
+          'route_type',
+        ]);
+        expect(
+          () => Route.validateCsvHeader(['route_id']),
+          throwsA(isA<FormatException>()),
+        );
       });
     });
 
@@ -192,8 +206,10 @@ void main() {
 
       test('Trip validates required fields', () {
         Trip.validateCsvHeader(['route_id', 'service_id', 'trip_id']);
-        expect(() => Trip.validateCsvHeader(['route_id', 'trip_id']),
-            throwsA(isA<FormatException>()));
+        expect(
+          () => Trip.validateCsvHeader(['route_id', 'trip_id']),
+          throwsA(isA<FormatException>()),
+        );
       });
     });
 
@@ -228,15 +244,17 @@ void main() {
         expect(stopTime.stopHeadsign, equals('Final Stop'));
       });
 
-      test('parseStopTimesCsv handles trips without continuous pickup/dropoff',
-          () {
-        final stopTimes = parseStopTimesCsv(stopTimesCsv);
-        final stopTime = stopTimes[2];
+      test(
+        'parseStopTimesCsv handles trips without continuous pickup/dropoff',
+        () {
+          final stopTimes = parseStopTimesCsv(stopTimesCsv);
+          final stopTime = stopTimes[2];
 
-        expect(stopTime.tripId, equals('TRIP2'));
-        expect(stopTime.continuousPickup, equals('0'));
-        expect(stopTime.continuousDropOff, equals('0'));
-      });
+          expect(stopTime.tripId, equals('TRIP2'));
+          expect(stopTime.continuousPickup, equals('0'));
+          expect(stopTime.continuousDropOff, equals('0'));
+        },
+      );
 
       test('StopTime validates required fields', () {
         StopTime.validateCsvHeader([
@@ -244,10 +262,12 @@ void main() {
           'arrival_time',
           'departure_time',
           'stop_id',
-          'stop_sequence'
+          'stop_sequence',
         ]);
-        expect(() => StopTime.validateCsvHeader(['trip_id', 'arrival_time']),
-            throwsA(isA<FormatException>()));
+        expect(
+          () => StopTime.validateCsvHeader(['trip_id', 'arrival_time']),
+          throwsA(isA<FormatException>()),
+        );
       });
     });
 

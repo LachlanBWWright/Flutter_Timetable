@@ -58,19 +58,19 @@ class StopTime {
 
   /// Expected CSV header for stop_times.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'trip_id',
-        'arrival_time',
-        'departure_time',
-        'stop_id',
-        'stop_sequence',
-        'stop_headsign',
-        'pickup_type',
-        'drop_off_type',
-        'continuous_pickup',
-        'continuous_drop_off',
-        'shape_dist_traveled',
-        'timepoint',
-      ];
+    'trip_id',
+    'arrival_time',
+    'departure_time',
+    'stop_id',
+    'stop_sequence',
+    'stop_headsign',
+    'pickup_type',
+    'drop_off_type',
+    'continuous_pickup',
+    'continuous_drop_off',
+    'shape_dist_traveled',
+    'timepoint',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // Require presence of required columns per GTFS spec
@@ -79,7 +79,7 @@ class StopTime {
       'arrival_time',
       'departure_time',
       'stop_id',
-      'stop_sequence'
+      'stop_sequence',
     ];
     for (final col in required) {
       if (!header.contains(col)) {

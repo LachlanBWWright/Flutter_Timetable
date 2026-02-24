@@ -23,8 +23,8 @@ class ButtonStyles {
 
   /// Small variation used for smaller buttons like dialog actions
   static ButtonStyle elevatedSmall(Color background) => elevated(
-        background,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        minimumSize: const Size(64, 36),
-      );
+    background,
+    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+    minimumSize: const Size(64, 36),
+  );
 }

@@ -89,16 +89,16 @@ class JourneyCard extends StatelessWidget {
                   ),
                   onPressed: onTogglePin,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: onDelete,
-                ),
+                IconButton(icon: const Icon(Icons.delete), onPressed: onDelete),
               ],
             ],
           ),
           // Bottom accent strip to match TripCard
           Container(
-              height: 6, width: double.infinity, color: TransportColors.train),
+            height: 6,
+            width: double.infinity,
+            color: TransportColors.train,
+          ),
         ],
       ),
     );
@@ -205,19 +205,10 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               icon: Icon(isEditingMode ? Icons.done : Icons.edit),
             ),
           if (hasApiKey)
-            IconButton(
-              onPressed: onAddTrip,
-              icon: const Icon(Icons.add),
-            ),
-          IconButton(
-            onPressed: onSettings,
-            icon: const Icon(Icons.settings),
-          ),
+            IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),
+          IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
         ] else ...[
-          IconButton(
-            onPressed: onToggleSearch,
-            icon: const Icon(Icons.close),
-          ),
+          IconButton(onPressed: onToggleSearch, icon: const Icon(Icons.close)),
         ],
       ],
     );

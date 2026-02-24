@@ -21,12 +21,13 @@ class TripLegDetailScreen extends StatefulWidget {
   // Allow skipping artificial initial delays in scenarios like widget tests.
   final bool skipInitialLoadDelay;
 
-  const TripLegDetailScreen(
-      {super.key,
-      required this.leg,
-      this.trip,
-      this.getAllVehiclesAggregated,
-      this.skipInitialLoadDelay = false});
+  const TripLegDetailScreen({
+    super.key,
+    required this.leg,
+    this.trip,
+    this.getAllVehiclesAggregated,
+    this.skipInitialLoadDelay = false,
+  });
 
   @override
   State<TripLegDetailScreen> createState() => _TripLegDetailScreenState();
@@ -62,7 +63,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln('  duration: ${leg.duration}');
     buffer.writeln('  isRealtimeControlled: ${leg.isRealtimeControlled}');
     buffer.writeln(
-        '  coords: ${leg.coords?.map((c) => c.join(', ')).toList() ?? 'N/A'}');
+      '  coords: ${leg.coords?.map((c) => c.join(', ')).toList() ?? 'N/A'}',
+    );
 
     buffer.writeln('\nOrigin:');
     buffer.writeln('  id: ${leg.origin.id}');
@@ -82,7 +84,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln('  name: ${leg.transportation?.name}');
       buffer.writeln('  number: ${leg.transportation?.number}');
       buffer.writeln(
-          '  product class: ${leg.transportation?.product?.classField}');
+        '  product class: ${leg.transportation?.product?.classField}',
+      );
     } else {
       buffer.writeln('  N/A');
     }
@@ -200,9 +203,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     buffer.writeln(
-        'Trip IDs (from trip JSON): ${tripIds.isNotEmpty ? tripIds.join(', ') : 'N/A'}');
+      'Trip IDs: ${tripIds.isNotEmpty ? tripIds.join(', ') : 'N/A'}',
+    );
     buffer.writeln(
-        'Route IDs (from trip JSON): ${routeIds.isNotEmpty ? routeIds.join(', ') : 'N/A'}');
+      'Route IDs: ${routeIds.isNotEmpty ? routeIds.join(', ') : 'N/A'}',
+    );
     buffer.writeln();
 
     buffer.writeln('Trip summary:');
@@ -214,6 +219,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln('\n--- Leg ${i + 1} ---');
       final leg = trip.legs[i];
       buffer.writeln(_legDebugString(leg));
+    }
+    if (trip.rawJson != null) {
+      buffer.writeln('\nFull trip raw JSON:');
+      buffer.writeln(const JsonEncoder.withIndent('  ').convert(trip.rawJson));
     }
     return buffer.toString();
   }
@@ -416,15 +425,18 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       _isLoadingVehicles = true;
     });
     try {
-      final aggregate = await (widget.getAllVehiclesAggregated?.call() ??
-          RealtimeService.getAllVehiclePositionsAggregated());
+      final aggregate =
+          await (widget.getAllVehiclesAggregated?.call() ??
+              RealtimeService.getAllVehiclePositionsAggregated());
       final dedupedVehicles =
           (aggregate['vehicles'] as List<VehiclePosition>?) ?? [];
       final breakdown = (aggregate['breakdown'] as Map<String, int>?) ?? {};
 
-      dedupedVehicles.sort((a, b) => _vehicleDisplayId(a)
-          .toLowerCase()
-          .compareTo(_vehicleDisplayId(b).toLowerCase()));
+      dedupedVehicles.sort(
+        (a, b) => _vehicleDisplayId(
+          a,
+        ).toLowerCase().compareTo(_vehicleDisplayId(b).toLowerCase()),
+      );
 
       if (!mounted) return;
       setState(() {
@@ -475,7 +487,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Widget _buildMapCard(
-      String? transportId, TransportMode? mode, Leg leg, Color modeColor) {
+    String? transportId,
+    TransportMode? mode,
+    Leg leg,
+    Color modeColor,
+  ) {
     if (transportId == null || transportId.isEmpty)
       return const SizedBox.shrink();
 
@@ -497,6 +513,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               tripIds: _collectLegTripIds(),
               showVehicleCount: false,
               getAllVehiclesAggregated:
+                  widget.getAllVehiclesAggregated ??
                   RealtimeService.getAllVehiclePositionsAggregated,
             ),
             Positioned(
@@ -526,15 +543,20 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   },
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderCard(String? transportName, int? transportClass,
-      String originName, String destinationName, Color modeColor) {
+  Widget _buildHeaderCard(
+    String? transportName,
+    int? transportClass,
+    String originName,
+    String destinationName,
+    Color modeColor,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -586,10 +608,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     children: [
                       const Text(
                         'From',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       Text(
                         originName,
@@ -601,20 +620,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward,
-                  color: modeColor,
-                ),
+                Icon(Icons.arrow_forward, color: modeColor),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       const Text(
                         'To',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       Text(
                         destinationName,
@@ -644,10 +657,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           children: [
             const Text(
               'Timing Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Row(
@@ -720,10 +730,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           children: [
             const Text(
               'Status',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Row(
@@ -731,20 +738,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 if (_isLoading)
                   const CircularProgressIndicator()
                 else
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                  ),
+                  const Icon(Icons.check_circle, color: Colors.green),
                 const SizedBox(width: 8),
                 Text(_isLoading ? 'Updating...' : 'On schedule'),
               ],
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(
-                'Error: $_error',
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text('Error: $_error', style: const TextStyle(color: Colors.red)),
             ],
           ],
         ),
@@ -772,9 +773,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           Expanded(
                             child: Text(
                               'Trip debug data',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -785,16 +784,25 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               try {
                                 final text = _tripDebugString(widget.trip!);
                                 await Clipboard.setData(
-                                    ClipboardData(text: text));
+                                  ClipboardData(text: text),
+                                );
                                 if (!mounted) return;
-                                messenger.showSnackBar(const SnackBar(
+                                messenger.showSnackBar(
+                                  const SnackBar(
                                     content: Text(
-                                        'Copied trip debug data to clipboard')));
+                                      'Copied trip debug data to clipboard',
+                                    ),
+                                  ),
+                                );
                               } catch (e) {
                                 if (!mounted) return;
-                                messenger.showSnackBar(const SnackBar(
+                                messenger.showSnackBar(
+                                  const SnackBar(
                                     content: Text(
-                                        'Failed to copy trip debug data')));
+                                      'Failed to copy trip debug data',
+                                    ),
+                                  ),
+                                );
                               }
                             },
                             icon: const Icon(Icons.copy, size: 18),
@@ -804,10 +812,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Full Trip data (includes legs and raw JSON below):',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: Colors.grey),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
                       ConstrainedBox(
@@ -816,7 +823,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           child: SelectableText(
                             _tripDebugString(widget.trip!),
                             style: const TextStyle(
-                                fontFamily: 'monospace', fontSize: 12),
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -838,9 +847,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         Expanded(
                           child: Text(
                             'Leg debug data',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -855,15 +862,17 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               if (!mounted) return;
                               messenger.showSnackBar(
                                 const SnackBar(
-                                    content: Text(
-                                        'Copied leg debug data to clipboard')),
+                                  content: Text(
+                                    'Copied leg debug data to clipboard',
+                                  ),
+                                ),
                               );
                             } catch (e) {
                               if (!mounted) return;
                               messenger.showSnackBar(
                                 const SnackBar(
-                                    content:
-                                        Text('Failed to copy to clipboard')),
+                                  content: Text('Failed to copy to clipboard'),
+                                ),
                               );
                             }
                           },
@@ -874,10 +883,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Leg details (select or copy). Useful for debugging.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                     ),
                     const SizedBox(height: 8),
                     ConstrainedBox(
@@ -886,7 +894,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         child: SelectableText(
                           _legDebugString(leg),
                           style: const TextStyle(
-                              fontFamily: 'monospace', fontSize: 12),
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -907,9 +917,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         Expanded(
                           child: Text(
                             'Vehicle debug data',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -934,43 +942,51 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               onPressed: () async {
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
-                                  final lines = _displayedVehicles.map((v) {
-                                    final id = v.vehicle.hasId()
-                                        ? v.vehicle.id
-                                        : 'N/A';
-                                    final tripId = v.trip.hasTripId()
-                                        ? v.trip.tripId
-                                        : 'N/A';
-                                    final routeId = v.trip.hasRouteId()
-                                        ? v.trip.routeId
-                                        : 'N/A';
-                                    final pos = v.hasPosition() &&
-                                            v.position.hasLatitude() &&
-                                            v.position.hasLongitude()
-                                        ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
-                                        : 'N/A';
-                                    final ts = v.hasTimestamp()
-                                        ? DateTime.fromMillisecondsSinceEpoch(
-                                                v.timestamp.toInt() * 1000)
-                                            .toIso8601String()
-                                        : 'N/A';
-                                    return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
-                                  }).join('\n');
+                                  final lines = _displayedVehicles
+                                      .map((v) {
+                                        final id = v.vehicle.hasId()
+                                            ? v.vehicle.id
+                                            : 'N/A';
+                                        final tripId = v.trip.hasTripId()
+                                            ? v.trip.tripId
+                                            : 'N/A';
+                                        final routeId = v.trip.hasRouteId()
+                                            ? v.trip.routeId
+                                            : 'N/A';
+                                        final pos =
+                                            v.hasPosition() &&
+                                                v.position.hasLatitude() &&
+                                                v.position.hasLongitude()
+                                            ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
+                                            : 'N/A';
+                                        final ts = v.hasTimestamp()
+                                            ? DateTime.fromMillisecondsSinceEpoch(
+                                                v.timestamp.toInt() * 1000,
+                                              ).toIso8601String()
+                                            : 'N/A';
+                                        return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
+                                      })
+                                      .join('\n');
 
                                   await Clipboard.setData(
-                                      ClipboardData(text: lines));
+                                    ClipboardData(text: lines),
+                                  );
                                   if (!mounted) return;
                                   messenger.showSnackBar(
                                     const SnackBar(
-                                        content: Text(
-                                            'Copied vehicle debug data to clipboard')),
+                                      content: Text(
+                                        'Copied vehicle debug data to clipboard',
+                                      ),
+                                    ),
                                   );
                                 } catch (e) {
                                   if (!mounted) return;
                                   messenger.showSnackBar(
                                     const SnackBar(
-                                        content: Text(
-                                            'Failed to copy vehicle debug data')),
+                                      content: Text(
+                                        'Failed to copy vehicle debug data',
+                                      ),
+                                    ),
                                   );
                                 }
                               },
@@ -983,10 +999,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Showing ${_displayedVehicles.length} of ${_vehicles.length} realtime vehicles (sorted alphabetically):',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                     ),
                     const SizedBox(height: 6),
                     if (_vehicleBreakdown.isNotEmpty)
@@ -994,11 +1009,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         spacing: 8,
                         runSpacing: 6,
                         children: _vehicleBreakdown.entries
-                            .map((e) => Chip(
-                                  label: Text('${e.key}: ${e.value}'),
-                                  backgroundColor: Colors.grey.shade100,
-                                  visualDensity: VisualDensity.compact,
-                                ))
+                            .map(
+                              (e) => Chip(
+                                label: Text('${e.key}: ${e.value}'),
+                                backgroundColor: Colors.grey.shade100,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            )
                             .toList(),
                       ),
                     const SizedBox(height: 8),
@@ -1013,7 +1030,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       const ListTile(
                         leading: Icon(Icons.filter_alt_off, color: Colors.grey),
                         title: Text(
-                            'No vehicles match the current trip/route filter'),
+                          'No vehicles match the current trip/route filter',
+                        ),
                       )
                     else
                       SizedBox(
@@ -1024,34 +1042,45 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           itemBuilder: (context, index) {
                             final v = _displayedVehicles[index];
                             final id = v.vehicle.hasId() ? v.vehicle.id : 'N/A';
-                            final tripId =
-                                v.trip.hasTripId() ? v.trip.tripId : 'N/A';
-                            final routeId =
-                                v.trip.hasRouteId() ? v.trip.routeId : 'N/A';
-                            final pos = v.hasPosition() &&
+                            final tripId = v.trip.hasTripId()
+                                ? v.trip.tripId
+                                : 'N/A';
+                            final routeId = v.trip.hasRouteId()
+                                ? v.trip.routeId
+                                : 'N/A';
+                            final pos =
+                                v.hasPosition() &&
                                     v.position.hasLatitude() &&
                                     v.position.hasLongitude()
                                 ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
                                 : 'N/A';
-                            final routeMatch = transportId != null &&
+                            final routeMatch =
+                                transportId != null &&
                                 v.trip.hasRouteId() &&
                                 v.trip.routeId == transportId;
                             return ListTile(
                               leading: CircleAvatar(
-                                backgroundColor:
-                                    routeMatch ? Colors.orange : modeColor,
-                                foregroundColor:
-                                    getContrastingForeground(modeColor),
+                                backgroundColor: routeMatch
+                                    ? Colors.orange
+                                    : modeColor,
+                                foregroundColor: getContrastingForeground(
+                                  modeColor,
+                                ),
                                 child: Text(
-                                    id == 'N/A' ? '?' : id[0].toUpperCase()),
+                                  id == 'N/A' ? '?' : id[0].toUpperCase(),
+                                ),
                               ),
                               title: Text(id),
                               subtitle: Text(
-                                  'Trip: $tripId • Route: $routeId • Pos: $pos'),
+                                'Trip: $tripId • Route: $routeId • Pos: $pos',
+                              ),
                               dense: true,
                               trailing: routeMatch
-                                  ? const Icon(Icons.check_circle,
-                                      color: Colors.orange, size: 18)
+                                  ? const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.orange,
+                                      size: 18,
+                                    )
                                   : null,
                             );
                           },
@@ -1120,19 +1149,26 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _refreshLegData,
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
-          children: [
-            _buildMapCard(transportId, mode, leg, modeColor),
-            _buildHeaderCard(transportName, transportClass, originName,
-                destinationName, modeColor),
-            const SizedBox(height: 16),
-            _buildTimingCard(origin, destination),
-            const SizedBox(height: 16),
-            _buildStatusCard(),
-            const SizedBox(height: 16),
-            _buildDebugCards(leg, transportId, modeColor),
-          ],
+          child: Column(
+            children: [
+              _buildMapCard(transportId, mode, leg, modeColor),
+              _buildHeaderCard(
+                transportName,
+                transportClass,
+                originName,
+                destinationName,
+                modeColor,
+              ),
+              const SizedBox(height: 16),
+              _buildTimingCard(origin, destination),
+              const SizedBox(height: 16),
+              _buildStatusCard(),
+              const SizedBox(height: 16),
+              _buildDebugCards(leg, transportId, modeColor),
+            ],
+          ),
         ),
       ),
     );

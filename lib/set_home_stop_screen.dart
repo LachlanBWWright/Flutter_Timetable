@@ -81,9 +81,9 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       await _applySorting();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading stations: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading stations: $e')));
         setState(() {
           _isLoading = false;
         });
@@ -157,8 +157,10 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
           _trainStationList = _sortByDistance(_trainStationList, position);
           _busStationList = _sortByDistance(_busStationList, position);
           _ferryStationList = _sortByDistance(_ferryStationList, position);
-          _lightRailStationList =
-              _sortByDistance(_lightRailStationList, position);
+          _lightRailStationList = _sortByDistance(
+            _lightRailStationList,
+            position,
+          );
           _metroStationList = _sortByDistance(_metroStationList, position);
         });
       }
@@ -177,14 +179,15 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     final stationsWithDistance = stations
         .where((s) => s.latitude != null && s.longitude != null)
         .map((station) {
-      final distance = LocationService.calculateDistance(
-        position.latitude,
-        position.longitude,
-        station.latitude!,
-        station.longitude!,
-      );
-      return station.copyWith(distance: distance);
-    }).toList();
+          final distance = LocationService.calculateDistance(
+            position.latitude,
+            position.longitude,
+            station.latitude!,
+            station.longitude!,
+          );
+          return station.copyWith(distance: distance);
+        })
+        .toList();
 
     stationsWithDistance.sort((a, b) => a.distance!.compareTo(b.distance!));
     return stationsWithDistance;
@@ -264,9 +267,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     }
 
     if (stationList.isEmpty) {
-      return const Center(
-        child: Text('No stations found'),
-      );
+      return const Center(child: Text('No stations found'));
     }
 
     return Column(
@@ -346,9 +347,11 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
             if (!_isSearching)
               IconButton(
                 onPressed: _toggleSort,
-                icon: Icon(_sortMode == SortMode.alphabetical
-                    ? Icons.sort_by_alpha
-                    : Icons.near_me),
+                icon: Icon(
+                  _sortMode == SortMode.alphabetical
+                      ? Icons.sort_by_alpha
+                      : Icons.near_me,
+                ),
                 tooltip: _sortMode == SortMode.alphabetical
                     ? 'Sort by distance'
                     : 'Sort alphabetically',

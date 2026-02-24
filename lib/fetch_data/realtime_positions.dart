@@ -14,7 +14,8 @@ Map<String, String> getHeaders() {
 Future<FeedMessage?> fetchSydneyTrainsPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/sydneytrains');
+      'https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/sydneytrains',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}
@@ -29,8 +30,9 @@ Future<FeedMessage?> fetchSydneyTrainsPositions() async {
 
 Future<FeedMessage?> fetchSydneyMetroPositions() async {
   try {
-    final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/metro');
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/metro',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Error fetching Sydney Metro positions: ${response.statusCode}
@@ -44,8 +46,9 @@ Future<FeedMessage?> fetchSydneyMetroPositions() async {
 
 Future<FeedMessage?> fetchBusesPositions() async {
   try {
-    final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/buses');
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/buses',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -60,7 +63,8 @@ Future<FeedMessage?> fetchBusesPositions() async {
 Future<FeedMessage?> fetchNswTrainsPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/nswtrains');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/nswtrains',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -76,7 +80,8 @@ Future<FeedMessage?> fetchNswTrainsPositions() async {
 Future<FeedMessage?> fetchFerriesSydneyFerriesPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/ferries/sydneyferries');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/ferries/sydneyferries',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -91,7 +96,8 @@ Future<FeedMessage?> fetchFerriesSydneyFerriesPositions() async {
 Future<FeedMessage?> fetchFerriesMFFPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/ferries/MFF');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/ferries/MFF',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -107,7 +113,8 @@ Future<FeedMessage?> fetchFerriesMFFPositions() async {
 Future<FeedMessage?> fetchLightRailCbdAndSoutheastPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/cbdandsoutheast');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/cbdandsoutheast',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -122,7 +129,8 @@ Future<FeedMessage?> fetchLightRailCbdAndSoutheastPositions() async {
 Future<FeedMessage?> fetchLightRailInnerWestPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/innerwest');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/innerwest',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -137,7 +145,8 @@ Future<FeedMessage?> fetchLightRailInnerWestPositions() async {
 Future<FeedMessage?> fetchLightRailNewcastlePositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/newcastle');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/newcastle',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -152,7 +161,8 @@ Future<FeedMessage?> fetchLightRailNewcastlePositions() async {
 Future<FeedMessage?> fetchLightRailParramattaPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/parramatta');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/parramatta',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -168,7 +178,8 @@ Future<FeedMessage?> fetchLightRailParramattaPositions() async {
 Future<FeedMessage?> fetchRegionBusesCentralWestAndOranaPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/centralwestandorana');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/centralwestandorana',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -183,7 +194,8 @@ Future<FeedMessage?> fetchRegionBusesCentralWestAndOranaPositions() async {
 Future<FeedMessage?> fetchRegionBusesCentralWestAndOrana2Positions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/centralwestandorana2');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/centralwestandorana2',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -198,7 +210,8 @@ Future<FeedMessage?> fetchRegionBusesCentralWestAndOrana2Positions() async {
 Future<FeedMessage?> fetchRegionBusesNewEnglandNorthWestPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/newenglandnorthwest');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/newenglandnorthwest',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -213,7 +226,8 @@ Future<FeedMessage?> fetchRegionBusesNewEnglandNorthWestPositions() async {
 Future<FeedMessage?> fetchRegionBusesNorthCoastPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/northcoast');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/northcoast',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -228,7 +242,8 @@ Future<FeedMessage?> fetchRegionBusesNorthCoastPositions() async {
 Future<FeedMessage?> fetchRegionBusesNorthCoast2Positions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/northcoast2');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/northcoast2',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -243,7 +258,8 @@ Future<FeedMessage?> fetchRegionBusesNorthCoast2Positions() async {
 Future<FeedMessage?> fetchRegionBusesNorthCoast3Positions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/northcoast3');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/northcoast3',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -258,7 +274,8 @@ Future<FeedMessage?> fetchRegionBusesNorthCoast3Positions() async {
 Future<FeedMessage?> fetchRegionBusesRiverinaMurrayPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/riverinamurray');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/riverinamurray',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -273,7 +290,8 @@ Future<FeedMessage?> fetchRegionBusesRiverinaMurrayPositions() async {
 Future<FeedMessage?> fetchRegionBusesRiverinaMurray2Positions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/riverinamurray2');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/riverinamurray2',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -288,7 +306,8 @@ Future<FeedMessage?> fetchRegionBusesRiverinaMurray2Positions() async {
 Future<FeedMessage?> fetchRegionBusesSouthEastTablelandsPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/southeasttablelands');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/southeasttablelands',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -303,7 +322,8 @@ Future<FeedMessage?> fetchRegionBusesSouthEastTablelandsPositions() async {
 Future<FeedMessage?> fetchRegionBusesSouthEastTablelands2Positions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/southeasttablelands2');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/southeasttablelands2',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -318,7 +338,8 @@ Future<FeedMessage?> fetchRegionBusesSouthEastTablelands2Positions() async {
 Future<FeedMessage?> fetchRegionBusesSydneySurroundsPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/sydneysurrounds');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/sydneysurrounds',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -333,7 +354,8 @@ Future<FeedMessage?> fetchRegionBusesSydneySurroundsPositions() async {
 Future<FeedMessage?> fetchRegionBusesNewcastleHunterPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/newcastlehunter');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/newcastlehunter',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}
@@ -348,7 +370,8 @@ Future<FeedMessage?> fetchRegionBusesNewcastleHunterPositions() async {
 Future<FeedMessage?> fetchRegionBusesFarWestPositions() async {
   try {
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/farwest');
+      'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/regionbuses/farwest',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       // Failed to fetch ${url.toString()}: ${response.statusCode}

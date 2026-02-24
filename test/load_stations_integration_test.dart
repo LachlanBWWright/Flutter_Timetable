@@ -9,23 +9,34 @@ void main() {
     final apiKey = dotenv.env['API_KEY'];
     if (apiKey == null || apiKey.isEmpty) {
       fail(
-          'API_KEY not set in .env — integration tests require a valid API key.');
+        'API_KEY not set in .env — integration tests require a valid API key.',
+      );
     }
   });
 
-  test('loadStopsForMode returns Station list for train', () async {
-    final stations = await NewTripService.loadStopsForMode(TransportMode.train);
-    expect(stations, isNotNull);
-    expect(stations.isNotEmpty, isTrue);
-    // print(
-    //     'First station (train): name=${stations.first.name}, id=${stations.first.id}');
-  }, timeout: const Timeout(Duration(seconds: 120)));
+  test(
+    'loadStopsForMode returns Station list for train',
+    () async {
+      final stations = await NewTripService.loadStopsForMode(
+        TransportMode.train,
+      );
+      expect(stations, isNotNull);
+      expect(stations.isNotEmpty, isTrue);
+      // print(
+      //     'First station (train): name=${stations.first.name}, id=${stations.first.id}');
+    },
+    timeout: const Timeout(Duration(seconds: 120)),
+  );
 
-  test('loadStopsForMode returns Station list for bus', () async {
-    final stations = await NewTripService.loadStopsForMode(TransportMode.bus);
-    expect(stations, isNotNull);
-    expect(stations.isNotEmpty, isTrue);
-    // print(
-    //     'First station (bus): name=${stations.first.name}, id=${stations.first.id}');
-  }, timeout: const Timeout(Duration(seconds: 120)));
+  test(
+    'loadStopsForMode returns Station list for bus',
+    () async {
+      final stations = await NewTripService.loadStopsForMode(TransportMode.bus);
+      expect(stations, isNotNull);
+      expect(stations.isNotEmpty, isTrue);
+      // print(
+      //     'First station (bus): name=${stations.first.name}, id=${stations.first.id}');
+    },
+    timeout: const Timeout(Duration(seconds: 120)),
+  );
 }

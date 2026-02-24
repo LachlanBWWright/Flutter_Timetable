@@ -33,12 +33,12 @@ class Shape {
 
   /// Expected CSV header for shapes.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'shape_id',
-        'shape_pt_lat',
-        'shape_pt_lon',
-        'shape_pt_sequence',
-        'shape_dist_traveled',
-      ];
+    'shape_id',
+    'shape_pt_lat',
+    'shape_pt_lon',
+    'shape_pt_sequence',
+    'shape_dist_traveled',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // Require presence of required columns per GTFS spec
@@ -46,7 +46,7 @@ class Shape {
       'shape_id',
       'shape_pt_lat',
       'shape_pt_lon',
-      'shape_pt_sequence'
+      'shape_pt_sequence',
     ];
     for (final col in required) {
       if (!header.contains(col)) {
