@@ -1,0 +1,51 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches:
+      - master
+      - dev
+  push:
+    branches:
+      - master
+      - dev
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Allow tests to fail without blocking the workflow for now
+    # To re-enable blocking on test failures, remove the 'continue-on-error: true' line below
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+        # To make formatting checks blocking, remove 'continue-on-error: true' from the job level
+
+      - name: Analyze project source
+        run: flutter analyze
+        # To make analysis checks blocking, remove 'continue-on-error: true' from the job level
+
+      - name: Run tests
+        run: flutter test
+        # To make test failures blocking, remove 'continue-on-error: true' from the job level
+
+      - name: Test results summary
+        if: always()
+        run: |
+          echo "Test suite completed. Check the logs above for any failures."
+          echo "NOTE: Tests are currently set to not block CI. To enable blocking:"
+          echo "Remove 'continue-on-error: true' from the test job in .github/workflows/test.yml"

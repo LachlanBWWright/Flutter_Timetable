@@ -1,0 +1,98 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: 'stable'
+
+      - name: Enable Flutter web
+        run: flutter config --enable-web
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Create .env file
+        run: |
+          if [ -f .env.template ]; then
+            cp .env.template .env
+            echo "Created .env file from template"
+          else
+            touch .env
+            echo "Created empty .env file"
+          fi
+
+      - name: Build Flutter web
+        run: |
+          flutter build web --release --web-renderer html
+          echo "Flutter web build completed"
+
+      - name: Prepare web artifacts
+        run: |
+          # The build output is in build/web
+          ls -la build/web/
+
+      - name: Upload web artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web-build
+          path: build/web/
+          retention-days: 30
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy-web:
+    # Deploy job runs independently after build completes
+    needs: build-web
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "Deployment status: ${{ steps.deployment.outcome }}"
+          if [ "${{ steps.deployment.outcome }}" == "success" ]; then
+            echo "Web app deployed successfully to GitHub Pages!"
+            echo "URL: ${{ steps.deployment.outputs.page_url }}"
+          else
+            echo "Deployment encountered an issue. Check the logs above."
+          fi
