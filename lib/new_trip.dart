@@ -446,6 +446,7 @@ class _NewTripScreenState extends State<NewTripScreen>
             listItems: displayList,
             setStation: setStation,
             sortMode: _sortMode,
+            mode: mode,
           ),
         ),
       ],

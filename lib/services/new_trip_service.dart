@@ -247,7 +247,7 @@ class NewTripService {
 
       // Calculate distances and create new Station objects with distance data
       final stationsWithDistance = stationsWithCoords.map((station) {
-        final distance = LocationService.calculateDistance(
+        final double distance = LocationService.calculateDistance(
           position.latitude,
           position.longitude,
           station.latitude!,
@@ -256,7 +256,14 @@ class NewTripService {
         return station.copyWith(distance: distance);
       }).toList();
 
-      stationsWithDistance.sort((a, b) => a.distance!.compareTo(b.distance!));
+      stationsWithDistance.sort((a, b) {
+        final distA = a.distance;
+        final distB = b.distance;
+        if (distA == null && distB == null) return 0;
+        if (distA == null) return 1;
+        if (distB == null) return -1;
+        return distA.compareTo(distB);
+      });
 
       // Add stations without coordinates at the end (sorted alphabetically)
       final stationsWithoutCoords = stations

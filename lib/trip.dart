@@ -40,7 +40,48 @@ class _TripScreenState extends State<TripScreen> {
       if (!context.mounted) return;
 
       setState(() {
-        trips = tripData.tripJourneys;
+        // Reorder trips so upcoming trips (departing now or in future) appear
+        // first, followed by past trips. This ensures the UI shows both future
+        // and past trips (previously only past trips were prominent).
+        final now = DateTime.now();
+
+        DateTime? _getDeparture(TripJourney t) {
+          if (t.legs.isEmpty) return null;
+          final firstLeg = t.legs.first;
+          final dep = firstLeg.origin.departureTimeEstimated ??
+              firstLeg.origin.departureTimePlanned;
+          return dep != null ? DateTimeUtils.parseTimeToDateTime(dep) : null;
+        }
+
+        final allTrips = tripData.tripJourneys;
+        final upcoming = <TripJourney>[];
+        final past = <TripJourney>[];
+
+        for (final t in allTrips) {
+          final dt = _getDeparture(t);
+          if (dt != null && !dt.isBefore(now)) {
+            upcoming.add(t);
+          } else {
+            past.add(t);
+          }
+        }
+
+        // Upcoming: earliest-first
+        upcoming.sort((a, b) {
+          final da = _getDeparture(a)!, db = _getDeparture(b)!;
+          return da.compareTo(db);
+        });
+
+        // Past: most-recent-first
+        past.sort((a, b) {
+          final da = _getDeparture(a), db = _getDeparture(b);
+          if (da == null && db == null) return 0;
+          if (da == null) return 1;
+          if (db == null) return -1;
+          return db.compareTo(da);
+        });
+
+        trips = [...upcoming, ...past];
         testText = tripData.toString();
         _isLoading = false;
       });
@@ -122,26 +163,15 @@ class _TripScreenState extends State<TripScreen> {
                 itemBuilder: (context, index) {
                   return TripCard(
                     trip: trips[index],
-                    onTap: () {
+                    onSelectLeg: (leg) {
                       final tripJourney = trips[index];
-                      if (tripJourney.legs.length == 1) {
-                        final singleLeg = tripJourney.legs.first;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TripLegDetailScreen(
-                                leg: singleLeg, trip: tripJourney),
-                          ),
-                        );
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TripLegScreen(trip: tripJourney),
-                          ),
-                        );
-                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              TripLegDetailScreen(leg: leg, trip: tripJourney),
+                        ),
+                      );
                     },
                   );
                 },

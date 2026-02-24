@@ -145,7 +145,9 @@ class TransportApiService {
       logger.i(
           'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId');
       return GetTripsResponse.fromJson(data);
-    } catch (e) {
+    } catch (e, st) {
+      logger.e(e);
+      logger.e(st);
       // Error getting trips
       return GetTripsResponse(
         tripJourneys: [],
@@ -179,41 +181,27 @@ class GetTripsResponse {
     String? version;
 
     // Parse tripJourneys
-    try {
-      final journeysJson = json['journeys'];
-      if (journeysJson == null) {
-        logger
-            .w('GetTripsResponse.fromJson: "journeys" key is null or missing');
-      } else if (journeysJson is! List) {
-        logger.w(
-            'GetTripsResponse.fromJson: "journeys" is not a List, type=${journeysJson.runtimeType}');
-      } else {
-        logger.i(
-            'GetTripsResponse.fromJson: journeys count=${journeysJson.length}');
-        tripJourneys = [];
-        for (var idx = 0; idx < journeysJson.length; idx++) {
-          final journey = journeysJson[idx];
-          try {
-            if (journey is! Map<String, dynamic>) {
-              logger.w(
-                  'GetTripsResponse.fromJson: journey #$idx is not a Map, type=${journey.runtimeType}');
-              logger.d('raw journey #$idx: ${jsonEncode(journey)}');
-              continue;
-            }
-            final parsed = TripJourney.fromJson(journey);
-            tripJourneys.add(parsed);
-          } catch (e, st) {
-            logger.e(
-                'GetTripsResponse.fromJson: failed parsing TripJourney #$idx: $e');
-            logger.d('raw journey #$idx: ${jsonEncode(journey)}');
-            logger.d('stack: $st');
-          }
+    final journeysJson = json['journeys'];
+    if (journeysJson == null) {
+      logger.w('GetTripsResponse.fromJson: "journeys" key is null or missing');
+    } else if (journeysJson is! List) {
+      logger.w(
+          'GetTripsResponse.fromJson: "journeys" is not a List, type=${journeysJson.runtimeType}');
+    } else {
+      logger.i(
+          'GetTripsResponse.fromJson: journeys count=${journeysJson.length}');
+      tripJourneys = [];
+      for (var idx = 0; idx < journeysJson.length; idx++) {
+        final journey = journeysJson[idx];
+        if (journey is! Map<String, dynamic>) {
+          logger.w(
+              'GetTripsResponse.fromJson: journey #$idx is not a Map, type=${journey.runtimeType}');
+          logger.d('raw journey #$idx: ${jsonEncode(journey)}');
+          continue;
         }
+        final parsed = TripJourney.fromJson(journey);
+        tripJourneys.add(parsed);
       }
-    } catch (e, st) {
-      logger
-          .e('GetTripsResponse.fromJson: exception while parsing journeys: $e');
-      logger.d('stack: $st');
     }
 
     // Parse systemMessages (handle both list and object)
@@ -269,48 +257,35 @@ class TripJourney {
 
   factory TripJourney.fromJson(Map<String, dynamic> json) {
     // TripJourney raw json keys logged (removed)
-    try {
-      final legsJson = json['legs'];
-      if (legsJson == null) {
-        logger.w(
-            'TripJourney.fromJson: "legs" is null or missing for journey keys=${json.keys.toList()}');
-      } else if (legsJson is! List) {
-        logger.w(
-            'TripJourney.fromJson: "legs" is not a List, type=${legsJson.runtimeType}');
-      }
-
-      final List<Leg> legsList = [];
-      if (legsJson is List) {
-        for (var i = 0; i < legsJson.length; i++) {
-          final legJson = legsJson[i];
-          try {
-            if (legJson is! Map<String, dynamic>) {
-              logger.w(
-                  'TripJourney.fromJson: leg #$i is not a Map, type=${legJson.runtimeType}');
-              logger.d('raw leg #$i: ${jsonEncode(legJson)}');
-              continue;
-            }
-            legsList.add(Leg.fromJson(legJson));
-          } catch (e, st) {
-            logger.e('TripJourney.fromJson: failed parsing Leg #$i: $e');
-            logger.d('raw leg #$i: ${jsonEncode(legJson)}');
-            logger.d('stack: $st');
-          }
-        }
-      }
-      return TripJourney(
-        isAdditional: json['isAdditional'],
-        legs: legsList,
-        rating: json['rating'],
-        rawJson: json,
-      );
-    } catch (e, st) {
-      logger.e('TripJourney.fromJson: unexpected error: $e');
-      logger.d('raw journey: ${jsonEncode(json)}');
-      logger.d('stack: $st');
-      // Return an empty TripJourney to allow higher-level parsing to continue
-      return TripJourney(isAdditional: null, legs: [], rating: null);
+    final legsJson = json['legs'];
+    if (legsJson == null) {
+      logger.w(
+          'TripJourney.fromJson: "legs" is null or missing for journey keys=${json.keys.toList()}');
+    } else if (legsJson is! List) {
+      logger.w(
+          'TripJourney.fromJson: "legs" is not a List, type=${legsJson.runtimeType}');
     }
+
+    final List<Leg> legsList = [];
+    if (legsJson is List) {
+      for (var i = 0; i < legsJson.length; i++) {
+        final legJson = legsJson[i];
+        if (legJson is! Map<String, dynamic>) {
+          logger.w(
+              'TripJourney.fromJson: leg #$i is not a Map, type=${legJson.runtimeType}');
+          logger.d('raw leg #$i: ${jsonEncode(legJson)}');
+          // Skip malformed leg entries but preserve logging to aid debugging
+          continue;
+        }
+        legsList.add(Leg.fromJson(legJson));
+      }
+    }
+    return TripJourney(
+      isAdditional: json['isAdditional'],
+      legs: legsList,
+      rating: json['rating'],
+      rawJson: json,
+    );
   }
 }
 
@@ -363,8 +338,16 @@ class Leg {
               .toList())
           .toList(),
       destination: Stop.fromJson(json['destination']),
-      distance: json['distance'],
-      duration: json['duration'],
+      distance: json['distance'] is int
+          ? json['distance'] as int
+          : (json['distance'] is String
+              ? int.tryParse(json['distance'])
+              : null),
+      duration: json['duration'] is int
+          ? json['duration'] as int
+          : (json['duration'] is String
+              ? int.tryParse(json['duration'])
+              : null),
       footPathInfo: (json['footPathInfo'] as List<dynamic>?)
           ?.map((info) => FootPathInfo.fromJson(info))
           .toList(),
@@ -536,7 +519,11 @@ class FootPathInfo {
 
   factory FootPathInfo.fromJson(Map<String, dynamic> json) {
     return FootPathInfo(
-      duration: json['duration'],
+      duration: json['duration'] is int
+          ? json['duration'] as int
+          : (json['duration'] is String
+              ? int.tryParse(json['duration'])
+              : null),
       footPathElem: (json['footPathElem'] as List<dynamic>?)
           ?.map((elem) => FootPathElem.fromJson(elem))
           .toList(),
@@ -571,8 +558,14 @@ class FootPathElem {
           ? FootpathElemDestination.fromJson(json['destination'])
           : null,
       level: json['level'],
-      levelFrom: json['levelFrom'],
-      levelTo: json['levelTo'],
+      levelFrom: json['levelFrom'] is int
+          ? json['levelFrom'] as int
+          : (json['levelFrom'] is String
+              ? int.tryParse(json['levelFrom'])
+              : null),
+      levelTo: json['levelTo'] is int
+          ? json['levelTo'] as int
+          : (json['levelTo'] is String ? int.tryParse(json['levelTo']) : null),
       origin: json['origin'] != null
           ? FootpathElemOrigin.fromJson(json['origin'])
           : null,
@@ -596,12 +589,18 @@ class FootpathElemDestination {
 
   factory FootpathElemDestination.fromJson(Map<String, dynamic> json) {
     return FootpathElemDestination(
-      area: json['area'],
+      area: json['area'] is int
+          ? json['area'] as int
+          : (json['area'] is String ? int.tryParse(json['area']) : null),
       georef: json['georef'],
       location: json['location'] != null
           ? FootpathElemLocation.fromJson(json['location'])
           : null,
-      platform: json['platform'],
+      platform: json['platform'] is int
+          ? json['platform'] as int
+          : (json['platform'] is String
+              ? int.tryParse(json['platform'])
+              : null),
     );
   }
 }
@@ -621,12 +620,18 @@ class FootpathElemOrigin {
 
   factory FootpathElemOrigin.fromJson(Map<String, dynamic> json) {
     return FootpathElemOrigin(
-      area: json['area'],
+      area: json['area'] is int
+          ? json['area'] as int
+          : (json['area'] is String ? int.tryParse(json['area']) : null),
       georef: json['georef'],
       location: json['location'] != null
           ? FootpathElemLocation.fromJson(json['location'])
           : null,
-      platform: json['platform'],
+      platform: json['platform'] is int
+          ? json['platform'] as int
+          : (json['platform'] is String
+              ? int.tryParse(json['platform'])
+              : null),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 import '../constants/transport_colors.dart';
 
 /// A model class for station data
@@ -40,26 +41,38 @@ class StationView extends StatelessWidget {
   final Station station;
   final Function(String, String) setStation;
   final SortMode sortMode;
+  final TransportMode? mode;
 
   const StationView({
     super.key,
     required this.station,
     required this.setStation,
     required this.sortMode,
+    this.mode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = mode != null
+        ? TransportColors.getColorByTransportMode(mode!)
+        : Colors.grey;
     return Container(
       margin: const EdgeInsets.all(1.0),
       child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: InkWell(
           onTap: () {
             setStation(station.name, station.id);
           },
-          child: ListTile(
-            title: Text(station.name),
-            subtitle: _buildSubtitle(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                title: Text(station.name),
+                subtitle: _buildSubtitle(),
+              ),
+              Container(height: 6, width: double.infinity, color: accentColor),
+            ],
           ),
         ),
       ),
@@ -85,12 +98,14 @@ class EnhancedStationList extends StatelessWidget {
   final List<Station> listItems;
   final Function(String, String) setStation;
   final SortMode sortMode;
+  final TransportMode? mode;
 
   const EnhancedStationList({
     super.key,
     required this.listItems,
     required this.setStation,
     required this.sortMode,
+    this.mode,
   });
 
   @override
@@ -102,6 +117,7 @@ class EnhancedStationList extends StatelessWidget {
           station: listItems[index],
           setStation: setStation,
           sortMode: sortMode,
+          mode: mode,
         );
       },
     );

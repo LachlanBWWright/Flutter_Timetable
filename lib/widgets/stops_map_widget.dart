@@ -66,16 +66,17 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
       });
 
       // Center map on user location or stops
-      if (_userLocation != null) {
+      final userLoc = _userLocation;
+      if (userLoc != null) {
         if (_mapIsReady) {
           _mapController.move(
-            LatLng(_userLocation!.latitude, _userLocation!.longitude),
+            LatLng(userLoc.latitude, userLoc.longitude),
             13.0,
           );
         } else {
           _pendingMapAction = () {
             _mapController.move(
-              LatLng(_userLocation!.latitude, _userLocation!.longitude),
+              LatLng(userLoc.latitude, userLoc.longitude),
               13.0,
             );
           };
@@ -209,6 +210,9 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Capture user location for use in closure
+    final userLoc = _userLocation;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.modeDisplayName} Stops Map'),
@@ -291,10 +295,10 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                             MarkerLayer(
                               markers: [
                                 // User location marker
-                                if (_userLocation != null)
+                                if (userLoc != null)
                                   Marker(
-                                    point: LatLng(_userLocation!.latitude,
-                                        _userLocation!.longitude),
+                                    point: LatLng(userLoc.latitude,
+                                        userLoc.longitude),
                                     width: 30.0,
                                     height: 30.0,
                                     child: const Icon(
@@ -393,13 +397,13 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          if (_userLocation != null)
+          if (userLoc != null)
             FloatingActionButton(
               heroTag: 'location',
               mini: true,
               onPressed: () {
                 _mapController.move(
-                  LatLng(_userLocation!.latitude, _userLocation!.longitude),
+                  LatLng(userLoc.latitude, userLoc.longitude),
                   15.0,
                 );
               },
@@ -433,6 +437,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   }
 
   void _showStopDetails(Stop stop) {
+    final userLoc = _userLocation;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -445,11 +450,11 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
             const SizedBox(height: 8),
             if (stop.platformCode != null && stop.platformCode!.isNotEmpty)
               Text('Platform: ${stop.platformCode}'),
-            if (_userLocation != null)
+            if (userLoc != null)
               Text(
                 'Distance: ${LocationService.calculateDistance(
-                  _userLocation!.latitude,
-                  _userLocation!.longitude,
+                  userLoc.latitude,
+                  userLoc.longitude,
                   stop.stopLat,
                   stop.stopLon,
                 ).toStringAsFixed(2)} km',

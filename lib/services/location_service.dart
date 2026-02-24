@@ -82,19 +82,23 @@ class LocationService {
 
       // First try to get origin coordinates
       final originStops = await database.searchStops(journey.origin, limit: 1);
-      if (originStops.isNotEmpty &&
-          originStops.first.stopLat != null &&
-          originStops.first.stopLon != null) {
-        return [originStops.first.stopLat!, originStops.first.stopLon!];
+      if (originStops.isNotEmpty) {
+        final lat = originStops.first.stopLat;
+        final lon = originStops.first.stopLon;
+        if (lat != null && lon != null) {
+          return [lat, lon];
+        }
       }
 
       // If origin not found, try destination
       final destStops =
           await database.searchStops(journey.destination, limit: 1);
-      if (destStops.isNotEmpty &&
-          destStops.first.stopLat != null &&
-          destStops.first.stopLon != null) {
-        return [destStops.first.stopLat!, destStops.first.stopLon!];
+      if (destStops.isNotEmpty) {
+        final lat = destStops.first.stopLat;
+        final lon = destStops.first.stopLon;
+        if (lat != null && lon != null) {
+          return [lat, lon];
+        }
       }
 
       return null;

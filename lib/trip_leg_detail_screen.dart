@@ -53,6 +53,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
+  // ... (debug string methods omitted for brevity, keeping existing implementation) ...
   String _legDebugString(Leg leg) {
     final buffer = StringBuffer();
 
@@ -111,36 +112,99 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln('  <failed to pretty-print raw JSON for leg>');
     }
 
-    // Raw JSON for origin/destination Stops
-    buffer.writeln('\nOrigin raw JSON:');
-    try {
-      final enc = JsonEncoder.withIndent('  ');
-      if (leg.origin.rawJson != null) {
-        buffer.writeln(enc.convert(leg.origin.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for origin>');
-      }
-    } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for origin>');
-    }
-
-    buffer.writeln('\nDestination raw JSON:');
-    try {
-      final enc = JsonEncoder.withIndent('  ');
-      if (leg.destination.rawJson != null) {
-        buffer.writeln(enc.convert(leg.destination.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for destination>');
-      }
-    } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for destination>');
-    }
-
     return buffer.toString();
   }
 
   String _tripDebugString(TripJourney trip) {
     final buffer = StringBuffer();
+
+    // Collect any trip IDs present in the raw JSON (if the API provides them)
+    final tripIds = <String>{};
+    if (trip.rawJson != null) {
+      final r = trip.rawJson!;
+      if (r['tripId'] != null && r['tripId'].toString().isNotEmpty) {
+        tripIds.add(r['tripId'].toString());
+      }
+      if (r['id'] != null && r['id'].toString().isNotEmpty) {
+        tripIds.add(r['id'].toString());
+      }
+      if (r['trip_id'] != null && r['trip_id'].toString().isNotEmpty) {
+        tripIds.add(r['trip_id'].toString());
+      }
+
+      // Also check for RealtimeTripId / AVMSTripID in top-level transportation properties
+      if (r['transportation'] is Map) {
+        final tp = r['transportation'];
+        if (tp['properties'] is Map) {
+          final p = tp['properties'];
+          if (p['RealtimeTripId'] != null &&
+              p['RealtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['RealtimeTripId'].toString());
+          }
+          if (p['AVMSTripID'] != null &&
+              p['AVMSTripID'].toString().isNotEmpty) {
+            tripIds.add(p['AVMSTripID'].toString());
+          }
+          if (p['realtimeTripId'] != null &&
+              p['realtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['realtimeTripId'].toString());
+          }
+        }
+      }
+
+      final legsJson = r['legs'];
+      if (legsJson is List) {
+        for (var l in legsJson) {
+          if (l is Map<String, dynamic>) {
+            if (l['tripId'] != null && l['tripId'].toString().isNotEmpty) {
+              tripIds.add(l['tripId'].toString());
+            }
+            if (l['trip_id'] != null && l['trip_id'].toString().isNotEmpty) {
+              tripIds.add(l['trip_id'].toString());
+            }
+
+            // Check leg.transportation.properties for RealtimeTripId / AVMSTripID
+            final ttp = l['transportation'];
+            if (ttp is Map && ttp['properties'] is Map) {
+              final p = ttp['properties'];
+              if (p['RealtimeTripId'] != null &&
+                  p['RealtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['RealtimeTripId'].toString());
+              }
+              if (p['AVMSTripID'] != null &&
+                  p['AVMSTripID'].toString().isNotEmpty) {
+                tripIds.add(p['AVMSTripID'].toString());
+              }
+              if (p['realtimeTripId'] != null &&
+                  p['realtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['realtimeTripId'].toString());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Collect route IDs from the mapped legs and raw leg JSON
+    final routeIds = <String>{};
+    for (final leg in trip.legs) {
+      final rid = leg.transportation?.id;
+      if (rid != null && rid.isNotEmpty) routeIds.add(rid);
+      final lr = leg.rawJson;
+      if (lr != null) {
+        final t = lr['transportation'];
+        if (t is Map && t['id'] != null && t['id'].toString().isNotEmpty) {
+          routeIds.add(t['id'].toString());
+        }
+      }
+    }
+
+    buffer.writeln(
+        'Trip IDs (from trip JSON): ${tripIds.isNotEmpty ? tripIds.join(', ') : 'N/A'}');
+    buffer.writeln(
+        'Route IDs (from trip JSON): ${routeIds.isNotEmpty ? routeIds.join(', ') : 'N/A'}');
+    buffer.writeln();
+
     buffer.writeln('Trip summary:');
     buffer.writeln('  isAdditional: ${trip.isAdditional}');
     buffer.writeln('  rating: ${trip.rating}');
@@ -150,17 +214,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln('\n--- Leg ${i + 1} ---');
       final leg = trip.legs[i];
       buffer.writeln(_legDebugString(leg));
-    }
-    buffer.writeln('\nRaw JSON:');
-    if (trip.rawJson != null) {
-      try {
-        final enc = JsonEncoder.withIndent('  ');
-        buffer.writeln(enc.convert(trip.rawJson));
-      } catch (e) {
-        buffer.writeln('  <failed to pretty-print raw JSON>');
-      }
-    } else {
-      buffer.writeln('  <no raw JSON available>');
     }
     return buffer.toString();
   }
@@ -189,8 +242,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     });
 
     try {
-      // For now, just use the original leg data since real-time updates
-      // would require additional API endpoints
       if (!widget.skipInitialLoadDelay) {
         await Future.delayed(const Duration(seconds: 1)); // Simulate API call
       }
@@ -210,8 +261,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
-  // Deduplication is handled in RealtimeService.getAllVehiclePositionsAggregated.
-
   String _vehicleDisplayId(VehiclePosition v) {
     final desc = v.vehicle;
     if (desc.hasId()) return desc.id;
@@ -222,11 +271,141 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String? _legRouteId() => (_updatedLeg ?? widget.leg).transportation?.id;
 
+  /// Collect only the trip IDs that belong to the active leg (not the whole trip)
+  Set<String> _collectLegTripIds() {
+    final ids = <String>{};
+    final legObj = _updatedLeg ?? widget.leg;
+    final lr = legObj.rawJson;
+    if (lr != null) {
+      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty)
+        ids.add(lr['tripId'].toString());
+      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty)
+        ids.add(lr['trip_id'].toString());
+      final t = lr['transportation'];
+      if (t is Map && t['properties'] is Map) {
+        final p = t['properties'];
+        if (p['RealtimeTripId'] != null &&
+            p['RealtimeTripId'].toString().isNotEmpty)
+          ids.add(p['RealtimeTripId'].toString());
+        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty)
+          ids.add(p['AVMSTripID'].toString());
+        if (p['realtimeTripId'] != null &&
+            p['realtimeTripId'].toString().isNotEmpty)
+          ids.add(p['realtimeTripId'].toString());
+      }
+    }
+    return ids;
+  }
+
   List<VehiclePosition> get _displayedVehicles {
     final routeId = _legRouteId();
-    if (!_filterByLegRoute || routeId == null || routeId.isEmpty) {
+    if (!_filterByLegRoute) {
       return _vehicles;
     }
+
+    // If the trip/leg contains any explicit trip IDs (e.g., RealtimeTripId),
+    // prefer filtering vehicles by trip id rather than by route id.
+    final tripIds = <String>{};
+
+    // Collect trip IDs from provided TripJourney raw JSON
+    if (widget.trip?.rawJson != null) {
+      final r = widget.trip!.rawJson!;
+      if (r['tripId'] != null && r['tripId'].toString().isNotEmpty) {
+        tripIds.add(r['tripId'].toString());
+      }
+      if (r['id'] != null && r['id'].toString().isNotEmpty) {
+        tripIds.add(r['id'].toString());
+      }
+      if (r['trip_id'] != null && r['trip_id'].toString().isNotEmpty) {
+        tripIds.add(r['trip_id'].toString());
+      }
+
+      if (r['transportation'] is Map) {
+        final tp = r['transportation'];
+        if (tp['properties'] is Map) {
+          final p = tp['properties'];
+          if (p['RealtimeTripId'] != null &&
+              p['RealtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['RealtimeTripId'].toString());
+          }
+          if (p['AVMSTripID'] != null &&
+              p['AVMSTripID'].toString().isNotEmpty) {
+            tripIds.add(p['AVMSTripID'].toString());
+          }
+          if (p['realtimeTripId'] != null &&
+              p['realtimeTripId'].toString().isNotEmpty) {
+            tripIds.add(p['realtimeTripId'].toString());
+          }
+        }
+      }
+
+      final legsJson = r['legs'];
+      if (legsJson is List) {
+        for (var l in legsJson) {
+          if (l is Map<String, dynamic>) {
+            if (l['tripId'] != null && l['tripId'].toString().isNotEmpty) {
+              tripIds.add(l['tripId'].toString());
+            }
+            if (l['trip_id'] != null && l['trip_id'].toString().isNotEmpty) {
+              tripIds.add(l['trip_id'].toString());
+            }
+
+            final ttp = l['transportation'];
+            if (ttp is Map && ttp['properties'] is Map) {
+              final p = ttp['properties'];
+              if (p['RealtimeTripId'] != null &&
+                  p['RealtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['RealtimeTripId'].toString());
+              }
+              if (p['AVMSTripID'] != null &&
+                  p['AVMSTripID'].toString().isNotEmpty) {
+                tripIds.add(p['AVMSTripID'].toString());
+              }
+              if (p['realtimeTripId'] != null &&
+                  p['realtimeTripId'].toString().isNotEmpty) {
+                tripIds.add(p['realtimeTripId'].toString());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Also collect trip IDs from the active leg's raw JSON or transportation raw JSON
+    final legObj = _updatedLeg ?? widget.leg;
+    final lr = legObj.rawJson;
+    if (lr != null) {
+      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty) {
+        tripIds.add(lr['tripId'].toString());
+      }
+      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty) {
+        tripIds.add(lr['trip_id'].toString());
+      }
+
+      final t = lr['transportation'];
+      if (t is Map && t['properties'] is Map) {
+        final p = t['properties'];
+        if (p['RealtimeTripId'] != null &&
+            p['RealtimeTripId'].toString().isNotEmpty) {
+          tripIds.add(p['RealtimeTripId'].toString());
+        }
+        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty) {
+          tripIds.add(p['AVMSTripID'].toString());
+        }
+        if (p['realtimeTripId'] != null &&
+            p['realtimeTripId'].toString().isNotEmpty) {
+          tripIds.add(p['realtimeTripId'].toString());
+        }
+      }
+    }
+
+    // If we found any trip IDs, filter vehicles by trip id; otherwise fallback to route id filter
+    if (tripIds.isNotEmpty) {
+      return _vehicles
+          .where((v) => v.trip.hasTripId() && tripIds.contains(v.trip.tripId))
+          .toList();
+    }
+
     return _vehicles
         .where((v) => v.trip.hasRouteId() && v.trip.routeId == routeId)
         .toList();
@@ -237,15 +416,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       _isLoadingVehicles = true;
     });
     try {
-      // Always fetch from all available feeds so the debug card shows
-      // the entire current feed state rather than just vehicles for the leg.
       final aggregate = await (widget.getAllVehiclesAggregated?.call() ??
           RealtimeService.getAllVehiclePositionsAggregated());
       final dedupedVehicles =
           (aggregate['vehicles'] as List<VehiclePosition>?) ?? [];
       final breakdown = (aggregate['breakdown'] as Map<String, int>?) ?? {};
 
-      // Sort alphabetically by display id
       dedupedVehicles.sort((a, b) => _vehicleDisplayId(a)
           .toLowerCase()
           .compareTo(_vehicleDisplayId(b).toLowerCase()));
@@ -298,6 +474,599 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
+  Widget _buildMapCard(
+      String? transportId, TransportMode? mode, Leg leg, Color modeColor) {
+    if (transportId == null || transportId.isEmpty)
+      return const SizedBox.shrink();
+
+    return Card(
+      elevation: 4,
+      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.only(bottom: 16.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: SizedBox(
+        height: 300,
+        child: Stack(
+          children: [
+            RealtimeMapWidget(
+              leg: leg,
+              transportMode: mode,
+              routeFilter: transportId,
+              // Always enable trip/route filtering for the map (independent of debug toggle)
+              filterByLegTrip: true,
+              tripIds: _collectLegTripIds(),
+              showVehicleCount: false,
+              getAllVehiclesAggregated:
+                  RealtimeService.getAllVehiclePositionsAggregated,
+            ),
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: IconButton(
+                  icon: const Icon(Icons.fullscreen),
+                  color: modeColor,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RealtimeMapPage(
+                          leg: leg,
+                          transportMode: mode,
+                          routeFilter: transportId,
+                          // Always enable trip/route filtering on the full-screen map
+                          filterByLegTrip: true,
+                          tripIds: _collectLegTripIds(),
+                          getAllVehiclesAggregated:
+                              RealtimeService.getAllVehiclePositionsAggregated,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(String? transportName, int? transportClass,
+      String originName, String destinationName, Color modeColor) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: modeColor,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Text(
+                    transportClass != null
+                        ? TransportModeUtils.getModeName(transportClass)
+                        : 'Unknown',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (transportName != null && transportName.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      transportName,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: modeColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'From',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Text(
+                        originName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward,
+                  color: modeColor,
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'To',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Text(
+                        destinationName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimingCard(Stop origin, Stop destination) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Timing Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.departure_board, color: Colors.green),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Departure',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      Text(
+                        _formatTimeDifference(
+                          origin.departureTimePlanned,
+                          origin.departureTimeEstimated,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.schedule, color: Colors.red),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Arrival',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      Text(
+                        _formatTimeDifference(
+                          destination.arrivalTimePlanned,
+                          destination.arrivalTimeEstimated,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Status',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (_isLoading)
+                  const CircularProgressIndicator()
+                else
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                  ),
+                const SizedBox(width: 8),
+                Text(_isLoading ? 'Updating...' : 'On schedule'),
+              ],
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Error: $_error',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebugCards(Leg leg, String? transportId, Color modeColor) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: DebugService.showDebugData,
+      builder: (context, showDebug, child) {
+        if (!showDebug) return const SizedBox.shrink();
+        return Column(
+          children: [
+            if (widget.trip != null) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Trip debug data',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Copy trip debug to clipboard',
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              try {
+                                final text = _tripDebugString(widget.trip!);
+                                await Clipboard.setData(
+                                    ClipboardData(text: text));
+                                if (!mounted) return;
+                                messenger.showSnackBar(const SnackBar(
+                                    content: Text(
+                                        'Copied trip debug data to clipboard')));
+                              } catch (e) {
+                                if (!mounted) return;
+                                messenger.showSnackBar(const SnackBar(
+                                    content: Text(
+                                        'Failed to copy trip debug data')));
+                              }
+                            },
+                            icon: const Icon(Icons.copy, size: 18),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Full Trip data (includes legs and raw JSON below):',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 320),
+                        child: SingleChildScrollView(
+                          child: SelectableText(
+                            _tripDebugString(widget.trip!),
+                            style: const TextStyle(
+                                fontFamily: 'monospace', fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Leg debug data',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Copy debug text to clipboard',
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await Clipboard.setData(
+                                ClipboardData(text: _legDebugString(leg)),
+                              );
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Copied leg debug data to clipboard')),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Failed to copy to clipboard')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.copy, size: 18),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Leg details (select or copy). Useful for debugging.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          _legDebugString(leg),
+                          style: const TextStyle(
+                              fontFamily: 'monospace', fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Vehicle debug data',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Row(
+                              children: [
+                                const Text('Filter by trip/route'),
+                                const SizedBox(width: 8),
+                                Switch.adaptive(
+                                  value: _filterByLegRoute,
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _filterByLegRoute = v;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              tooltip: 'Copy vehicle debug to clipboard',
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                try {
+                                  final lines = _displayedVehicles.map((v) {
+                                    final id = v.vehicle.hasId()
+                                        ? v.vehicle.id
+                                        : 'N/A';
+                                    final tripId = v.trip.hasTripId()
+                                        ? v.trip.tripId
+                                        : 'N/A';
+                                    final routeId = v.trip.hasRouteId()
+                                        ? v.trip.routeId
+                                        : 'N/A';
+                                    final pos = v.hasPosition() &&
+                                            v.position.hasLatitude() &&
+                                            v.position.hasLongitude()
+                                        ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
+                                        : 'N/A';
+                                    final ts = v.hasTimestamp()
+                                        ? DateTime.fromMillisecondsSinceEpoch(
+                                                v.timestamp.toInt() * 1000)
+                                            .toIso8601String()
+                                        : 'N/A';
+                                    return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
+                                  }).join('\n');
+
+                                  await Clipboard.setData(
+                                      ClipboardData(text: lines));
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Copied vehicle debug data to clipboard')),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Failed to copy vehicle debug data')),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.copy, size: 18),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Showing ${_displayedVehicles.length} of ${_vehicles.length} realtime vehicles (sorted alphabetically):',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 6),
+                    if (_vehicleBreakdown.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: _vehicleBreakdown.entries
+                            .map((e) => Chip(
+                                  label: Text('${e.key}: ${e.value}'),
+                                  backgroundColor: Colors.grey.shade100,
+                                  visualDensity: VisualDensity.compact,
+                                ))
+                            .toList(),
+                      ),
+                    const SizedBox(height: 8),
+                    if (_isLoadingVehicles)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_vehicles.isEmpty)
+                      const ListTile(
+                        leading: Icon(Icons.location_off, color: Colors.grey),
+                        title: Text('No vehicles found'),
+                      )
+                    else if (_displayedVehicles.isEmpty)
+                      const ListTile(
+                        leading: Icon(Icons.filter_alt_off, color: Colors.grey),
+                        title: Text(
+                            'No vehicles match the current trip/route filter'),
+                      )
+                    else
+                      SizedBox(
+                        height: 320,
+                        child: ListView.builder(
+                          itemCount: _displayedVehicles.length,
+                          padding: EdgeInsets.zero,
+                          itemBuilder: (context, index) {
+                            final v = _displayedVehicles[index];
+                            final id = v.vehicle.hasId() ? v.vehicle.id : 'N/A';
+                            final tripId =
+                                v.trip.hasTripId() ? v.trip.tripId : 'N/A';
+                            final routeId =
+                                v.trip.hasRouteId() ? v.trip.routeId : 'N/A';
+                            final pos = v.hasPosition() &&
+                                    v.position.hasLatitude() &&
+                                    v.position.hasLongitude()
+                                ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
+                                : 'N/A';
+                            final routeMatch = transportId != null &&
+                                v.trip.hasRouteId() &&
+                                v.trip.routeId == transportId;
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    routeMatch ? Colors.orange : modeColor,
+                                foregroundColor:
+                                    getContrastingForeground(modeColor),
+                                child: Text(
+                                    id == 'N/A' ? '?' : id[0].toUpperCase()),
+                              ),
+                              title: Text(id),
+                              subtitle: Text(
+                                  'Trip: $tripId • Route: $routeId • Pos: $pos'),
+                              dense: true,
+                              trailing: routeMatch
+                                  ? const Icon(Icons.check_circle,
+                                      color: Colors.orange, size: 18)
+                                  : null,
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final leg = _updatedLeg ?? widget.leg;
@@ -317,6 +1086,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         ? TransportModeUtils.getModeColor(transportClass)
         : Colors.blue;
 
+    final mode = _getRealtimeModeFromClass(transportClass);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Leg Details'),
@@ -331,14 +1102,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             IconButton(
               icon: const Icon(Icons.map),
               onPressed: () {
-                final mode = _getRealtimeModeFromClass(transportClass);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => RealtimeMapWidget(
+                    builder: (context) => RealtimeMapPage(
                       leg: leg,
                       transportMode: mode,
-                      vehicleId: transportId,
+                      routeFilter: transportId,
                       getAllVehiclesAggregated:
                           RealtimeService.getAllVehiclePositionsAggregated,
                     ),
@@ -353,571 +1123,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            // Header card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: 4.0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: modeColor,
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: Text(
-                            transportClass != null
-                                ? TransportModeUtils.getModeName(transportClass)
-                                : 'Unknown',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        if (transportName.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              transportName,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: modeColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'From',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Text(
-                                originName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward,
-                          color: modeColor,
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text(
-                                'To',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Text(
-                                destinationName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.end,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
+            _buildMapCard(transportId, mode, leg, modeColor),
+            _buildHeaderCard(transportName, transportClass, originName,
+                destinationName, modeColor),
             const SizedBox(height: 16),
-
-            // Timing information
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Timing Information',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Departure time
-                    Row(
-                      children: [
-                        const Icon(Icons.departure_board, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Departure',
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              Text(
-                                _formatTimeDifference(
-                                  origin.departureTimePlanned,
-                                  origin.departureTimeEstimated,
-                                ),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Arrival time
-                    Row(
-                      children: [
-                        const Icon(Icons.schedule, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Arrival',
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              Text(
-                                _formatTimeDifference(
-                                  destination.arrivalTimePlanned,
-                                  destination.arrivalTimeEstimated,
-                                ),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
+            _buildTimingCard(origin, destination),
             const SizedBox(height: 16),
-
-            // Status card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Status',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (_isLoading)
-                          const CircularProgressIndicator()
-                        else
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                          ),
-                        const SizedBox(width: 8),
-                        Text(_isLoading ? 'Updating...' : 'On schedule'),
-                      ],
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Error: $_error',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            _buildStatusCard(),
             const SizedBox(height: 16),
-
-            // Debug/info card showing trip data (including legs and raw json) and detailed leg data
-            ValueListenableBuilder<bool>(
-              valueListenable: DebugService.showDebugData,
-              builder: (context, showDebug, child) {
-                if (!showDebug) return const SizedBox.shrink();
-                return widget.trip != null
-                    ? Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Trip debug data',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Copy trip debug to clipboard',
-                                    onPressed: () async {
-                                      final messenger =
-                                          ScaffoldMessenger.of(context);
-                                      try {
-                                        final text =
-                                            _tripDebugString(widget.trip!);
-                                        await Clipboard.setData(
-                                            ClipboardData(text: text));
-                                        if (!mounted) return;
-                                        messenger.showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Copied trip debug data to clipboard')));
-                                      } catch (e) {
-                                        if (!mounted) return;
-                                        messenger.showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Failed to copy trip debug data')));
-                                      }
-                                    },
-                                    icon: const Icon(Icons.copy, size: 18),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Full Trip data (includes legs and raw JSON below):',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: Colors.grey),
-                              ),
-                              const SizedBox(height: 8),
-                              ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxHeight: 320),
-                                child: SingleChildScrollView(
-                                  child: SelectableText(
-                                    _tripDebugString(widget.trip!),
-                                    style: const TextStyle(
-                                        fontFamily: 'monospace', fontSize: 12),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink();
-              },
-            ),
-            const SizedBox(height: 16),
-            ValueListenableBuilder<bool>(
-              valueListenable: DebugService.showDebugData,
-              builder: (context, showDebug, child) {
-                if (!showDebug) return const SizedBox.shrink();
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Leg debug data',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Copy debug text to clipboard',
-                              onPressed: () async {
-                                final messenger = ScaffoldMessenger.of(context);
-                                try {
-                                  await Clipboard.setData(
-                                    ClipboardData(text: _legDebugString(leg)),
-                                  );
-                                  if (!mounted) return;
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Copied leg debug data to clipboard')),
-                                  );
-                                } catch (e) {
-                                  if (!mounted) return;
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Failed to copy to clipboard')),
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.copy, size: 18),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Leg details (select or copy). Useful for debugging.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 320),
-                          child: SingleChildScrollView(
-                            child: SelectableText(
-                              _legDebugString(leg),
-                              style: const TextStyle(
-                                  fontFamily: 'monospace', fontSize: 12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            ValueListenableBuilder<bool>(
-              valueListenable: DebugService.showDebugData,
-              builder: (context, showDebug, child) {
-                if (!showDebug) return const SizedBox.shrink();
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header row: title + actions (filter toggle + copy button)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Vehicle debug data',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                if (transportId != null &&
-                                    transportId.isNotEmpty)
-                                  Row(
-                                    children: [
-                                      const Text('Filter by route'),
-                                      const SizedBox(width: 8),
-                                      Switch.adaptive(
-                                        value: _filterByLegRoute,
-                                        onChanged: (v) {
-                                          setState(() {
-                                            _filterByLegRoute = v;
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                IconButton(
-                                  tooltip: 'Copy vehicle debug to clipboard',
-                                  onPressed: () async {
-                                    final messenger =
-                                        ScaffoldMessenger.of(context);
-                                    try {
-                                      final lines = _displayedVehicles.map((v) {
-                                        final id = v.vehicle.hasId()
-                                            ? v.vehicle.id
-                                            : 'N/A';
-                                        final tripId = v.trip.hasTripId()
-                                            ? v.trip.tripId
-                                            : 'N/A';
-                                        final routeId = v.trip.hasRouteId()
-                                            ? v.trip.routeId
-                                            : 'N/A';
-                                        final pos = v.hasPosition() &&
-                                                v.position.hasLatitude() &&
-                                                v.position.hasLongitude()
-                                            ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
-                                            : 'N/A';
-                                        final ts = v.hasTimestamp()
-                                            ? DateTime
-                                                    .fromMillisecondsSinceEpoch(
-                                                        v.timestamp.toInt() *
-                                                            1000)
-                                                .toIso8601String()
-                                            : 'N/A';
-                                        return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
-                                      }).join('\n');
-
-                                      await Clipboard.setData(
-                                          ClipboardData(text: lines));
-                                      if (!mounted) return;
-                                      messenger.showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'Copied vehicle debug data to clipboard')),
-                                      );
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      messenger.showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'Failed to copy vehicle debug data')),
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.copy, size: 18),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Showing ${_displayedVehicles.length} of ${_vehicles.length} realtime vehicles (sorted alphabetically):',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 6),
-                        if (_vehicleBreakdown.isNotEmpty)
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            children: _vehicleBreakdown.entries
-                                .map((e) => Chip(
-                                      label: Text('${e.key}: ${e.value}'),
-                                      backgroundColor: Colors.grey.shade100,
-                                      visualDensity: VisualDensity.compact,
-                                    ))
-                                .toList(),
-                          ),
-                        const SizedBox(height: 8),
-                        if (_isLoadingVehicles)
-                          const Center(child: CircularProgressIndicator())
-                        else if (_vehicles.isEmpty)
-                          const ListTile(
-                            leading:
-                                Icon(Icons.location_off, color: Colors.grey),
-                            title: Text('No vehicles found'),
-                          )
-                        else if (_displayedVehicles.isEmpty)
-                          const ListTile(
-                            leading:
-                                Icon(Icons.filter_alt_off, color: Colors.grey),
-                            title: Text(
-                                'No vehicles match the current route filter'),
-                          )
-                        else
-                          SizedBox(
-                            height: 320,
-                            child: ListView.builder(
-                              itemCount: _displayedVehicles.length,
-                              padding: EdgeInsets.zero,
-                              itemBuilder: (context, index) {
-                                final v = _displayedVehicles[index];
-                                final id =
-                                    v.vehicle.hasId() ? v.vehicle.id : 'N/A';
-                                final tripId =
-                                    v.trip.hasTripId() ? v.trip.tripId : 'N/A';
-                                final routeId = v.trip.hasRouteId()
-                                    ? v.trip.routeId
-                                    : 'N/A';
-                                final pos = v.hasPosition() &&
-                                        v.position.hasLatitude() &&
-                                        v.position.hasLongitude()
-                                    ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
-                                    : 'N/A';
-                                final routeMatch = transportId != null &&
-                                    v.trip.hasRouteId() &&
-                                    v.trip.routeId == transportId;
-                                return ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor:
-                                        routeMatch ? Colors.orange : modeColor,
-                                    foregroundColor:
-                                        getContrastingForeground(modeColor),
-                                    child: Text(id == 'N/A'
-                                        ? '?'
-                                        : id[0].toUpperCase()),
-                                  ),
-                                  title: Text(id),
-                                  subtitle: Text(
-                                      'Trip: $tripId • Route: $routeId • Pos: $pos'),
-                                  dense: true,
-                                  trailing: routeMatch
-                                      ? const Icon(Icons.check_circle,
-                                          color: Colors.orange, size: 18)
-                                      : null,
-                                );
-                              },
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+            _buildDebugCards(leg, transportId, modeColor),
           ],
         ),
       ),
