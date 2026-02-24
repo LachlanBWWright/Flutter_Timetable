@@ -18,12 +18,14 @@ class TransportColors {
 
   // Intercity Trains
   static const Color blueMountains = Color(0xFFF99D1C); // BLUE MOUNTAINS
-  static const Color centralCoastNewcastle =
-      Color(0xFFD11F2F); // CENTRAL COAST & NEWCASTLE
+  static const Color centralCoastNewcastle = Color(
+    0xFFD11F2F,
+  ); // CENTRAL COAST & NEWCASTLE
   static const Color hunter = Color(0xFF833134); // HUNTER
   static const Color southCoast = Color(0xFF005AA3); // SOUTH COAST
-  static const Color southernHighlands =
-      Color(0xFF00954C); // SOUTHERN HIGHLANDS
+  static const Color southernHighlands = Color(
+    0xFF00954C,
+  ); // SOUTHERN HIGHLANDS
 
   // Regional Trains and Coaches Network
   static const Color regionalTrains = Color(0xFFF6891F); // TRAINS
@@ -48,8 +50,9 @@ class TransportColors {
   static const Color lightRailL1 = Color(0xFFBE1622); // L1 DULWICH HILL LINE
   static const Color lightRailL2 = Color(0xFFDD1E25); // L2 RANDWICK LINE
   static const Color lightRailL3 = Color(0xFF781140); // L3 KINGSFORD LINE
-  static const Color newcastleLightRail =
-      Color(0xFFEE343F); // NLR NEWCASTLE LIGHT RAIL
+  static const Color newcastleLightRail = Color(
+    0xFFEE343F,
+  ); // NLR NEWCASTLE LIGHT RAIL
 
   // Generic mode colors for UI
   static const Color bus = Color(0xFF0098CD); // Generic bus blue

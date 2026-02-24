@@ -13,19 +13,29 @@ void main() {
     }
   });
 
-  test('fetchGtfsDataForEndpoint - nswtrains (integration)', () async {
-    // This test calls the real endpoint. Allow generous timeout for network.
-    final data =
-        await NewTripService.fetchGtfsDataForEndpoint(StopsEndpoint.nswtrains);
-    expect(data, isNotNull);
-    // At least one agency or stop should be present in a successful feed
-    expect((data!.agencies.isNotEmpty || data.stops.isNotEmpty), isTrue);
-  }, timeout: const Timeout(Duration(seconds: 60)));
+  test(
+    'fetchGtfsDataForEndpoint - nswtrains (integration)',
+    () async {
+      // This test calls the real endpoint. Allow generous timeout for network.
+      final data = await NewTripService.fetchGtfsDataForEndpoint(
+        StopsEndpoint.nswtrains,
+      );
+      expect(data, isNotNull);
+      // At least one agency or stop should be present in a successful feed
+      expect((data!.agencies.isNotEmpty || data.stops.isNotEmpty), isTrue);
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 
-  test('fetchGtfsDataForEndpoint - buses (integration)', () async {
-    final data =
-        await NewTripService.fetchGtfsDataForEndpoint(StopsEndpoint.buses);
-    expect(data, isNotNull);
-    expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
-  }, timeout: const Timeout(Duration(seconds: 60)));
+  test(
+    'fetchGtfsDataForEndpoint - buses (integration)',
+    () async {
+      final data = await NewTripService.fetchGtfsDataForEndpoint(
+        StopsEndpoint.buses,
+      );
+      expect(data, isNotNull);
+      expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 }

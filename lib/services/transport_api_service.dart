@@ -47,7 +47,7 @@ class TransportApiService {
     try {
       final apiKey = await _getApiKey();
 
-/*       final res = await tripPlannerApi.stopFinderGet(
+      /*       final res = await tripPlannerApi.stopFinderGet(
           outputFormat: StopFinderGetOutputFormat.rapidjson,
           nameSf: query,
           coordOutputFormat: StopFinderGetCoordOutputFormat.epsg426); */
@@ -73,7 +73,8 @@ class TransportApiService {
 
       if (response.statusCode != 200) {
         throw Exception(
-            'Failed to search stations: ${response.statusCode}, ${response.body}');
+          'Failed to search stations: ${response.statusCode}, ${response.body}',
+        );
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -130,7 +131,8 @@ class TransportApiService {
 
       if (response.statusCode != 200) {
         throw Exception(
-            'Failed to get trips: ${response.statusCode}, ${response.body}');
+          'Failed to get trips: ${response.statusCode}, ${response.body}',
+        );
       }
 
       final data = jsonDecode(response.body);
@@ -143,7 +145,8 @@ class TransportApiService {
         }
       }
       logger.i(
-          'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId');
+        'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId',
+      );
       return GetTripsResponse.fromJson(data);
     } catch (e, st) {
       logger.e(e);
@@ -186,16 +189,19 @@ class GetTripsResponse {
       logger.w('GetTripsResponse.fromJson: "journeys" key is null or missing');
     } else if (journeysJson is! List) {
       logger.w(
-          'GetTripsResponse.fromJson: "journeys" is not a List, type=${journeysJson.runtimeType}');
+        'GetTripsResponse.fromJson: "journeys" is not a List, type=${journeysJson.runtimeType}',
+      );
     } else {
       logger.i(
-          'GetTripsResponse.fromJson: journeys count=${journeysJson.length}');
+        'GetTripsResponse.fromJson: journeys count=${journeysJson.length}',
+      );
       tripJourneys = [];
       for (var idx = 0; idx < journeysJson.length; idx++) {
         final journey = journeysJson[idx];
         if (journey is! Map<String, dynamic>) {
           logger.w(
-              'GetTripsResponse.fromJson: journey #$idx is not a Map, type=${journey.runtimeType}');
+            'GetTripsResponse.fromJson: journey #$idx is not a Map, type=${journey.runtimeType}',
+          );
           logger.d('raw journey #$idx: ${jsonEncode(journey)}');
           continue;
         }
@@ -260,10 +266,12 @@ class TripJourney {
     final legsJson = json['legs'];
     if (legsJson == null) {
       logger.w(
-          'TripJourney.fromJson: "legs" is null or missing for journey keys=${json.keys.toList()}');
+        'TripJourney.fromJson: "legs" is null or missing for journey keys=${json.keys.toList()}',
+      );
     } else if (legsJson is! List) {
       logger.w(
-          'TripJourney.fromJson: "legs" is not a List, type=${legsJson.runtimeType}');
+        'TripJourney.fromJson: "legs" is not a List, type=${legsJson.runtimeType}',
+      );
     }
 
     final List<Leg> legsList = [];
@@ -272,7 +280,8 @@ class TripJourney {
         final legJson = legsJson[i];
         if (legJson is! Map<String, dynamic>) {
           logger.w(
-              'TripJourney.fromJson: leg #$i is not a Map, type=${legJson.runtimeType}');
+            'TripJourney.fromJson: leg #$i is not a Map, type=${legJson.runtimeType}',
+          );
           logger.d('raw leg #$i: ${jsonEncode(legJson)}');
           // Skip malformed leg entries but preserve logging to aid debugging
           continue;
@@ -333,21 +342,23 @@ class Leg {
     // Leg coords type: ${json['coords']?.runtimeType}
     return Leg(
       coords: (json['coords'] as List<dynamic>?)
-          ?.map((coord) => (coord as List<dynamic>)
-              .map((c) => (c as num).toDouble())
-              .toList())
+          ?.map(
+            (coord) => (coord as List<dynamic>)
+                .map((c) => (c as num).toDouble())
+                .toList(),
+          )
           .toList(),
       destination: Stop.fromJson(json['destination']),
       distance: json['distance'] is int
           ? json['distance'] as int
           : (json['distance'] is String
-              ? int.tryParse(json['distance'])
-              : null),
+                ? int.tryParse(json['distance'])
+                : null),
       duration: json['duration'] is int
           ? json['duration'] as int
           : (json['duration'] is String
-              ? int.tryParse(json['duration'])
-              : null),
+                ? int.tryParse(json['duration'])
+                : null),
       footPathInfo: (json['footPathInfo'] as List<dynamic>?)
           ?.map((info) => FootPathInfo.fromJson(info))
           .toList(),
@@ -474,10 +485,7 @@ class StopProperties {
   final String? wheelchairAccess;
   final List<Download>? downloads;
 
-  StopProperties({
-    this.wheelchairAccess,
-    this.downloads,
-  });
+  StopProperties({this.wheelchairAccess, this.downloads});
 
   factory StopProperties.fromJson(Map<String, dynamic> json) {
     return StopProperties(
@@ -493,16 +501,10 @@ class Download {
   final String type;
   final String url;
 
-  Download({
-    required this.type,
-    required this.url,
-  });
+  Download({required this.type, required this.url});
 
   factory Download.fromJson(Map<String, dynamic> json) {
-    return Download(
-      type: json['type'],
-      url: json['url'],
-    );
+    return Download(type: json['type'], url: json['url']);
   }
 }
 
@@ -511,19 +513,15 @@ class FootPathInfo {
   final List<FootPathElem>? footPathElem;
   final String? position;
 
-  FootPathInfo({
-    this.duration,
-    this.footPathElem,
-    this.position,
-  });
+  FootPathInfo({this.duration, this.footPathElem, this.position});
 
   factory FootPathInfo.fromJson(Map<String, dynamic> json) {
     return FootPathInfo(
       duration: json['duration'] is int
           ? json['duration'] as int
           : (json['duration'] is String
-              ? int.tryParse(json['duration'])
-              : null),
+                ? int.tryParse(json['duration'])
+                : null),
       footPathElem: (json['footPathElem'] as List<dynamic>?)
           ?.map((elem) => FootPathElem.fromJson(elem))
           .toList(),
@@ -561,8 +559,8 @@ class FootPathElem {
       levelFrom: json['levelFrom'] is int
           ? json['levelFrom'] as int
           : (json['levelFrom'] is String
-              ? int.tryParse(json['levelFrom'])
-              : null),
+                ? int.tryParse(json['levelFrom'])
+                : null),
       levelTo: json['levelTo'] is int
           ? json['levelTo'] as int
           : (json['levelTo'] is String ? int.tryParse(json['levelTo']) : null),
@@ -599,8 +597,8 @@ class FootpathElemDestination {
       platform: json['platform'] is int
           ? json['platform'] as int
           : (json['platform'] is String
-              ? int.tryParse(json['platform'])
-              : null),
+                ? int.tryParse(json['platform'])
+                : null),
     );
   }
 }
@@ -611,12 +609,7 @@ class FootpathElemOrigin {
   final FootpathElemLocation? location;
   final int? platform;
 
-  FootpathElemOrigin({
-    this.area,
-    this.georef,
-    this.location,
-    this.platform,
-  });
+  FootpathElemOrigin({this.area, this.georef, this.location, this.platform});
 
   factory FootpathElemOrigin.fromJson(Map<String, dynamic> json) {
     return FootpathElemOrigin(
@@ -630,8 +623,8 @@ class FootpathElemOrigin {
       platform: json['platform'] is int
           ? json['platform'] as int
           : (json['platform'] is String
-              ? int.tryParse(json['platform'])
-              : null),
+                ? int.tryParse(json['platform'])
+                : null),
     );
   }
 }
@@ -641,11 +634,7 @@ class FootpathElemLocation {
   final String? id;
   final String? type;
 
-  FootpathElemLocation({
-    this.coord,
-    this.id,
-    this.type,
-  });
+  FootpathElemLocation({this.coord, this.id, this.type});
 
   factory FootpathElemLocation.fromJson(Map<String, dynamic> json) {
     return FootpathElemLocation(
@@ -661,14 +650,10 @@ class FootpathElemLocation {
 class Hint {
   final String? infoText;
 
-  Hint({
-    this.infoText,
-  });
+  Hint({this.infoText});
 
   factory Hint.fromJson(Map<String, dynamic> json) {
-    return Hint(
-      infoText: json['infoText'],
-    );
+    return Hint(infoText: json['infoText']);
   }
 }
 
@@ -716,12 +701,14 @@ class Info {
           final parsed = int.tryParse(v);
           if (parsed == null) {
             logger.w(
-                'Info.fromJson: could not parse version string to int: "$v"');
+              'Info.fromJson: could not parse version string to int: "$v"',
+            );
           }
           return parsed;
         }
-        logger
-            .w('Info.fromJson: unexpected type for version: ${v.runtimeType}');
+        logger.w(
+          'Info.fromJson: unexpected type for version: ${v.runtimeType}',
+        );
         return null;
       })(),
     );
@@ -759,16 +746,10 @@ class Validity {
   final String? from;
   final String? to;
 
-  Validity({
-    this.from,
-    this.to,
-  });
+  Validity({this.from, this.to});
 
   factory Validity.fromJson(Map<String, dynamic> json) {
-    return Validity(
-      from: json['from'],
-      to: json['to'],
-    );
+    return Validity(from: json['from'], to: json['to']);
   }
 }
 
@@ -777,18 +758,16 @@ class Interchange {
   final String? desc;
   final int? type;
 
-  Interchange({
-    this.coords,
-    this.desc,
-    this.type,
-  });
+  Interchange({this.coords, this.desc, this.type});
 
   factory Interchange.fromJson(Map<String, dynamic> json) {
     return Interchange(
       coords: (json['coords'] as List<dynamic>?)
-          ?.map((coord) => (coord as List<dynamic>)
-              .map((c) => (c as num).toDouble())
-              .toList())
+          ?.map(
+            (coord) => (coord as List<dynamic>)
+                .map((c) => (c as num).toDouble())
+                .toList(),
+          )
           .toList(),
       desc: json['desc'],
       type: json['type'],
@@ -915,10 +894,12 @@ class Transportation {
       id: json['id'],
       name: json['name'],
       number: json['number'],
-      operator:
-          json['operator'] != null ? Operator.fromJson(json['operator']) : null,
-      product:
-          json['product'] != null ? Product.fromJson(json['product']) : null,
+      operator: json['operator'] != null
+          ? Operator.fromJson(json['operator'])
+          : null,
+      product: json['product'] != null
+          ? Product.fromJson(json['product'])
+          : null,
       properties: json['properties'] != null
           ? TransportationProperties.fromJson(json['properties'])
           : null,
@@ -931,16 +912,10 @@ class TransportationDestination {
   final String? id;
   final String? name;
 
-  TransportationDestination({
-    this.id,
-    this.name,
-  });
+  TransportationDestination({this.id, this.name});
 
   factory TransportationDestination.fromJson(Map<String, dynamic> json) {
-    return TransportationDestination(
-      id: json['id'],
-      name: json['name'],
-    );
+    return TransportationDestination(id: json['id'], name: json['name']);
   }
 }
 
@@ -948,16 +923,10 @@ class Operator {
   final String? id;
   final String? name;
 
-  Operator({
-    this.id,
-    this.name,
-  });
+  Operator({this.id, this.name});
 
   factory Operator.fromJson(Map<String, dynamic> json) {
-    return Operator(
-      id: json['id'],
-      name: json['name'],
-    );
+    return Operator(id: json['id'], name: json['name']);
   }
 }
 
@@ -966,11 +935,7 @@ class Product {
   final int? iconId;
   final String? name;
 
-  Product({
-    this.classField,
-    this.iconId,
-    this.name,
-  });
+  Product({this.classField, this.iconId, this.name});
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
@@ -985,10 +950,7 @@ class TransportationProperties {
   final bool? isTTB;
   final int? tripCode;
 
-  TransportationProperties({
-    this.isTTB,
-    this.tripCode,
-  });
+  TransportationProperties({this.isTTB, this.tripCode});
 
   factory TransportationProperties.fromJson(Map<String, dynamic> json) {
     return TransportationProperties(
@@ -1001,17 +963,16 @@ class TransportationProperties {
 class SystemMessages {
   final List<ResponseMessage>? responseMessages;
 
-  SystemMessages({
-    this.responseMessages,
-  });
+  SystemMessages({this.responseMessages});
 
   factory SystemMessages.fromJson(Object json) {
     // If json is a List, treat it as the list of messages directly
     if (json is List) {
       // systemMessages is a List, using as responseMessages
       return SystemMessages(
-        responseMessages:
-            json.map((msg) => ResponseMessage.fromJson(msg)).toList(),
+        responseMessages: json
+            .map((msg) => ResponseMessage.fromJson(msg))
+            .toList(),
       );
     }
     // If json is a Map and has responseMessages, use that

@@ -101,18 +101,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _navigateToRealtimeMap(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const RealtimeMapWidget(),
-      ),
+      MaterialPageRoute(builder: (context) => const RealtimeMapWidget()),
     );
   }
 
   void _navigateToSetHomeStop(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const SetHomeStopScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const SetHomeStopScreen()),
     );
   }
 
@@ -123,7 +119,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Settings & Management'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         foregroundColor: getContrastingForeground(
-            Theme.of(context).colorScheme.inversePrimary),
+          Theme.of(context).colorScheme.inversePrimary,
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -299,9 +296,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Row(
                         children: [
                           SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2)),
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                           SizedBox(width: 8),
                           Text('Updating...'),
                         ],
@@ -334,7 +332,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 8),
                     if (_stopsUpdated > 0 || _realtimeFeedsUpdated > 0)
                       Text(
-                          'Stops updated: $_stopsUpdated • Realtime feeds updated: $_realtimeFeedsUpdated'),
+                        'Stops updated: $_stopsUpdated • Realtime feeds updated: $_realtimeFeedsUpdated',
+                      ),
                     if (_updateStatus != null &&
                         _updateStatus!.isNotEmpty &&
                         !_isUpdating)
@@ -364,8 +363,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 if (!mounted) return;
                                 messenger.showSnackBar(
                                   const SnackBar(
-                                    content:
-                                        Text('Database reset successfully'),
+                                    content: Text(
+                                      'Database reset successfully',
+                                    ),
                                     backgroundColor: Colors.green,
                                   ),
                                 );

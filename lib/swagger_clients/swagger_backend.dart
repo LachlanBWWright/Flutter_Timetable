@@ -18,7 +18,8 @@ Future<chopper.ChopperClient> createChopperClient({
       apiKeyFromArg ?? dotenv.env['API_KEY'] ?? dotenv.env['TRANSPORT_API_KEY'];
 
   final baseFromArg = baseUrl;
-  final baseFromEnv = baseFromArg ??
+  final baseFromEnv =
+      baseFromArg ??
       dotenv.env['API_BASE_URL'] ??
       Platform.environment['API_BASE_URL'] ??
       _defaultRealtimeBase;
@@ -28,9 +29,15 @@ Future<chopper.ChopperClient> createChopperClient({
   final interceptors = <chopper.Interceptor>[];
   if (apiKeyFromEnv != null && apiKeyFromEnv.isNotEmpty) {
     interceptors.add(
-        chopper.HeadersInterceptor({'Authorization': 'apikey $apiKeyFromEnv', 'accept': 'application/x-protobuf'}));
+      chopper.HeadersInterceptor({
+        'Authorization': 'apikey $apiKeyFromEnv',
+        'accept': 'application/x-protobuf',
+      }),
+    );
   } else {
-    interceptors.add(chopper.HeadersInterceptor({'accept': 'application/x-protobuf'}));
+    interceptors.add(
+      chopper.HeadersInterceptor({'accept': 'application/x-protobuf'}),
+    );
   }
 
   final created = chopper.ChopperClient(

@@ -12,7 +12,8 @@ class ProtobufConverter implements chopper.Converter {
 
   @override
   FutureOr<chopper.Response<BodyType>> convertResponse<BodyType, InnerType>(
-      chopper.Response response) {
+    chopper.Response response,
+  ) {
     if (response.bodyBytes.isNotEmpty) {
       final archive = ZipDecoder().decodeBytes(response.bodyBytes);
       final file = archive.files.first;

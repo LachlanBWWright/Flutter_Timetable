@@ -83,7 +83,8 @@ class _NewTripScreenState extends State<NewTripScreen>
       await _applySorting();
 
       // Check if any stops were loaded, show helpful message if not
-      final hasAnyStops = _trainStationList.isNotEmpty ||
+      final hasAnyStops =
+          _trainStationList.isNotEmpty ||
           _busStationList.isNotEmpty ||
           _ferryStationList.isNotEmpty ||
           _lightRailStationList.isNotEmpty ||
@@ -103,9 +104,9 @@ class _NewTripScreenState extends State<NewTripScreen>
     } catch (e) {
       // Error loading stations from DB
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading stations: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading stations: $e')));
         setState(() {
           _isLoading = false;
         });
@@ -221,9 +222,9 @@ class _NewTripScreenState extends State<NewTripScreen>
       if (error != null) {
         // Show error and keep alphabetical sorting
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error)));
         }
         setState(() {
           _sortMode = SortMode.alphabetical;
@@ -262,17 +263,19 @@ class _NewTripScreenState extends State<NewTripScreen>
     if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
       // Attempting to save trip
       try {
-        await _db.insertJourney(JourneysCompanion(
-          origin: drift.Value(_firstStation),
-          originId: drift.Value(_firstStationId),
-          destination: drift.Value(_secondStation),
-          destinationId: drift.Value(_secondStationId),
-        ));
+        await _db.insertJourney(
+          JourneysCompanion(
+            origin: drift.Value(_firstStation),
+            originId: drift.Value(_firstStationId),
+            destination: drift.Value(_secondStation),
+            destinationId: drift.Value(_secondStationId),
+          ),
+        );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Trip saved.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Trip saved.')));
           setState(() {
             _firstStation = '';
             _firstStationId = '';
@@ -434,8 +437,10 @@ class _NewTripScreenState extends State<NewTripScreen>
       displayList = baseList;
     } else {
       displayList = baseList
-          .where((station) =>
-              station.name.toLowerCase().contains(query.toLowerCase()))
+          .where(
+            (station) =>
+                station.name.toLowerCase().contains(query.toLowerCase()),
+          )
           .toList();
     }
 

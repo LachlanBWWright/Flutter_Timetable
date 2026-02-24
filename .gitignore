@@ -53,3 +53,5 @@ app.*.map.json
 
 # CMake build artifacts
 /android/app/.cxx/
+wget-log
+.env

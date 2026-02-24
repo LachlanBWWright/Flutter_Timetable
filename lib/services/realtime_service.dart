@@ -12,21 +12,26 @@ class RealtimeService {
   /// intentionally uses the enum as the key instead of string feed keys so
   /// callers can rely on typed mode values.
   static Future<Map<TransportMode, FeedMessage?>>
-      getAllRealtimePositions() async {
+  getAllRealtimePositions() async {
     final results = <TransportMode, FeedMessage?>{};
 
     // Use the typed wrappers which map a broad TransportMode to a
     // canonical feed key and fetch function.
-    results[TransportMode.train] =
-        await getPositionsForTransportMode(TransportMode.train);
-    results[TransportMode.metro] =
-        await getPositionsForTransportMode(TransportMode.metro);
-    results[TransportMode.bus] =
-        await getPositionsForTransportMode(TransportMode.bus);
-    results[TransportMode.lightrail] =
-        await getPositionsForTransportMode(TransportMode.lightrail);
-    results[TransportMode.ferry] =
-        await getPositionsForTransportMode(TransportMode.ferry);
+    results[TransportMode.train] = await getPositionsForTransportMode(
+      TransportMode.train,
+    );
+    results[TransportMode.metro] = await getPositionsForTransportMode(
+      TransportMode.metro,
+    );
+    results[TransportMode.bus] = await getPositionsForTransportMode(
+      TransportMode.bus,
+    );
+    results[TransportMode.lightrail] = await getPositionsForTransportMode(
+      TransportMode.lightrail,
+    );
+    results[TransportMode.ferry] = await getPositionsForTransportMode(
+      TransportMode.ferry,
+    );
 
     return results;
   }
@@ -36,19 +41,24 @@ class RealtimeService {
   /// Returns a map keyed by [TransportMode] with the canonical feed
   /// [FeedMessage] for each broad mode.
   static Future<Map<TransportMode, FeedMessage?>>
-      getAllRealtimeUpdates() async {
+  getAllRealtimeUpdates() async {
     final results = <TransportMode, FeedMessage?>{};
 
-    results[TransportMode.train] =
-        await getUpdatesForTransportMode(TransportMode.train);
-    results[TransportMode.metro] =
-        await getUpdatesForTransportMode(TransportMode.metro);
-    results[TransportMode.bus] =
-        await getUpdatesForTransportMode(TransportMode.bus);
-    results[TransportMode.lightrail] =
-        await getUpdatesForTransportMode(TransportMode.lightrail);
-    results[TransportMode.ferry] =
-        await getUpdatesForTransportMode(TransportMode.ferry);
+    results[TransportMode.train] = await getUpdatesForTransportMode(
+      TransportMode.train,
+    );
+    results[TransportMode.metro] = await getUpdatesForTransportMode(
+      TransportMode.metro,
+    );
+    results[TransportMode.bus] = await getUpdatesForTransportMode(
+      TransportMode.bus,
+    );
+    results[TransportMode.lightrail] = await getUpdatesForTransportMode(
+      TransportMode.lightrail,
+    );
+    results[TransportMode.ferry] = await getUpdatesForTransportMode(
+      TransportMode.ferry,
+    );
 
     return results;
   }
@@ -57,7 +67,8 @@ class RealtimeService {
   /// enum to a sensible canonical feed key and delegates to the existing
   /// string-based API to preserve existing feed selection logic.
   static Future<FeedMessage?> getPositionsForTransportMode(
-      TransportMode mode) async {
+    TransportMode mode,
+  ) async {
     switch (mode) {
       case TransportMode.train:
         return await positions.fetchSydneyTrainsPositions();
@@ -74,7 +85,8 @@ class RealtimeService {
 
   /// Typed wrapper: get trip updates for a broad TransportMode.
   static Future<FeedMessage?> getUpdatesForTransportMode(
-      TransportMode mode) async {
+    TransportMode mode,
+  ) async {
     switch (mode) {
       case TransportMode.train:
         return await updates.fetchSydneyTrainsUpdates();
@@ -143,7 +155,7 @@ class RealtimeService {
   /// list along with a breakdown of counts per feed group to aid debugging.
   static Future<Map<String, dynamic>> getAllVehiclePositionsAggregated({
     Future<Map<TransportMode, FeedMessage?>> Function()?
-        getAllPositionsOverride,
+    getAllPositionsOverride,
     Future<List<FeedMessage?>> Function()? getRegionBusesOverride,
     Future<List<FeedMessage?>> Function()? getAllFerriesOverride,
     Future<List<FeedMessage?>> Function()? getAllLightRailOverride,
@@ -207,15 +219,12 @@ class RealtimeService {
       if (!unique.containsKey(key)) unique[key] = v;
     }
 
-    return {
-      'vehicles': unique.values.toList(),
-      'breakdown': breakdown,
-    };
+    return {'vehicles': unique.values.toList(), 'breakdown': breakdown};
   }
 
   /// Get realtime status summary
   static Future<Map<TransportMode, Map<String, dynamic>>>
-      getRealtimeStatusSummary() async {
+  getRealtimeStatusSummary() async {
     // Build summary by fetching positions and updates for each broad TransportMode
     final modes = <TransportMode>[
       TransportMode.train,

@@ -11,92 +11,140 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
   static const VerificationMeta _originMeta = const VerificationMeta('origin');
   @override
   late final GeneratedColumn<String> origin = GeneratedColumn<String>(
-      'origin', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _originIdMeta =
-      const VerificationMeta('originId');
+    'origin',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originIdMeta = const VerificationMeta(
+    'originId',
+  );
   @override
   late final GeneratedColumn<String> originId = GeneratedColumn<String>(
-      'origin_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _destinationMeta =
-      const VerificationMeta('destination');
+    'origin_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _destinationMeta = const VerificationMeta(
+    'destination',
+  );
   @override
   late final GeneratedColumn<String> destination = GeneratedColumn<String>(
-      'destination', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _destinationIdMeta =
-      const VerificationMeta('destinationId');
+    'destination',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _destinationIdMeta = const VerificationMeta(
+    'destinationId',
+  );
   @override
   late final GeneratedColumn<String> destinationId = GeneratedColumn<String>(
-      'destination_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _isPinnedMeta =
-      const VerificationMeta('isPinned');
+    'destination_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isPinnedMeta = const VerificationMeta(
+    'isPinned',
+  );
   @override
   late final GeneratedColumn<bool> isPinned = GeneratedColumn<bool>(
-      'is_pinned', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_pinned" IN (0, 1))'),
-      defaultValue: const Constant(false));
+    'is_pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, origin, originId, destination, destinationId, isPinned];
+  List<GeneratedColumn> get $columns => [
+    id,
+    origin,
+    originId,
+    destination,
+    destinationId,
+    isPinned,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'journeys';
   @override
-  VerificationContext validateIntegrity(Insertable<Journey> instance,
-      {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<Journey> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('origin')) {
-      context.handle(_originMeta,
-          origin.isAcceptableOrUnknown(data['origin']!, _originMeta));
+      context.handle(
+        _originMeta,
+        origin.isAcceptableOrUnknown(data['origin']!, _originMeta),
+      );
     } else if (isInserting) {
       context.missing(_originMeta);
     }
     if (data.containsKey('origin_id')) {
-      context.handle(_originIdMeta,
-          originId.isAcceptableOrUnknown(data['origin_id']!, _originIdMeta));
+      context.handle(
+        _originIdMeta,
+        originId.isAcceptableOrUnknown(data['origin_id']!, _originIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_originIdMeta);
     }
     if (data.containsKey('destination')) {
       context.handle(
+        _destinationMeta,
+        destination.isAcceptableOrUnknown(
+          data['destination']!,
           _destinationMeta,
-          destination.isAcceptableOrUnknown(
-              data['destination']!, _destinationMeta));
+        ),
+      );
     } else if (isInserting) {
       context.missing(_destinationMeta);
     }
     if (data.containsKey('destination_id')) {
       context.handle(
+        _destinationIdMeta,
+        destinationId.isAcceptableOrUnknown(
+          data['destination_id']!,
           _destinationIdMeta,
-          destinationId.isAcceptableOrUnknown(
-              data['destination_id']!, _destinationIdMeta));
+        ),
+      );
     } else if (isInserting) {
       context.missing(_destinationIdMeta);
     }
     if (data.containsKey('is_pinned')) {
-      context.handle(_isPinnedMeta,
-          isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta));
+      context.handle(
+        _isPinnedMeta,
+        isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta),
+      );
     }
     return context;
   }
@@ -107,18 +155,30 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
   Journey map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Journey(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
-      origin: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}origin'])!,
-      originId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}origin_id'])!,
-      destination: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}destination'])!,
-      destinationId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}destination_id'])!,
-      isPinned: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_pinned'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      origin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin'],
+      )!,
+      originId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin_id'],
+      )!,
+      destination: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}destination'],
+      )!,
+      destinationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}destination_id'],
+      )!,
+      isPinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_pinned'],
+      )!,
     );
   }
 
@@ -135,13 +195,14 @@ class Journey extends DataClass implements Insertable<Journey> {
   final String destination;
   final String destinationId;
   final bool isPinned;
-  const Journey(
-      {required this.id,
-      required this.origin,
-      required this.originId,
-      required this.destination,
-      required this.destinationId,
-      required this.isPinned});
+  const Journey({
+    required this.id,
+    required this.origin,
+    required this.originId,
+    required this.destination,
+    required this.destinationId,
+    required this.isPinned,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -165,8 +226,10 @@ class Journey extends DataClass implements Insertable<Journey> {
     );
   }
 
-  factory Journey.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
+  factory Journey.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Journey(
       id: serializer.fromJson<int>(json['id']),
@@ -190,28 +253,29 @@ class Journey extends DataClass implements Insertable<Journey> {
     };
   }
 
-  Journey copyWith(
-          {int? id,
-          String? origin,
-          String? originId,
-          String? destination,
-          String? destinationId,
-          bool? isPinned}) =>
-      Journey(
-        id: id ?? this.id,
-        origin: origin ?? this.origin,
-        originId: originId ?? this.originId,
-        destination: destination ?? this.destination,
-        destinationId: destinationId ?? this.destinationId,
-        isPinned: isPinned ?? this.isPinned,
-      );
+  Journey copyWith({
+    int? id,
+    String? origin,
+    String? originId,
+    String? destination,
+    String? destinationId,
+    bool? isPinned,
+  }) => Journey(
+    id: id ?? this.id,
+    origin: origin ?? this.origin,
+    originId: originId ?? this.originId,
+    destination: destination ?? this.destination,
+    destinationId: destinationId ?? this.destinationId,
+    isPinned: isPinned ?? this.isPinned,
+  );
   Journey copyWithCompanion(JourneysCompanion data) {
     return Journey(
       id: data.id.present ? data.id.value : this.id,
       origin: data.origin.present ? data.origin.value : this.origin,
       originId: data.originId.present ? data.originId.value : this.originId,
-      destination:
-          data.destination.present ? data.destination.value : this.destination,
+      destination: data.destination.present
+          ? data.destination.value
+          : this.destination,
       destinationId: data.destinationId.present
           ? data.destinationId.value
           : this.destinationId,
@@ -269,10 +333,10 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     required String destination,
     required String destinationId,
     this.isPinned = const Value.absent(),
-  })  : origin = Value(origin),
-        originId = Value(originId),
-        destination = Value(destination),
-        destinationId = Value(destinationId);
+  }) : origin = Value(origin),
+       originId = Value(originId),
+       destination = Value(destination),
+       destinationId = Value(destinationId);
   static Insertable<Journey> custom({
     Expression<int>? id,
     Expression<String>? origin,
@@ -291,13 +355,14 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     });
   }
 
-  JourneysCompanion copyWith(
-      {Value<int>? id,
-      Value<String>? origin,
-      Value<String>? originId,
-      Value<String>? destination,
-      Value<String>? destinationId,
-      Value<bool>? isPinned}) {
+  JourneysCompanion copyWith({
+    Value<int>? id,
+    Value<String>? origin,
+    Value<String>? originId,
+    Value<String>? destination,
+    Value<String>? destinationId,
+    Value<bool>? isPinned,
+  }) {
     return JourneysCompanion(
       id: id ?? this.id,
       origin: origin ?? this.origin,
@@ -354,125 +419,192 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
   static const VerificationMeta _stopIdMeta = const VerificationMeta('stopId');
   @override
   late final GeneratedColumn<String> stopId = GeneratedColumn<String>(
-      'stop_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _stopNameMeta =
-      const VerificationMeta('stopName');
+    'stop_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopNameMeta = const VerificationMeta(
+    'stopName',
+  );
   @override
   late final GeneratedColumn<String> stopName = GeneratedColumn<String>(
-      'stop_name', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _stopLatMeta =
-      const VerificationMeta('stopLat');
+    'stop_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopLatMeta = const VerificationMeta(
+    'stopLat',
+  );
   @override
   late final GeneratedColumn<double> stopLat = GeneratedColumn<double>(
-      'stop_lat', aliasedName, true,
-      type: DriftSqlType.double, requiredDuringInsert: false);
-  static const VerificationMeta _stopLonMeta =
-      const VerificationMeta('stopLon');
+    'stop_lat',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopLonMeta = const VerificationMeta(
+    'stopLon',
+  );
   @override
   late final GeneratedColumn<double> stopLon = GeneratedColumn<double>(
-      'stop_lon', aliasedName, true,
-      type: DriftSqlType.double, requiredDuringInsert: false);
-  static const VerificationMeta _locationTypeMeta =
-      const VerificationMeta('locationType');
+    'stop_lon',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _locationTypeMeta = const VerificationMeta(
+    'locationType',
+  );
   @override
   late final GeneratedColumn<int> locationType = GeneratedColumn<int>(
-      'location_type', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _parentStationMeta =
-      const VerificationMeta('parentStation');
+    'location_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _parentStationMeta = const VerificationMeta(
+    'parentStation',
+  );
   @override
   late final GeneratedColumn<String> parentStation = GeneratedColumn<String>(
-      'parent_station', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
+    'parent_station',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _wheelchairBoardingMeta =
       const VerificationMeta('wheelchairBoarding');
   @override
   late final GeneratedColumn<int> wheelchairBoarding = GeneratedColumn<int>(
-      'wheelchair_boarding', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _platformCodeMeta =
-      const VerificationMeta('platformCode');
+    'wheelchair_boarding',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _platformCodeMeta = const VerificationMeta(
+    'platformCode',
+  );
   @override
   late final GeneratedColumn<String> platformCode = GeneratedColumn<String>(
-      'platform_code', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _endpointMeta =
-      const VerificationMeta('endpoint');
+    'platform_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endpointMeta = const VerificationMeta(
+    'endpoint',
+  );
   @override
   late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
-      'endpoint', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+    'endpoint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   @override
   List<GeneratedColumn> get $columns => [
-        stopId,
-        stopName,
-        stopLat,
-        stopLon,
-        locationType,
-        parentStation,
-        wheelchairBoarding,
-        platformCode,
-        endpoint
-      ];
+    stopId,
+    stopName,
+    stopLat,
+    stopLon,
+    locationType,
+    parentStation,
+    wheelchairBoarding,
+    platformCode,
+    endpoint,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'stops';
   @override
-  VerificationContext validateIntegrity(Insertable<Stop> instance,
-      {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<Stop> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('stop_id')) {
-      context.handle(_stopIdMeta,
-          stopId.isAcceptableOrUnknown(data['stop_id']!, _stopIdMeta));
+      context.handle(
+        _stopIdMeta,
+        stopId.isAcceptableOrUnknown(data['stop_id']!, _stopIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_stopIdMeta);
     }
     if (data.containsKey('stop_name')) {
-      context.handle(_stopNameMeta,
-          stopName.isAcceptableOrUnknown(data['stop_name']!, _stopNameMeta));
+      context.handle(
+        _stopNameMeta,
+        stopName.isAcceptableOrUnknown(data['stop_name']!, _stopNameMeta),
+      );
     } else if (isInserting) {
       context.missing(_stopNameMeta);
     }
     if (data.containsKey('stop_lat')) {
-      context.handle(_stopLatMeta,
-          stopLat.isAcceptableOrUnknown(data['stop_lat']!, _stopLatMeta));
+      context.handle(
+        _stopLatMeta,
+        stopLat.isAcceptableOrUnknown(data['stop_lat']!, _stopLatMeta),
+      );
     }
     if (data.containsKey('stop_lon')) {
-      context.handle(_stopLonMeta,
-          stopLon.isAcceptableOrUnknown(data['stop_lon']!, _stopLonMeta));
+      context.handle(
+        _stopLonMeta,
+        stopLon.isAcceptableOrUnknown(data['stop_lon']!, _stopLonMeta),
+      );
     }
     if (data.containsKey('location_type')) {
       context.handle(
+        _locationTypeMeta,
+        locationType.isAcceptableOrUnknown(
+          data['location_type']!,
           _locationTypeMeta,
-          locationType.isAcceptableOrUnknown(
-              data['location_type']!, _locationTypeMeta));
+        ),
+      );
     }
     if (data.containsKey('parent_station')) {
       context.handle(
+        _parentStationMeta,
+        parentStation.isAcceptableOrUnknown(
+          data['parent_station']!,
           _parentStationMeta,
-          parentStation.isAcceptableOrUnknown(
-              data['parent_station']!, _parentStationMeta));
+        ),
+      );
     }
     if (data.containsKey('wheelchair_boarding')) {
       context.handle(
+        _wheelchairBoardingMeta,
+        wheelchairBoarding.isAcceptableOrUnknown(
+          data['wheelchair_boarding']!,
           _wheelchairBoardingMeta,
-          wheelchairBoarding.isAcceptableOrUnknown(
-              data['wheelchair_boarding']!, _wheelchairBoardingMeta));
+        ),
+      );
     }
     if (data.containsKey('platform_code')) {
       context.handle(
+        _platformCodeMeta,
+        platformCode.isAcceptableOrUnknown(
+          data['platform_code']!,
           _platformCodeMeta,
-          platformCode.isAcceptableOrUnknown(
-              data['platform_code']!, _platformCodeMeta));
+        ),
+      );
     }
     if (data.containsKey('endpoint')) {
-      context.handle(_endpointMeta,
-          endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta));
+      context.handle(
+        _endpointMeta,
+        endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta),
+      );
     } else if (isInserting) {
       context.missing(_endpointMeta);
     }
@@ -485,24 +617,42 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
   Stop map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Stop(
-      stopId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}stop_id'])!,
-      stopName: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}stop_name'])!,
-      stopLat: attachedDatabase.typeMapping
-          .read(DriftSqlType.double, data['${effectivePrefix}stop_lat']),
-      stopLon: attachedDatabase.typeMapping
-          .read(DriftSqlType.double, data['${effectivePrefix}stop_lon']),
-      locationType: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}location_type']),
-      parentStation: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}parent_station']),
+      stopId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_id'],
+      )!,
+      stopName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_name'],
+      )!,
+      stopLat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}stop_lat'],
+      ),
+      stopLon: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}stop_lon'],
+      ),
+      locationType: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}location_type'],
+      ),
+      parentStation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_station'],
+      ),
       wheelchairBoarding: attachedDatabase.typeMapping.read(
-          DriftSqlType.int, data['${effectivePrefix}wheelchair_boarding']),
-      platformCode: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}platform_code']),
-      endpoint: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}endpoint'])!,
+        DriftSqlType.int,
+        data['${effectivePrefix}wheelchair_boarding'],
+      ),
+      platformCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform_code'],
+      ),
+      endpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endpoint'],
+      )!,
     );
   }
 
@@ -522,16 +672,17 @@ class Stop extends DataClass implements Insertable<Stop> {
   final int? wheelchairBoarding;
   final String? platformCode;
   final String endpoint;
-  const Stop(
-      {required this.stopId,
-      required this.stopName,
-      this.stopLat,
-      this.stopLon,
-      this.locationType,
-      this.parentStation,
-      this.wheelchairBoarding,
-      this.platformCode,
-      required this.endpoint});
+  const Stop({
+    required this.stopId,
+    required this.stopName,
+    this.stopLat,
+    this.stopLon,
+    this.locationType,
+    this.parentStation,
+    this.wheelchairBoarding,
+    this.platformCode,
+    required this.endpoint,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -585,8 +736,10 @@ class Stop extends DataClass implements Insertable<Stop> {
     );
   }
 
-  factory Stop.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
+  factory Stop.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Stop(
       stopId: serializer.fromJson<String>(json['stopId']),
@@ -616,32 +769,31 @@ class Stop extends DataClass implements Insertable<Stop> {
     };
   }
 
-  Stop copyWith(
-          {String? stopId,
-          String? stopName,
-          Value<double?> stopLat = const Value.absent(),
-          Value<double?> stopLon = const Value.absent(),
-          Value<int?> locationType = const Value.absent(),
-          Value<String?> parentStation = const Value.absent(),
-          Value<int?> wheelchairBoarding = const Value.absent(),
-          Value<String?> platformCode = const Value.absent(),
-          String? endpoint}) =>
-      Stop(
-        stopId: stopId ?? this.stopId,
-        stopName: stopName ?? this.stopName,
-        stopLat: stopLat.present ? stopLat.value : this.stopLat,
-        stopLon: stopLon.present ? stopLon.value : this.stopLon,
-        locationType:
-            locationType.present ? locationType.value : this.locationType,
-        parentStation:
-            parentStation.present ? parentStation.value : this.parentStation,
-        wheelchairBoarding: wheelchairBoarding.present
-            ? wheelchairBoarding.value
-            : this.wheelchairBoarding,
-        platformCode:
-            platformCode.present ? platformCode.value : this.platformCode,
-        endpoint: endpoint ?? this.endpoint,
-      );
+  Stop copyWith({
+    String? stopId,
+    String? stopName,
+    Value<double?> stopLat = const Value.absent(),
+    Value<double?> stopLon = const Value.absent(),
+    Value<int?> locationType = const Value.absent(),
+    Value<String?> parentStation = const Value.absent(),
+    Value<int?> wheelchairBoarding = const Value.absent(),
+    Value<String?> platformCode = const Value.absent(),
+    String? endpoint,
+  }) => Stop(
+    stopId: stopId ?? this.stopId,
+    stopName: stopName ?? this.stopName,
+    stopLat: stopLat.present ? stopLat.value : this.stopLat,
+    stopLon: stopLon.present ? stopLon.value : this.stopLon,
+    locationType: locationType.present ? locationType.value : this.locationType,
+    parentStation: parentStation.present
+        ? parentStation.value
+        : this.parentStation,
+    wheelchairBoarding: wheelchairBoarding.present
+        ? wheelchairBoarding.value
+        : this.wheelchairBoarding,
+    platformCode: platformCode.present ? platformCode.value : this.platformCode,
+    endpoint: endpoint ?? this.endpoint,
+  );
   Stop copyWithCompanion(StopsCompanion data) {
     return Stop(
       stopId: data.stopId.present ? data.stopId.value : this.stopId,
@@ -681,8 +833,17 @@ class Stop extends DataClass implements Insertable<Stop> {
   }
 
   @override
-  int get hashCode => Object.hash(stopId, stopName, stopLat, stopLon,
-      locationType, parentStation, wheelchairBoarding, platformCode, endpoint);
+  int get hashCode => Object.hash(
+    stopId,
+    stopName,
+    stopLat,
+    stopLon,
+    locationType,
+    parentStation,
+    wheelchairBoarding,
+    platformCode,
+    endpoint,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -732,9 +893,9 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     this.platformCode = const Value.absent(),
     required String endpoint,
     this.rowid = const Value.absent(),
-  })  : stopId = Value(stopId),
-        stopName = Value(stopName),
-        endpoint = Value(endpoint);
+  }) : stopId = Value(stopId),
+       stopName = Value(stopName),
+       endpoint = Value(endpoint);
   static Insertable<Stop> custom({
     Expression<String>? stopId,
     Expression<String>? stopName,
@@ -761,17 +922,18 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     });
   }
 
-  StopsCompanion copyWith(
-      {Value<String>? stopId,
-      Value<String>? stopName,
-      Value<double?>? stopLat,
-      Value<double?>? stopLon,
-      Value<int?>? locationType,
-      Value<String?>? parentStation,
-      Value<int?>? wheelchairBoarding,
-      Value<String?>? platformCode,
-      Value<String>? endpoint,
-      Value<int>? rowid}) {
+  StopsCompanion copyWith({
+    Value<String>? stopId,
+    Value<String>? stopName,
+    Value<double?>? stopLat,
+    Value<double?>? stopLon,
+    Value<int?>? locationType,
+    Value<String?>? parentStation,
+    Value<int?>? wheelchairBoarding,
+    Value<String?>? platformCode,
+    Value<String>? endpoint,
+    Value<int>? rowid,
+  }) {
     return StopsCompanion(
       stopId: stopId ?? this.stopId,
       stopName: stopName ?? this.stopName,
@@ -852,22 +1014,24 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [journeys, stops];
 }
 
-typedef $$JourneysTableCreateCompanionBuilder = JourneysCompanion Function({
-  Value<int> id,
-  required String origin,
-  required String originId,
-  required String destination,
-  required String destinationId,
-  Value<bool> isPinned,
-});
-typedef $$JourneysTableUpdateCompanionBuilder = JourneysCompanion Function({
-  Value<int> id,
-  Value<String> origin,
-  Value<String> originId,
-  Value<String> destination,
-  Value<String> destinationId,
-  Value<bool> isPinned,
-});
+typedef $$JourneysTableCreateCompanionBuilder =
+    JourneysCompanion Function({
+      Value<int> id,
+      required String origin,
+      required String originId,
+      required String destination,
+      required String destinationId,
+      Value<bool> isPinned,
+    });
+typedef $$JourneysTableUpdateCompanionBuilder =
+    JourneysCompanion Function({
+      Value<int> id,
+      Value<String> origin,
+      Value<String> originId,
+      Value<String> destination,
+      Value<String> destinationId,
+      Value<bool> isPinned,
+    });
 
 class $$JourneysTableFilterComposer
     extends Composer<_$AppDatabase, $JourneysTable> {
@@ -879,22 +1043,34 @@ class $$JourneysTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<int> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get origin => $composableBuilder(
-      column: $table.origin, builder: (column) => ColumnFilters(column));
+    column: $table.origin,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get originId => $composableBuilder(
-      column: $table.originId, builder: (column) => ColumnFilters(column));
+    column: $table.originId,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get destination => $composableBuilder(
-      column: $table.destination, builder: (column) => ColumnFilters(column));
+    column: $table.destination,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get destinationId => $composableBuilder(
-      column: $table.destinationId, builder: (column) => ColumnFilters(column));
+    column: $table.destinationId,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<bool> get isPinned => $composableBuilder(
-      column: $table.isPinned, builder: (column) => ColumnFilters(column));
+    column: $table.isPinned,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$JourneysTableOrderingComposer
@@ -907,23 +1083,34 @@ class $$JourneysTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<int> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get origin => $composableBuilder(
-      column: $table.origin, builder: (column) => ColumnOrderings(column));
+    column: $table.origin,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get originId => $composableBuilder(
-      column: $table.originId, builder: (column) => ColumnOrderings(column));
+    column: $table.originId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get destination => $composableBuilder(
-      column: $table.destination, builder: (column) => ColumnOrderings(column));
+    column: $table.destination,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get destinationId => $composableBuilder(
-      column: $table.destinationId,
-      builder: (column) => ColumnOrderings(column));
+    column: $table.destinationId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<bool> get isPinned => $composableBuilder(
-      column: $table.isPinned, builder: (column) => ColumnOrderings(column));
+    column: $table.isPinned,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$JourneysTableAnnotationComposer
@@ -945,29 +1132,37 @@ class $$JourneysTableAnnotationComposer
       $composableBuilder(column: $table.originId, builder: (column) => column);
 
   GeneratedColumn<String> get destination => $composableBuilder(
-      column: $table.destination, builder: (column) => column);
+    column: $table.destination,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get destinationId => $composableBuilder(
-      column: $table.destinationId, builder: (column) => column);
+    column: $table.destinationId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get isPinned =>
       $composableBuilder(column: $table.isPinned, builder: (column) => column);
 }
 
-class $$JourneysTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $JourneysTable,
-    Journey,
-    $$JourneysTableFilterComposer,
-    $$JourneysTableOrderingComposer,
-    $$JourneysTableAnnotationComposer,
-    $$JourneysTableCreateCompanionBuilder,
-    $$JourneysTableUpdateCompanionBuilder,
-    (Journey, BaseReferences<_$AppDatabase, $JourneysTable, Journey>),
-    Journey,
-    PrefetchHooks Function()> {
+class $$JourneysTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $JourneysTable,
+          Journey,
+          $$JourneysTableFilterComposer,
+          $$JourneysTableOrderingComposer,
+          $$JourneysTableAnnotationComposer,
+          $$JourneysTableCreateCompanionBuilder,
+          $$JourneysTableUpdateCompanionBuilder,
+          (Journey, BaseReferences<_$AppDatabase, $JourneysTable, Journey>),
+          Journey,
+          PrefetchHooks Function()
+        > {
   $$JourneysTableTableManager(_$AppDatabase db, $JourneysTable table)
-      : super(TableManagerState(
+    : super(
+        TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -976,81 +1171,86 @@ class $$JourneysTableTableManager extends RootTableManager<
               $$JourneysTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$JourneysTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<String> origin = const Value.absent(),
-            Value<String> originId = const Value.absent(),
-            Value<String> destination = const Value.absent(),
-            Value<String> destinationId = const Value.absent(),
-            Value<bool> isPinned = const Value.absent(),
-          }) =>
-              JourneysCompanion(
-            id: id,
-            origin: origin,
-            originId: originId,
-            destination: destination,
-            destinationId: destinationId,
-            isPinned: isPinned,
-          ),
-          createCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            required String origin,
-            required String originId,
-            required String destination,
-            required String destinationId,
-            Value<bool> isPinned = const Value.absent(),
-          }) =>
-              JourneysCompanion.insert(
-            id: id,
-            origin: origin,
-            originId: originId,
-            destination: destination,
-            destinationId: destinationId,
-            isPinned: isPinned,
-          ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> origin = const Value.absent(),
+                Value<String> originId = const Value.absent(),
+                Value<String> destination = const Value.absent(),
+                Value<String> destinationId = const Value.absent(),
+                Value<bool> isPinned = const Value.absent(),
+              }) => JourneysCompanion(
+                id: id,
+                origin: origin,
+                originId: originId,
+                destination: destination,
+                destinationId: destinationId,
+                isPinned: isPinned,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String origin,
+                required String originId,
+                required String destination,
+                required String destinationId,
+                Value<bool> isPinned = const Value.absent(),
+              }) => JourneysCompanion.insert(
+                id: id,
+                origin: origin,
+                originId: originId,
+                destination: destination,
+                destinationId: destinationId,
+                isPinned: isPinned,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ));
+        ),
+      );
 }
 
-typedef $$JourneysTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $JourneysTable,
-    Journey,
-    $$JourneysTableFilterComposer,
-    $$JourneysTableOrderingComposer,
-    $$JourneysTableAnnotationComposer,
-    $$JourneysTableCreateCompanionBuilder,
-    $$JourneysTableUpdateCompanionBuilder,
-    (Journey, BaseReferences<_$AppDatabase, $JourneysTable, Journey>),
-    Journey,
-    PrefetchHooks Function()>;
-typedef $$StopsTableCreateCompanionBuilder = StopsCompanion Function({
-  required String stopId,
-  required String stopName,
-  Value<double?> stopLat,
-  Value<double?> stopLon,
-  Value<int?> locationType,
-  Value<String?> parentStation,
-  Value<int?> wheelchairBoarding,
-  Value<String?> platformCode,
-  required String endpoint,
-  Value<int> rowid,
-});
-typedef $$StopsTableUpdateCompanionBuilder = StopsCompanion Function({
-  Value<String> stopId,
-  Value<String> stopName,
-  Value<double?> stopLat,
-  Value<double?> stopLon,
-  Value<int?> locationType,
-  Value<String?> parentStation,
-  Value<int?> wheelchairBoarding,
-  Value<String?> platformCode,
-  Value<String> endpoint,
-  Value<int> rowid,
-});
+typedef $$JourneysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $JourneysTable,
+      Journey,
+      $$JourneysTableFilterComposer,
+      $$JourneysTableOrderingComposer,
+      $$JourneysTableAnnotationComposer,
+      $$JourneysTableCreateCompanionBuilder,
+      $$JourneysTableUpdateCompanionBuilder,
+      (Journey, BaseReferences<_$AppDatabase, $JourneysTable, Journey>),
+      Journey,
+      PrefetchHooks Function()
+    >;
+typedef $$StopsTableCreateCompanionBuilder =
+    StopsCompanion Function({
+      required String stopId,
+      required String stopName,
+      Value<double?> stopLat,
+      Value<double?> stopLon,
+      Value<int?> locationType,
+      Value<String?> parentStation,
+      Value<int?> wheelchairBoarding,
+      Value<String?> platformCode,
+      required String endpoint,
+      Value<int> rowid,
+    });
+typedef $$StopsTableUpdateCompanionBuilder =
+    StopsCompanion Function({
+      Value<String> stopId,
+      Value<String> stopName,
+      Value<double?> stopLat,
+      Value<double?> stopLon,
+      Value<int?> locationType,
+      Value<String?> parentStation,
+      Value<int?> wheelchairBoarding,
+      Value<String?> platformCode,
+      Value<String> endpoint,
+      Value<int> rowid,
+    });
 
 class $$StopsTableFilterComposer extends Composer<_$AppDatabase, $StopsTable> {
   $$StopsTableFilterComposer({
@@ -1061,32 +1261,49 @@ class $$StopsTableFilterComposer extends Composer<_$AppDatabase, $StopsTable> {
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get stopId => $composableBuilder(
-      column: $table.stopId, builder: (column) => ColumnFilters(column));
+    column: $table.stopId,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get stopName => $composableBuilder(
-      column: $table.stopName, builder: (column) => ColumnFilters(column));
+    column: $table.stopName,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<double> get stopLat => $composableBuilder(
-      column: $table.stopLat, builder: (column) => ColumnFilters(column));
+    column: $table.stopLat,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<double> get stopLon => $composableBuilder(
-      column: $table.stopLon, builder: (column) => ColumnFilters(column));
+    column: $table.stopLon,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<int> get locationType => $composableBuilder(
-      column: $table.locationType, builder: (column) => ColumnFilters(column));
+    column: $table.locationType,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get parentStation => $composableBuilder(
-      column: $table.parentStation, builder: (column) => ColumnFilters(column));
+    column: $table.parentStation,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<int> get wheelchairBoarding => $composableBuilder(
-      column: $table.wheelchairBoarding,
-      builder: (column) => ColumnFilters(column));
+    column: $table.wheelchairBoarding,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get platformCode => $composableBuilder(
-      column: $table.platformCode, builder: (column) => ColumnFilters(column));
+    column: $table.platformCode,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get endpoint => $composableBuilder(
-      column: $table.endpoint, builder: (column) => ColumnFilters(column));
+    column: $table.endpoint,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$StopsTableOrderingComposer
@@ -1099,35 +1316,49 @@ class $$StopsTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get stopId => $composableBuilder(
-      column: $table.stopId, builder: (column) => ColumnOrderings(column));
+    column: $table.stopId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get stopName => $composableBuilder(
-      column: $table.stopName, builder: (column) => ColumnOrderings(column));
+    column: $table.stopName,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<double> get stopLat => $composableBuilder(
-      column: $table.stopLat, builder: (column) => ColumnOrderings(column));
+    column: $table.stopLat,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<double> get stopLon => $composableBuilder(
-      column: $table.stopLon, builder: (column) => ColumnOrderings(column));
+    column: $table.stopLon,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<int> get locationType => $composableBuilder(
-      column: $table.locationType,
-      builder: (column) => ColumnOrderings(column));
+    column: $table.locationType,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get parentStation => $composableBuilder(
-      column: $table.parentStation,
-      builder: (column) => ColumnOrderings(column));
+    column: $table.parentStation,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<int> get wheelchairBoarding => $composableBuilder(
-      column: $table.wheelchairBoarding,
-      builder: (column) => ColumnOrderings(column));
+    column: $table.wheelchairBoarding,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get platformCode => $composableBuilder(
-      column: $table.platformCode,
-      builder: (column) => ColumnOrderings(column));
+    column: $table.platformCode,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get endpoint => $composableBuilder(
-      column: $table.endpoint, builder: (column) => ColumnOrderings(column));
+    column: $table.endpoint,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$StopsTableAnnotationComposer
@@ -1152,35 +1383,47 @@ class $$StopsTableAnnotationComposer
       $composableBuilder(column: $table.stopLon, builder: (column) => column);
 
   GeneratedColumn<int> get locationType => $composableBuilder(
-      column: $table.locationType, builder: (column) => column);
+    column: $table.locationType,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get parentStation => $composableBuilder(
-      column: $table.parentStation, builder: (column) => column);
+    column: $table.parentStation,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get wheelchairBoarding => $composableBuilder(
-      column: $table.wheelchairBoarding, builder: (column) => column);
+    column: $table.wheelchairBoarding,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get platformCode => $composableBuilder(
-      column: $table.platformCode, builder: (column) => column);
+    column: $table.platformCode,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get endpoint =>
       $composableBuilder(column: $table.endpoint, builder: (column) => column);
 }
 
-class $$StopsTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $StopsTable,
-    Stop,
-    $$StopsTableFilterComposer,
-    $$StopsTableOrderingComposer,
-    $$StopsTableAnnotationComposer,
-    $$StopsTableCreateCompanionBuilder,
-    $$StopsTableUpdateCompanionBuilder,
-    (Stop, BaseReferences<_$AppDatabase, $StopsTable, Stop>),
-    Stop,
-    PrefetchHooks Function()> {
+class $$StopsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StopsTable,
+          Stop,
+          $$StopsTableFilterComposer,
+          $$StopsTableOrderingComposer,
+          $$StopsTableAnnotationComposer,
+          $$StopsTableCreateCompanionBuilder,
+          $$StopsTableUpdateCompanionBuilder,
+          (Stop, BaseReferences<_$AppDatabase, $StopsTable, Stop>),
+          Stop,
+          PrefetchHooks Function()
+        > {
   $$StopsTableTableManager(_$AppDatabase db, $StopsTable table)
-      : super(TableManagerState(
+    : super(
+        TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -1189,73 +1432,76 @@ class $$StopsTableTableManager extends RootTableManager<
               $$StopsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$StopsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> stopId = const Value.absent(),
-            Value<String> stopName = const Value.absent(),
-            Value<double?> stopLat = const Value.absent(),
-            Value<double?> stopLon = const Value.absent(),
-            Value<int?> locationType = const Value.absent(),
-            Value<String?> parentStation = const Value.absent(),
-            Value<int?> wheelchairBoarding = const Value.absent(),
-            Value<String?> platformCode = const Value.absent(),
-            Value<String> endpoint = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              StopsCompanion(
-            stopId: stopId,
-            stopName: stopName,
-            stopLat: stopLat,
-            stopLon: stopLon,
-            locationType: locationType,
-            parentStation: parentStation,
-            wheelchairBoarding: wheelchairBoarding,
-            platformCode: platformCode,
-            endpoint: endpoint,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String stopId,
-            required String stopName,
-            Value<double?> stopLat = const Value.absent(),
-            Value<double?> stopLon = const Value.absent(),
-            Value<int?> locationType = const Value.absent(),
-            Value<String?> parentStation = const Value.absent(),
-            Value<int?> wheelchairBoarding = const Value.absent(),
-            Value<String?> platformCode = const Value.absent(),
-            required String endpoint,
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              StopsCompanion.insert(
-            stopId: stopId,
-            stopName: stopName,
-            stopLat: stopLat,
-            stopLon: stopLon,
-            locationType: locationType,
-            parentStation: parentStation,
-            wheelchairBoarding: wheelchairBoarding,
-            platformCode: platformCode,
-            endpoint: endpoint,
-            rowid: rowid,
-          ),
+          updateCompanionCallback:
+              ({
+                Value<String> stopId = const Value.absent(),
+                Value<String> stopName = const Value.absent(),
+                Value<double?> stopLat = const Value.absent(),
+                Value<double?> stopLon = const Value.absent(),
+                Value<int?> locationType = const Value.absent(),
+                Value<String?> parentStation = const Value.absent(),
+                Value<int?> wheelchairBoarding = const Value.absent(),
+                Value<String?> platformCode = const Value.absent(),
+                Value<String> endpoint = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StopsCompanion(
+                stopId: stopId,
+                stopName: stopName,
+                stopLat: stopLat,
+                stopLon: stopLon,
+                locationType: locationType,
+                parentStation: parentStation,
+                wheelchairBoarding: wheelchairBoarding,
+                platformCode: platformCode,
+                endpoint: endpoint,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String stopId,
+                required String stopName,
+                Value<double?> stopLat = const Value.absent(),
+                Value<double?> stopLon = const Value.absent(),
+                Value<int?> locationType = const Value.absent(),
+                Value<String?> parentStation = const Value.absent(),
+                Value<int?> wheelchairBoarding = const Value.absent(),
+                Value<String?> platformCode = const Value.absent(),
+                required String endpoint,
+                Value<int> rowid = const Value.absent(),
+              }) => StopsCompanion.insert(
+                stopId: stopId,
+                stopName: stopName,
+                stopLat: stopLat,
+                stopLon: stopLon,
+                locationType: locationType,
+                parentStation: parentStation,
+                wheelchairBoarding: wheelchairBoarding,
+                platformCode: platformCode,
+                endpoint: endpoint,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ));
+        ),
+      );
 }
 
-typedef $$StopsTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $StopsTable,
-    Stop,
-    $$StopsTableFilterComposer,
-    $$StopsTableOrderingComposer,
-    $$StopsTableAnnotationComposer,
-    $$StopsTableCreateCompanionBuilder,
-    $$StopsTableUpdateCompanionBuilder,
-    (Stop, BaseReferences<_$AppDatabase, $StopsTable, Stop>),
-    Stop,
-    PrefetchHooks Function()>;
+typedef $$StopsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StopsTable,
+      Stop,
+      $$StopsTableFilterComposer,
+      $$StopsTableOrderingComposer,
+      $$StopsTableAnnotationComposer,
+      $$StopsTableCreateCompanionBuilder,
+      $$StopsTableUpdateCompanionBuilder,
+      (Stop, BaseReferences<_$AppDatabase, $StopsTable, Stop>),
+      Stop,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;

@@ -214,9 +214,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           ),
           child: Icon(
             Icons.directions_bus,
-            color: TransportModeUtils.getModeColor(
-              transportClassForMarkers,
-            ),
+            color: TransportModeUtils.getModeColor(transportClassForMarkers),
             size: 25,
           ),
         ),
@@ -236,11 +234,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               (coord[0] as num).toDouble(),
               (coord[1] as num).toDouble(),
             ),
-            child: const Icon(
-              Icons.play_arrow,
-              color: Colors.green,
-              size: 25,
-            ),
+            child: const Icon(Icons.play_arrow, color: Colors.green, size: 25),
           ),
         );
       }
@@ -255,11 +249,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               (destCoord[0] as num).toDouble(),
               (destCoord[1] as num).toDouble(),
             ),
-            child: const Icon(
-              Icons.stop,
-              color: Colors.red,
-              size: 25,
-            ),
+            child: const Icon(Icons.stop, color: Colors.red, size: 25),
           ),
         );
       }
@@ -274,18 +264,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       width: double.infinity,
       child: FlutterMap(
         mapController: _mapController,
-        options: MapOptions(
-          initialCenter: _getMapCenter(),
-          initialZoom: 14.0,
-        ),
+        options: MapOptions(initialCenter: _getMapCenter(), initialZoom: 14.0),
         children: [
           TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.example.app',
           ),
-          MarkerLayer(
-            markers: _buildMapMarkers(),
-          ),
+          MarkerLayer(markers: _buildMapMarkers()),
         ],
       ),
     );
@@ -322,7 +307,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           leading: CircleAvatar(
             backgroundColor: isCurrentStop ? Colors.orange : Colors.grey,
             foregroundColor: getContrastingForeground(
-                isCurrentStop ? Colors.orange : Colors.grey),
+              isCurrentStop ? Colors.orange : Colors.grey,
+            ),
             child: Text('${index + 1}'),
           ),
           title: Text(
@@ -338,8 +324,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   departureTimeEstimated != null)
                 Row(
                   children: [
-                    const Icon(Icons.departure_board,
-                        size: 16, color: Colors.green),
+                    const Icon(
+                      Icons.departure_board,
+                      size: 16,
+                      color: Colors.green,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Depart: ${_formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
@@ -448,12 +437,20 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('From: $originName',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text('To: $destinationName',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    'From: $originName',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    'To: $destinationName',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   if (transportName.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
@@ -481,14 +478,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         color: Colors.green.withValues(alpha: .1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.green.withValues(alpha: .3)),
+                          color: Colors.green.withValues(alpha: .3),
+                        ),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.directions_bus,
                             color: TransportModeUtils.getModeColor(
-                                transportClass ?? 5),
+                              transportClass ?? 5,
+                            ),
                             size: 16,
                           ),
                           const SizedBox(width: 8),
@@ -509,9 +508,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  const Text('Stops:',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    'Stops:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -528,7 +528,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: _buildStopCard(
-                        stopSequence[index] as Map<String, dynamic>, index),
+                      stopSequence[index] as Map<String, dynamic>,
+                      index,
+                    ),
                   );
                 },
               )
@@ -537,8 +539,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Card(
                   child: ListTile(
-                    leading:
-                        const Icon(Icons.directions_walk, color: Colors.orange),
+                    leading: const Icon(
+                      Icons.directions_walk,
+                      color: Colors.orange,
+                    ),
                     title: const Text('Walking'),
                     subtitle: Text('Walk from $originName to $destinationName'),
                   ),

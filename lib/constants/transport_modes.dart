@@ -2,13 +2,7 @@
 ///
 /// Contains the five primary modes used by the New Trip screen and other
 /// UI: train, lightrail, metro, bus and ferry.
-enum TransportMode {
-  train,
-  lightrail,
-  metro,
-  bus,
-  ferry,
-}
+enum TransportMode { train, lightrail, metro, bus, ferry }
 
 extension TransportModeExt on TransportMode {
   /// Short identifier (lowercase) matching existing strings used across the app

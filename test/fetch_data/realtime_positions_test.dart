@@ -10,8 +10,7 @@ void main() {
     await dotenv.load();
   });
 
-  test('fetchSydneyTrainsPositions returns valid FeedMessage or null',
-      () async {
+  test('fetchSydneyTrainsPositions returns valid FeedMessage or null', () async {
     final feed = await fetchSydneyTrainsPositions();
     if (feed == null) {
       // logger.d('Sydney Trains: No data or API error');
@@ -104,8 +103,7 @@ void main() {
     }
   });
 
-  test('getAllRegionBuses returns list with valid FeedMessage or null',
-      () async {
+  test('getAllRegionBuses returns list with valid FeedMessage or null', () async {
     final regionBusesFeeds = await getAllRegionBuses();
     expect(regionBusesFeeds.isNotEmpty, true);
     // Flatten if any element is a list

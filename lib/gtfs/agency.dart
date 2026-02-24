@@ -42,15 +42,15 @@ class Agency {
 
   /// Expected CSV header for agency.txt per GTFS specification
   static List<String> expectedCsvHeader() => [
-        'agency_id',
-        'agency_name',
-        'agency_url',
-        'agency_timezone',
-        'agency_lang',
-        'agency_phone',
-        'agency_fare_url',
-        'agency_email',
-      ];
+    'agency_id',
+    'agency_name',
+    'agency_url',
+    'agency_timezone',
+    'agency_lang',
+    'agency_phone',
+    'agency_fare_url',
+    'agency_email',
+  ];
 
   static void validateCsvHeader(List<String> header) {
     // Require presence of required columns per GTFS spec

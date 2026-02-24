@@ -59,16 +59,20 @@ Map<String, String> getHeaders() {
   };
 }
 
-Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
-    {GtfsScheduleVersion version = GtfsScheduleVersion.v1}) async {
+Future<GtfsData?> _fetchGtfsDataFromEndpoint(
+  String endpoint, {
+  GtfsScheduleVersion version = GtfsScheduleVersion.v1,
+}) async {
   try {
     final versionPath = version == GtfsScheduleVersion.v2 ? 'v2' : 'v1';
     final url = Uri.parse(
-        'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule$endpoint');
+      'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule$endpoint',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       logger.e(
-          'Failed to fetch GTFS data for $endpoint (version=$versionPath): ${response.statusCode}, ${response.body}');
+        'Failed to fetch GTFS data for $endpoint (version=$versionPath): ${response.statusCode}, ${response.body}',
+      );
       return null;
     }
     final archive = ZipDecoder().decodeBytes(response.bodyBytes);
@@ -82,12 +86,14 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
     // Debug logging: report how many stops were parsed and sample a few rows
     try {
       logger.i(
-          'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files');
+        'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files',
+      );
       logger.i('stops.txt contains ${data.stops.length} rows');
       for (var i = 0; i < data.stops.length && i < 10; i++) {
         final s = data.stops[i];
         logger.d(
-            'Sample stop[$i]: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}');
+          'Sample stop[$i]: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}',
+        );
       }
       // For buses and ferries, also log a sample of the first 10 routes
       try {
@@ -96,7 +102,8 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
           for (var i = 0; i < data.routes.length && i < 10; i++) {
             final r = data.routes[i];
             logger.d(
-                'Sample route[$i]: id="${r.routeId}", short_name="${r.routeShortName}", long_name="${r.routeLongName}", type=${r.routeType}');
+              'Sample route[$i]: id="${r.routeId}", short_name="${r.routeShortName}", long_name="${r.routeLongName}", type=${r.routeType}',
+            );
           }
         }
       } catch (e) {
@@ -119,12 +126,14 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(String endpoint,
 /// this function now calls the realtime endpoint.
 Future<FeedMessage?> fetchMetroScheduleRealtime() async {
   try {
-    final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro');
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       logger.e(
-          'Failed to fetch Metro realtime: ${response.statusCode}, ${response.body}');
+        'Failed to fetch Metro realtime: ${response.statusCode}, ${response.body}',
+      );
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -138,14 +147,17 @@ Future<FeedMessage?> fetchMetroScheduleRealtime() async {
 /// into a [FeedMessage]. Append the endpoint path (for example '/metro' or
 /// '/sydneytrains') to the base URL when calling.
 Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV1(
-    String endpoint) async {
+  String endpoint,
+) async {
   try {
-    final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v1/gtfs/realtime$endpoint');
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/v1/gtfs/realtime$endpoint',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       logger.e(
-          'Failed to fetch GTFS realtime (v1) for $endpoint: ${response.statusCode}, ${response.body}');
+        'Failed to fetch GTFS realtime (v1) for $endpoint: ${response.statusCode}, ${response.body}',
+      );
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -159,14 +171,17 @@ Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV1(
 /// into a [FeedMessage]. Append the endpoint path (for example '/metro' or
 /// '/sydneytrains') to the base URL when calling.
 Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV2(
-    String endpoint) async {
+  String endpoint,
+) async {
   try {
-    final url =
-        Uri.parse('https://api.transport.nsw.gov.au/v2/gtfs/realtime$endpoint');
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/v2/gtfs/realtime$endpoint',
+    );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
       logger.e(
-          'Failed to fetch GTFS realtime (v2) for $endpoint: ${response.statusCode}, ${response.body}');
+        'Failed to fetch GTFS realtime (v2) for $endpoint: ${response.statusCode}, ${response.body}',
+      );
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
@@ -283,7 +298,8 @@ List<Agency> parseAgencyCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'agency.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'agency.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -294,7 +310,9 @@ List<Agency> parseAgencyCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       Agency.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -306,7 +324,8 @@ List<Calendar> parseCalendarCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'calendar.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'calendar.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -317,7 +336,9 @@ List<Calendar> parseCalendarCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       Calendar.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -329,7 +350,8 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'calendar_dates.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'calendar_dates.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -340,7 +362,9 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       CalendarDate.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -352,7 +376,8 @@ List<Route> parseRoutesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'routes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'routes.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -363,7 +388,9 @@ List<Route> parseRoutesCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       Route.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -377,7 +404,8 @@ List<Stop> parseStopsCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'stops.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'stops.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -388,7 +416,9 @@ List<Stop> parseStopsCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       Stop.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -400,7 +430,8 @@ List<StopTime> parseStopTimesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'stop_times.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'stop_times.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -411,7 +442,9 @@ List<StopTime> parseStopTimesCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       StopTime.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -423,7 +456,8 @@ List<Trip> parseTripsCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'trips.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'trips.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -434,7 +468,9 @@ List<Trip> parseTripsCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       Trip.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -446,7 +482,8 @@ List<Shape> parseShapesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'shapes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'shapes.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -457,7 +494,9 @@ List<Shape> parseShapesCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       Shape.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -469,7 +508,8 @@ List<Note> parseNotesCsv(String csv) {
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
     logger.w(
-        'notes.txt contains less than 2 rows; using fallback empty list; sample="$sample"');
+      'notes.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    );
     return [];
   }
 
@@ -480,7 +520,9 @@ List<Note> parseNotesCsv(String csv) {
   return [
     for (var i = 1; i < rows.length; i++)
       Note.fromCsv(
-          header, rows[i].map((c) => c == null ? '' : c.toString()).toList())
+        header,
+        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
+      ),
   ];
 }
 
@@ -527,15 +569,18 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
   }
 
   try {
-    return CsvToListConverter(shouldParseNumbers: shouldParseNumbers)
-        .convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
+    return CsvToListConverter(
+      shouldParseNumbers: shouldParseNumbers,
+    ).convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
   } catch (e) {
     logger.w(
-        'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e');
+      'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e',
+    );
     // Fallback: try with a simple LF eol
     try {
-      return CsvToListConverter(shouldParseNumbers: shouldParseNumbers)
-          .convert(csv, eol: '\n');
+      return CsvToListConverter(
+        shouldParseNumbers: shouldParseNumbers,
+      ).convert(csv, eol: '\n');
     } catch (e2) {
       logger.w('CSV parsing fallback failed: $e2');
       return [];
@@ -554,23 +599,26 @@ GtfsData parseGtfsFiles(Map<String, String> files) {
     }
   }
   return GtfsData(
-    agencies:
-        files['agency.txt'] != null ? parseAgencyCsv(files['agency.txt']!) : [],
+    agencies: files['agency.txt'] != null
+        ? parseAgencyCsv(files['agency.txt']!)
+        : [],
     calendars: files['calendar.txt'] != null
         ? parseCalendarCsv(files['calendar.txt']!)
         : [],
     calendarDates: files['calendar_dates.txt'] != null
         ? parseCalendarDatesCsv(files['calendar_dates.txt']!)
         : [],
-    routes:
-        files['routes.txt'] != null ? parseRoutesCsv(files['routes.txt']!) : [],
+    routes: files['routes.txt'] != null
+        ? parseRoutesCsv(files['routes.txt']!)
+        : [],
     stops: files['stops.txt'] != null ? parseStopsCsv(files['stops.txt']!) : [],
     stopTimes: files['stop_times.txt'] != null
         ? parseStopTimesCsv(files['stop_times.txt']!)
         : [],
     trips: files['trips.txt'] != null ? parseTripsCsv(files['trips.txt']!) : [],
-    shapes:
-        files['shapes.txt'] != null ? parseShapesCsv(files['shapes.txt']!) : [],
+    shapes: files['shapes.txt'] != null
+        ? parseShapesCsv(files['shapes.txt']!)
+        : [],
     notes: files['notes.txt'] != null ? parseNotesCsv(files['notes.txt']!) : [],
   );
 }

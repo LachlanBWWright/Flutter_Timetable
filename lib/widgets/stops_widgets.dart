@@ -78,8 +78,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         builder: (context) => AlertDialog(
           title: const Text('Update from API'),
           content: const Text(
-              'This will fetch real stops data from all API endpoints and may take several minutes. '
-              'This operation requires a valid API key. Continue?'),
+            'This will fetch real stops data from all API endpoints and may take several minutes. '
+            'This operation requires a valid API key. Continue?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -101,25 +102,29 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         final stream = StopsService.updateAllStopsFromApi();
         late StreamSubscription subscription;
 
-        subscription = stream.listen((progress) {
-          final epLabel = progress.endpoint?.key ?? '';
-          final text =
-              '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
-          // Update dialog text if available
-          dialogSetState?.call(() {
-            dialogMessage = text;
-          });
-        }, onError: (e) {
-          dialogSetState?.call(() {
-            dialogMessage = 'Error: $e';
-          });
-        }, onDone: () async {
-          // Close the dialog when done
-          try {
-            if (mounted) Navigator.of(context, rootNavigator: true).pop();
-          } catch (_) {}
-          await subscription.cancel();
-        });
+        subscription = stream.listen(
+          (progress) {
+            final epLabel = progress.endpoint?.key ?? '';
+            final text =
+                '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
+            // Update dialog text if available
+            dialogSetState?.call(() {
+              dialogMessage = text;
+            });
+          },
+          onError: (e) {
+            dialogSetState?.call(() {
+              dialogMessage = 'Error: $e';
+            });
+          },
+          onDone: () async {
+            // Close the dialog when done
+            try {
+              if (mounted) Navigator.of(context, rootNavigator: true).pop();
+            } catch (_) {}
+            await subscription.cancel();
+          },
+        );
 
         if (!mounted) {
           return;
@@ -130,21 +135,23 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
           context: context,
           barrierDismissible: false,
           builder: (context) {
-            return StatefulBuilder(builder: (context, setState) {
-              dialogSetState = setState;
-              return AlertDialog(
-                title: const Text('Updating stops from API'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 8),
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(dialogMessage),
-                  ],
-                ),
-              );
-            });
+            return StatefulBuilder(
+              builder: (context, setState) {
+                dialogSetState = setState;
+                return AlertDialog(
+                  title: const Text('Updating stops from API'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(dialogMessage),
+                    ],
+                  ),
+                );
+              },
+            );
           },
         );
 
@@ -189,9 +196,10 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       builder: (context) => AlertDialog(
         title: const Text('Wipe Stops Data'),
         content: const Text(
-            'This will permanently delete all stops data from the local database. '
-            'You will need to reload the data from API or placeholders afterwards. '
-            'Continue?'),
+          'This will permanently delete all stops data from the local database. '
+          'You will need to reload the data from API or placeholders afterwards. '
+          'Continue?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -257,10 +265,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               children: [
                 const Text(
                   'Stops Database Management',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh),
@@ -277,22 +282,24 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8.0),
-                border:
-                    Border.all(color: Theme.of(context).colorScheme.outline),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.save,
-                      color: Theme.of(context).colorScheme.primary, size: 32),
+                  Icon(
+                    Icons.save,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 32,
+                  ),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Total Stops: $_totalStops',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
+                        style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: Theme.of(context).colorScheme.onSurface,
@@ -301,10 +308,8 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                       Text(
                         'Endpoints: ${_stopsCount.length}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -374,7 +379,8 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               _buildEndpointsList()
             else
               const Text(
-                  'No stops data found. Load placeholder data to get started.'),
+                'No stops data found. Load placeholder data to get started.',
+              ),
           ],
         ),
       ),
@@ -389,27 +395,28 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       children: [
         const Text(
           'Stops by Transport Mode:',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         ..._stopsByMode.entries.map((group) {
           final TransportMode? modeKey = group.key;
           final endpoints = group.value;
-          final totalCount =
-              endpoints.values.fold(0, (sum, count) => sum + count);
+          final totalCount = endpoints.values.fold(
+            0,
+            (sum, count) => sum + count,
+          );
 
           final displayName = (() {
             if (modeKey != null) {
               // For buses we preserve the distinction between city and regional
               // when the endpoints are exclusively one or the other.
               if (modeKey == TransportMode.bus) {
-                final hasRegion =
-                    endpoints.keys.any((k) => k.startsWith('regionbuses'));
-                final hasCity =
-                    endpoints.keys.any((k) => k.startsWith('buses'));
+                final hasRegion = endpoints.keys.any(
+                  (k) => k.startsWith('regionbuses'),
+                );
+                final hasCity = endpoints.keys.any(
+                  (k) => k.startsWith('buses'),
+                );
                 if (hasRegion && !hasCity) return 'Regional Buses';
                 if (hasCity && !hasRegion) return 'City Buses';
               }
@@ -443,15 +450,19 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                   endpoint.key
                       .replaceAll('_', ' ')
                       .split(' ')
-                      .map((word) => word.isNotEmpty
-                          ? word[0].toUpperCase() + word.substring(1)
-                          : word)
+                      .map(
+                        (word) => word.isNotEmpty
+                            ? word[0].toUpperCase() + word.substring(1)
+                            : word,
+                      )
                       .join(' '),
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
@@ -524,10 +535,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
           children: [
             const Text(
               'Search Stops',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -584,34 +592,22 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
           children: [
             Text(
               stop.stopName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             const SizedBox(height: 4),
             Text(
               'ID: ${stop.stopId}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             if (stop.stopLat != 0.0 && stop.stopLon != 0.0)
               Text(
                 'Location: ${stop.stopLat.toStringAsFixed(6)}, ${stop.stopLon.toStringAsFixed(6)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             if (stop.platformCode != null && stop.platformCode!.isNotEmpty)
               Text(
                 'Platform: ${stop.platformCode}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
           ],
         ),

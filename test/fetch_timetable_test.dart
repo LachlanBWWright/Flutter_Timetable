@@ -9,9 +9,11 @@ void main() {
 
   test('fetchTimetable returns a non-null Map on success', () async {
     final timetable = await fetchTimetable();
-    expect(timetable, isNotNull,
-        reason:
-            'Timetable should not be null if API key and endpoint are valid');
+    expect(
+      timetable,
+      isNotNull,
+      reason: 'Timetable should not be null if API key and endpoint are valid',
+    );
     expect(timetable, isA<Map<String, dynamic>>());
   });
 }

@@ -12,11 +12,7 @@ class TripLegCard extends StatelessWidget {
   final Leg leg;
   final TripJourney? trip;
 
-  const TripLegCard({
-    super.key,
-    required this.leg,
-    this.trip,
-  });
+  const TripLegCard({super.key, required this.leg, this.trip});
 
   String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
     if (estimatedTime == null) {
@@ -127,10 +123,7 @@ class TripLegCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.0),
-            border: Border.all(
-              color: modeColor,
-              width: 2.0,
-            ),
+            border: Border.all(color: modeColor, width: 2.0),
           ),
           child: ListTile(
             leading: Container(
@@ -143,10 +136,7 @@ class TripLegCard extends StatelessWidget {
             ),
             title: Text(
               '(${TransportModeUtils.getModeName(transportClass)}) $originName to $destinationName',
-              style: TextStyle(
-                color: modeColor,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: modeColor, fontWeight: FontWeight.bold),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

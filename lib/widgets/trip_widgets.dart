@@ -54,11 +54,7 @@ class TripCard extends StatefulWidget {
   final TripJourney trip;
   final void Function(Leg) onSelectLeg;
 
-  const TripCard({
-    super.key,
-    required this.trip,
-    required this.onSelectLeg,
-  });
+  const TripCard({super.key, required this.trip, required this.onSelectLeg});
 
   @override
   State<TripCard> createState() => _TripCardState();
@@ -116,13 +112,18 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
       // Convert leg duration (which is seconds in the API) to minutes so the visual
       // proportion between travel time and waiting time makes sense.
       final legDurationSeconds = l.duration ?? 0;
-      final legDurationMinutes =
-          legDurationSeconds > 0 ? (legDurationSeconds / 60).ceil() : 1;
+      final legDurationMinutes = legDurationSeconds > 0
+          ? (legDurationSeconds / 60).ceil()
+          : 1;
       final color = transportClass != null
           ? TransportModeUtils.getModeColor(transportClass)
           : Colors.grey;
-      segments.add(Expanded(
-          flex: legDurationMinutes, child: Container(height: 6, color: color)));
+      segments.add(
+        Expanded(
+          flex: legDurationMinutes,
+          child: Container(height: 6, color: color),
+        ),
+      );
 
       // If there's a next leg, compute waiting time (in minutes) and add a grey segment if > 0
       if (i < legs.length - 1) {
@@ -130,7 +131,8 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
         final nextOrigin = legs[i + 1].origin;
         final curArrival =
             curDest.arrivalTimeEstimated ?? curDest.arrivalTimePlanned;
-        final nextDeparture = nextOrigin.departureTimeEstimated ??
+        final nextDeparture =
+            nextOrigin.departureTimeEstimated ??
             nextOrigin.departureTimePlanned;
         final a = curArrival != null
             ? DateTimeUtils.parseTimeToDateTime(curArrival)
@@ -141,12 +143,15 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
         if (a != null && b != null) {
           final diffMinutes = b.difference(a).inMinutes;
           if (diffMinutes > 0) {
-            final waitFlex =
-                diffMinutes < 1 ? 1 : (diffMinutes > 60 ? 60 : diffMinutes);
-            segments.add(Expanded(
-              flex: waitFlex,
-              child: Container(height: 8, color: Colors.grey.shade700),
-            ));
+            final waitFlex = diffMinutes < 1
+                ? 1
+                : (diffMinutes > 60 ? 60 : diffMinutes);
+            segments.add(
+              Expanded(
+                flex: waitFlex,
+                child: Container(height: 8, color: Colors.grey.shade700),
+              ),
+            );
           }
         }
       }
@@ -206,10 +211,13 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
             const Divider(height: 1),
             for (final leg in legs)
               ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 0.0,
+                ),
                 title: Text(
-                    '${leg.origin.disassembledName} → ${leg.destination.disassembledName}'),
+                  '${leg.origin.disassembledName} → ${leg.destination.disassembledName}',
+                ),
                 dense: true,
                 trailing: const Padding(
                   padding: EdgeInsets.only(right: 24.0),

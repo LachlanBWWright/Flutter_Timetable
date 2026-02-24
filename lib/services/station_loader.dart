@@ -54,7 +54,7 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
     case TransportMode.ferry:
       endpoints = [
         StopsEndpoint.ferriesSydneyFerries,
-        StopsEndpoint.ferriesMff
+        StopsEndpoint.ferriesMff,
       ];
       break;
   }

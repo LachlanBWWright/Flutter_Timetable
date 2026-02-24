@@ -8,23 +8,32 @@ import 'dart:io';
 import 'dart:convert';
 
 void main() {
-  testWidgets('TripLegDetailScreen hides map button when transport id missing',
-      (tester) async {
+  testWidgets('TripLegDetailScreen hides map button when transport id missing', (
+    tester,
+  ) async {
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: 'stop',
+        coord: [0.1, 0.1],
+      ),
       transportation: null,
     );
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(
+      MaterialApp(
         home: TripLegDetailScreen(
-            leg: leg,
-            skipInitialLoadDelay: true,
-            getAllVehiclesAggregated: () async => {
-                  'vehicles': <VehiclePosition>[],
-                  'breakdown': <String, int>{}
-                })));
+          leg: leg,
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async => {
+            'vehicles': <VehiclePosition>[],
+            'breakdown': <String, int>{},
+          },
+        ),
+      ),
+    );
 
     // Use pump instead of pumpAndSettle to avoid long frame settle with large debug text
     await tester.pump();
@@ -34,24 +43,33 @@ void main() {
     expect(find.byIcon(Icons.map), findsNothing);
   });
 
-  testWidgets('TripLegDetailScreen shows map button when transport id present',
-      (tester) async {
+  testWidgets('TripLegDetailScreen shows map button when transport id present', (
+    tester,
+  ) async {
     final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: 'stop',
+        coord: [0.1, 0.1],
+      ),
       transportation: transportation,
     );
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(
+      MaterialApp(
         home: TripLegDetailScreen(
-            leg: leg,
-            skipInitialLoadDelay: true,
-            getAllVehiclesAggregated: () async => {
-                  'vehicles': <VehiclePosition>[],
-                  'breakdown': <String, int>{}
-                })));
+          leg: leg,
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async => {
+            'vehicles': <VehiclePosition>[],
+            'breakdown': <String, int>{},
+          },
+        ),
+      ),
+    );
 
     // Use small pump increments to avoid long frame settle with large debug text
     await tester.pump();
@@ -60,13 +78,18 @@ void main() {
     expect(find.byIcon(Icons.map), findsOneWidget);
   });
 
-  testWidgets('Trip debug card displayed when TripJourney passed',
-      (tester) async {
+  testWidgets('Trip debug card displayed when TripJourney passed', (
+    tester,
+  ) async {
     final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: 'stop',
+        coord: [0.1, 0.1],
+      ),
       transportation: transportation,
     );
     final trip = TripJourney(
@@ -81,24 +104,29 @@ void main() {
           {
             'origin': {'id': 'O1', 'name': 'Origin', 'type': 'stop'},
             'destination': {'id': 'D1', 'name': 'Destination', 'type': 'stop'},
-            'transportation': {'id': 'ROUTE1', 'name': 'Line 1'}
-          }
-        ]
+            'transportation': {'id': 'ROUTE1', 'name': 'Line 1'},
+          },
+        ],
       },
     );
 
     // Ensure debug data is visible for this test
     DebugService.showDebugData.value = true;
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(
+      MaterialApp(
         home: TripLegDetailScreen(
-            leg: leg,
-            trip: trip,
-            skipInitialLoadDelay: true,
-            getAllVehiclesAggregated: () async => {
-                  'vehicles': <VehiclePosition>[],
-                  'breakdown': <String, int>{}
-                })));
-    await tester.pump(const Duration(seconds: 2));
+          leg: leg,
+          trip: trip,
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async => {
+            'vehicles': <VehiclePosition>[],
+            'breakdown': <String, int>{},
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Trip debug data'), findsOneWidget);
     expect(find.textContaining('rating:'), findsOneWidget);
@@ -115,8 +143,9 @@ void main() {
     expect(find.textContaining('Trip IDs: N/A'), findsOneWidget);
   });
 
-  testWidgets('Trip detail screen includes RealtimeTripId from raw JSON',
-      (tester) async {
+  testWidgets('Trip detail screen includes RealtimeTripId from raw JSON', (
+    tester,
+  ) async {
     final file = File('lib/trip_leg_raw_json.json');
     final contents = await file.readAsString();
     final data = jsonDecode(contents) as Map<String, dynamic>;
@@ -125,86 +154,109 @@ void main() {
 
     // Ensure debug data is visible for this test
     DebugService.showDebugData.value = true;
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(
+      MaterialApp(
         home: TripLegDetailScreen(
-            leg: leg,
-            trip: trip,
-            skipInitialLoadDelay: true,
-            getAllVehiclesAggregated: () async => {
-                  'vehicles': <VehiclePosition>[],
-                  'breakdown': <String, int>{}
-                })));
-    await tester.pump(const Duration(seconds: 2));
+          leg: leg,
+          trip: trip,
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async => {
+            'vehicles': <VehiclePosition>[],
+            'breakdown': <String, int>{},
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.textContaining('Trip IDs:'), findsOneWidget);
     // Sample data contains RealtimeTripId like '15-M.951.145.2.B.8.87185004'
     expect(find.textContaining('15-M.'), findsOneWidget);
   });
 
-  testWidgets('TripLegDetailScreen respects DebugService.showDebugData toggle',
-      (tester) async {
-    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
-    final leg = Leg(
-      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
-      transportation: transportation,
-    );
-    final trip = TripJourney(
-      isAdditional: false,
-      legs: [leg],
-      rating: 5,
-      rawJson: {
-        'isAdditional': false,
-        'rating': 5,
-        'legs': [
-          {
-            'origin': {'id': 'O1', 'name': 'Origin', 'type': 'stop'},
-            'destination': {'id': 'D1', 'name': 'Destination', 'type': 'stop'},
-            'transportation': {'id': 'ROUTE1', 'name': 'Line 1'}
-          }
-        ]
-      },
-    );
+  testWidgets(
+    'TripLegDetailScreen respects DebugService.showDebugData toggle',
+    (tester) async {
+      final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+      final leg = Leg(
+        origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
+        destination: Stop(
+          id: 'D1',
+          name: 'Destination',
+          type: 'stop',
+          coord: [0.1, 0.1],
+        ),
+        transportation: transportation,
+      );
+      final trip = TripJourney(
+        isAdditional: false,
+        legs: [leg],
+        rating: 5,
+        rawJson: {
+          'isAdditional': false,
+          'rating': 5,
+          'legs': [
+            {
+              'origin': {'id': 'O1', 'name': 'Origin', 'type': 'stop'},
+              'destination': {
+                'id': 'D1',
+                'name': 'Destination',
+                'type': 'stop',
+              },
+              'transportation': {'id': 'ROUTE1', 'name': 'Line 1'},
+            },
+          ],
+        },
+      );
 
-    // Hide debug data first
-    DebugService.showDebugData.value = false;
-    await tester.pumpWidget(MaterialApp(
-        home: TripLegDetailScreen(
+      // Hide debug data first
+      DebugService.showDebugData.value = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TripLegDetailScreen(
             leg: leg,
             trip: trip,
             skipInitialLoadDelay: true,
             getAllVehiclesAggregated: () async => {
-                  'vehicles': <VehiclePosition>[],
-                  'breakdown': <String, int>{}
-                })));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+              'vehicles': <VehiclePosition>[],
+              'breakdown': <String, int>{},
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    // Should not show trip debug card when disabled
-    expect(find.text('Trip debug data'), findsNothing);
+      // Should not show trip debug card when disabled
+      expect(find.text('Trip debug data'), findsNothing);
 
-    // Now toggle the debug flag to true and rebuild
-    DebugService.showDebugData.value = true;
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      // Now toggle the debug flag to true and rebuild
+      DebugService.showDebugData.value = true;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Trip debug data'), findsOneWidget);
-  });
+      expect(find.text('Trip debug data'), findsOneWidget);
+    },
+  );
 
   testWidgets('Filter uses RealtimeTripId when present', (tester) async {
     // Trip/raw JSON contains a RealtimeTripId which should be preferred for filtering
     final transportation = Transportation(id: 'ROUTE-A', name: 'Line A');
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination:
-          Stop(id: 'D1', name: 'Destination', type: 'stop', coord: [0.1, 0.1]),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: 'stop',
+        coord: [0.1, 0.1],
+      ),
       transportation: transportation,
       rawJson: {
         'transportation': {
           'id': 'ROUTE-A',
-          'properties': {'RealtimeTripId': 'MATCH123'}
-        }
+          'properties': {'RealtimeTripId': 'MATCH123'},
+        },
       },
     );
 
@@ -214,16 +266,16 @@ void main() {
       rating: 0,
       rawJson: {
         'transportation': {
-          'properties': {'RealtimeTripId': 'MATCH123'}
+          'properties': {'RealtimeTripId': 'MATCH123'},
         },
         'legs': [
           {
             'transportation': {
               'id': 'ROUTE-A',
-              'properties': {'RealtimeTripId': 'MATCH123'}
-            }
-          }
-        ]
+              'properties': {'RealtimeTripId': 'MATCH123'},
+            },
+          },
+        ],
       },
     );
 
@@ -246,18 +298,23 @@ void main() {
 
     DebugService.showDebugData.value = true;
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(
+      MaterialApp(
         home: TripLegDetailScreen(
-            leg: leg,
-            trip: trip,
-            skipInitialLoadDelay: true,
-            getAllVehiclesAggregated: () async => {
-                  'vehicles': <VehiclePosition>[vpMatch, vpOther],
-                  'breakdown': <String, int>{}
-                })));
+          leg: leg,
+          trip: trip,
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async => {
+            'vehicles': <VehiclePosition>[vpMatch, vpOther],
+            'breakdown': <String, int>{},
+          },
+        ),
+      ),
+    );
 
     // Let initial load complete
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     // Ensure both vehicles are visible initially (filter off)
     expect(find.textContaining('V-MATCH'), findsOneWidget);
@@ -266,7 +323,8 @@ void main() {
     // Toggle the filter switch on (Filter by route/trip)
     final switchFinder = find.byType(Switch).first;
     await tester.tap(switchFinder);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     // Now only the matching vehicle (by trip id) should be visible
     expect(find.textContaining('V-MATCH'), findsOneWidget);

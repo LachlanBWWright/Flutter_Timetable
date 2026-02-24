@@ -8,7 +8,8 @@ void main() {
     final apiKey = dotenv.env['API_KEY'];
     if (apiKey == null || apiKey.isEmpty) {
       fail(
-          'API_KEY not set in .env — integration tests require a valid API key.');
+        'API_KEY not set in .env — integration tests require a valid API key.',
+      );
     }
   });
 
@@ -19,12 +20,16 @@ void main() {
       expect(data!.stops, isNotEmpty);
     }, timeout: const Timeout(Duration(seconds: 60)));
 
-    test('trains fetch returns stops/agencies', () async {
-      final data = await fetchNswTrainsGtfsData();
-      expect(data, isNotNull);
-      expect((data!.stops.isNotEmpty || data.agencies.isNotEmpty), isTrue);
-      // if (data.stops.isNotEmpty) logStop(data.stops.first);
-    }, timeout: const Timeout(Duration(seconds: 60)));
+    test(
+      'trains fetch returns stops/agencies',
+      () async {
+        final data = await fetchNswTrainsGtfsData();
+        expect(data, isNotNull);
+        expect((data!.stops.isNotEmpty || data.agencies.isNotEmpty), isTrue);
+        // if (data.stops.isNotEmpty) logStop(data.stops.first);
+      },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     test('buses fetch returns stops', () async {
       final data = await fetchBusesGtfsData();
@@ -33,12 +38,16 @@ void main() {
       // logStop(data.stops.first);
     }, timeout: const Timeout(Duration(seconds: 60)));
 
-    test('lightrail fetch returns stops', () async {
-      final data = await fetchLightRailCbdAndSoutheastGtfsData();
-      expect(data, isNotNull);
-      expect(data!.stops, isNotEmpty);
-      // logStop(data.stops.first);
-    }, timeout: const Timeout(Duration(seconds: 60)));
+    test(
+      'lightrail fetch returns stops',
+      () async {
+        final data = await fetchLightRailCbdAndSoutheastGtfsData();
+        expect(data, isNotNull);
+        expect(data!.stops, isNotEmpty);
+        // logStop(data.stops.first);
+      },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     test('ferries fetch returns stops', () async {
       final data = await fetchFerriesSydneyFerriesGtfsData();

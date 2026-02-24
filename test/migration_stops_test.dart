@@ -7,8 +7,7 @@ import 'package:path/path.dart' as p;
 // sqlite3 not needed for this simplified test
 
 void main() {
-  test('migration creates stops table when upgrading from old schema',
-      () async {
+  test('migration creates stops table when upgrading from old schema', () async {
     // Create a temp directory and a SQLite file that simulates an older DB version
     final dir = await Directory.systemTemp.createTemp('fluttertimetable_test_');
     final dbFile = File(p.join(dir.path, 'old_trip_database.db'));
@@ -26,8 +25,11 @@ void main() {
     final tableNames = tables.map((r) => r.data['name'] as String).toList();
 
     // The migration should have created the 'stops' table
-    expect(tableNames.contains('stops'), isTrue,
-        reason: 'stops table should exist after migration');
+    expect(
+      tableNames.contains('stops'),
+      isTrue,
+      reason: 'stops table should exist after migration',
+    );
 
     await db.close();
     await dir.delete(recursive: true);

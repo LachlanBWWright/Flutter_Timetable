@@ -16,7 +16,8 @@ class _TripLegScreenState extends State<TripLegScreen> {
     try {
       // Get arrival time of current leg
       final currentDestination = currentLeg.destination;
-      final currentArrival = currentDestination.arrivalTimeEstimated ??
+      final currentArrival =
+          currentDestination.arrivalTimeEstimated ??
           currentDestination.arrivalTimePlanned;
 
       // Get departure time of next leg
@@ -70,7 +71,8 @@ class _TripLegScreenState extends State<TripLegScreen> {
               color: Colors.orange.withAlpha((255 * 0.1).round()),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: Colors.orange.withAlpha((255 * 0.3).round())),
+                color: Colors.orange.withAlpha((255 * 0.3).round()),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

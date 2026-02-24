@@ -53,10 +53,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
               children: [
                 const Text(
                   'Realtime Status',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh),
@@ -68,10 +65,7 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
-              Text(
-                'Error: $_error',
-                style: const TextStyle(color: Colors.red),
-              )
+              Text('Error: $_error', style: const TextStyle(color: Colors.red))
             else if (_statusSummary != null)
               ..._buildStatusList()
             else
@@ -104,14 +98,18 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
           color: (() {
-            return TransportColors.getColorByTransportMode(parsedMode)
-                .withValues(alpha: 0.1);
+            return TransportColors.getColorByTransportMode(
+              parsedMode,
+            ).withValues(alpha: 0.1);
           })(),
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: (() {
-            return TransportColors.getColorByTransportMode(parsedMode)
-                .withValues(alpha: 0.3);
-          })()),
+          border: Border.all(
+            color: (() {
+              return TransportColors.getColorByTransportMode(
+                parsedMode,
+              ).withValues(alpha: 0.3);
+            })(),
+          ),
         ),
         child: Row(
           children: [
@@ -138,26 +136,15 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
                   const SizedBox(height: 4),
                   Text(
                     '$vehicleCount vehicles • $updateCount updates',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
             if (vehicleCount > 0 || updateCount > 0)
-              const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 20,
-              )
+              const Icon(Icons.check_circle, color: Colors.green, size: 20)
             else
-              const Icon(
-                Icons.error_outline,
-                color: Colors.orange,
-                size: 20,
-              ),
+              const Icon(Icons.error_outline, color: Colors.orange, size: 20),
           ],
         ),
       );
@@ -210,7 +197,8 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
       FeedMessage? feed;
       if (widget.transportMode != null) {
         feed = await RealtimeService.getPositionsForTransportMode(
-            widget.transportMode!);
+          widget.transportMode!,
+        );
       } else if (widget.mode != null) {
         feed = await RealtimeService.getPositionsForTransportMode(widget.mode!);
       } else {
@@ -260,10 +248,7 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
-              Text(
-                'Error: $_error',
-                style: const TextStyle(color: Colors.red),
-              )
+              Text('Error: $_error', style: const TextStyle(color: Colors.red))
             else if (_positions.isEmpty)
               const Text('No vehicles currently tracked')
             else
@@ -300,14 +285,17 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
                 ),
                 if (trip.hasRouteId())
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: (() {
                         final parsed = widget.mode;
                         if (parsed != null) {
                           return TransportColors.getColorByTransportMode(
-                              parsed);
+                            parsed,
+                          );
                         }
                         return Colors.grey;
                       })(),
@@ -327,26 +315,17 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
             if (trip.hasTripId())
               Text(
                 'Trip: ${trip.tripId}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             if (pos.hasLatitude() && pos.hasLongitude())
               Text(
                 'Position: ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             if (position.hasTimestamp())
               Text(
                 'Updated: ${DateTime.fromMillisecondsSinceEpoch(position.timestamp.toInt() * 1000)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
           ],
         ),

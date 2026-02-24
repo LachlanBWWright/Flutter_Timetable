@@ -11,9 +11,12 @@ void main() {
   group('Endpoint tests', () {
     test('fetchBusesUpdates returns a FeedMessage on success', () async {
       final feed = await fetchBusesUpdates();
-      expect(feed, isNotNull,
-          reason:
-              'FeedMessage should not be null if API key and endpoint are valid');
+      expect(
+        feed,
+        isNotNull,
+        reason:
+            'FeedMessage should not be null if API key and endpoint are valid',
+      );
       expect(feed, isA<FeedMessage>());
     });
 

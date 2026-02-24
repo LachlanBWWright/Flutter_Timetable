@@ -76,7 +76,8 @@ class LocationService {
 
   /// Get the closest stop coordinates for a journey
   static Future<List<double>?> getClosestStopCoordinates(
-      Journey journey) async {
+    Journey journey,
+  ) async {
     try {
       final database = AppDatabase();
 
@@ -91,8 +92,10 @@ class LocationService {
       }
 
       // If origin not found, try destination
-      final destStops =
-          await database.searchStops(journey.destination, limit: 1);
+      final destStops = await database.searchStops(
+        journey.destination,
+        limit: 1,
+      );
       if (destStops.isNotEmpty) {
         final lat = destStops.first.stopLat;
         final lon = destStops.first.stopLon;

@@ -107,11 +107,7 @@ class NewTripService {
     for (var i = 0; i < endpoints.length; i++) {
       final endpoint = endpoints[i];
       try {
-        onProgress?.call(
-          'Loading ${endpoint.key}...',
-          i + 1,
-          total,
-        );
+        onProgress?.call('Loading ${endpoint.key}...', i + 1, total);
 
         // Get GTFS data from the appropriate endpoint
         final gtfsData = await fetchGtfsDataForEndpoint(endpoint);
@@ -124,25 +120,18 @@ class NewTripService {
             total,
           );
         } else {
-          onProgress?.call(
-            'No data found for ${endpoint.key}',
-            i + 1,
-            total,
-          );
+          onProgress?.call('No data found for ${endpoint.key}', i + 1, total);
         }
       } catch (e) {
-        onProgress?.call(
-          'Error loading ${endpoint.key}: $e',
-          i + 1,
-          total,
-        );
+        onProgress?.call('Error loading ${endpoint.key}: $e', i + 1, total);
       }
     }
   }
 
   /// Helper function to call the appropriate GTFS fetch function for an endpoint
   static Future<GtfsData?> fetchGtfsDataForEndpoint(
-      StopsEndpoint endpoint) async {
+    StopsEndpoint endpoint,
+  ) async {
     switch (endpoint) {
       // Trains
       case StopsEndpoint.nswtrains:
@@ -232,7 +221,8 @@ class NewTripService {
   static Future<List<Station>> sortByDistance(List<Station> stations) async {
     final stationsWithCoords = stations
         .where(
-            (station) => station.latitude != null && station.longitude != null)
+          (station) => station.latitude != null && station.longitude != null,
+        )
         .toList();
 
     if (stationsWithCoords.isEmpty) {
@@ -267,15 +257,13 @@ class NewTripService {
 
       // Add stations without coordinates at the end (sorted alphabetically)
       final stationsWithoutCoords = stations
-          .where((station) =>
-              station.latitude == null || station.longitude == null)
+          .where(
+            (station) => station.latitude == null || station.longitude == null,
+          )
           .toList();
       stationsWithoutCoords.sort((a, b) => a.name.compareTo(b.name));
 
-      return [
-        ...stationsWithDistance,
-        ...stationsWithoutCoords,
-      ];
+      return [...stationsWithDistance, ...stationsWithoutCoords];
     } catch (e) {
       // Error sorting by distance
       return sortAlphabetically(stations);
