@@ -89,7 +89,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _hasUserApiKey = false;
         _apiKeyController.clear();
-        _apiKeyStatus = 'Custom key removed — using built-in API key.';
+        _apiKeyStatus = ApiKeyService.hasBuiltInApiKey()
+            ? 'Custom key removed - using built-in API key.'
+            : 'Custom key removed - no API key is configured.';
         _isSavingApiKey = false;
       });
     } catch (e) {

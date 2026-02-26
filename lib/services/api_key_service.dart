@@ -28,7 +28,7 @@ class ApiKeyService {
   }
 
   /// Whether the user has stored a custom API key override.
-  static bool hasUserApiKey() => _userApiKey != null && _userApiKey!.isNotEmpty;
+  static bool hasUserApiKey() => _userApiKey != null;
 
   /// Whether the build ships with a baked-in API key.
   static bool hasBuiltInApiKey() => (dotenv.env['API_KEY'] ?? '').isNotEmpty;

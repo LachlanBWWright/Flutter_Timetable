@@ -5,8 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() async {
-    // Start each test with a clean SharedPreferences store and no dotenv.
+    // Start each test with a clean SharedPreferences store and no dotenv key.
     SharedPreferences.setMockInitialValues({});
+    dotenv.testLoad(fileInput: '');
     await ApiKeyService.init();
   });
 
@@ -42,9 +43,6 @@ void main() {
       expect(ApiKeyService.getEffectiveApiKey(), equals('user-key'));
       await ApiKeyService.clearUserApiKey();
       expect(ApiKeyService.getEffectiveApiKey(), equals('builtin-key'));
-
-      // Clean up dotenv for subsequent tests.
-      dotenv.testLoad(fileInput: '');
     });
 
     test('hasBuiltInApiKey returns false when dotenv has no key', () {
@@ -54,9 +52,6 @@ void main() {
     test('hasBuiltInApiKey returns true when dotenv has a key', () {
       dotenv.testLoad(fileInput: 'API_KEY=some-key');
       expect(ApiKeyService.hasBuiltInApiKey(), isTrue);
-
-      // Clean up dotenv for subsequent tests.
-      dotenv.testLoad(fileInput: '');
     });
 
     test('init loads a previously persisted user key from SharedPreferences',
