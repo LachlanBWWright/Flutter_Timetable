@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 
 part 'tables/journeys.dart';
 part 'tables/stops.dart';
@@ -15,13 +12,11 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase? _instance;
 
   // Single QueryExecutor reused across the app to avoid multiple database
-  // instances using the same underlying file which can cause race
-  // conditions. We use a LazyDatabase that opens a NativeDatabase file.
-  static final QueryExecutor _sharedExecutor = LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File('${dbFolder.path}/trip_database.db');
-    return NativeDatabase(file);
-  });
+  // instances. Uses drift_flutter which picks the right backend per platform
+  // (NativeDatabase on mobile/desktop, IndexedDB on web).
+  static final QueryExecutor _sharedExecutor = driftDatabase(
+    name: 'trip_database',
+  );
 
   AppDatabase._internal() : super(_sharedExecutor);
 
@@ -142,26 +137,8 @@ class AppDatabase extends _$AppDatabase {
 
     _instance = null;
 
-    // Delete the DB file
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File('${dbFolder.path}/trip_database.db');
-    try {
-      if (await file.exists()) {
-        await file.delete();
-      }
-    } catch (_) {
-      // ignore file delete errors in reset
-    }
-
-    // Create a fresh instance backed by a new LazyDatabase executor so we don't
-    // reuse any cached executor that may have been closed previously.
-    final newExecutor = LazyDatabase(() async {
-      final dbFolder = await getApplicationDocumentsDirectory();
-      final file = File('${dbFolder.path}/trip_database.db');
-      return NativeDatabase(file);
-    });
-
-    _instance = AppDatabase.connect(newExecutor);
+    // Create a fresh instance backed by a new executor.
+    _instance = AppDatabase.connect(driftDatabase(name: 'trip_database'));
   }
 }
 
