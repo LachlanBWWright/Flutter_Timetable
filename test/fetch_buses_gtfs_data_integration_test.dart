@@ -23,5 +23,6 @@ void main() {
       expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
     },
     timeout: const Timeout(Duration(seconds: 60)),
+    skip: 'Requires live API key',
   );
 }

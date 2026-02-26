@@ -2,6 +2,13 @@
     package="com.example.lbww_flutter">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Required by url_launcher to open https links in a browser -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
    <application
         android:label="lbww_flutter"
         android:name="${applicationName}"

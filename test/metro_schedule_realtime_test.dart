@@ -8,14 +8,18 @@ void main() {
     await dotenv.load();
   });
 
-  test('fetchMetroScheduleRealtime returns a FeedMessage on success', () async {
-    final feed = await fetchMetroScheduleRealtime();
-    expect(
-      feed,
-      isNotNull,
-      reason:
-          'FeedMessage should not be null if API key and endpoint are valid',
-    );
-    expect(feed, isA<FeedMessage>());
-  });
+  test(
+    'fetchMetroScheduleRealtime returns a FeedMessage on success',
+    () async {
+      final feed = await fetchMetroScheduleRealtime();
+      expect(
+        feed,
+        isNotNull,
+        reason:
+            'FeedMessage should not be null if API key and endpoint are valid',
+      );
+      expect(feed, isA<FeedMessage>());
+    },
+    skip: 'Requires live API key',
+  );
 }

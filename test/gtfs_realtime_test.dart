@@ -14,7 +14,7 @@ void main() {
       //     'Buses: ${feed!.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
       expect(feed!.header.hasGtfsRealtimeVersion(), true);
       expect(feed!.entity.isNotEmpty, true);
-    });
+    }, skip: 'Requires live API key');
 
     test('fetchNswTrainsPositions returns valid FeedMessage or null', () async {
       final feed = await fetchNswTrainsPositions();
@@ -23,7 +23,7 @@ void main() {
       //     'NSW Trains: ${feed!.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
       expect(feed!.header.hasGtfsRealtimeVersion(), true);
       expect(feed!.entity.isNotEmpty, true);
-    });
+    }, skip: 'Requires live API key');
 
     //next three tests might fail because of the time of day
 
@@ -34,20 +34,24 @@ void main() {
       // logger.d(
       //     'All Ferries: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
       expect(feeds[0]!.entity.isNotEmpty, true);
-    });
+    }, skip: 'Requires live API key');
 
-    test('getAllLightRail returns list with valid FeedMessage or null', () async {
-      final feeds = await getAllLightRail();
-      expect(feeds.length, 4);
-      expect(
-        feeds[0],
-        isNotNull,
-        reason: 'All Light Rail: No data or API error',
-      );
-      // logger.d(
-      //     'All Light Rail: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
-      expect(feeds[0]!.entity.isNotEmpty, true);
-    });
+    test(
+      'getAllLightRail returns list with valid FeedMessage or null',
+      () async {
+        final feeds = await getAllLightRail();
+        expect(feeds.length, 4);
+        expect(
+          feeds[0],
+          isNotNull,
+          reason: 'All Light Rail: No data or API error',
+        );
+        // logger.d(
+        //     'All Light Rail: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
+        expect(feeds[0]!.entity.isNotEmpty, true);
+      },
+      skip: 'Requires live API key',
+    );
 
     test(
       'getAllRegionBuses returns list with valid FeedMessage or null',
@@ -61,7 +65,9 @@ void main() {
         );
         // logger.d(
         //     'All Region Buses: ${feeds[0]!.header.gtfsRealtimeVersion}, entities: ${feeds[0]!.entity.length}');
+        expect(feeds[0]!.entity.isNotEmpty, true);
       },
+      skip: 'Requires live API key',
     );
 
     test(
@@ -81,6 +87,7 @@ void main() {
         expect(feed!.header.hasGtfsRealtimeVersion(), true);
         expect(feed!.entity.isNotEmpty, true);
       },
+      skip: 'Requires live API key',
     );
 
     test(
@@ -100,6 +107,7 @@ void main() {
         expect(feed!.header.hasGtfsRealtimeVersion(), true);
         expect(feed!.entity.isNotEmpty, true);
       },
+      skip: 'Requires live API key',
     );
   });
 }

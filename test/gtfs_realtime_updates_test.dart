@@ -56,5 +56,5 @@ void main() {
       final feed = await fetchSydneyMetroUpdates();
       expect(feed, anyOf([isNull, isA<FeedMessage>()]));
     });
-  });
+  }, skip: 'Requires live API key');
 }

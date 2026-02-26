@@ -20,7 +20,7 @@ void main() {
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
     }
-  });
+  }, skip: 'Requires live API key');
 
   test('fetchSydneyMetroPositions returns valid FeedMessage or null', () async {
     final feed = await fetchSydneyMetroPositions();
@@ -32,7 +32,7 @@ void main() {
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
     }
-  });
+  }, skip: 'Requires live API key');
 
   test('fetchBusesPositions returns valid FeedMessage or null', () async {
     final feed = await fetchBusesPositions();
@@ -44,7 +44,7 @@ void main() {
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
     }
-  });
+  }, skip: 'Requires live API key');
 
   test('fetchNswTrainsPositions returns valid FeedMessage or null', () async {
     final feed = await fetchNswTrainsPositions();
@@ -56,7 +56,7 @@ void main() {
       expect(feed.header.hasGtfsRealtimeVersion(), true);
       expect(feed.entity.isNotEmpty, true);
     }
-  });
+  }, skip: 'Requires live API key');
 
   test('fetchRegionBusesPositions returns valid FeedMessage or null', () async {
     final feeds = await fetchRegionBusesPositions();
@@ -71,7 +71,7 @@ void main() {
         expect(feed.entity.isNotEmpty, true);
       }
     }
-  });
+  }, skip: 'Requires live API key');
 
   test('getAllFerries returns list with valid FeedMessage or null', () async {
     final feeds = await getAllFerries();
@@ -86,7 +86,7 @@ void main() {
         expect(feed.entity.isNotEmpty, true);
       }
     }
-  });
+  }, skip: 'Requires live API key');
 
   test('getAllLightRail returns list with valid FeedMessage or null', () async {
     final feeds = await getAllLightRail();
@@ -101,7 +101,7 @@ void main() {
         expect(feed.entity.isNotEmpty, true);
       }
     }
-  });
+  }, skip: 'Requires live API key');
 
   test('getAllRegionBuses returns list with valid FeedMessage or null', () async {
     final regionBusesFeeds = await getAllRegionBuses();
@@ -120,5 +120,5 @@ void main() {
         expect(feed.entity.isNotEmpty, true);
       }
     }
-  });
+  }, skip: 'Requires live API key');
 }

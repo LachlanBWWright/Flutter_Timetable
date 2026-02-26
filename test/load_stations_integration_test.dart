@@ -26,6 +26,7 @@ void main() {
       //     'First station (train): name=${stations.first.name}, id=${stations.first.id}');
     },
     timeout: const Timeout(Duration(seconds: 120)),
+    skip: 'Requires live API key',
   );
 
   test(
@@ -38,5 +39,6 @@ void main() {
       //     'First station (bus): name=${stations.first.name}, id=${stations.first.id}');
     },
     timeout: const Timeout(Duration(seconds: 120)),
+    skip: 'Requires live API key',
   );
 }

@@ -45,7 +45,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final raw = product['class'];
     if (raw == null) return null;
     if (raw is int) return raw;
-    return int.tryParse(raw.toString());
+    return int.tryParse('$raw');
   }
 
   Future<void> _loadUserLocation() async {
@@ -84,7 +84,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       String? tripId;
       if (transportation != null) {
         final id = transportation['id'];
-        if (id != null) tripId = id.toString();
+        if (id != null) tripId = '$id';
       }
 
       if (transportClass != null) {
