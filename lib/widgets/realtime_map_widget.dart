@@ -3,9 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
+import '../logs/logger.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
-import '../logs/logger.dart';
 import '../services/transport_api_service.dart';
 import 'realtime_map_helpers.dart';
 
@@ -610,7 +610,7 @@ class RealtimeMapPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           mode != null
-              ? '${mode} Map'
+              ? '$mode Map'
               : leg != null
               ? 'Trip Leg Map'
               : 'Realtime Map',

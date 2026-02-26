@@ -95,49 +95,23 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       );
 
       if (confirmed == true) {
-        // Listen to the update stream and show a progress dialog
+        // Show the progress dialog first, then start the stream once the
+        // dialog's setState is available — this ensures no progress events
+        // are silently dropped while dialogSetState is still null.
         String dialogMessage = 'Preparing update...';
         void Function(void Function())? dialogSetState;
+        StreamSubscription<StopsUpdateProgress>? subscription;
 
-        final stream = StopsService.updateAllStopsFromApi();
-        late StreamSubscription subscription;
-
-        subscription = stream.listen(
-          (progress) {
-            final epLabel = progress.endpoint?.key ?? '';
-            final text =
-                '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
-            // Update dialog text if available
-            dialogSetState?.call(() {
-              dialogMessage = text;
-            });
-          },
-          onError: (e) {
-            dialogSetState?.call(() {
-              dialogMessage = 'Error: $e';
-            });
-          },
-          onDone: () async {
-            // Close the dialog when done
-            try {
-              if (mounted) Navigator.of(context, rootNavigator: true).pop();
-            } catch (_) {}
-            await subscription.cancel();
-          },
-        );
-
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
 
         // Show modal progress dialog (not dismissible)
-        await showDialog<void>(
+        final dialogFuture = showDialog<void>(
           context: context,
           barrierDismissible: false,
           builder: (context) {
             return StatefulBuilder(
-              builder: (context, setState) {
-                dialogSetState = setState;
+              builder: (context, setDialogState) {
+                dialogSetState = setDialogState;
                 return AlertDialog(
                   title: const Text('Updating stops from API'),
                   content: Column(
@@ -154,6 +128,34 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             );
           },
         );
+
+        // Wait one frame so the dialog is built and dialogSetState is populated
+        // before starting the stream.
+        await Future.microtask(() {});
+
+        subscription = StopsService.updateAllStopsFromApi().listen(
+          (progress) {
+            final epLabel = progress.endpoint?.key ?? '';
+            final text =
+                '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
+            dialogSetState?.call(() {
+              dialogMessage = text;
+            });
+          },
+          onError: (e) {
+            dialogSetState?.call(() {
+              dialogMessage = 'Error: $e';
+            });
+          },
+          onDone: () async {
+            try {
+              if (mounted) Navigator.of(context, rootNavigator: true).pop();
+            } catch (_) {}
+            await subscription?.cancel();
+          },
+        );
+
+        await dialogFuture;
 
         // After dialog closes, refresh counts
         await _loadStopsData();

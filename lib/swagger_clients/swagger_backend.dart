@@ -36,7 +36,7 @@ Future<chopper.ChopperClient> createChopperClient({
     );
   } else {
     interceptors.add(
-      chopper.HeadersInterceptor({'accept': 'application/x-protobuf'}),
+      const chopper.HeadersInterceptor({'accept': 'application/x-protobuf'}),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:option_result/option_result.dart';
 import '../logs/logger.dart';
 import 'api_key_service.dart';
 
@@ -43,28 +44,25 @@ class TransportApiService {
   }
 
   /// Search for stations/stops
-  static Future<List<Map<String, dynamic>>> searchStations(String query) async {
+  static Future<Result<List<Map<String, dynamic>>, String>> searchStations(
+    String query,
+  ) async {
+    final apiKey = await _getApiKey();
+
+    if (apiKey == null || apiKey.isEmpty) {
+      return Err('API key not set');
+    }
+
+    final params = {
+      'outputFormat': 'rapidJSON',
+      'type_sf': 'any',
+      'name_sf': query,
+      'coordOutputFormat': 'EPSG:4326',
+      'TfNSWSF': 'true',
+      'version': '10.2.1.42',
+    };
+
     try {
-      final apiKey = await _getApiKey();
-
-      /*       final res = await tripPlannerApi.stopFinderGet(
-          outputFormat: StopFinderGetOutputFormat.rapidjson,
-          nameSf: query,
-          coordOutputFormat: StopFinderGetCoordOutputFormat.epsg426); */
-
-      if (apiKey == null || apiKey.isEmpty) {
-        throw Exception('API key not set');
-      }
-
-      final params = {
-        'outputFormat': 'rapidJSON',
-        'type_sf': 'any',
-        'name_sf': query,
-        'coordOutputFormat': 'EPSG:4326',
-        'TfNSWSF': 'true',
-        'version': '10.2.1.42',
-      };
-
       final uri = Uri.https(_baseUrl, '/v1/tp/stop_finder/', params);
       final response = await http.get(
         uri,
@@ -72,7 +70,7 @@ class TransportApiService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception(
+        return Err(
           'Failed to search stations: ${response.statusCode}, ${response.body}',
         );
       }
@@ -80,78 +78,73 @@ class TransportApiService {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final locations = (data['locations'] as List?) ?? [];
 
-      return locations.map((location) {
-        final Map<String, dynamic>? loc = location as Map<String, dynamic>?;
-        final name =
-            (loc?['disassembledName'] ?? loc?['name'])?.toString() ?? '';
-        final id = loc?['id']?.toString() ?? '';
-        return {'name': name, 'id': id};
-      }).toList();
+      return Ok(
+        locations.map((location) {
+          final Map<String, dynamic>? loc = location as Map<String, dynamic>?;
+          final name =
+              (loc?['disassembledName'] ?? loc?['name'])?.toString() ?? '';
+          final id = loc?['id']?.toString() ?? '';
+          return {'name': name, 'id': id};
+        }).toList(),
+      );
     } catch (e) {
-      // Error searching stations
-      return [];
+      logger.e('Error searching stations: $e');
+      return Err(e.toString());
     }
   }
 
   /// Get trip information between two stations
-  static Future<GetTripsResponse> getTrips({
+  static Future<Result<GetTripsResponse, String>> getTrips({
     required String originId,
     required String destinationId,
   }) async {
+    final apiKey = await _getApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      return Err('API key not set');
+    }
+
+    final params = {
+      'outputFormat': 'rapidJSON',
+      'coordOutputFormat': 'EPSG:4326',
+      'depArrMacro': 'dep',
+      'type_origin': 'any',
+      'name_origin': originId,
+      'type_destination': 'any',
+      'name_destination': destinationId,
+      'calcNumberOfTrips': '20',
+      'excludedMeans': 'checkbox',
+      'exclMOT_7': '1',
+      'exclMOT_11': '1',
+      'TfNSWTR': 'true',
+      'version': '10.2.1.42',
+      'itOptionsActive': '0',
+    };
+
     try {
-      final apiKey = await _getApiKey();
-      if (apiKey == null || apiKey.isEmpty) {
-        throw Exception('API key not set');
-      }
-
-      final params = {
-        'outputFormat': 'rapidJSON',
-        'coordOutputFormat': 'EPSG:4326',
-        'depArrMacro': 'dep',
-        'type_origin': 'any',
-        'name_origin': originId,
-        'type_destination': 'any',
-        'name_destination': destinationId,
-        'calcNumberOfTrips': '20',
-        'excludedMeans': 'checkbox',
-        'exclMOT_7': '1',
-        'exclMOT_11': '1',
-        'TfNSWTR': 'true',
-        'version': '10.2.1.42',
-        'itOptionsActive': '0',
-      };
-
       final uri = Uri.https(_baseUrl, '/v1/tp/trip/', params);
       final response = await http.get(
         uri,
         headers: {'authorization': 'apikey $apiKey'},
       );
       logger.i('Response code ${response.statusCode}');
-      logger.i('Response body ${response.body}');
 
       if (response.statusCode != 200) {
-        throw Exception(
+        return Err(
           'Failed to get trips: ${response.statusCode}, ${response.body}',
         );
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      // Received getTrips response — log a short summary
       final journeys = data['journeys'];
       final journeysCount = journeys is List ? journeys.length : 0;
       logger.i(
         'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId',
       );
-      return GetTripsResponse.fromJson(data);
+      return Ok(GetTripsResponse.fromJson(data));
     } catch (e, st) {
       logger.e(e);
       logger.e(st);
-      // Error getting trips
-      return GetTripsResponse(
-        tripJourneys: [],
-        systemMessages: SystemMessages(responseMessages: []),
-        version: '',
-      );
+      return Err(e.toString());
     }
   }
 }
@@ -172,8 +165,6 @@ class GetTripsResponse {
   factory GetTripsResponse.fromJson(Map<String, dynamic> json) {
     // GetTripsResponse raw json keys logged (removed)
 
-    logger.i('GetTripsResponse.fromJson: keys=${json.keys.toList()}');
-
     List<TripJourney> tripJourneys = [];
     SystemMessages? systemMessages;
     String? version;
@@ -187,9 +178,6 @@ class GetTripsResponse {
         'GetTripsResponse.fromJson: "journeys" is not a List, type=${journeysJson.runtimeType}',
       );
     } else {
-      logger.i(
-        'GetTripsResponse.fromJson: journeys count=${journeysJson.length}',
-      );
       tripJourneys = [];
       for (var idx = 0; idx < journeysJson.length; idx++) {
         final journey = journeysJson[idx];

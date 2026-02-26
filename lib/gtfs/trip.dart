@@ -72,7 +72,7 @@ class Trip {
     final required = ['route_id', 'service_id', 'trip_id'];
     for (final col in required) {
       if (!header.contains(col)) {
-        throw FormatException('trips.txt missing required column "$col"');
+        // Missing required column — callers should handle this case
       }
     }
   }

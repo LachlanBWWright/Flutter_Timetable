@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 
 void main() {
   testWidgets('RealtimeMapWidget shows matching vehicle by vehicle id', (

@@ -1,12 +1,13 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
-import 'package:lbww_flutter/services/realtime_service.dart';
-import 'package:lbww_flutter/services/debug_service.dart';
-import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/logs/logger.dart';
+import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
@@ -105,7 +106,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     // Raw JSON for the leg
     buffer.writeln('\nRaw leg JSON:');
     try {
-      final enc = JsonEncoder.withIndent('  ');
+      const enc = JsonEncoder.withIndent('  ');
       if (leg.rawJson != null) {
         buffer.writeln(enc.convert(leg.rawJson));
       } else {
@@ -137,9 +138,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
       // Also check for RealtimeTripId / AVMSTripID in top-level transportation properties
       if (r['transportation'] is Map) {
-        final tp = r['transportation'];
+        final tp = r['transportation'] as Map<dynamic, dynamic>;
         if (tp['properties'] is Map) {
-          final p = tp['properties'];
+          final p = tp['properties'] as Map<dynamic, dynamic>;
           if (p['RealtimeTripId'] != null &&
               p['RealtimeTripId'].toString().isNotEmpty) {
             tripIds.add(p['RealtimeTripId'].toString());
@@ -169,7 +170,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             // Check leg.transportation.properties for RealtimeTripId / AVMSTripID
             final ttp = l['transportation'];
             if (ttp is Map && ttp['properties'] is Map) {
-              final p = ttp['properties'];
+              final p = ttp['properties'] as Map<dynamic, dynamic>;
               if (p['RealtimeTripId'] != null &&
                   p['RealtimeTripId'].toString().isNotEmpty) {
                 tripIds.add(p['RealtimeTripId'].toString());
@@ -286,21 +287,26 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final legObj = _updatedLeg ?? widget.leg;
     final lr = legObj.rawJson;
     if (lr != null) {
-      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty)
+      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty) {
         ids.add(lr['tripId'].toString());
-      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty)
+      }
+      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty) {
         ids.add(lr['trip_id'].toString());
+      }
       final t = lr['transportation'];
       if (t is Map && t['properties'] is Map) {
-        final p = t['properties'];
+        final p = t['properties'] as Map<dynamic, dynamic>;
         if (p['RealtimeTripId'] != null &&
-            p['RealtimeTripId'].toString().isNotEmpty)
+            p['RealtimeTripId'].toString().isNotEmpty) {
           ids.add(p['RealtimeTripId'].toString());
-        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty)
+        }
+        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty) {
           ids.add(p['AVMSTripID'].toString());
+        }
         if (p['realtimeTripId'] != null &&
-            p['realtimeTripId'].toString().isNotEmpty)
+            p['realtimeTripId'].toString().isNotEmpty) {
           ids.add(p['realtimeTripId'].toString());
+        }
       }
     }
     return ids;
@@ -330,9 +336,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       }
 
       if (r['transportation'] is Map) {
-        final tp = r['transportation'];
+        final tp = r['transportation'] as Map<dynamic, dynamic>;
         if (tp['properties'] is Map) {
-          final p = tp['properties'];
+          final p = tp['properties'] as Map<dynamic, dynamic>;
           if (p['RealtimeTripId'] != null &&
               p['RealtimeTripId'].toString().isNotEmpty) {
             tripIds.add(p['RealtimeTripId'].toString());
@@ -361,7 +367,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
             final ttp = l['transportation'];
             if (ttp is Map && ttp['properties'] is Map) {
-              final p = ttp['properties'];
+              final p = ttp['properties'] as Map<dynamic, dynamic>;
               if (p['RealtimeTripId'] != null &&
                   p['RealtimeTripId'].toString().isNotEmpty) {
                 tripIds.add(p['RealtimeTripId'].toString());
@@ -393,7 +399,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
       final t = lr['transportation'];
       if (t is Map && t['properties'] is Map) {
-        final p = t['properties'];
+        final p = t['properties'] as Map<dynamic, dynamic>;
         if (p['RealtimeTripId'] != null &&
             p['RealtimeTripId'].toString().isNotEmpty) {
           tripIds.add(p['RealtimeTripId'].toString());
@@ -492,8 +498,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     Leg leg,
     Color modeColor,
   ) {
-    if (transportId == null || transportId.isEmpty)
+    if (transportId == null || transportId.isEmpty) {
       return const SizedBox.shrink();
+    }
 
     return Card(
       elevation: 4,

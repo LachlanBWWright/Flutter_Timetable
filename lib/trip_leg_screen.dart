@@ -403,7 +403,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final destinationName =
         destination?['disassembledName'] ?? destination?['name'];
     final transportName =
-        transportation?['name'] ?? transportation?['disassembledName'] ?? '';
+        (transportation?['name'] ?? transportation?['disassembledName'] ?? '') as String;
     final stopSequence = widget.leg['stopSequence'] as List?;
 
     final currentVehicle = _currentVehicle;

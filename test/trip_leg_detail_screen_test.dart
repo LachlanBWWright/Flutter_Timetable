@@ -1,11 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
-import 'dart:io';
-import 'dart:convert';
+import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
 void main() {
   testWidgets('TripLegDetailScreen hides map button when transport id missing', (

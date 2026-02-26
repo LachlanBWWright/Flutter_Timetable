@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -31,6 +34,7 @@ class StopsMapWidget extends StatefulWidget {
 class _StopsMapWidgetState extends State<StopsMapWidget> {
   final MapController _mapController = MapController();
   List<Stop> _stops = [];
+  List<Marker> _cachedMarkers = [];
   Position? _userLocation;
   bool _isLoading = true;
   String? _error;
@@ -38,11 +42,43 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   VoidCallback? _pendingMapAction;
   double _currentZoom = 10.0;
   bool _showZoomWarning = false;
+  Timer? _zoomDebounce;
 
   @override
   void initState() {
     super.initState();
     _loadStopsAndLocation();
+  }
+
+  @override
+  void dispose() {
+    _zoomDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _buildMarkerCache() {
+    final color = _getModeColor();
+    final icon = _getModeIcon();
+    _cachedMarkers = _stops
+        .map(
+          (stop) => Marker(
+            point: LatLng(stop.stopLat, stop.stopLon),
+            width: 20.0,
+            height: 20.0,
+            child: GestureDetector(
+              onTap: () => _showStopDetails(stop),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Icon(icon, color: Colors.white, size: 12.0),
+              ),
+            ),
+          ),
+        )
+        .toList();
   }
 
   Future<void> _loadStopsAndLocation() async {
@@ -60,8 +96,13 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
       if (!mounted) return;
 
+      // Pre-filter stops with invalid coordinates once on load
+      _stops = allStops
+          .where((s) => s.stopLat != 0.0 && s.stopLon != 0.0)
+          .toList();
+      _buildMarkerCache();
+
       setState(() {
-        _stops = allStops;
         _isLoading = false;
       });
 
@@ -160,7 +201,6 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     if (_stops.isEmpty) return;
 
     final latLngs = _stops
-        .where((stop) => stop.stopLat != 0.0 && stop.stopLon != 0.0)
         .map((stop) => LatLng(stop.stopLat, stop.stopLon))
         .toList();
 
@@ -262,13 +302,19 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                     minZoom: 5.0,
                     maxZoom: 18.0,
                     onPositionChanged: (position, hasGesture) {
-                      setState(() {
-                        _currentZoom = position.zoom;
-                        // Show warning for buses if zoom is too low
-                        _showZoomWarning =
-                            widget.transportMode == TransportMode.bus &&
-                            _currentZoom < 13.0;
-                      });
+                      _zoomDebounce?.cancel();
+                      _zoomDebounce = Timer(
+                        const Duration(milliseconds: 150),
+                        () {
+                          if (!mounted) return;
+                          setState(() {
+                            _currentZoom = position.zoom;
+                            _showZoomWarning =
+                                widget.transportMode == TransportMode.bus &&
+                                _currentZoom < 13.0;
+                          });
+                        },
+                      );
                     },
                     onMapReady: () {
                       // Mark map as ready and run any pending map action
@@ -287,10 +333,9 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.flutter_timetable',
                     ),
-                    MarkerLayer(
-                      markers: [
-                        // User location marker
-                        if (userLoc != null)
+                    if (userLoc != null)
+                      MarkerLayer(
+                        markers: [
                           Marker(
                             point: LatLng(userLoc.latitude, userLoc.longitude),
                             width: 30.0,
@@ -301,42 +346,38 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                               size: 30.0,
                             ),
                           ),
-                        // Stop markers - only show when appropriately zoomed in
-                        if (_shouldShowMarkers())
-                          ..._stops
-                              .where(
-                                (stop) =>
-                                    stop.stopLat != 0.0 && stop.stopLon != 0.0,
-                              )
-                              .map(
-                                (stop) => Marker(
-                                  point: LatLng(stop.stopLat, stop.stopLon),
-                                  width: 20.0,
-                                  height: 20.0,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      _showStopDetails(stop);
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: _getModeColor(),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        _getModeIcon(),
-                                        color: Colors.white,
-                                        size: 12.0,
-                                      ),
-                                    ),
+                        ],
+                      ),
+                    if (_shouldShowMarkers())
+                      MarkerClusterLayerWidget(
+                        options: MarkerClusterLayerOptions(
+                          maxClusterRadius: 120,
+                          disableClusteringAtZoom: 16,
+                          markers: _cachedMarkers,
+                          builder: (context, markers) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: _getModeColor(),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  markers.length.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ),
-                      ],
-                    ),
+                            );
+                          },
+                        ),
+                      ),
                   ],
                 ),
                 // Zoom warning overlay for buses
@@ -432,36 +473,81 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
 
   void _showStopDetails(Stop stop) {
     final userLoc = _userLocation;
-    showDialog(
+    final modeColor = _getModeColor();
+    final modeIcon = _getModeIcon();
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(stop.stopName),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Stop ID: ${stop.stopId}'),
-            const SizedBox(height: 8),
-            if (stop.platformCode != null && stop.platformCode!.isNotEmpty)
-              Text('Platform: ${stop.platformCode}'),
-            if (userLoc != null)
-              Text(
-                'Distance: ${LocationService.calculateDistance(userLoc.latitude, userLoc.longitude, stop.stopLat, stop.stopLon).toStringAsFixed(2)} km',
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Color accent bar at top
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: modeColor,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              widget.onStopSelected(stop.stopName, stop.stopId);
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Also close the map
-            },
-            child: const Text('Select Stop'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(modeIcon, color: modeColor, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        stop.stopName,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text('Stop ID: ${stop.stopId}',
+                    style: Theme.of(context).textTheme.bodyMedium),
+                if (stop.platformCode != null &&
+                    stop.platformCode!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text('Platform: ${stop.platformCode}',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                ],
+                if (userLoc != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Distance: ${LocationService.calculateDistance(userLoc.latitude, userLoc.longitude, stop.stopLat, stop.stopLon).toStringAsFixed(2)} km',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: modeColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      widget.onStopSelected(stop.stopName, stop.stopId);
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop(); // Also close the map
+                    },
+                    child: const Text('Select Stop'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

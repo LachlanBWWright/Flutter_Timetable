@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/logs/logger.dart';
-// logger removed
+import 'package:option_result/option_result.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
-import 'package:lbww_flutter/trip_legs_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
 
@@ -29,70 +27,67 @@ class _TripScreenState extends State<TripScreen> {
       _error = null;
     });
 
-    try {
-      // Getting trip data for ${widget.trip.origin} to ${widget.trip.destination}
-      logger.i('Calling gettrips');
-      final tripData = await TransportApiService.getTrips(
-        originId: widget.trip.originId,
-        destinationId: widget.trip.destinationId,
-      );
+    final result = await TransportApiService.getTrips(
+      originId: widget.trip.originId,
+      destinationId: widget.trip.destinationId,
+    );
 
-      if (!context.mounted) return;
+    if (!context.mounted) return;
 
-      setState(() {
-        // Reorder trips so upcoming trips (departing now or in future) appear
-        // first, followed by past trips. This ensures the UI shows both future
-        // and past trips (previously only past trips were prominent).
-        final now = DateTime.now();
+    switch (result) {
+      case Ok(:final v):
+        setState(() {
+          // Reorder trips so upcoming trips (departing now or in future) appear
+          // first, followed by past trips. This ensures the UI shows both future
+          // and past trips (previously only past trips were prominent).
+          final now = DateTime.now();
 
-        DateTime? _getDeparture(TripJourney t) {
-          if (t.legs.isEmpty) return null;
-          final firstLeg = t.legs.first;
-          final dep =
-              firstLeg.origin.departureTimeEstimated ??
-              firstLeg.origin.departureTimePlanned;
-          return dep != null ? DateTimeUtils.parseTimeToDateTime(dep) : null;
-        }
-
-        final allTrips = tripData.tripJourneys;
-        final upcoming = <TripJourney>[];
-        final past = <TripJourney>[];
-
-        for (final t in allTrips) {
-          final dt = _getDeparture(t);
-          if (dt != null && !dt.isBefore(now)) {
-            upcoming.add(t);
-          } else {
-            past.add(t);
+          DateTime? getDeparture(TripJourney t) {
+            if (t.legs.isEmpty) return null;
+            final firstLeg = t.legs.first;
+            final dep =
+                firstLeg.origin.departureTimeEstimated ??
+                firstLeg.origin.departureTimePlanned;
+            return dep != null ? DateTimeUtils.parseTimeToDateTime(dep) : null;
           }
-        }
 
-        // Upcoming: earliest-first
-        upcoming.sort((a, b) {
-          final da = _getDeparture(a)!, db = _getDeparture(b)!;
-          return da.compareTo(db);
+          final allTrips = v.tripJourneys;
+          final upcoming = <TripJourney>[];
+          final past = <TripJourney>[];
+
+          for (final t in allTrips) {
+            final dt = getDeparture(t);
+            if (dt != null && !dt.isBefore(now)) {
+              upcoming.add(t);
+            } else {
+              past.add(t);
+            }
+          }
+
+          // Upcoming: earliest-first
+          upcoming.sort((a, b) {
+            final da = getDeparture(a)!, db = getDeparture(b)!;
+            return da.compareTo(db);
+          });
+
+          // Past: most-recent-first
+          past.sort((a, b) {
+            final da = getDeparture(a), db = getDeparture(b);
+            if (da == null && db == null) return 0;
+            if (da == null) return 1;
+            if (db == null) return -1;
+            return db.compareTo(da);
+          });
+
+          trips = [...upcoming, ...past];
+          testText = v.toString();
+          _isLoading = false;
         });
-
-        // Past: most-recent-first
-        past.sort((a, b) {
-          final da = _getDeparture(a), db = _getDeparture(b);
-          if (da == null && db == null) return 0;
-          if (da == null) return 1;
-          if (db == null) return -1;
-          return db.compareTo(da);
+      case Err(:final e):
+        setState(() {
+          _error = e;
+          _isLoading = false;
         });
-
-        trips = [...upcoming, ...past];
-        testText = tripData.toString();
-        _isLoading = false;
-      });
-    } catch (e) {
-      // Error getting trip data
-      if (!context.mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
     }
   }
 

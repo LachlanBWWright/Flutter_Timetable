@@ -108,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open $_devGuideUrl')),
+        const SnackBar(content: Text('Could not open $_devGuideUrl')),
       );
     }
   }

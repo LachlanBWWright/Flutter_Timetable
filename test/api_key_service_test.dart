@@ -7,7 +7,8 @@ void main() {
   setUp(() async {
     // Start each test with a clean SharedPreferences store and no dotenv key.
     SharedPreferences.setMockInitialValues({});
-    dotenv.testLoad(fileInput: '');
+    // initialize dotenv with an empty map (optional to avoid errors)
+    dotenv.loadFromString(envString: '', isOptional: true);
     await ApiKeyService.init();
   });
 
@@ -38,7 +39,7 @@ void main() {
 
     test('clearUserApiKey reverts to dotenv key when present', () async {
       // Simulate a built-in key via dotenv.
-      dotenv.testLoad(fileInput: 'API_KEY=builtin-key');
+      dotenv.loadFromString(envString: 'API_KEY=builtin-key');
       await ApiKeyService.setUserApiKey('user-key');
       expect(ApiKeyService.getEffectiveApiKey(), equals('user-key'));
       await ApiKeyService.clearUserApiKey();
@@ -50,7 +51,7 @@ void main() {
     });
 
     test('hasBuiltInApiKey returns true when dotenv has a key', () {
-      dotenv.testLoad(fileInput: 'API_KEY=some-key');
+      dotenv.loadFromString(envString: 'API_KEY=some-key');
       expect(ApiKeyService.hasBuiltInApiKey(), isTrue);
     });
 

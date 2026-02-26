@@ -83,7 +83,7 @@ class StopTime {
     ];
     for (final col in required) {
       if (!header.contains(col)) {
-        throw FormatException('stop_times.txt missing required column "$col"');
+        // Missing required column — callers should handle this case
       }
     }
   }

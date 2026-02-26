@@ -1,5 +1,7 @@
 // dart:convert not required now - CSV parsing uses package:csv
 
+import 'dart:typed_data';
+
 import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
 import 'package:http/http.dart' as http;
@@ -83,36 +85,9 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
       }
     }
     final data = parseGtfsFiles(csvFiles);
-    // Debug logging: report how many stops were parsed and sample a few rows
-    try {
-      logger.i(
-        'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files',
-      );
-      logger.i('stops.txt contains ${data.stops.length} rows');
-      for (var i = 0; i < data.stops.length && i < 10; i++) {
-        final s = data.stops[i];
-        logger.d(
-          'Sample stop[$i]: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}',
-        );
-      }
-      // For buses and ferries, also log a sample of the first 10 routes
-      try {
-        if (endpoint.startsWith('/buses') || endpoint.startsWith('/ferries')) {
-          logger.i('routes.txt contains ${data.routes.length} rows');
-          for (var i = 0; i < data.routes.length && i < 10; i++) {
-            final r = data.routes[i];
-            logger.d(
-              'Sample route[$i]: id="${r.routeId}", short_name="${r.routeShortName}", long_name="${r.routeLongName}", type=${r.routeType}',
-            );
-          }
-        }
-      } catch (e) {
-        logger.w('Error logging routes sample for $endpoint: $e');
-      }
-    } catch (e) {
-      logger.w('Error logging parsed GTFS sample for $endpoint: $e');
-    }
-
+    logger.i(
+      'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files, ${data.stops.length} stops',
+    );
     return data;
   } catch (e, st) {
     logger.e('Error fetching GTFS data for $endpoint: $e\n$st');
@@ -293,7 +268,8 @@ List<Agency> parseAgencyCsv(String csv) {
   // Use a resilient CSV-to-rows helper that autodetects EOL and field delimiter.
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('agency.txt is empty');
+    logger.w('agency.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -305,7 +281,6 @@ List<Agency> parseAgencyCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('agency.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -319,7 +294,8 @@ List<Agency> parseAgencyCsv(String csv) {
 List<Calendar> parseCalendarCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('calendar.txt is empty');
+    logger.w('calendar.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -331,7 +307,6 @@ List<Calendar> parseCalendarCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('calendar.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -345,7 +320,8 @@ List<Calendar> parseCalendarCsv(String csv) {
 List<CalendarDate> parseCalendarDatesCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('calendar_dates.txt is empty');
+    logger.w('calendar_dates.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -357,7 +333,6 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('calendar_dates.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -371,7 +346,8 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
 List<Route> parseRoutesCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('routes.txt is empty');
+    logger.w('routes.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -383,7 +359,6 @@ List<Route> parseRoutesCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('routes.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -396,10 +371,9 @@ List<Route> parseRoutesCsv(String csv) {
 
 List<Stop> parseStopsCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: true);
-  logger.i('Parsing stops.csv, total rows: $rows.length');
-
   if (rows.isEmpty) {
-    throw const FormatException('stops.txt is empty');
+    logger.w('stops.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -411,7 +385,6 @@ List<Stop> parseStopsCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('stops.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -425,7 +398,8 @@ List<Stop> parseStopsCsv(String csv) {
 List<StopTime> parseStopTimesCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('stop_times.txt is empty');
+    logger.w('stop_times.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -437,7 +411,6 @@ List<StopTime> parseStopTimesCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('stop_times.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -451,7 +424,8 @@ List<StopTime> parseStopTimesCsv(String csv) {
 List<Trip> parseTripsCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('trips.txt is empty');
+    logger.w('trips.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -463,7 +437,6 @@ List<Trip> parseTripsCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('trips.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -477,7 +450,8 @@ List<Trip> parseTripsCsv(String csv) {
 List<Shape> parseShapesCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('shapes.txt is empty');
+    logger.w('shapes.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -489,7 +463,6 @@ List<Shape> parseShapesCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('shapes.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -503,7 +476,8 @@ List<Shape> parseShapesCsv(String csv) {
 List<Note> parseNotesCsv(String csv) {
   final rows = _csvToRows(csv, shouldParseNumbers: false);
   if (rows.isEmpty) {
-    throw const FormatException('notes.txt is empty');
+    logger.w('notes.txt is empty');
+    return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
@@ -515,7 +489,6 @@ List<Note> parseNotesCsv(String csv) {
 
   // Use header-based parsing for better compatibility
   final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
-  logger.i('notes.txt header: $header');
 
   return [
     for (var i = 1; i < rows.length; i++)
@@ -589,14 +562,8 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
 }
 
 GtfsData parseGtfsFiles(Map<String, String> files) {
-  logger.i('Files: ${files.keys.toString()}');
   if (files['stops.txt'] == null) {
     logger.e('Stops.txt is missing');
-  } else {
-    final stopsContent = files['stops.txt'];
-    if (stopsContent != null) {
-      logger.i('stops.txt length: ${stopsContent.length} characters');
-    }
   }
   return GtfsData(
     agencies: files['agency.txt'] != null
@@ -621,4 +588,20 @@ GtfsData parseGtfsFiles(Map<String, String> files) {
         : [],
     notes: files['notes.txt'] != null ? parseNotesCsv(files['notes.txt']!) : [],
   );
+}
+
+/// Decode a GTFS ZIP and return only the stops from stops.txt, ignoring all
+/// other files (stop_times.txt, trips.txt, shapes.txt etc. can be very large).
+///
+/// This is a top-level function so it can be passed to [compute] and run in
+/// a background isolate, keeping the UI thread free.
+List<Stop> parseStopsOnlyFromZipBytes(Uint8List bytes) {
+  final archive = ZipDecoder().decodeBytes(bytes);
+  for (final file in archive) {
+    if (file.isFile && file.name == 'stops.txt') {
+      final csv = String.fromCharCodes(file.content as List<int>);
+      return parseStopsCsv(csv);
+    }
+  }
+  return [];
 }

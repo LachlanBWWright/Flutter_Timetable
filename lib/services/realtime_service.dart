@@ -204,17 +204,18 @@ class RealtimeService {
     final unique = <String, VehiclePosition>{};
     for (final v in vehicles) {
       var key = 'unknown';
-      if (v.vehicle.hasId())
+      if (v.vehicle.hasId()) {
         key = 'vid:${v.vehicle.id}';
-      else if (v.trip.hasTripId())
+      } else if (v.trip.hasTripId()) {
         key = 'trip:${v.trip.tripId}';
+      }
       else if (v.hasPosition() &&
           v.position.hasLatitude() &&
           v.position.hasLongitude()) {
         final lat = v.position.latitude.toStringAsFixed(6);
         final lng = v.position.longitude.toStringAsFixed(6);
         final ts = v.hasTimestamp() ? v.timestamp.toString() : 'nots';
-        key = 'pos:${lat}:${lng}:${ts}';
+        key = 'pos:$lat:$lng:$ts';
       }
       if (!unique.containsKey(key)) unique[key] = v;
     }

@@ -93,8 +93,8 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final legs = widget.trip.legs;
     if (legs.isEmpty) {
-      return Card(
-        child: const ListTile(
+      return const Card(
+        child: ListTile(
           title: Text('Unknown trip'),
           subtitle: Text('No legs available'),
         ),
@@ -158,7 +158,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
     }
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

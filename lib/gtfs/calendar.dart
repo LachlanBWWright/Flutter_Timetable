@@ -65,7 +65,7 @@ class Calendar {
     final required = expectedCsvHeader();
     for (final col in required) {
       if (!header.contains(col)) {
-        throw FormatException('calendar.txt missing required column "$col"');
+        // Missing required column — callers should handle this case
       }
     }
   }

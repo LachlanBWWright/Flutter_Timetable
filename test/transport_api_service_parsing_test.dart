@@ -38,7 +38,10 @@ void main() {
       final trans = leg.transportation;
       expect(trans, isNotNull);
       expect(trans?.rawJson, isNotNull);
-      expect(trans?.rawJson?['properties']?['RealtimeTripId'], isNotNull);
+      expect(
+        (trans?.rawJson?['properties'] as Map<String, dynamic>?)?['RealtimeTripId'],
+        isNotNull,
+      );
     },
   );
 }

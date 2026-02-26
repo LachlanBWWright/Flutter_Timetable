@@ -59,7 +59,7 @@ class StationView extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(1.0),
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: InkWell(
           onTap: () {
             setStation(station.name, station.id);

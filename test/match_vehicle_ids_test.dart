@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
-import 'package:lbww_flutter/fetch_data/realtime_updates.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
+import 'package:lbww_flutter/fetch_data/realtime_updates.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
-import 'dart:io';
+import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:option_result/option_result.dart';
 
 void main() {
   test(
@@ -15,27 +15,33 @@ void main() {
 
       // 1. Find station IDs
       print('Searching for Redfern Station...');
-      final redfernResults = await TransportApiService.searchStations(
+      final redfernResult = await TransportApiService.searchStations(
         'Redfern Station',
       );
+      expect(redfernResult, isA<Ok<List<Map<String, dynamic>>, String>>());
+      final redfernResults = redfernResult.unwrap();
       expect(redfernResults, isNotEmpty);
       final redfernId = redfernResults.first['id'];
       print('Redfern Station ID: $redfernId');
 
       print('Searching for Central Station...');
-      final centralResults = await TransportApiService.searchStations(
+      final centralResult = await TransportApiService.searchStations(
         'Central Station',
       );
+      expect(centralResult, isA<Ok<List<Map<String, dynamic>>, String>>());
+      final centralResults = centralResult.unwrap();
       expect(centralResults, isNotEmpty);
       final centralId = centralResults.first['id'];
       print('Central Station ID: $centralId');
 
       // 2. Get Trips
       print('Getting trips between Redfern and Central...');
-      final tripsResponse = await TransportApiService.getTrips(
+      final tripsResult = await TransportApiService.getTrips(
         originId: redfernId,
         destinationId: centralId,
       );
+      expect(tripsResult, isA<Ok<GetTripsResponse, String>>());
+      final tripsResponse = tripsResult.unwrap();
       expect(tripsResponse.tripJourneys, isNotEmpty);
       print('Found ${tripsResponse.tripJourneys.length} journeys');
 
@@ -52,7 +58,6 @@ void main() {
       // 4. Match IDs
       int matchesFound = 0;
       int tripsChecked = 0;
-      int routeIdMatches = 0;
       int startTimeMatches = 0;
       int startDateMatches = 0;
       int labelMatches = 0;
@@ -125,8 +130,9 @@ void main() {
             final updateTrip = update.tripUpdate.trip;
 
             for (var posEntity in trainPositions.entity) {
-              if (!posEntity.hasVehicle() || !posEntity.vehicle.hasTrip())
+              if (!posEntity.hasVehicle() || !posEntity.vehicle.hasTrip()) {
                 continue;
+              }
 
               final posTrip = posEntity.vehicle.trip;
 

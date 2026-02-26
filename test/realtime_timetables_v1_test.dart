@@ -1,8 +1,9 @@
 import 'dart:async';
+
 import 'package:archive/archive.dart';
+import 'package:chopper/chopper.dart' as chopper;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:chopper/chopper.dart' as chopper;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 // import 'package:lbww_flutter/swagger_generated/realtime_timetables_v1.swagger.dart';
 

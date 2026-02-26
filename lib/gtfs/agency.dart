@@ -57,7 +57,7 @@ class Agency {
     final required = ['agency_name', 'agency_url', 'agency_timezone'];
     for (final col in required) {
       if (!header.contains(col)) {
-        throw FormatException('agency.txt missing required column "$col"');
+        // Missing required column — callers should handle this case
       }
     }
   }

@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 import '../constants/transport_modes.dart';
 import '../fetch_data/timetable_data.dart';
-import '../gtfs/gtfs_data.dart';
 import '../gtfs/stop.dart';
 import '../logs/logger.dart';
 import '../schema/database.dart' hide Stop;
@@ -15,57 +18,93 @@ import '../schema/database.dart' hide Stop;
 /// `.key` to obtain the original key when interacting with the database or
 /// external systems.
 enum StopsEndpoint {
-  buses('buses'),
-  busesSbsc006('busesSbsc006'),
-  busesGbsc001('busesGbsc001'),
-  busesGsbc002('buses_GSBC002'),
-  busesGsbc003('buses_GSBC003'),
-  busesGsbc004('buses_GSBC004'),
-  busesGsbc007('buses_GSBC007'),
-  busesGsbc008('buses_GSBC008'),
-  busesGsbc009('buses_GSBC009'),
-  busesGsbc010('buses_GSBC010'),
-  busesGsbc014('buses_GSBC014'),
-  busesOsmbsc001('buses_OSMBSC001'),
-  busesOsmbsc002('buses_OSMBSC002'),
-  busesOsmbsc003('buses_OSMBSC003'),
-  busesOsmbsc004('buses_OSMBSC004'),
-  busesOmbsc006('buses_OMBSC006'),
-  busesOmbsc007('buses_OMBSC007'),
-  busesOsmbsc008('buses_OSMBSC008'),
-  busesOsmbsc009('buses_OSMBSC009'),
-  busesOsmbsc010('buses_OSMBSC010'),
-  busesOsmbsc011('buses_OSMBSC011'),
-  busesOsmbsc012('buses_OSMBSC012'),
-  busesNisc001('buses_NISC001'),
-  busesReplacementBus('buses_ReplacementBus'),
-  ferriesSydneyFerries('ferries_sydneyferries'),
-  ferriesMff('ferries_MFF'),
-  lightrailInnerwest('lightrail_innerwest'),
-  lightrailNewcastle('lightrail_newcastle'),
-  lightrailCbdandsoutheast('lightrail_cbdandsoutheast'),
-  lightrailParramatta('lightrail_parramatta'),
-  nswtrains('nswtrains'),
-  sydneytrains('sydneytrains'),
-  metro('metro'),
-  regionbusesSoutheastTablelands('regionbuses_southeasttablelands'),
-  regionbusesSoutheastTablelands2('regionbuses_southeasttablelands2'),
-  regionbusesNorthCoast('regionbuses_northcoast'),
-  regionbusesNorthCoast2('regionbuses_northcoast2'),
-  regionbusesCentralWestAndOrana('regionbuses_centralwestandorana'),
-  regionbusesCentralWestAndOrana2('regionbuses_centralwestandorana2'),
-  regionbusesRiverinaMurray('regionbuses_riverinamurray'),
-  regionbusesNewEnglandNorthWest('regionbuses_newenglandnorthwest'),
-  regionbusesRiverinaMurray2('regionbuses_riverinamurray2'),
-  regionbusesNorthCoast3('regionbuses_northcoast3'),
-  regionbusesSydneySurrounds('regionbuses_sydneysurrounds'),
-  regionbusesNewcastleHunter('regionbuses_newcastlehunter'),
-  regionbusesFarWest('regionbuses_farwest');
+  buses('buses', '/buses'),
+  busesSbsc006('busesSbsc006', '/buses/SBSC006'),
+  busesGbsc001('busesGbsc001', '/buses/GSBC001'),
+  busesGsbc002('buses_GSBC002', '/buses/GSBC002'),
+  busesGsbc003('buses_GSBC003', '/buses/GSBC003'),
+  busesGsbc004('buses_GSBC004', '/buses/GSBC004'),
+  busesGsbc007('buses_GSBC007', '/buses/GSBC007'),
+  busesGsbc008('buses_GSBC008', '/buses/GSBC008'),
+  busesGsbc009('buses_GSBC009', '/buses/GSBC009'),
+  busesGsbc010('buses_GSBC010', '/buses/GSBC010'),
+  busesGsbc014('buses_GSBC014', '/buses/GSBC014'),
+  busesOsmbsc001('buses_OSMBSC001', '/buses/OSMBSC001'),
+  busesOsmbsc002('buses_OSMBSC002', '/buses/OSMBSC002'),
+  busesOsmbsc003('buses_OSMBSC003', '/buses/OSMBSC003'),
+  busesOsmbsc004('buses_OSMBSC004', '/buses/OSMBSC004'),
+  busesOmbsc006('buses_OMBSC006', '/buses/OMBSC006'),
+  busesOmbsc007('buses_OMBSC007', '/buses/OMBSC007'),
+  busesOsmbsc008('buses_OSMBSC008', '/buses/OSMBSC008'),
+  busesOsmbsc009('buses_OSMBSC009', '/buses/OSMBSC009'),
+  busesOsmbsc010('buses_OSMBSC010', '/buses/OSMBSC010'),
+  busesOsmbsc011('buses_OSMBSC011', '/buses/OSMBSC011'),
+  busesOsmbsc012('buses_OSMBSC012', '/buses/OSMBSC012'),
+  busesNisc001('buses_NISC001', '/buses/NISC001'),
+  busesReplacementBus('buses_ReplacementBus', '/buses/ReplacementBus'),
+  ferriesSydneyFerries('ferries_sydneyferries', '/ferries/sydneyferries'),
+  ferriesMff('ferries_MFF', '/ferries/MFF'),
+  lightrailInnerwest('lightrail_innerwest', '/lightrail/innerwest'),
+  lightrailNewcastle('lightrail_newcastle', '/lightrail/newcastle'),
+  lightrailCbdandsoutheast(
+    'lightrail_cbdandsoutheast',
+    '/lightrail/cbdandsoutheast',
+  ),
+  lightrailParramatta('lightrail_parramatta', '/lightrail/parramatta'),
+  nswtrains('nswtrains', '/nswtrains'),
+  sydneytrains('sydneytrains', '/sydneytrains'),
+  metro('metro', '/metro', isV2: true),
+  regionbusesSoutheastTablelands(
+    'regionbuses_southeasttablelands',
+    '/regionbuses/southeasttablelands',
+  ),
+  regionbusesSoutheastTablelands2(
+    'regionbuses_southeasttablelands2',
+    '/regionbuses/southeasttablelands2',
+  ),
+  regionbusesNorthCoast('regionbuses_northcoast', '/regionbuses/northcoast'),
+  regionbusesNorthCoast2('regionbuses_northcoast2', '/regionbuses/northcoast2'),
+  regionbusesCentralWestAndOrana(
+    'regionbuses_centralwestandorana',
+    '/regionbuses/centralwestandorana',
+  ),
+  regionbusesCentralWestAndOrana2(
+    'regionbuses_centralwestandorana2',
+    '/regionbuses/centralwestandorana2',
+  ),
+  regionbusesRiverinaMurray(
+    'regionbuses_riverinamurray',
+    '/regionbuses/riverinamurray',
+  ),
+  regionbusesNewEnglandNorthWest(
+    'regionbuses_newenglandnorthwest',
+    '/regionbuses/newenglandnorthwest',
+  ),
+  regionbusesRiverinaMurray2(
+    'regionbuses_riverinamurray2',
+    '/regionbuses/riverinamurray2',
+  ),
+  regionbusesNorthCoast3('regionbuses_northcoast3', '/regionbuses/northcoast3'),
+  regionbusesSydneySurrounds(
+    'regionbuses_sydneysurrounds',
+    '/regionbuses/sydneysurrounds',
+  ),
+  regionbusesNewcastleHunter(
+    'regionbuses_newcastlehunter',
+    '/regionbuses/newcastlehunter',
+  ),
+  regionbusesFarWest('regionbuses_farwest', '/regionbuses/farwest');
 
   /// The original string key used for disk / DB storage & service endpoints
   final String key;
 
-  const StopsEndpoint(this.key);
+  /// The API path segment used to construct the GTFS schedule URL
+  final String path;
+
+  /// Whether this endpoint uses the v2 schedule API surface (default: v1)
+  final bool isV2;
+
+  const StopsEndpoint(this.key, this.path, {this.isV2 = false});
 }
 
 class StopsUpdateProgress {
@@ -177,15 +216,6 @@ class StopsService {
       );
     }
 
-    try {
-      for (var i = 0; i < stations.length && i < 5; i++) {
-        final s = stations[i];
-        logger.d(
-          'Inserting sample stop for ${endpoint.key}: id="${s.stopId}", name="${s.stopName}", location_type=${s.locationType}',
-        );
-      }
-    } catch (_) {}
-
     // store under the canonical key value (original string key preserved in `key`)
     await db.insertStopsForEndpoint(stopsCompanions, endpoint.key);
   }
@@ -234,258 +264,128 @@ class StopsService {
         .toList();
   }
 
-  /// Fetch stops from API endpoint and update database (manual update function)
+  /// Fetch only stops.txt from the GTFS ZIP for [endpoint] and update the DB.
+  ///
+  /// Key improvements over the old approach:
+  /// - Only parses stops.txt — skips stop_times.txt, trips.txt, shapes.txt
+  ///   etc. which can be orders of magnitude larger.
+  /// - ZIP decompression and CSV parsing run in a background isolate via
+  ///   [compute], keeping the UI thread free.
   static Future<void> updateStopsFromEndpoint(StopsEndpoint endpoint) async {
     try {
-      // Fetching stops from API for endpoint: $endpoint
-
-      // Get GTFS data from the appropriate endpoint
-      final gtfsData = await _fetchGtfsDataForEndpoint(endpoint);
-      if (gtfsData == null) {
-        // Failed to fetch GTFS data for $endpoint: no data returned from API.
-        return;
-      }
-
-      // Store the stops to database
-      try {
-        await storeStopsToDatabase(gtfsData.stops, endpoint);
-        logger.i(
-          'Updated ${gtfsData.stops.length} stops for ${endpoint.key} from API',
-        );
-      } catch (e, st) {
-        logger.e(
-          'Database error while storing stops for ${endpoint.key}: $e\n$st',
-        );
-      }
+      final stops = await _fetchStopsOnly(endpoint);
+      if (stops == null) return;
+      await storeStopsToDatabase(stops, endpoint);
+      logger.i('Updated ${stops.length} stops for ${endpoint.key} from API');
     } catch (e) {
       logger.e('Error updating stops from endpoint ${endpoint.key}: $e');
     }
   }
 
-  /// Helper function to call the appropriate GTFS fetch function for an endpoint
-  static Future<GtfsData?> _fetchGtfsDataForEndpoint(
-    StopsEndpoint endpoint,
-  ) async {
-    switch (endpoint) {
-      // Buses
-      case StopsEndpoint.buses:
-        return await fetchBusesGtfsData();
-      case StopsEndpoint.busesSbsc006:
-        return await fetchBusesSBSC006GtfsData();
-      case StopsEndpoint.busesGbsc001:
-        return await fetchBusesGSBC001GtfsData();
-      case StopsEndpoint.busesGsbc002:
-        return await fetchBusesGSBC002GtfsData();
-      case StopsEndpoint.busesGsbc003:
-        return await fetchBusesGSBC003GtfsData();
-      case StopsEndpoint.busesGsbc004:
-        return await fetchBusesGSBC004GtfsData();
-      case StopsEndpoint.busesGsbc007:
-        return await fetchBusesGSBC007GtfsData();
-      case StopsEndpoint.busesGsbc008:
-        return await fetchBusesGSBC008GtfsData();
-      case StopsEndpoint.busesGsbc009:
-        return await fetchBusesGSBC009GtfsData();
-      case StopsEndpoint.busesGsbc010:
-        return await fetchBusesGSBC010GtfsData();
-      case StopsEndpoint.busesGsbc014:
-        return await fetchBusesGSBC014GtfsData();
-      case StopsEndpoint.busesOsmbsc001:
-        return await fetchBusesOSMBSC001GtfsData();
-      case StopsEndpoint.busesOsmbsc002:
-        return await fetchBusesOSMBSC002GtfsData();
-      case StopsEndpoint.busesOsmbsc003:
-        return await fetchBusesOSMBSC003GtfsData();
-      case StopsEndpoint.busesOsmbsc004:
-        return await fetchBusesOSMBSC004GtfsData();
-      case StopsEndpoint.busesOmbsc006:
-        return await fetchBusesOMBSC006GtfsData();
-      case StopsEndpoint.busesOmbsc007:
-        return await fetchBusesOMBSC007GtfsData();
-      case StopsEndpoint.busesOsmbsc008:
-        return await fetchBusesOSMBSC008GtfsData();
-      case StopsEndpoint.busesOsmbsc009:
-        return await fetchBusesOSMBSC009GtfsData();
-      case StopsEndpoint.busesOsmbsc010:
-        return await fetchBusesOSMBSC010GtfsData();
-      case StopsEndpoint.busesOsmbsc011:
-        return await fetchBusesOSMBSC011GtfsData();
-      case StopsEndpoint.busesOsmbsc012:
-        return await fetchBusesOSMBSC012GtfsData();
-      case StopsEndpoint.busesNisc001:
-        return await fetchBusesNISC001GtfsData();
-      case StopsEndpoint.busesReplacementBus:
-        return await fetchBusesReplacementBusGtfsData();
-
-      // Ferries
-      case StopsEndpoint.ferriesSydneyFerries:
-        return await fetchFerriesSydneyFerriesGtfsData();
-      case StopsEndpoint.ferriesMff:
-        return await fetchFerriesMFFGtfsData();
-
-      // Light Rail
-      case StopsEndpoint.lightrailInnerwest:
-        return await fetchLightRailInnerWestGtfsData();
-      case StopsEndpoint.lightrailNewcastle:
-        return await fetchLightRailNewcastleGtfsData();
-      case StopsEndpoint.lightrailCbdandsoutheast:
-        return await fetchLightRailCbdAndSoutheastGtfsData();
-      case StopsEndpoint.lightrailParramatta:
-        return await fetchLightRailParramattaGtfsData();
-
-      // Trains
-      case StopsEndpoint.nswtrains:
-        return await fetchNswTrainsGtfsData();
-      case StopsEndpoint.sydneytrains:
-        return await fetchSydneyTrainsGtfsData();
-
-      // Metro
-      case StopsEndpoint.metro:
-        return await fetchMetroGtfsData();
-
-      // Regional Buses
-      case StopsEndpoint.regionbusesSoutheastTablelands:
-        return await fetchRegionBusesSouthEastTablelandsGtfsData();
-      case StopsEndpoint.regionbusesSoutheastTablelands2:
-        return await fetchRegionBusesSouthEastTablelands2GtfsData();
-      case StopsEndpoint.regionbusesNorthCoast:
-        return await fetchRegionBusesNorthCoastGtfsData();
-      case StopsEndpoint.regionbusesNorthCoast2:
-        return await fetchRegionBusesNorthCoast2GtfsData();
-      case StopsEndpoint.regionbusesCentralWestAndOrana:
-        return await fetchRegionBusesCentralWestAndOranaGtfsData();
-      case StopsEndpoint.regionbusesCentralWestAndOrana2:
-        return await fetchRegionBusesCentralWestAndOrana2GtfsData();
-      case StopsEndpoint.regionbusesRiverinaMurray:
-        return await fetchRegionBusesRiverinaMurrayGtfsData();
-      case StopsEndpoint.regionbusesNewEnglandNorthWest:
-        return await fetchRegionBusesNewEnglandNorthWestGtfsData();
-      case StopsEndpoint.regionbusesRiverinaMurray2:
-        return await fetchRegionBusesRiverinaMurray2GtfsData();
-      case StopsEndpoint.regionbusesNorthCoast3:
-        return await fetchRegionBusesNorthCoast3GtfsData();
-      case StopsEndpoint.regionbusesSydneySurrounds:
-        return await fetchRegionBusesSydneySurroundsGtfsData();
-      case StopsEndpoint.regionbusesNewcastleHunter:
-        return await fetchRegionBusesNewcastleHunterGtfsData();
-      case StopsEndpoint.regionbusesFarWest:
-        return await fetchRegionBusesFarWestGtfsData();
+  /// HTTP-fetch the GTFS ZIP for [endpoint] and parse only stops.txt in a
+  /// background isolate. Returns null on any network or parse failure.
+  static Future<List<Stop>?> _fetchStopsOnly(StopsEndpoint endpoint) async {
+    final versionPath = endpoint.isV2 ? 'v2' : 'v1';
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule${endpoint.path}',
+    );
+    try {
+      final response = await http.get(url, headers: getHeaders());
+      if (response.statusCode != 200) {
+        logger.e(
+          'Failed to fetch GTFS for ${endpoint.key}: ${response.statusCode}',
+        );
+        return null;
+      }
+      // Offload ZIP decode + CSV parse to a background isolate so the UI
+      // thread is not blocked by the CPU-intensive work.
+      return await compute(parseStopsOnlyFromZipBytes, response.bodyBytes);
+    } catch (e) {
+      logger.e('Network error fetching ${endpoint.key}: $e');
+      return null;
     }
   }
 
-  /// Update all endpoints from API (manual function - not called automatically)
-  /// Progress event emitted while updating stops
+  /// Update all endpoints from API (manual function - not called automatically).
   ///
-  /// - endpoint: the endpoint being processed (or 'init'/'complete')
-  /// - completed: number of endpoints completed so far
-  /// - total: total number of endpoints to process
-  /// - success: whether the last operation succeeded
-  /// - message: optional human-readable message
-  /// Convert this method to an async generator (Stream) that yields
-  /// `StopsUpdateProgress` events during the update process.
-  static Stream<StopsUpdateProgress> updateAllStopsFromApi() async* {
-    final endpoints = [
-      StopsEndpoint.buses,
-      StopsEndpoint.busesSbsc006,
-      StopsEndpoint.busesGbsc001,
-      StopsEndpoint.busesGsbc002,
-      StopsEndpoint.busesGsbc003,
-      StopsEndpoint.busesGsbc004,
-      StopsEndpoint.busesGsbc007,
-      StopsEndpoint.busesGsbc008,
-      StopsEndpoint.busesGsbc009,
-      StopsEndpoint.busesGsbc010,
-      StopsEndpoint.busesGsbc014,
-      StopsEndpoint.busesOsmbsc001,
-      StopsEndpoint.busesOsmbsc002,
-      StopsEndpoint.busesOsmbsc003,
-      StopsEndpoint.busesOsmbsc004,
-      StopsEndpoint.busesOmbsc006,
-      StopsEndpoint.busesOmbsc007,
-      StopsEndpoint.busesOsmbsc008,
-      StopsEndpoint.busesOsmbsc009,
-      StopsEndpoint.busesOsmbsc010,
-      StopsEndpoint.busesOsmbsc011,
-      StopsEndpoint.busesOsmbsc012,
-      StopsEndpoint.busesNisc001,
-      StopsEndpoint.busesReplacementBus,
-      StopsEndpoint.ferriesSydneyFerries,
-      StopsEndpoint.ferriesMff,
-      StopsEndpoint.lightrailInnerwest,
-      StopsEndpoint.lightrailNewcastle,
-      StopsEndpoint.lightrailCbdandsoutheast,
-      StopsEndpoint.lightrailParramatta,
-      StopsEndpoint.nswtrains,
-      StopsEndpoint.sydneytrains,
-      StopsEndpoint.metro,
-      StopsEndpoint.regionbusesSoutheastTablelands,
-      StopsEndpoint.regionbusesSoutheastTablelands2,
-      StopsEndpoint.regionbusesNorthCoast,
-      StopsEndpoint.regionbusesNorthCoast2,
-      StopsEndpoint.regionbusesCentralWestAndOrana,
-      StopsEndpoint.regionbusesCentralWestAndOrana2,
-      StopsEndpoint.regionbusesRiverinaMurray,
-      StopsEndpoint.regionbusesNewEnglandNorthWest,
-      StopsEndpoint.regionbusesRiverinaMurray2,
-      StopsEndpoint.regionbusesNorthCoast3,
-      StopsEndpoint.regionbusesSydneySurrounds,
-      StopsEndpoint.regionbusesNewcastleHunter,
-      StopsEndpoint.regionbusesFarWest,
-    ];
+  /// Emits [StopsUpdateProgress] events as each endpoint is processed.
+  /// Endpoints are processed in parallel batches of [_batchSize] to reduce
+  /// total wall-clock time while avoiding excessive memory and connection usage.
+  static const int _batchSize = 5;
 
+  static Stream<StopsUpdateProgress> updateAllStopsFromApi() {
+    final endpoints = StopsEndpoint.values;
     final total = endpoints.length;
+    final controller = StreamController<StopsUpdateProgress>();
 
-    // Emit initial event
-    yield StopsUpdateProgress(
-      endpoint: null,
-      completed: 0,
-      total: total,
-      success: true,
-      message: 'Starting update of $total endpoints',
-    );
-
-    var completed = 0;
-
-    for (final endpoint in endpoints) {
-      // Emit event that we're starting this endpoint
-      yield StopsUpdateProgress(
-        endpoint: endpoint,
-        completed: completed,
-        total: total,
-        success: true,
-        message: 'Starting ${endpoint.key}',
+    () async {
+      controller.add(
+        StopsUpdateProgress(
+          endpoint: null,
+          completed: 0,
+          total: total,
+          success: true,
+          message: 'Starting update of $total endpoints',
+        ),
       );
 
-      try {
-        await updateStopsFromEndpoint(endpoint);
-        completed += 1;
-        yield StopsUpdateProgress(
-          endpoint: endpoint,
+      var completed = 0;
+
+      for (var i = 0; i < endpoints.length; i += _batchSize) {
+        final batch = endpoints.skip(i).take(_batchSize).toList();
+
+        await Future.wait(
+          batch.map((endpoint) async {
+            controller.add(
+              StopsUpdateProgress(
+                endpoint: endpoint,
+                completed: completed,
+                total: total,
+                success: true,
+                message: 'Starting ${endpoint.key}',
+              ),
+            );
+            try {
+              await updateStopsFromEndpoint(endpoint);
+              completed += 1;
+              controller.add(
+                StopsUpdateProgress(
+                  endpoint: endpoint,
+                  completed: completed,
+                  total: total,
+                  success: true,
+                  message: 'Completed ${endpoint.key}',
+                ),
+              );
+            } catch (e) {
+              logger.w('Failed to update ${endpoint.key}: $e');
+              controller.add(
+                StopsUpdateProgress(
+                  endpoint: endpoint,
+                  completed: completed,
+                  total: total,
+                  success: false,
+                  message: 'Failed ${endpoint.key}: $e',
+                ),
+              );
+            }
+          }),
+        );
+      }
+
+      controller.add(
+        StopsUpdateProgress(
+          endpoint: null,
           completed: completed,
           total: total,
           success: true,
-          message: 'Completed ${endpoint.key}',
-        );
-      } catch (e) {
-        logger.w('Failed to update ${endpoint.key}: $e');
-        yield StopsUpdateProgress(
-          endpoint: endpoint,
-          completed: completed,
-          total: total,
-          success: false,
-          message: 'Failed ${endpoint.key}: $e',
-        );
-      }
-    }
+          message: 'Finished updating stops ($completed/$total)',
+        ),
+      );
+      await controller.close();
+    }();
 
-    // Final completion event
-    yield StopsUpdateProgress(
-      endpoint: null,
-      completed: completed,
-      total: total,
-      success: true,
-      message: 'Finished updating stops ($completed/$total)',
-    );
+    return controller.stream;
   }
 
   /// Get total number of stops in database

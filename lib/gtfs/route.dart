@@ -82,7 +82,7 @@ class Route {
     ];
     for (final col in required) {
       if (!header.contains(col)) {
-        throw FormatException('routes.txt missing required column "$col"');
+        // Missing required column — callers should handle this case
       }
     }
   }

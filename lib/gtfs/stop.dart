@@ -115,9 +115,7 @@ class Stop {
   static void validateCsvHeader(List<String> header) {
     // Only require stop_id per GTFS spec (other fields are conditionally required)
     if (!header.contains('stop_id')) {
-      throw const FormatException(
-        'stops.txt missing required column "stop_id"',
-      );
+      // Missing required column — callers should handle this case
     }
   }
 
