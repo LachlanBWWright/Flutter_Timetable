@@ -38,13 +38,8 @@ jobs:
 
       - name: Create .env file
         run: |
-          if [ -f .env.template ]; then
-            cp .env.template .env
-            echo "Created .env file from template"
-          else
-            touch .env
-            echo "Created empty .env file"
-          fi
+          echo "API_KEY=${{ secrets.API_KEY }}" > .env
+          echo "Created .env file with API key"
 
       - name: Build Flutter web
         run: |

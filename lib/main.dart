@@ -4,10 +4,10 @@ import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
-
+import 'package:lbww_flutter/services/api_key_service.dart';
+import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
-import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
@@ -20,6 +20,12 @@ Future<void> main() async {
     await DebugService.init();
   } catch (_) {
     // If debug service can't initialize, it's not fatal for the app.
+  }
+  // Load any user-supplied API key override from SharedPreferences.
+  try {
+    await ApiKeyService.init();
+  } catch (_) {
+    // Not fatal if ApiKeyService fails to initialize.
   }
 
   // API key is handled by individual services directly from dotenv

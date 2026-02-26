@@ -2,7 +2,6 @@
 
 import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
@@ -17,6 +16,7 @@ import '../gtfs/stop.dart';
 import '../gtfs/stop_time.dart';
 import '../gtfs/trip.dart';
 import '../logs/logger.dart';
+import '../services/api_key_service.dart';
 
 /// Which schedule surface to use when fetching GTFS schedule ZIPs
 enum GtfsScheduleVersion { v1, v2 }
@@ -52,7 +52,7 @@ Non-standard extensions used by NSW Transport API:
 */
 
 Map<String, String> getHeaders() {
-  final apiKey = dotenv.env['API_KEY'] ?? 'YOUR_API_KEY';
+  final apiKey = ApiKeyService.getEffectiveApiKey();
   return {
     'Authorization': 'apikey $apiKey',
     //'Accept': 'application/x-protobuf', WRONG!

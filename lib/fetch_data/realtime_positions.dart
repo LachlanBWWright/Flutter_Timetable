@@ -1,10 +1,10 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import 'package:lbww_flutter/services/api_key_service.dart';
 // logger import removed
 
 Map<String, String> getHeaders() {
-  final apiKey = dotenv.env['API_KEY'] ?? 'YOUR_API_KEY';
+  final apiKey = ApiKeyService.getEffectiveApiKey();
   return {
     'Authorization': 'apikey $apiKey',
     'Accept': 'application/x-protobuf',

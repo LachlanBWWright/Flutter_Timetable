@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
+import 'package:url_launcher/url_launcher.dart';
 
+import 'services/api_key_service.dart';
+import 'services/debug_service.dart';
 import 'services/location_service.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
@@ -9,7 +12,6 @@ import 'utils/color_utils.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
-import 'services/debug_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,16 +21,94 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const String _devGuideUrl =
+      'https://opendata.transport.nsw.gov.au/developers/userguide';
+
   bool _isAlphabeticalSorting = false;
   bool _isUpdating = false;
   String? _updateStatus;
   int _stopsUpdated = 0;
   int _realtimeFeedsUpdated = 0;
 
+  // API key card state
+  final TextEditingController _apiKeyController = TextEditingController();
+  bool _hasUserApiKey = false;
+  bool _apiKeyObscured = true;
+  bool _isSavingApiKey = false;
+  String? _apiKeyStatus;
+
   @override
   void initState() {
     super.initState();
     _loadSortingPreference();
+    _loadApiKeyState();
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  void _loadApiKeyState() {
+    setState(() {
+      _hasUserApiKey = ApiKeyService.hasUserApiKey();
+    });
+  }
+
+  Future<void> _saveApiKey() async {
+    final key = _apiKeyController.text.trim();
+    if (key.isEmpty) {
+      setState(() => _apiKeyStatus = 'Please enter an API key.');
+      return;
+    }
+    setState(() => _isSavingApiKey = true);
+    try {
+      await ApiKeyService.setUserApiKey(key);
+      if (!mounted) return;
+      setState(() {
+        _hasUserApiKey = true;
+        _apiKeyController.clear();
+        _apiKeyStatus = 'Custom API key saved successfully.';
+        _isSavingApiKey = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _apiKeyStatus = 'Failed to save API key: $e';
+        _isSavingApiKey = false;
+      });
+    }
+  }
+
+  Future<void> _clearApiKey() async {
+    setState(() => _isSavingApiKey = true);
+    try {
+      await ApiKeyService.clearUserApiKey();
+      if (!mounted) return;
+      setState(() {
+        _hasUserApiKey = false;
+        _apiKeyController.clear();
+        _apiKeyStatus = 'Custom key removed — using built-in API key.';
+        _isSavingApiKey = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _apiKeyStatus = 'Failed to clear API key: $e';
+        _isSavingApiKey = false;
+      });
+    }
+  }
+
+  Future<void> _openDevGuide() async {
+    final uri = Uri.parse(_devGuideUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open $_devGuideUrl')),
+      );
+    }
   }
 
   Future<void> _performUpdate() async {
@@ -154,6 +234,116 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: const Text('Open Realtime Map'),
                         style: ButtonStyles.elevated(Colors.blueAccent),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // API key card
+            Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'API Key',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _openDevGuide,
+                          icon: const Icon(Icons.open_in_new, size: 16),
+                          label: const Text('Get a key'),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _hasUserApiKey
+                          ? 'Using your custom API key.'
+                          : ApiKeyService.hasBuiltInApiKey()
+                          ? 'Using the built-in API key.'
+                          : 'No API key configured.',
+                      style: TextStyle(
+                        color: _hasUserApiKey
+                            ? Colors.green
+                            : ApiKeyService.hasBuiltInApiKey()
+                            ? Colors.grey
+                            : Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _apiKeyController,
+                      obscureText: _apiKeyObscured,
+                      decoration: InputDecoration(
+                        labelText: 'Custom API key (optional)',
+                        hintText: 'Paste your TfNSW OpenData API key',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _apiKeyObscured
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          tooltip: _apiKeyObscured ? 'Show key' : 'Hide key',
+                          onPressed: () => setState(
+                            () => _apiKeyObscured = !_apiKeyObscured,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_apiKeyStatus != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          _apiKeyStatus!,
+                          style: TextStyle(
+                            color:
+                                _apiKeyStatus!.contains('success') ||
+                                    _apiKeyStatus!.contains('saved') ||
+                                    _apiKeyStatus!.contains('removed')
+                                ? Colors.green
+                                : Colors.orange,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _isSavingApiKey ? null : _saveApiKey,
+                            icon: const Icon(Icons.save),
+                            label: const Text('Save key'),
+                            style: ButtonStyles.elevated(Colors.blueAccent),
+                          ),
+                        ),
+                        if (_hasUserApiKey) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isSavingApiKey ? null : _clearApiKey,
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Clear key'),
+                              style: ButtonStyles.elevated(Colors.redAccent),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),

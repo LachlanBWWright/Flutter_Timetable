@@ -1,17 +1,17 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../logs/logger.dart';
+import 'api_key_service.dart';
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
   static const String _baseUrl = 'api.transport.nsw.gov.au';
 
-  /// Get API key from .env
+  /// Get the effective API key (user override or built-in .env key).
   static Future<String?> _getApiKey() async {
-    // Ensure dotenv is loaded before calling this in main
-    return dotenv.env['API_KEY'];
+    final key = ApiKeyService.getEffectiveApiKey();
+    return key.isEmpty ? null : key;
   }
 
   /// Test if API key is valid
