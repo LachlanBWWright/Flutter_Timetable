@@ -156,11 +156,13 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     try {
       Map<TransportMode, FeedMessage?>? mapPositions;
       List<VehiclePosition>? aggregatedVehicles;
-      if (widget.getAllVehiclesAggregated != null) {
-        final agg = await widget.getAllVehiclesAggregated!();
+      final getAllVehiclesAggregated = widget.getAllVehiclesAggregated;
+      final getPositions = widget.getPositions;
+      if (getAllVehiclesAggregated != null) {
+        final agg = await getAllVehiclesAggregated();
         aggregatedVehicles = agg['vehicles'] as List<VehiclePosition>?;
-      } else if (widget.getPositions != null) {
-        mapPositions = await widget.getPositions!();
+      } else if (getPositions != null) {
+        mapPositions = await getPositions();
       } else {
         mapPositions = await RealtimeService.getAllRealtimePositions();
       }
@@ -204,8 +206,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                 vw.vehicle.trip.hasTripId() &&
                 ids.contains(vw.vehicle.trip.tripId),
           );
-        } else if (widget.routeFilter != null &&
-            widget.routeFilter!.isNotEmpty) {
+        } else if (widget.routeFilter?.isNotEmpty == true) {
           vehicles.removeWhere(
             (vw) =>
                 vw.vehicle.trip.hasRouteId() &&
@@ -337,10 +338,10 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         : Colors.grey;
 
     return stops
-        .where((s) => s.coord != null && s.coord!.length >= 2)
+        .where((s) => (s.coord?.length ?? 0) >= 2)
         .map(
           (s) => Marker(
-            point: LatLng(s.coord![0], s.coord![1]),
+            point: LatLng(s.coord?[0] ?? 0, s.coord?[1] ?? 0),
             width: 22,
             height: 22,
             child: GestureDetector(
@@ -379,12 +380,12 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             Text(stop.name, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             _buildInfoRow('Stop ID', stop.id),
-            if (stop.disassembledName != null)
-              _buildInfoRow('Name', stop.disassembledName!),
-            if (stop.arrivalTimePlanned != null)
-              _buildInfoRow('Arrive (planned)', stop.arrivalTimePlanned!),
-            if (stop.departureTimePlanned != null)
-              _buildInfoRow('Depart (planned)', stop.departureTimePlanned!),
+            if (stop.disassembledName case final name?)
+              _buildInfoRow('Name', name),
+            if (stop.arrivalTimePlanned case final arrive?)
+              _buildInfoRow('Arrive (planned)', arrive),
+            if (stop.departureTimePlanned case final depart?)
+              _buildInfoRow('Depart (planned)', depart),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -507,12 +508,14 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             minZoom: 8.0,
             maxZoom: 18.0,
             onMapReady: () {
-              if (_pendingFit != null) {
-                _mapController.fitCamera(_pendingFit!);
-                _pendingFit = null;
-              } else if (_pendingCenter != null) {
-                _mapController.move(_pendingCenter!, 11.0);
-                _pendingCenter = null;
+              final fit = _pendingFit;
+              final center = _pendingCenter;
+              _pendingFit = null;
+              _pendingCenter = null;
+              if (fit != null) {
+                _mapController.fitCamera(fit);
+              } else if (center != null) {
+                _mapController.move(center, 11.0);
               }
             },
           ),

@@ -53,8 +53,9 @@ class StationView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = mode != null
-        ? TransportColors.getColorByTransportMode(mode!)
+    final transportMode = mode;
+    final accentColor = transportMode != null
+        ? TransportColors.getColorByTransportMode(transportMode)
         : Colors.grey;
     return Container(
       margin: const EdgeInsets.all(1.0),
@@ -78,9 +79,10 @@ class StationView extends StatelessWidget {
 
   Widget _buildSubtitle() {
     // Only show distance if available
-    if (station.distance != null) {
+    final dist = station.distance;
+    if (dist != null) {
       return Text(
-        '${station.distance!.toStringAsFixed(1)} km away',
+        '${dist.toStringAsFixed(1)} km away',
         style: const TextStyle(fontSize: 12, color: Colors.grey),
       );
     }

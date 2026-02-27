@@ -13,18 +13,22 @@ void main() {
   });
 
   group('ApiKeyService', () {
-    test('getEffectiveApiKey returns empty string when nothing is configured',
-        () async {
-      // No dotenv loaded and no user key — should return empty string.
-      expect(ApiKeyService.getEffectiveApiKey(), equals(''));
-    });
+    test(
+      'getEffectiveApiKey returns empty string when nothing is configured',
+      () async {
+        // No dotenv loaded and no user key — should return empty string.
+        expect(ApiKeyService.getEffectiveApiKey(), equals(''));
+      },
+    );
 
-    test('setUserApiKey persists the key and is reflected in getEffectiveApiKey',
-        () async {
-      await ApiKeyService.setUserApiKey('my-test-key');
-      expect(ApiKeyService.getEffectiveApiKey(), equals('my-test-key'));
-      expect(ApiKeyService.hasUserApiKey(), isTrue);
-    });
+    test(
+      'setUserApiKey persists the key and is reflected in getEffectiveApiKey',
+      () async {
+        await ApiKeyService.setUserApiKey('my-test-key');
+        expect(ApiKeyService.getEffectiveApiKey(), equals('my-test-key'));
+        expect(ApiKeyService.hasUserApiKey(), isTrue);
+      },
+    );
 
     test('setUserApiKey trims whitespace', () async {
       await ApiKeyService.setUserApiKey('  trimmed-key  ');
@@ -55,15 +59,17 @@ void main() {
       expect(ApiKeyService.hasBuiltInApiKey(), isTrue);
     });
 
-    test('init loads a previously persisted user key from SharedPreferences',
-        () async {
-      SharedPreferences.setMockInitialValues({
-        'user_api_key': 'persisted-key',
-      });
-      await ApiKeyService.init();
-      expect(ApiKeyService.getEffectiveApiKey(), equals('persisted-key'));
-      expect(ApiKeyService.hasUserApiKey(), isTrue);
-    });
+    test(
+      'init loads a previously persisted user key from SharedPreferences',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'user_api_key': 'persisted-key',
+        });
+        await ApiKeyService.init();
+        expect(ApiKeyService.getEffectiveApiKey(), equals('persisted-key'));
+        expect(ApiKeyService.hasUserApiKey(), isTrue);
+      },
+    );
 
     test('setUserApiKey with empty string is treated as clear', () async {
       await ApiKeyService.setUserApiKey('some-key');

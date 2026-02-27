@@ -362,7 +362,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                 decoration: BoxDecoration(
                   color: Colors.red[50],
                   borderRadius: BorderRadius.circular(8.0),
-                  border: Border.all(color: Colors.red[200]!),
+                  border: Border.all(color: Colors.red[200] ?? Colors.red),
                 ),
                 child: Row(
                   children: [
@@ -587,7 +587,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
         decoration: BoxDecoration(
           color: Colors.grey[50],
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Colors.grey[300] ?? Colors.grey),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -606,7 +606,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
                 'Location: ${stop.stopLat.toStringAsFixed(6)}, ${stop.stopLon.toStringAsFixed(6)}',
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
-            if (stop.platformCode != null && stop.platformCode!.isNotEmpty)
+            if (stop.platformCode?.isNotEmpty == true)
               Text(
                 'Platform: ${stop.platformCode}',
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),

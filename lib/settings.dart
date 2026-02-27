@@ -308,16 +308,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    if (_apiKeyStatus != null)
+                    if (_apiKeyStatus case final apiKeyStatus?)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Text(
-                          _apiKeyStatus!,
+                          apiKeyStatus,
                           style: TextStyle(
                             color:
-                                _apiKeyStatus!.contains('success') ||
-                                    _apiKeyStatus!.contains('saved') ||
-                                    _apiKeyStatus!.contains('removed')
+                                apiKeyStatus.contains('success') ||
+                                    apiKeyStatus.contains('saved') ||
+                                    apiKeyStatus.contains('removed')
                                 ? Colors.green
                                 : Colors.orange,
                             fontSize: 13,
@@ -526,9 +526,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         'Stops updated: $_stopsUpdated • Realtime feeds updated: $_realtimeFeedsUpdated',
                       ),
-                    if (_updateStatus != null &&
-                        _updateStatus!.isNotEmpty &&
-                        !_isUpdating)
+                    if (_updateStatus?.isNotEmpty == true && !_isUpdating)
                       SizedBox(
                         width: double.infinity,
                         child: TextButton(

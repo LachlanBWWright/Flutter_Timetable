@@ -77,7 +77,8 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   }
 
   List<Widget> _buildStatusList() {
-    final summary = _statusSummary!;
+    final summary = _statusSummary;
+    if (summary == null) return const [];
     return summary.entries.map((entry) {
       final modeKey = entry.key;
       final data = entry.value;
@@ -195,12 +196,12 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
 
     try {
       FeedMessage? feed;
-      if (widget.transportMode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(
-          widget.transportMode!,
-        );
-      } else if (widget.mode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(widget.mode!);
+      final transportMode = widget.transportMode;
+      final mode = widget.mode;
+      if (transportMode != null) {
+        feed = await RealtimeService.getPositionsForTransportMode(transportMode);
+      } else if (mode != null) {
+        feed = await RealtimeService.getPositionsForTransportMode(mode);
       } else {
         feed = null;
       }
@@ -271,7 +272,7 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
         decoration: BoxDecoration(
           color: Colors.grey[50],
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Colors.grey[300] ?? Colors.grey),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

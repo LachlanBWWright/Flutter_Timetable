@@ -115,7 +115,7 @@ class LocationService {
   static Future<List<Journey>> sortJourneys(List<Journey> journeys) async {
     final prefs = await SharedPreferences.getInstance();
     final sortingPreference =
-        prefs.getString(_sortingPreferenceKey) ?? _sortByDistance;
+        prefs.getString(_sortingPreferenceKey) ?? _sortAlphabetically;
 
     if (sortingPreference == _sortAlphabetically) {
       // Sort alphabetically by origin name

@@ -92,9 +92,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     buffer.writeln('\nStops (${leg.stopSequence?.length ?? 0}):');
-    if (leg.stopSequence != null && leg.stopSequence!.isNotEmpty) {
-      for (var i = 0; i < leg.stopSequence!.length; i++) {
-        final s = leg.stopSequence![i];
+    final stopSequence = leg.stopSequence;
+    if (stopSequence != null && stopSequence.isNotEmpty) {
+      for (var i = 0; i < stopSequence.length; i++) {
+        final s = stopSequence[i];
         buffer.writeln('  ${i + 1}. ${s.name} (id: ${s.id})');
       }
     }
@@ -124,8 +125,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     // Collect any trip IDs present in the raw JSON (if the API provides them)
     final tripIds = <String>{};
-    if (trip.rawJson != null) {
-      final r = trip.rawJson!;
+    if (trip.rawJson case final r?) {
       if (r['tripId'] != null && r['tripId'].toString().isNotEmpty) {
         tripIds.add(r['tripId'].toString());
       }
@@ -323,8 +323,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final tripIds = <String>{};
 
     // Collect trip IDs from provided TripJourney raw JSON
-    if (widget.trip?.rawJson != null) {
-      final r = widget.trip!.rawJson!;
+    if (widget.trip?.rawJson case final r?) {
       if (r['tripId'] != null && r['tripId'].toString().isNotEmpty) {
         tripIds.add(r['tripId'].toString());
       }
@@ -767,7 +766,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         if (!showDebug) return const SizedBox.shrink();
         return Column(
           children: [
-            if (widget.trip != null) ...[
+            if (widget.trip case final trip?) ...[
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
@@ -789,7 +788,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             onPressed: () async {
                               final messenger = ScaffoldMessenger.of(context);
                               try {
-                                final text = _tripDebugString(widget.trip!);
+                                final text = _tripDebugString(trip);
                                 await Clipboard.setData(
                                   ClipboardData(text: text),
                                 );
@@ -828,7 +827,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         constraints: const BoxConstraints(maxHeight: 320),
                         child: SingleChildScrollView(
                           child: SelectableText(
-                            _tripDebugString(widget.trip!),
+                            _tripDebugString(trip),
                             style: const TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 12,

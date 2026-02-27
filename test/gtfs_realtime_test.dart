@@ -7,37 +7,53 @@ void main() {
     await dotenv.load();
   });
   group('Endpoint tests', () {
-    test('fetchBusesPositions returns valid FeedMessage or null', () async {
-      final feed = await fetchBusesPositions();
-      expect(feed, isNotNull, reason: 'Buses: No data or API error');
-      final f = feed!;
-      // logger.d(
-      //     'Buses: ${f.header.gtfsRealtimeVersion}, entities: ${f.entity.length}');
-      expect(f.header.hasGtfsRealtimeVersion(), true);
-      expect(f.entity.isNotEmpty, true);
-    }, skip: 'Requires live API key');
+    test(
+      'fetchBusesPositions returns valid FeedMessage or null',
+      () async {
+        final feed = await fetchBusesPositions();
+        expect(feed, isNotNull, reason: 'Buses: No data or API error');
+        final f = feed!;
+        // logger.d(
+        //     'Buses: ${f.header.gtfsRealtimeVersion}, entities: ${f.entity.length}');
+        expect(f.header.hasGtfsRealtimeVersion(), true);
+        expect(f.entity.isNotEmpty, true);
+      },
+      skip: 'Requires live API key',
+    );
 
-    test('fetchNswTrainsPositions returns valid FeedMessage or null', () async {
-      final feed = await fetchNswTrainsPositions();
-      expect(feed, isNotNull, reason: 'NSW Trains: No data or API error');
-      final f = feed!;
-      // logger.d(
-      //     'NSW Trains: ${f.header.gtfsRealtimeVersion}, entities: ${f.entity.length}');
-      expect(f.header.hasGtfsRealtimeVersion(), true);
-      expect(f.entity.isNotEmpty, true);
-    }, skip: 'Requires live API key');
+    test(
+      'fetchNswTrainsPositions returns valid FeedMessage or null',
+      () async {
+        final feed = await fetchNswTrainsPositions();
+        expect(feed, isNotNull, reason: 'NSW Trains: No data or API error');
+        final f = feed!;
+        // logger.d(
+        //     'NSW Trains: ${f.header.gtfsRealtimeVersion}, entities: ${f.entity.length}');
+        expect(f.header.hasGtfsRealtimeVersion(), true);
+        expect(f.entity.isNotEmpty, true);
+      },
+      skip: 'Requires live API key',
+    );
 
     //next three tests might fail because of the time of day
 
-    test('getAllFerries returns list with valid FeedMessage or null', () async {
-      final feeds = await getAllFerries();
-      expect(feeds.length, 2);
-      expect(feeds[0], isNotNull, reason: 'All Ferries: No data or API error');
-      final f0 = feeds[0]!;
-      // logger.d(
-      //     'All Ferries: ${f0.header.gtfsRealtimeVersion}, entities: ${f0.entity.length}');
-      expect(f0.entity.isNotEmpty, true);
-    }, skip: 'Requires live API key');
+    test(
+      'getAllFerries returns list with valid FeedMessage or null',
+      () async {
+        final feeds = await getAllFerries();
+        expect(feeds.length, 2);
+        expect(
+          feeds[0],
+          isNotNull,
+          reason: 'All Ferries: No data or API error',
+        );
+        final f0 = feeds[0]!;
+        // logger.d(
+        //     'All Ferries: ${f0.header.gtfsRealtimeVersion}, entities: ${f0.entity.length}');
+        expect(f0.entity.isNotEmpty, true);
+      },
+      skip: 'Requires live API key',
+    );
 
     test(
       'getAllLightRail returns list with valid FeedMessage or null',

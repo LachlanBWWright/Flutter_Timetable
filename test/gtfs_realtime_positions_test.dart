@@ -83,8 +83,8 @@ void main() {
         // logger.d('GTFS version: ${f.header.gtfsRealtimeVersion}');
         // logger.d('Number of entities: ${f.entity.length}');
         // for (var i = 0; i < f.entity.length; i++) {
-          //   logger.d('Entity #$i: ${f.entity[i].toString()}');
-          // }
+        //   logger.d('Entity #$i: ${f.entity[i].toString()}');
+        // }
         expect(f.header.hasGtfsRealtimeVersion(), true);
         expect(f.entity.isNotEmpty, true);
       },

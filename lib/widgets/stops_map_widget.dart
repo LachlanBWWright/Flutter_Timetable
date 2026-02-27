@@ -322,8 +322,9 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                         _mapIsReady = true;
                       });
                       if (_pendingMapAction != null) {
-                        _pendingMapAction!();
+                        final action = _pendingMapAction;
                         _pendingMapAction = null;
+                        action?.call();
                       }
                     },
                   ),
@@ -517,8 +518,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                 const SizedBox(height: 8),
                 Text('Stop ID: ${stop.stopId}',
                     style: Theme.of(context).textTheme.bodyMedium),
-                if (stop.platformCode != null &&
-                    stop.platformCode!.isNotEmpty) ...[
+                if (stop.platformCode?.isNotEmpty == true) ...[
                   const SizedBox(height: 4),
                   Text('Platform: ${stop.platformCode}',
                       style: Theme.of(context).textTheme.bodyMedium),

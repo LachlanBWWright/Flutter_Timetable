@@ -96,9 +96,11 @@ class AppDatabase extends _$AppDatabase {
 
     final results = await query.get();
     return Map.fromEntries(
-      results.map(
-        (row) => MapEntry(row.read(stops.endpoint)!, row.read(countExp) ?? 0),
-      ),
+      results.expand((row) {
+        final endpoint = row.read(stops.endpoint);
+        if (endpoint == null) return const <MapEntry<String, int>>[];
+        return [MapEntry(endpoint, row.read(countExp) ?? 0)];
+      }),
     );
   }
 

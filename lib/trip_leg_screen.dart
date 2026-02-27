@@ -157,8 +157,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     // Try to get center from stop coordinates
     final origin = widget.leg['origin'] as Map<String, dynamic>?;
 
-    if (origin?['coord'] != null) {
-      final coord = origin!['coord'] as List?;
+    if (origin != null && origin['coord'] != null) {
+      final coord = origin['coord'] as List?;
       if (coord != null &&
           coord.length >= 2 &&
           coord[0] != null &&
@@ -225,8 +225,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final origin = widget.leg['origin'] as Map<String, dynamic>?;
     final destination = widget.leg['destination'] as Map<String, dynamic>?;
 
-    if (origin?['coord'] != null) {
-      final coord = origin!['coord'] as List?;
+    if (origin != null && origin['coord'] != null) {
+      final coord = origin['coord'] as List?;
       if (coord != null && coord.length >= 2) {
         markers.add(
           Marker(
@@ -240,8 +240,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       }
     }
 
-    if (destination?['coord'] != null) {
-      final destCoord = destination!['coord'] as List?;
+    if (destination != null && destination['coord'] != null) {
+      final destCoord = destination['coord'] as List?;
       if (destCoord != null && destCoord.length >= 2) {
         markers.add(
           Marker(

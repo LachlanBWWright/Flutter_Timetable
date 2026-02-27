@@ -179,17 +179,21 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     final stationsWithDistance = stations
         .where((s) => s.latitude != null && s.longitude != null)
         .map((station) {
-          final distance = LocationService.calculateDistance(
-            position.latitude,
-            position.longitude,
-            station.latitude!,
-            station.longitude!,
-          );
+          final lat = station.latitude;
+          final lon = station.longitude;
+          final distance = lat != null && lon != null
+              ? LocationService.calculateDistance(
+                  position.latitude, position.longitude, lat, lon)
+              : 0.0;
           return station.copyWith(distance: distance);
         })
         .toList();
 
-    stationsWithDistance.sort((a, b) => a.distance!.compareTo(b.distance!));
+    stationsWithDistance.sort((a, b) {
+      final da = a.distance ?? 0.0;
+      final db = b.distance ?? 0.0;
+      return da.compareTo(db);
+    });
     return stationsWithDistance;
   }
 
@@ -227,11 +231,15 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     if (_selectedStationName.isEmpty) {
       return;
     }
+    final selectedMode = _selectedStationMode;
+    if (selectedMode == null) {
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('home_stop_name', _selectedStationName);
     await prefs.setString('home_stop_id', _selectedStationId);
-    await prefs.setString('home_stop_mode', _selectedStationMode!.id);
+    await prefs.setString('home_stop_mode', selectedMode.id);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

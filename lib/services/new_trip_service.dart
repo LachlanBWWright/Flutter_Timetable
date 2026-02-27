@@ -237,12 +237,12 @@ class NewTripService {
 
       // Calculate distances and create new Station objects with distance data
       final stationsWithDistance = stationsWithCoords.map((station) {
-        final double distance = LocationService.calculateDistance(
-          position.latitude,
-          position.longitude,
-          station.latitude!,
-          station.longitude!,
-        );
+        final lat = station.latitude;
+        final lon = station.longitude;
+        final double distance = lat != null && lon != null
+            ? LocationService.calculateDistance(
+                position.latitude, position.longitude, lat, lon)
+            : 0.0;
         return station.copyWith(distance: distance);
       }).toList();
 

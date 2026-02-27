@@ -135,8 +135,8 @@ class StopsService {
 
   /// Get or create database instance
   static AppDatabase get database {
-    _database ??= AppDatabase();
-    return _database!;
+    final db = _database ??= AppDatabase();
+    return db;
   }
 
   /// Parse CSV file from assets and return list of Stop objects
@@ -430,7 +430,7 @@ class StopsService {
       }
 
       grouped.putIfAbsent(modeKey, () => {});
-      grouped[modeKey]![endpoint] = count;
+      grouped[modeKey]?[endpoint] = count;
     }
 
     return grouped;

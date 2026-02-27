@@ -565,28 +565,25 @@ GtfsData parseGtfsFiles(Map<String, String> files) {
   if (files['stops.txt'] == null) {
     logger.e('Stops.txt is missing');
   }
+  final agencyFile = files['agency.txt'];
+  final calendarFile = files['calendar.txt'];
+  final calendarDatesFile = files['calendar_dates.txt'];
+  final routesFile = files['routes.txt'];
+  final stopsFile = files['stops.txt'];
+  final stopTimesFile = files['stop_times.txt'];
+  final tripsFile = files['trips.txt'];
+  final shapesFile = files['shapes.txt'];
+  final notesFile = files['notes.txt'];
   return GtfsData(
-    agencies: files['agency.txt'] != null
-        ? parseAgencyCsv(files['agency.txt']!)
-        : [],
-    calendars: files['calendar.txt'] != null
-        ? parseCalendarCsv(files['calendar.txt']!)
-        : [],
-    calendarDates: files['calendar_dates.txt'] != null
-        ? parseCalendarDatesCsv(files['calendar_dates.txt']!)
-        : [],
-    routes: files['routes.txt'] != null
-        ? parseRoutesCsv(files['routes.txt']!)
-        : [],
-    stops: files['stops.txt'] != null ? parseStopsCsv(files['stops.txt']!) : [],
-    stopTimes: files['stop_times.txt'] != null
-        ? parseStopTimesCsv(files['stop_times.txt']!)
-        : [],
-    trips: files['trips.txt'] != null ? parseTripsCsv(files['trips.txt']!) : [],
-    shapes: files['shapes.txt'] != null
-        ? parseShapesCsv(files['shapes.txt']!)
-        : [],
-    notes: files['notes.txt'] != null ? parseNotesCsv(files['notes.txt']!) : [],
+    agencies: agencyFile != null ? parseAgencyCsv(agencyFile) : [],
+    calendars: calendarFile != null ? parseCalendarCsv(calendarFile) : [],
+    calendarDates: calendarDatesFile != null ? parseCalendarDatesCsv(calendarDatesFile) : [],
+    routes: routesFile != null ? parseRoutesCsv(routesFile) : [],
+    stops: stopsFile != null ? parseStopsCsv(stopsFile) : [],
+    stopTimes: stopTimesFile != null ? parseStopTimesCsv(stopTimesFile) : [],
+    trips: tripsFile != null ? parseTripsCsv(tripsFile) : [],
+    shapes: shapesFile != null ? parseShapesCsv(shapesFile) : [],
+    notes: notesFile != null ? parseNotesCsv(notesFile) : [],
   );
 }
 
