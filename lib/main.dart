@@ -77,10 +77,25 @@ class _MyHomePageState extends State<MyHomePage> {
       final pinnedJourneys = await _database.getPinnedJourneys();
       final unpinnedJourneys = await _database.getUnpinnedJourneys();
 
+      // Show a snackbar while fetching location for distance-based sorting
+      ScaffoldMessengerState? messenger;
+      final isAlphabetical = await LocationService.isAlphabeticalSorting();
+      if (!isAlphabetical && mounted) {
+        messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Getting your location…'),
+            duration: Duration(minutes: 1),
+          ),
+        );
+      }
+
       // Sort unpinned journeys based on user preference
       final sortedUnpinned = await LocationService.sortJourneys(
         unpinnedJourneys,
       );
+
+      messenger?.hideCurrentSnackBar();
 
       final allJourneys = [...pinnedJourneys, ...sortedUnpinned];
 

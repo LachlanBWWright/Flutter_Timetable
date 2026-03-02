@@ -50,7 +50,7 @@ class TransportApiService {
     final apiKey = await _getApiKey();
 
     if (apiKey == null || apiKey.isEmpty) {
-      return Err('API key not set');
+      return const Err('API key not set');
     }
 
     final params = {
@@ -100,7 +100,7 @@ class TransportApiService {
   }) async {
     final apiKey = await _getApiKey();
     if (apiKey == null || apiKey.isEmpty) {
-      return Err('API key not set');
+      return const Err('API key not set');
     }
 
     final params = {
@@ -830,7 +830,8 @@ class LegProperties {
       differentFares: json['DIFFERENT_FARES'],
       planLowFloorVehicle: json['PlanLowFloorVehicle'],
       planWheelChairAccess: json['PlanWheelChairAccess'],
-      lineType: json['lineType'],
+      //TODO: Fix
+      lineType: json['lineType']?.toString(),
       vehicleAccess: (json['vehicleAccess'] as List<dynamic>?)
           ?.map((v) => v.toString())
           .toList(),

@@ -11,6 +11,8 @@ class TransportModeUtils {
     switch (id) {
       case 1:
         return TransportColors.train; // Train
+      case 2:
+        return TransportColors.metro; // Metro
       case 4:
         return TransportColors.lightRail; // Light Rail
       case 5:
@@ -30,6 +32,8 @@ class TransportModeUtils {
     switch (id) {
       case 1:
         return 'Train';
+      case 2:
+        return 'Metro';
       case 4:
         return 'Light Rail';
       case 5:
@@ -215,6 +219,16 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                   horizontal: 16.0,
                   vertical: 0.0,
                 ),
+                leading: Container(
+                  width: 4,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: TransportModeUtils.getModeColor(
+                      leg.transportation?.product?.classField ?? -1,
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
                 title: Text(
                   '${leg.origin.disassembledName} → ${leg.destination.disassembledName}',
                 ),
@@ -227,18 +241,19 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
               ),
             const Divider(height: 1),
           ],
-          SizedBox(
-            height: 6,
-            width: double.infinity,
-            child: ClipRRect(
-              borderRadius: BorderRadius.zero,
-              child: Row(
-                children: segments.isNotEmpty
-                    ? segments
-                    : [Expanded(child: Container(color: Colors.grey))],
+          if (!_expanded)
+            SizedBox(
+              height: 6,
+              width: double.infinity,
+              child: ClipRRect(
+                borderRadius: BorderRadius.zero,
+                child: Row(
+                  children: segments.isNotEmpty
+                      ? segments
+                      : [Expanded(child: Container(color: Colors.grey))],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

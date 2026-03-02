@@ -42,17 +42,33 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   Map<String, int> _vehicleBreakdown = {};
   bool _isLoadingVehicles = false;
   bool _filterByLegRoute = false;
+  int _currentLegIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _updatedLeg = widget.leg;
+    final legs = widget.trip?.legs;
+    if (legs != null) {
+      final idx = legs.indexOf(widget.leg);
+      _currentLegIndex = idx >= 0 ? idx : 0;
+    }
     if (widget.skipInitialLoadDelay) {
       // For tests, skip the simulated 1s delay and avoid scheduling delayed timers.
       _loadVehiclesForLeg();
     } else {
       _refreshLegData();
     }
+  }
+
+  void _goToLeg(int index) {
+    final legs = widget.trip?.legs;
+    if (legs == null || index < 0 || index >= legs.length) return;
+    setState(() {
+      _currentLegIndex = index;
+      _updatedLeg = legs[index];
+    });
+    _refreshLegData();
   }
 
   // ... (debug string methods omitted for brevity, keeping existing implementation) ...
@@ -233,6 +249,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     switch (transportClass) {
       case 1: // Train
         return TransportMode.train;
+      case 2: // Metro
+        return TransportMode.metro;
       case 4: // Light Rail
         return TransportMode.lightrail;
       case 5: // Bus
@@ -491,13 +509,26 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
+  /// Returns true when the leg has enough coordinate data to render a map.
+  bool _legHasCoords(Leg leg) {
+    final coords = leg.coords;
+    if (coords != null && coords.length >= 2) return true;
+    final stops = leg.stopSequence;
+    if (stops != null && stops.length >= 2) return true;
+    // At minimum, origin + destination coords are enough to draw a line.
+    return (leg.origin.coord?.length ?? 0) >= 2 &&
+        (leg.destination.coord?.length ?? 0) >= 2;
+  }
+
   Widget _buildMapCard(
     String? transportId,
     TransportMode? mode,
     Leg leg,
     Color modeColor,
+    List<Leg> additionalLegs,
   ) {
-    if (transportId == null || transportId.isEmpty) {
+    final hasTransport = transportId != null && transportId.isNotEmpty;
+    if (!hasTransport && !_legHasCoords(leg)) {
       return const SizedBox.shrink();
     }
 
@@ -512,15 +543,19 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           children: [
             RealtimeMapWidget(
               leg: leg,
+              additionalLegs: additionalLegs,
               transportMode: mode,
-              routeFilter: transportId,
-              // Always enable trip/route filtering for the map (independent of debug toggle)
-              filterByLegTrip: true,
-              tripIds: _collectLegTripIds(),
+              routeFilter: hasTransport ? transportId : null,
+              filterByLegTrip: hasTransport,
+              tripIds: hasTransport ? _collectLegTripIds() : null,
               showVehicleCount: false,
-              getAllVehiclesAggregated:
-                  widget.getAllVehiclesAggregated ??
-                  RealtimeService.getAllVehiclePositionsAggregated,
+              getAllVehiclesAggregated: hasTransport
+                  ? (widget.getAllVehiclesAggregated ??
+                      RealtimeService.getAllVehiclePositionsAggregated)
+                  : () async => <String, dynamic>{
+                        'vehicles': <dynamic>[],
+                        'breakdown': <String, int>{},
+                      },
             ),
             Positioned(
               bottom: 8,
@@ -537,12 +572,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         builder: (context) => RealtimeMapPage(
                           leg: leg,
                           transportMode: mode,
-                          routeFilter: transportId,
-                          // Always enable trip/route filtering on the full-screen map
-                          filterByLegTrip: true,
-                          tripIds: _collectLegTripIds(),
-                          getAllVehiclesAggregated:
-                              RealtimeService.getAllVehiclePositionsAggregated,
+                          routeFilter: hasTransport ? transportId : null,
+                          filterByLegTrip: hasTransport,
+                          tripIds: hasTransport ? _collectLegTripIds() : null,
+                          getAllVehiclesAggregated: hasTransport
+                              ? RealtimeService.getAllVehiclePositionsAggregated
+                              : () async => <String, dynamic>{
+                                    'vehicles': <dynamic>[],
+                                    'breakdown': <String, int>{},
+                                  },
                         ),
                       ),
                     );
@@ -556,12 +594,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  Widget _buildHeaderCard(
+  Widget _buildInfoCard(
     String? transportName,
     int? transportClass,
     String originName,
     String destinationName,
     Color modeColor,
+    Stop origin,
+    Stop destination,
   ) {
     return Card(
       child: Padding(
@@ -569,6 +609,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Mode badge + service name
             Row(
               children: [
                 Container(
@@ -603,10 +644,24 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     ),
                   ),
                 ],
+                // Status indicator
+                const SizedBox(width: 8),
+                if (_isLoading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  const Icon(Icons.check_circle, color: Colors.green, size: 18),
               ],
             ),
             const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            // From / To with departure / arrival times
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
@@ -623,10 +678,31 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.departure_board,
+                            color: Colors.green,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatTimeDifference(
+                              origin.departureTimePlanned,
+                              origin.departureTimeEstimated,
+                            ),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward, color: modeColor),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Icon(Icons.arrow_forward, color: modeColor),
+                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -643,110 +719,28 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         ),
                         textAlign: TextAlign.end,
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimingCard(Stop origin, Stop destination) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Timing Information',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.departure_board, color: Colors.green),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Departure',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        _formatTimeDifference(
-                          origin.departureTimePlanned,
-                          origin.departureTimeEstimated,
-                        ),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          const Icon(
+                            Icons.schedule,
+                            color: Colors.red,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatTimeDifference(
+                              destination.arrivalTimePlanned,
+                              destination.arrivalTimeEstimated,
+                            ),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Icon(Icons.schedule, color: Colors.red),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Arrival',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        _formatTimeDifference(
-                          destination.arrivalTimePlanned,
-                          destination.arrivalTimeEstimated,
-                        ),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Status',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (_isLoading)
-                  const CircularProgressIndicator()
-                else
-                  const Icon(Icons.check_circle, color: Colors.green),
-                const SizedBox(width: 8),
-                Text(_isLoading ? 'Updating...' : 'On schedule'),
               ],
             ),
             if (_error != null) ...[
@@ -1123,6 +1117,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     final mode = _getRealtimeModeFromClass(transportClass);
 
+    final tripLegs = widget.trip?.legs ?? [];
+    final otherLegs = tripLegs.where((l) => l != leg).toList();
+    final legCount = tripLegs.length;
+    final hasPrev = legCount > 1 && _currentLegIndex > 0;
+    final hasNext = legCount > 1 && _currentLegIndex < legCount - 1;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Leg Details'),
@@ -1153,24 +1153,55 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             ),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: legCount > 1
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'prev_leg',
+                    onPressed: hasPrev
+                        ? () => _goToLeg(_currentLegIndex - 1)
+                        : null,
+                    backgroundColor: hasPrev ? modeColor : Colors.grey,
+                    foregroundColor: hasPrev
+                        ? getContrastingForeground(modeColor)
+                        : Colors.white,
+                    child: const Icon(Icons.arrow_back),
+                  ),
+                  FloatingActionButton.small(
+                    heroTag: 'next_leg',
+                    onPressed: hasNext
+                        ? () => _goToLeg(_currentLegIndex + 1)
+                        : null,
+                    backgroundColor: hasNext ? modeColor : Colors.grey,
+                    foregroundColor: hasNext
+                        ? getContrastingForeground(modeColor)
+                        : Colors.white,
+                    child: const Icon(Icons.arrow_forward),
+                  ),
+                ],
+              ),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: _refreshLegData,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
           child: Column(
             children: [
-              _buildMapCard(transportId, mode, leg, modeColor),
-              _buildHeaderCard(
+              _buildMapCard(transportId, mode, leg, modeColor, otherLegs),
+              _buildInfoCard(
                 transportName,
                 transportClass,
                 originName,
                 destinationName,
                 modeColor,
+                origin,
+                destination,
               ),
-              const SizedBox(height: 16),
-              _buildTimingCard(origin, destination),
-              const SizedBox(height: 16),
-              _buildStatusCard(),
               const SizedBox(height: 16),
               _buildDebugCards(leg, transportId, modeColor),
             ],

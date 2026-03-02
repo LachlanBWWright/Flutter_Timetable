@@ -178,22 +178,56 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      title: isSearching
-          ? TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Search trips...',
-                border: InputBorder.none,
-                hintStyle: TextStyle(color: Colors.white70),
-              ),
-              style: const TextStyle(color: Colors.white),
-            )
-          : Text(title),
-      actions: <Widget>[
-        if (!isSearching) ...[
+    // The AppBar sometimes receives absurdly small width constraints (e.g.,
+    // during the very first layout after a hot restart or inside certain
+    // tests). When the max width is 0 or 1 pixel the internal row that
+    // arranges icons overflows, generating the errors you've been seeing.
+    //
+    // To stop the framework complaining we peek at the available space with a
+    // LayoutBuilder and, if it's below a reasonable minimum, return a
+    // stripped‑down bar with no children. It still obeys the preferred size but
+    // cannot overflow because there is nothing to lay out.
+    return LayoutBuilder(builder: (context, constraints) {
+      final maxWidth = constraints.maxWidth;
+      // when the bar is given almost no horizontal space (common during
+      // first layout on hot restart or in focused widget tests) we simply emit
+      // a placeholder app bar with no children. 100px is far less than any
+      // real device width but safely above the combined minimum width of two
+      // icon buttons so that we never try to lay them out into a 1px box.
+      if (maxWidth < 100.0) {
+        return AppBar(
+          automaticallyImplyLeading: false,
+          title: const SizedBox.shrink(),
+        );
+      }
+
+      if (isSearching) {
+        // when searching we use a simplified app bar: no actions, the close
+        // button on the leading slot and the text field as the title.
+        return AppBar(
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            onPressed: onToggleSearch,
+            icon: const Icon(Icons.close),
+          ),
+          title: TextField(
+            controller: searchController,
+            onChanged: onSearchChanged,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Search trips...',
+              border: InputBorder.none,
+              hintStyle: TextStyle(color: Colors.white70),
+            ),
+            style: const TextStyle(color: Colors.white),
+          ),
+        );
+      }
+
+      // normal (non-search) app bar
+      return AppBar(
+        title: Text(title),
+        actions: <Widget>[
           if (hasTrips)
             IconButton(
               onPressed: onToggleSearch,
@@ -207,11 +241,9 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           if (hasApiKey)
             IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),
           IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
-        ] else ...[
-          IconButton(onPressed: onToggleSearch, icon: const Icon(Icons.close)),
         ],
-      ],
-    );
+      );
+    });
   }
 
   @override

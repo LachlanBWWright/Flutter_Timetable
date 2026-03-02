@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:option_result/option_result.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
+import 'package:option_result/option_result.dart';
 
 class TripScreen extends StatefulWidget {
   const TripScreen({super.key, required this.trip});

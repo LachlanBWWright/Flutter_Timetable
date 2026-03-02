@@ -16,6 +16,9 @@ class RealtimeMapWidget extends StatefulWidget {
   final String? routeFilter;
   final Leg? leg;
 
+  /// Other legs of the same trip to render as deemphasized polylines.
+  final List<Leg>? additionalLegs;
+
   /// If true, attempt to filter vehicles to only those matching the trip ids
   /// for this trip/leg (fall back to route filtering when no trip ids are
   /// available). When false, the map shows all vehicles (diagnostic mode).
@@ -48,6 +51,7 @@ class RealtimeMapWidget extends StatefulWidget {
     this.transportMode,
     this.routeFilter,
     this.leg,
+    this.additionalLegs,
     this.filterByLegTrip = false,
     this.tripIds,
     this.vehicleId,
@@ -112,9 +116,54 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
   // Build polyline(s) for leg stops if provided (in order)
   List<Polyline> _buildRoutePolylines() {
-    final leg = widget.leg;
-    if (leg == null) return [];
+    final polylines = <Polyline>[];
 
+    // Draw additional (other) legs first so they appear below the active leg.
+    for (final otherLeg in widget.additionalLegs ?? []) {
+      final points = _legPoints(otherLeg);
+      if (points.length >= 2) {
+        polylines.add(
+          Polyline(
+            points: points,
+            strokeWidth: 2.0,
+            color: Colors.grey.withValues(alpha: 0.45),
+          ),
+        );
+      }
+    }
+
+    final leg = widget.leg;
+    if (leg == null) return polylines;
+
+    final points = _legPoints(leg);
+    if (points.length < 2) return polylines;
+
+    final mode = widget.transportMode;
+    if (mode == null) {
+      // Walk or unknown — dashed grey line
+      polylines.add(
+        Polyline(
+          points: points,
+          strokeWidth: 3.0,
+          color: Colors.grey.shade600,
+          pattern: StrokePattern.dashed(segments: const [12, 6]),
+        ),
+      );
+    } else {
+      polylines.add(
+        Polyline(
+          points: points,
+          strokeWidth: 4.0,
+          color: TransportColors.getColorByTransportMode(mode),
+        ),
+      );
+    }
+    return polylines;
+  }
+
+  /// Extract an ordered list of [LatLng] points from a leg's stop sequence or
+  /// coords polyline.
+  List<LatLng> _legPoints(Leg leg) {
     final points = <LatLng>[];
     final stopSequence = leg.stopSequence;
     if (stopSequence != null && stopSequence.isNotEmpty) {
@@ -125,26 +174,13 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         }
       }
     }
-
-    // Fall back to leg.coords (route polyline) if stop sequence coords are
-    // not available or insufficient.
     final legCoords = leg.coords;
     if (points.length < 2 && legCoords != null && legCoords.length >= 2) {
       for (final c in legCoords) {
-        if (c.length >= 2) {
-          points.add(LatLng(c[0], c[1]));
-        }
+        if (c.length >= 2) points.add(LatLng(c[0], c[1]));
       }
     }
-    if (points.length < 2) return [];
-
-    // Determine color from provided transportMode or fallback to grey
-    final mode = widget.transportMode;
-    final Color routeColor = mode != null
-        ? TransportColors.getColorByTransportMode(mode)
-        : Colors.blue;
-
-    return [Polyline(points: points, strokeWidth: 4.0, color: routeColor)];
+    return points;
   }
 
   Future<void> _loadVehiclePositions() async {

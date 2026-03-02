@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // logger removed
@@ -28,7 +30,10 @@ class LocationService {
         return null;
       }
 
-      return await Geolocator.getCurrentPosition();
+      return await Geolocator.getCurrentPosition().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw TimeoutException('Location timed out'),
+      );
     } catch (e) {
       // Error getting location
       return null;
@@ -74,13 +79,12 @@ class LocationService {
         1000; // Convert to km
   }
 
-  /// Get the closest stop coordinates for a journey
+  /// Get the closest stop coordinates for a journey using the provided database
   static Future<List<double>?> getClosestStopCoordinates(
     Journey journey,
+    AppDatabase database,
   ) async {
     try {
-      final database = AppDatabase();
-
       // First try to get origin coordinates
       final originStops = await database.searchStops(journey.origin, limit: 1);
       if (originStops.isNotEmpty) {
@@ -131,11 +135,12 @@ class LocationService {
       return journeys;
     }
 
-    // Calculate distances and sort
+    // Calculate distances and sort — reuse a single database instance
+    final database = AppDatabase();
     final journeysWithDistance = <MapEntry<Journey, double>>[];
 
     for (final journey in journeys) {
-      final stopCoords = await getClosestStopCoordinates(journey);
+      final stopCoords = await getClosestStopCoordinates(journey, database);
       if (stopCoords != null) {
         final distance = calculateDistance(
           currentPosition.latitude,
@@ -160,7 +165,7 @@ class LocationService {
   static Future<bool> isAlphabeticalSorting() async {
     final prefs = await SharedPreferences.getInstance();
     final preference =
-        prefs.getString(_sortingPreferenceKey) ?? _sortByDistance;
+        prefs.getString(_sortingPreferenceKey) ?? _sortAlphabetically;
     return preference == _sortAlphabetically;
   }
 
