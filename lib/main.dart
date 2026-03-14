@@ -7,7 +7,9 @@ import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/api_key_service.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
+import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
@@ -104,6 +106,13 @@ class _MyHomePageState extends State<MyHomePage> {
         _journeys = allJourneys;
         _filteredJourneys = allJourneys;
       });
+
+      // Preemptively fetch trip data for the top 10 journeys in the background.
+      TripCacheService.prefetch(allJourneys);
+
+      // Preemptively load stations for all modes so the 'Add New Trip' screen
+      // opens without a loading delay.
+      prefetchAllStations();
     } catch (e) {
       logger.e('Error loading trips: $e');
     }

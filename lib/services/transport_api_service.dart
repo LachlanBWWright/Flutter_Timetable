@@ -188,8 +188,16 @@ class GetTripsResponse {
           logger.d('raw journey #$idx: ${jsonEncode(journey)}');
           continue;
         }
-        final parsed = TripJourney.fromJson(journey);
-        tripJourneys.add(parsed);
+        try {
+          final parsed = TripJourney.fromJson(journey);
+          tripJourneys.add(parsed);
+        } catch (e, st) {
+          logger.e(
+            'GetTripsResponse.fromJson: error parsing journey #$idx: $e',
+          );
+          logger.d('Stack: $st');
+          logger.d('raw journey #$idx: ${jsonEncode(journey)}');
+        }
       }
     }
 

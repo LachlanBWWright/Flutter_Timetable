@@ -530,9 +530,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   ) {
     final hasTransport = transportId != null && transportId.isNotEmpty;
     return RealtimeMapWidget(
-      // Use a ValueKey so the widget is recreated (and the map re-fits) each
-      // time the user navigates to a different leg.
-      key: ValueKey('map_leg_$_currentLegIndex'),
+      // No ValueKey: didUpdateWidget in RealtimeMapWidget handles camera
+      // updates when the leg prop changes, avoiding a full teardown/rebuild.
       leg: leg,
       additionalLegs: additionalLegs,
       transportMode: mode,
@@ -551,57 +550,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   /// Returns the map widget filling all available space (used in the
-  /// non-scrollable layout where there is no debug panel).
-  Widget _buildMapWidget(
-    String? transportId,
-    TransportMode? mode,
-    Leg leg,
-    Color modeColor,
-    List<Leg> additionalLegs,
-  ) {
-    final hasTransport = transportId != null && transportId.isNotEmpty;
-    if (!hasTransport && !_legHasCoords(leg)) {
-      return const SizedBox.shrink();
-    }
-
-    return Stack(
-      children: [
-        _buildRealtimeMapWidget(transportId, mode, leg, additionalLegs),
-        Positioned(
-          bottom: 8,
-          right: 8,
-          child: CircleAvatar(
-            backgroundColor: Colors.white,
-            child: IconButton(
-              icon: const Icon(Icons.fullscreen),
-              color: modeColor,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RealtimeMapPage(
-                      leg: leg,
-                      transportMode: mode,
-                      routeFilter: hasTransport ? transportId : null,
-                      filterByLegTrip: hasTransport,
-                      tripIds: hasTransport ? _collectLegTripIds() : null,
-                      getAllVehiclesAggregated: hasTransport
-                          ? RealtimeService.getAllVehiclePositionsAggregated
-                          : () async => <String, dynamic>{
-                                'vehicles': <dynamic>[],
-                                'breakdown': <String, int>{},
-                              },
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMapCard(
     String? transportId,
     TransportMode? mode,
@@ -818,6 +766,158 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         ),
       ),
     );
+  }
+
+  /// Builds a card listing every stop in the leg's stop sequence with
+  /// its planned/estimated departure and arrival times.
+  Widget _buildStopList(Leg leg, Color modeColor) {
+    final stops = leg.stopSequence;
+    if (stops == null || stops.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(
+                'Stops (${stops.length})',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            ...stops.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final stop = entry.value;
+              final isFirst = idx == 0;
+              final isLast = idx == stops.length - 1;
+
+              final depPlanned = stop.departureTimePlanned;
+              final depEstimated = stop.departureTimeEstimated;
+              final arrPlanned = stop.arrivalTimePlanned;
+              final arrEstimated = stop.arrivalTimeEstimated;
+
+              // Use departure if available, else arrival for the main time
+              final mainTimePlanned = depPlanned ?? arrPlanned;
+              final mainTimeEstimated = depEstimated ?? arrEstimated;
+
+              return Container(
+                decoration: (isFirst || isLast)
+                    ? BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: modeColor, width: 4),
+                        ),
+                      )
+                    : null,
+                child: ListTile(
+                  dense: true,
+                  leading: SizedBox(
+                    width: 28,
+                    child: Center(
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: (isFirst || isLast)
+                              ? modeColor
+                              : modeColor.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    stop.disassembledName ?? stop.name,
+                    style: TextStyle(
+                      fontWeight: (isFirst || isLast)
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 14,
+                    ),
+                  ),
+                  trailing: mainTimePlanned != null
+                      ? _buildStopTimeWidget(
+                          mainTimePlanned,
+                          mainTimeEstimated,
+                          isArrival: depPlanned == null && arrPlanned != null,
+                        )
+                      : null,
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Formats a single stop time with optional delay indication.
+  Widget _buildStopTimeWidget(
+    String planned,
+    String? estimated, {
+    bool isArrival = false,
+  }) {
+    final plannedFormatted = _safeFormatTime(planned);
+    String? delayText;
+    Color timeColor = Colors.grey.shade700;
+
+    if (estimated != null && estimated != planned) {
+      final plannedDt = DateTimeUtils.parseTimeToDateTime(planned);
+      final estimatedDt = DateTimeUtils.parseTimeToDateTime(estimated);
+      if (plannedDt != null && estimatedDt != null) {
+        final diff = estimatedDt.difference(plannedDt).inMinutes;
+        if (diff > 0) {
+          delayText = '+${diff}m';
+          timeColor = Colors.red;
+        } else if (diff < 0) {
+          delayText = '${diff}m';
+          timeColor = Colors.orange;
+        }
+      }
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          plannedFormatted,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: delayText != null ? Colors.grey : timeColor,
+            decoration: delayText != null
+                ? TextDecoration.lineThrough
+                : TextDecoration.none,
+          ),
+        ),
+        if (delayText != null)
+          Text(
+            delayText,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: timeColor,
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _safeFormatTime(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return '';
+    try {
+      return DateTimeUtils.parseTimeOnly(timeStr);
+    } catch (_) {
+      return timeStr;
+    }
   }
 
   Widget _buildDebugCards(Leg leg, String? transportId, Color modeColor) {
@@ -1174,30 +1274,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         : Colors.grey;
   }
 
-  /// Build a nav button (prev or next leg). Returns a fixed-width container
-  /// so that the info card occupies the remaining space between buttons.
-  Widget _buildLegNavButton({
-    required bool active,
-    required VoidCallback? onPressed,
-    required Color color,
-    required IconData icon,
-    required String heroTag,
-  }) {
-    return SizedBox(
-      width: 48,
-      child: active
-          ? FloatingActionButton.small(
-              heroTag: heroTag,
-              onPressed: onPressed,
-              backgroundColor: color,
-              foregroundColor: getContrastingForeground(color),
-              elevation: 2,
-              child: Icon(icon),
-            )
-          : const SizedBox.shrink(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final leg = _updatedLeg ?? widget.leg;
@@ -1229,41 +1305,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         hasPrev ? _getAdjacentLegColor(_currentLegIndex - 1) : Colors.grey;
     final nextColor =
         hasNext ? _getAdjacentLegColor(_currentLegIndex + 1) : Colors.grey;
-
-    // Info card flanked by prev/next nav buttons
-    final infoRow = Padding(
-      padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _buildLegNavButton(
-            active: hasPrev,
-            onPressed: hasPrev ? () => _goToLeg(_currentLegIndex - 1) : null,
-            color: prevColor,
-            icon: Icons.arrow_back,
-            heroTag: 'prev_leg',
-          ),
-          Expanded(
-            child: _buildInfoCard(
-              transportName,
-              transportClass,
-              originName,
-              destinationName,
-              modeColor,
-              origin,
-              destination,
-            ),
-          ),
-          _buildLegNavButton(
-            active: hasNext,
-            onPressed: hasNext ? () => _goToLeg(_currentLegIndex + 1) : null,
-            color: nextColor,
-            icon: Icons.arrow_forward,
-            heroTag: 'next_leg',
-          ),
-        ],
-      ),
-    );
 
     return Scaffold(
       appBar: AppBar(
@@ -1297,55 +1338,62 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             ),
         ],
       ),
-      // No floatingActionButton — nav buttons are inlined beside the info card
-      body: ValueListenableBuilder<bool>(
-        valueListenable: DebugService.showDebugData,
-        builder: (context, showDebug, _) {
-          if (showDebug) {
-            // Scrollable layout: fixed-height map + info row + debug cards
-            return RefreshIndicator(
-              onRefresh: _refreshLegData,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
-                      child: _buildMapCard(
-                        transportId,
-                        mode,
-                        leg,
-                        modeColor,
-                        otherLegs,
-                      ),
-                    ),
-                    infoRow,
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: _buildDebugCards(leg, transportId, modeColor),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          } else {
-            // Non-scrollable layout: map fills remaining space, info row at bottom
-            return Column(
-              children: [
-                Expanded(
-                  child: _buildMapWidget(
-                    transportId,
-                    mode,
-                    leg,
-                    modeColor,
-                    otherLegs,
+      // FABs for navigating between legs
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: legCount > 1
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'prev_leg',
+                    onPressed: hasPrev
+                        ? () => _goToLeg(_currentLegIndex - 1)
+                        : null,
+                    backgroundColor: hasPrev ? prevColor : Colors.grey,
+                    foregroundColor: hasPrev
+                        ? getContrastingForeground(prevColor)
+                        : Colors.white,
+                    child: const Icon(Icons.arrow_back),
                   ),
-                ),
-                infoRow,
-              ],
-            );
-          }
-        },
+                  FloatingActionButton.small(
+                    heroTag: 'next_leg',
+                    onPressed: hasNext
+                        ? () => _goToLeg(_currentLegIndex + 1)
+                        : null,
+                    backgroundColor: hasNext ? nextColor : Colors.grey,
+                    foregroundColor: hasNext
+                        ? getContrastingForeground(nextColor)
+                        : Colors.white,
+                    child: const Icon(Icons.arrow_forward),
+                  ),
+                ],
+              ),
+            )
+          : null,
+      body: RefreshIndicator(
+        onRefresh: _refreshLegData,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
+          child: Column(
+            children: [
+              _buildMapCard(transportId, mode, leg, modeColor, otherLegs),
+              _buildInfoCard(
+                transportName,
+                transportClass,
+                originName,
+                destinationName,
+                modeColor,
+                origin,
+                destination,
+              ),
+              const SizedBox(height: 8),
+              _buildStopList(leg, modeColor),
+              _buildDebugCards(leg, transportId, modeColor),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
@@ -27,7 +29,7 @@ class _TripScreenState extends State<TripScreen> {
       _error = null;
     });
 
-    final result = await TransportApiService.getTrips(
+    final result = await TripCacheService.getCachedOrFetch(
       originId: widget.trip.originId,
       destinationId: widget.trip.destinationId,
     );
@@ -87,6 +89,10 @@ class _TripScreenState extends State<TripScreen> {
           testText = v.toString();
           _isLoading = false;
         });
+
+        // Preemptively load realtime vehicle positions in the background so
+        // the trip leg detail map loads faster when the user taps a leg.
+        RealtimeService.getAllVehiclePositionsAggregated().ignore();
       case Err(:final e):
         setState(() {
           _error = e;
@@ -110,7 +116,14 @@ class _TripScreenState extends State<TripScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Trip')),
       body: RefreshIndicator(
-        onRefresh: getTripData,
+        onRefresh: () async {
+          // Invalidate cache so pull-to-refresh fetches fresh data.
+          TripCacheService.invalidate(
+            widget.trip.originId,
+            widget.trip.destinationId,
+          );
+          await getTripData();
+        },
         child: trips.isEmpty
             ? ListView(
                 children: [

@@ -9,6 +9,7 @@ import '../services/debug_service.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart';
 import 'realtime_map_helpers.dart';
+import 'trip_widgets.dart' show TransportModeUtils;
 
 /// Widget for displaying GTFS realtime vehicle positions on a map
 class RealtimeMapWidget extends StatefulWidget {
@@ -129,6 +130,31 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     }
 
     _loadVehiclePositions();
+  }
+
+  @override
+  void didUpdateWidget(RealtimeMapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When the active leg changes, fit the camera to the new leg's stops
+    // without recreating the whole widget (avoids visible flash/reload).
+    if (oldWidget.leg != widget.leg && widget.leg != null) {
+      final newLeg = widget.leg!;
+      final points = _legPoints(newLeg);
+      if (points.length >= 2) {
+        final fit = CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(points),
+          padding: const EdgeInsets.all(50.0),
+        );
+        try {
+          _mapController.fitCamera(fit);
+        } catch (_) {
+          // Map controller not yet ready — store as pending
+          _pendingFit = fit;
+        }
+      }
+      // Also reload vehicle positions for the new leg
+      _loadVehiclePositions();
+    }
   }
 
   // Build polyline(s) for leg stops if provided (in order)
@@ -382,10 +408,18 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   List<Marker> _buildStopMarkers() {
     final markers = <Marker>[];
 
-    // Deemphasized (smaller) markers for other-leg stops
+    // Markers for other-leg stops: same size as before but fully opaque and
+    // coloured according to that leg's transport mode (no icons).
     for (final otherLeg in widget.additionalLegs ?? []) {
       final stops = otherLeg.stopSequence;
       if (stops == null) continue;
+
+      // Derive the colour from the other leg's transport class if available.
+      final otherClass = otherLeg.transportation?.product?.classField;
+      final Color otherColor = otherClass != null
+          ? TransportModeUtils.getModeColor(otherClass)
+          : Colors.blueGrey;
+
       for (final s in stops) {
         final coord = s.coord;
         if (coord == null || coord.length < 2) continue;
@@ -396,12 +430,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             height: 10.0,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: otherColor,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.white, width: 1),
               ),
             ),
           ),
