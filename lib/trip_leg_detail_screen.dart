@@ -520,6 +520,88 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         (leg.destination.coord?.length ?? 0) >= 2;
   }
 
+  /// Builds the core [RealtimeMapWidget] for a leg, used in both the card
+  /// (scrollable debug layout) and the full-height (non-scrollable) layout.
+  RealtimeMapWidget _buildRealtimeMapWidget(
+    String? transportId,
+    TransportMode? mode,
+    Leg leg,
+    List<Leg> additionalLegs,
+  ) {
+    final hasTransport = transportId != null && transportId.isNotEmpty;
+    return RealtimeMapWidget(
+      // Use a ValueKey so the widget is recreated (and the map re-fits) each
+      // time the user navigates to a different leg.
+      key: ValueKey('map_leg_$_currentLegIndex'),
+      leg: leg,
+      additionalLegs: additionalLegs,
+      transportMode: mode,
+      routeFilter: hasTransport ? transportId : null,
+      filterByLegTrip: hasTransport,
+      tripIds: hasTransport ? _collectLegTripIds() : null,
+      showVehicleCount: false,
+      getAllVehiclesAggregated: hasTransport
+          ? (widget.getAllVehiclesAggregated ??
+              RealtimeService.getAllVehiclePositionsAggregated)
+          : () async => <String, dynamic>{
+                'vehicles': <dynamic>[],
+                'breakdown': <String, int>{},
+              },
+    );
+  }
+
+  /// Returns the map widget filling all available space (used in the
+  /// non-scrollable layout where there is no debug panel).
+  Widget _buildMapWidget(
+    String? transportId,
+    TransportMode? mode,
+    Leg leg,
+    Color modeColor,
+    List<Leg> additionalLegs,
+  ) {
+    final hasTransport = transportId != null && transportId.isNotEmpty;
+    if (!hasTransport && !_legHasCoords(leg)) {
+      return const SizedBox.shrink();
+    }
+
+    return Stack(
+      children: [
+        _buildRealtimeMapWidget(transportId, mode, leg, additionalLegs),
+        Positioned(
+          bottom: 8,
+          right: 8,
+          child: CircleAvatar(
+            backgroundColor: Colors.white,
+            child: IconButton(
+              icon: const Icon(Icons.fullscreen),
+              color: modeColor,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RealtimeMapPage(
+                      leg: leg,
+                      transportMode: mode,
+                      routeFilter: hasTransport ? transportId : null,
+                      filterByLegTrip: hasTransport,
+                      tripIds: hasTransport ? _collectLegTripIds() : null,
+                      getAllVehiclesAggregated: hasTransport
+                          ? RealtimeService.getAllVehiclePositionsAggregated
+                          : () async => <String, dynamic>{
+                                'vehicles': <dynamic>[],
+                                'breakdown': <String, int>{},
+                              },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMapCard(
     String? transportId,
     TransportMode? mode,
@@ -541,22 +623,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         height: 300,
         child: Stack(
           children: [
-            RealtimeMapWidget(
-              leg: leg,
-              additionalLegs: additionalLegs,
-              transportMode: mode,
-              routeFilter: hasTransport ? transportId : null,
-              filterByLegTrip: hasTransport,
-              tripIds: hasTransport ? _collectLegTripIds() : null,
-              showVehicleCount: false,
-              getAllVehiclesAggregated: hasTransport
-                  ? (widget.getAllVehiclesAggregated ??
-                      RealtimeService.getAllVehiclePositionsAggregated)
-                  : () async => <String, dynamic>{
-                        'vehicles': <dynamic>[],
-                        'breakdown': <String, int>{},
-                      },
-            ),
+            _buildRealtimeMapWidget(transportId, mode, leg, additionalLegs),
             Positioned(
               bottom: 8,
               right: 8,
@@ -1096,6 +1163,41 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
+  /// Get the color of the adjacent leg (for navigation button colors).
+  Color _getAdjacentLegColor(int index) {
+    final legs = widget.trip?.legs;
+    if (legs == null || index < 0 || index >= legs.length) return Colors.grey;
+    final adjLeg = legs[index];
+    final adjClass = adjLeg.transportation?.product?.classField;
+    return adjClass != null
+        ? TransportModeUtils.getModeColor(adjClass)
+        : Colors.grey;
+  }
+
+  /// Build a nav button (prev or next leg). Returns a fixed-width container
+  /// so that the info card occupies the remaining space between buttons.
+  Widget _buildLegNavButton({
+    required bool active,
+    required VoidCallback? onPressed,
+    required Color color,
+    required IconData icon,
+    required String heroTag,
+  }) {
+    return SizedBox(
+      width: 48,
+      child: active
+          ? FloatingActionButton.small(
+              heroTag: heroTag,
+              onPressed: onPressed,
+              backgroundColor: color,
+              foregroundColor: getContrastingForeground(color),
+              elevation: 2,
+              child: Icon(icon),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final leg = _updatedLeg ?? widget.leg;
@@ -1123,6 +1225,46 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final hasPrev = legCount > 1 && _currentLegIndex > 0;
     final hasNext = legCount > 1 && _currentLegIndex < legCount - 1;
 
+    final prevColor =
+        hasPrev ? _getAdjacentLegColor(_currentLegIndex - 1) : Colors.grey;
+    final nextColor =
+        hasNext ? _getAdjacentLegColor(_currentLegIndex + 1) : Colors.grey;
+
+    // Info card flanked by prev/next nav buttons
+    final infoRow = Padding(
+      padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildLegNavButton(
+            active: hasPrev,
+            onPressed: hasPrev ? () => _goToLeg(_currentLegIndex - 1) : null,
+            color: prevColor,
+            icon: Icons.arrow_back,
+            heroTag: 'prev_leg',
+          ),
+          Expanded(
+            child: _buildInfoCard(
+              transportName,
+              transportClass,
+              originName,
+              destinationName,
+              modeColor,
+              origin,
+              destination,
+            ),
+          ),
+          _buildLegNavButton(
+            active: hasNext,
+            onPressed: hasNext ? () => _goToLeg(_currentLegIndex + 1) : null,
+            color: nextColor,
+            icon: Icons.arrow_forward,
+            heroTag: 'next_leg',
+          ),
+        ],
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Leg Details'),
@@ -1144,6 +1286,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       leg: leg,
                       transportMode: mode,
                       routeFilter: transportId,
+                      filterByLegTrip: true,
+                      tripIds: _collectLegTripIds(),
                       getAllVehiclesAggregated:
                           RealtimeService.getAllVehiclePositionsAggregated,
                     ),
@@ -1153,60 +1297,55 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             ),
         ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: legCount > 1
-          ? Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  FloatingActionButton.small(
-                    heroTag: 'prev_leg',
-                    onPressed: hasPrev
-                        ? () => _goToLeg(_currentLegIndex - 1)
-                        : null,
-                    backgroundColor: hasPrev ? modeColor : Colors.grey,
-                    foregroundColor: hasPrev
-                        ? getContrastingForeground(modeColor)
-                        : Colors.white,
-                    child: const Icon(Icons.arrow_back),
-                  ),
-                  FloatingActionButton.small(
-                    heroTag: 'next_leg',
-                    onPressed: hasNext
-                        ? () => _goToLeg(_currentLegIndex + 1)
-                        : null,
-                    backgroundColor: hasNext ? modeColor : Colors.grey,
-                    foregroundColor: hasNext
-                        ? getContrastingForeground(modeColor)
-                        : Colors.white,
-                    child: const Icon(Icons.arrow_forward),
-                  ),
-                ],
+      // No floatingActionButton — nav buttons are inlined beside the info card
+      body: ValueListenableBuilder<bool>(
+        valueListenable: DebugService.showDebugData,
+        builder: (context, showDebug, _) {
+          if (showDebug) {
+            // Scrollable layout: fixed-height map + info row + debug cards
+            return RefreshIndicator(
+              onRefresh: _refreshLegData,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
+                      child: _buildMapCard(
+                        transportId,
+                        mode,
+                        leg,
+                        modeColor,
+                        otherLegs,
+                      ),
+                    ),
+                    infoRow,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: _buildDebugCards(leg, transportId, modeColor),
+                    ),
+                  ],
+                ),
               ),
-            )
-          : null,
-      body: RefreshIndicator(
-        onRefresh: _refreshLegData,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
-          child: Column(
-            children: [
-              _buildMapCard(transportId, mode, leg, modeColor, otherLegs),
-              _buildInfoCard(
-                transportName,
-                transportClass,
-                originName,
-                destinationName,
-                modeColor,
-                origin,
-                destination,
-              ),
-              const SizedBox(height: 16),
-              _buildDebugCards(leg, transportId, modeColor),
-            ],
-          ),
-        ),
+            );
+          } else {
+            // Non-scrollable layout: map fills remaining space, info row at bottom
+            return Column(
+              children: [
+                Expanded(
+                  child: _buildMapWidget(
+                    transportId,
+                    mode,
+                    leg,
+                    modeColor,
+                    otherLegs,
+                  ),
+                ),
+                infoRow,
+              ],
+            );
+          }
+        },
       ),
     );
   }

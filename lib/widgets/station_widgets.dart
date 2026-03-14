@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import '../constants/transport_colors.dart';
+import '../services/debug_service.dart';
 
 /// A model class for station data
 class Station {
@@ -78,17 +79,34 @@ class StationView extends StatelessWidget {
   }
 
   Widget _buildSubtitle() {
-    // Only show distance if available
-    final dist = station.distance;
-    if (dist != null) {
-      return Text(
-        '${dist.toStringAsFixed(1)} km away',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-      );
-    }
-
-    // Don't show anything if distance is not available
-    return const SizedBox.shrink();
+    return ValueListenableBuilder<bool>(
+      valueListenable: DebugService.showDebugData,
+      builder: (context, showDebug, _) {
+        final items = <Widget>[];
+        final dist = station.distance;
+        if (dist != null) {
+          items.add(
+            Text(
+              '${dist.toStringAsFixed(1)} km away',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          );
+        }
+        if (showDebug) {
+          items.add(
+            Text(
+              'ID: ${station.id}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          );
+        }
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items,
+        );
+      },
+    );
   }
 }
 
@@ -195,6 +213,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onOpenMap;
   final VoidCallback onToggleSort;
   final SortMode sortMode;
+  final bool showMapView;
   final TabController? tabController;
 
   const NewTripAppBar({
@@ -209,6 +228,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onOpenMap,
     required this.onToggleSort,
     required this.sortMode,
+    this.showMapView = false,
     this.tabController,
   });
 
@@ -229,8 +249,8 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           : const Text('Add New Trip'),
       actions: [
         if (!canSave) ...[
-          // Sort button (only show when not searching and not ready to save)
-          if (!isSearching)
+          // Sort button (only show when not searching, not in map view, and not ready to save)
+          if (!isSearching && !showMapView)
             IconButton(
               onPressed: onToggleSort,
               icon: Icon(
@@ -242,24 +262,26 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ? 'Sort by distance'
                   : 'Sort alphabetically',
             ),
-          // Map button (only show when not searching)
+          // Map/list toggle button (only show when not searching)
           if (!isSearching)
             IconButton(
               onPressed: onOpenMap,
-              icon: const Icon(Icons.map),
-              tooltip: 'Open stops map',
+              icon: Icon(showMapView ? Icons.list : Icons.map),
+              tooltip: showMapView ? 'Show list' : 'Open stops map',
             ),
-          // Search/cancel button
-          if (isSearching)
-            IconButton(
-              onPressed: onToggleSearch,
-              icon: const Icon(Icons.cancel),
-            )
-          else
-            IconButton(
-              onPressed: onToggleSearch,
-              icon: const Icon(Icons.search),
-            ),
+          // Search/cancel button (only visible when not in map view)
+          if (!showMapView) ...[
+            if (isSearching)
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.cancel),
+              )
+            else
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.search),
+              ),
+          ],
         ],
       ],
       bottom: TabBar(
