@@ -205,6 +205,13 @@ class StopsService {
         StopsCompanion.insert(
           stopId: trimmedId,
           stopName: stop.stopName,
+          stopCode: Value(stop.stopCode),
+          ttsStopName: Value(stop.ttsStopName),
+          stopDesc: Value(stop.stopDesc),
+          zoneId: Value(stop.zoneId),
+          stopUrl: Value(stop.stopUrl),
+          stopTimezone: Value(stop.stopTimezone),
+          levelId: Value(stop.levelId),
           stopLat: Value(stop.stopLat),
           stopLon: Value(stop.stopLon),
           locationType: Value(stop.locationType),
@@ -230,12 +237,19 @@ class StopsService {
         .map(
           (dbStop) => Stop(
             stopId: dbStop.stopId,
+            stopCode: dbStop.stopCode,
+            ttsStopName: dbStop.ttsStopName,
             stopName: dbStop.stopName,
+            stopDesc: dbStop.stopDesc,
             stopLat: dbStop.stopLat ?? 0.0,
             stopLon: dbStop.stopLon ?? 0.0,
+            zoneId: dbStop.zoneId,
+            stopUrl: dbStop.stopUrl,
+            stopTimezone: dbStop.stopTimezone,
             locationType: dbStop.locationType ?? 0,
             parentStation: dbStop.parentStation,
             wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+            levelId: dbStop.levelId,
             platformCode: dbStop.platformCode,
           ),
         )
@@ -252,12 +266,19 @@ class StopsService {
         .map(
           (dbStop) => Stop(
             stopId: dbStop.stopId,
+            stopCode: dbStop.stopCode,
+            ttsStopName: dbStop.ttsStopName,
             stopName: dbStop.stopName,
+            stopDesc: dbStop.stopDesc,
             stopLat: dbStop.stopLat ?? 0.0,
             stopLon: dbStop.stopLon ?? 0.0,
+            zoneId: dbStop.zoneId,
+            stopUrl: dbStop.stopUrl,
+            stopTimezone: dbStop.stopTimezone,
             locationType: dbStop.locationType ?? 0,
             parentStation: dbStop.parentStation,
             wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+            levelId: dbStop.levelId,
             platformCode: dbStop.platformCode,
           ),
         )

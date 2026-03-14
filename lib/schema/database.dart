@@ -27,14 +27,27 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (Migrator m) {
-      return m.createAll();
-    },
-  );
+        onCreate: (Migrator m) async {
+          await m.createAll();
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          // Add new stop columns introduced in schemaVersion 4. Drift will
+          // skip columns that already exist when upgrading.
+          if (from < 4) {
+            await m.addColumn(stops, stops.stopCode);
+            await m.addColumn(stops, stops.ttsStopName);
+            await m.addColumn(stops, stops.stopDesc);
+            await m.addColumn(stops, stops.zoneId);
+            await m.addColumn(stops, stops.stopUrl);
+            await m.addColumn(stops, stops.stopTimezone);
+            await m.addColumn(stops, stops.levelId);
+          }
+        },
+      );
 
   // Journey operations
   Future<int> insertJourney(JourneysCompanion journey) =>

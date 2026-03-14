@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
 
-/// A fixed palette of opaque transport-brand colors used for accent strips on
-/// home-screen journey cards.  The same journey always gets the same color
-/// because the selection is derived deterministically from the journey id.
+/// Returns a deterministic accent color for [journey] derived from its id.
+///
+/// Used as a fallback when the mode cannot be determined for either stop.
 const _journeyAccentColors = [
   TransportColors.train,      // amber
   TransportColors.bus,        // blue
@@ -18,9 +20,17 @@ const _journeyAccentColors = [
   TransportColors.trainsT8,   // dark-green
 ];
 
-/// Returns a deterministic accent color for [journey] derived from its id.
 Color _accentColorForJourney(Journey journey) {
   return _journeyAccentColors[journey.id.abs() % _journeyAccentColors.length];
+}
+
+/// Map a transport mode to a UI accent color, with a fallback to the
+/// deterministic journey color.
+Color _accentColorForMode(TransportMode? mode, Journey journey) {
+  if (mode != null) {
+    return TransportColors.getColorByTransportMode(mode);
+  }
+  return _accentColorForJourney(journey);
 }
 
 /// A reusable card widget for displaying journey information with two-column layout
@@ -114,12 +124,43 @@ class JourneyCard extends StatelessWidget {
               ],
             ],
           ),
-          // Bottom accent strip — color is deterministically derived from
-          // the journey id so each card has a consistent, distinctive hue.
-          Container(
-            height: 6,
-            width: double.infinity,
-            color: _accentColorForJourney(journey),
+          // Bottom accent strip — split into two halves, each representing
+          // the transport mode of the origin/destination stop.
+          FutureBuilder<List<TransportMode?>>(
+            future: Future.wait([
+              StopsService.getModeForStopId(journey.originId),
+              StopsService.getModeForStopId(journey.destinationId),
+            ]),
+            builder: (context, snapshot) {
+              final originColor = _accentColorForMode(
+                snapshot.hasData ? snapshot.data![0] : null,
+                journey,
+              );
+              final destinationColor = _accentColorForMode(
+                snapshot.hasData ? snapshot.data![1] : null,
+                journey,
+              );
+
+              return SizedBox(
+                width: double.infinity,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 6,
+                        color: originColor,
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: 6,
+                        color: destinationColor,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -265,16 +306,44 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               icon: Icon(isEditingMode ? Icons.done : Icons.edit),
             ),
           if (hasTrips)
-            IconButton(
-              tooltip: isAlphabeticalSorting
-                  ? 'Sorting: A–Z (tap for nearest first)'
-                  : 'Sorting: nearest first (tap for A–Z)',
-              onPressed: onToggleSort,
-              icon: Icon(
-                isAlphabeticalSorting
-                    ? Icons.sort_by_alpha
-                    : Icons.near_me,
-              ),
+            PopupMenuButton<bool>(
+              icon: const Icon(Icons.filter_list),
+              tooltip: 'Sort trips',
+              onSelected: (isAlphabetical) {
+                if (isAlphabetical != isAlphabeticalSorting) {
+                  onToggleSort();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<bool>(
+                  value: true,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.sort_by_alpha,
+                        color: isAlphabeticalSorting ? null : Colors.grey,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('A–Z'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<bool>(
+                  value: false,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.near_me,
+                        color: !isAlphabeticalSorting ? null : Colors.grey,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Nearest first'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           if (hasApiKey)
             IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),

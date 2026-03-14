@@ -436,6 +436,81 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _stopCodeMeta = const VerificationMeta(
+    'stopCode',
+  );
+  @override
+  late final GeneratedColumn<String> stopCode = GeneratedColumn<String>(
+    'stop_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ttsStopNameMeta = const VerificationMeta(
+    'ttsStopName',
+  );
+  @override
+  late final GeneratedColumn<String> ttsStopName = GeneratedColumn<String>(
+    'tts_stop_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopDescMeta = const VerificationMeta(
+    'stopDesc',
+  );
+  @override
+  late final GeneratedColumn<String> stopDesc = GeneratedColumn<String>(
+    'stop_desc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _zoneIdMeta = const VerificationMeta('zoneId');
+  @override
+  late final GeneratedColumn<String> zoneId = GeneratedColumn<String>(
+    'zone_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopUrlMeta = const VerificationMeta(
+    'stopUrl',
+  );
+  @override
+  late final GeneratedColumn<String> stopUrl = GeneratedColumn<String>(
+    'stop_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopTimezoneMeta = const VerificationMeta(
+    'stopTimezone',
+  );
+  @override
+  late final GeneratedColumn<String> stopTimezone = GeneratedColumn<String>(
+    'stop_timezone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _levelIdMeta = const VerificationMeta(
+    'levelId',
+  );
+  @override
+  late final GeneratedColumn<String> levelId = GeneratedColumn<String>(
+    'level_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _stopLatMeta = const VerificationMeta(
     'stopLat',
   );
@@ -516,6 +591,13 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
   List<GeneratedColumn> get $columns => [
     stopId,
     stopName,
+    stopCode,
+    ttsStopName,
+    stopDesc,
+    zoneId,
+    stopUrl,
+    stopTimezone,
+    levelId,
     stopLat,
     stopLon,
     locationType,
@@ -551,6 +633,54 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
       );
     } else if (isInserting) {
       context.missing(_stopNameMeta);
+    }
+    if (data.containsKey('stop_code')) {
+      context.handle(
+        _stopCodeMeta,
+        stopCode.isAcceptableOrUnknown(data['stop_code']!, _stopCodeMeta),
+      );
+    }
+    if (data.containsKey('tts_stop_name')) {
+      context.handle(
+        _ttsStopNameMeta,
+        ttsStopName.isAcceptableOrUnknown(
+          data['tts_stop_name']!,
+          _ttsStopNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('stop_desc')) {
+      context.handle(
+        _stopDescMeta,
+        stopDesc.isAcceptableOrUnknown(data['stop_desc']!, _stopDescMeta),
+      );
+    }
+    if (data.containsKey('zone_id')) {
+      context.handle(
+        _zoneIdMeta,
+        zoneId.isAcceptableOrUnknown(data['zone_id']!, _zoneIdMeta),
+      );
+    }
+    if (data.containsKey('stop_url')) {
+      context.handle(
+        _stopUrlMeta,
+        stopUrl.isAcceptableOrUnknown(data['stop_url']!, _stopUrlMeta),
+      );
+    }
+    if (data.containsKey('stop_timezone')) {
+      context.handle(
+        _stopTimezoneMeta,
+        stopTimezone.isAcceptableOrUnknown(
+          data['stop_timezone']!,
+          _stopTimezoneMeta,
+        ),
+      );
+    }
+    if (data.containsKey('level_id')) {
+      context.handle(
+        _levelIdMeta,
+        levelId.isAcceptableOrUnknown(data['level_id']!, _levelIdMeta),
+      );
     }
     if (data.containsKey('stop_lat')) {
       context.handle(
@@ -625,6 +755,34 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
         DriftSqlType.string,
         data['${effectivePrefix}stop_name'],
       )!,
+      stopCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_code'],
+      ),
+      ttsStopName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tts_stop_name'],
+      ),
+      stopDesc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_desc'],
+      ),
+      zoneId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}zone_id'],
+      ),
+      stopUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_url'],
+      ),
+      stopTimezone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_timezone'],
+      ),
+      levelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level_id'],
+      ),
       stopLat: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}stop_lat'],
@@ -665,6 +823,13 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
 class Stop extends DataClass implements Insertable<Stop> {
   final String stopId;
   final String stopName;
+  final String? stopCode;
+  final String? ttsStopName;
+  final String? stopDesc;
+  final String? zoneId;
+  final String? stopUrl;
+  final String? stopTimezone;
+  final String? levelId;
   final double? stopLat;
   final double? stopLon;
   final int? locationType;
@@ -675,6 +840,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   const Stop({
     required this.stopId,
     required this.stopName,
+    this.stopCode,
+    this.ttsStopName,
+    this.stopDesc,
+    this.zoneId,
+    this.stopUrl,
+    this.stopTimezone,
+    this.levelId,
     this.stopLat,
     this.stopLon,
     this.locationType,
@@ -688,6 +860,27 @@ class Stop extends DataClass implements Insertable<Stop> {
     final map = <String, Expression>{};
     map['stop_id'] = Variable<String>(stopId);
     map['stop_name'] = Variable<String>(stopName);
+    if (!nullToAbsent || stopCode != null) {
+      map['stop_code'] = Variable<String>(stopCode);
+    }
+    if (!nullToAbsent || ttsStopName != null) {
+      map['tts_stop_name'] = Variable<String>(ttsStopName);
+    }
+    if (!nullToAbsent || stopDesc != null) {
+      map['stop_desc'] = Variable<String>(stopDesc);
+    }
+    if (!nullToAbsent || zoneId != null) {
+      map['zone_id'] = Variable<String>(zoneId);
+    }
+    if (!nullToAbsent || stopUrl != null) {
+      map['stop_url'] = Variable<String>(stopUrl);
+    }
+    if (!nullToAbsent || stopTimezone != null) {
+      map['stop_timezone'] = Variable<String>(stopTimezone);
+    }
+    if (!nullToAbsent || levelId != null) {
+      map['level_id'] = Variable<String>(levelId);
+    }
     if (!nullToAbsent || stopLat != null) {
       map['stop_lat'] = Variable<double>(stopLat);
     }
@@ -714,6 +907,27 @@ class Stop extends DataClass implements Insertable<Stop> {
     return StopsCompanion(
       stopId: Value(stopId),
       stopName: Value(stopName),
+      stopCode: stopCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopCode),
+      ttsStopName: ttsStopName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ttsStopName),
+      stopDesc: stopDesc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopDesc),
+      zoneId: zoneId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(zoneId),
+      stopUrl: stopUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopUrl),
+      stopTimezone: stopTimezone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopTimezone),
+      levelId: levelId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(levelId),
       stopLat: stopLat == null && nullToAbsent
           ? const Value.absent()
           : Value(stopLat),
@@ -744,6 +958,13 @@ class Stop extends DataClass implements Insertable<Stop> {
     return Stop(
       stopId: serializer.fromJson<String>(json['stopId']),
       stopName: serializer.fromJson<String>(json['stopName']),
+      stopCode: serializer.fromJson<String?>(json['stopCode']),
+      ttsStopName: serializer.fromJson<String?>(json['ttsStopName']),
+      stopDesc: serializer.fromJson<String?>(json['stopDesc']),
+      zoneId: serializer.fromJson<String?>(json['zoneId']),
+      stopUrl: serializer.fromJson<String?>(json['stopUrl']),
+      stopTimezone: serializer.fromJson<String?>(json['stopTimezone']),
+      levelId: serializer.fromJson<String?>(json['levelId']),
       stopLat: serializer.fromJson<double?>(json['stopLat']),
       stopLon: serializer.fromJson<double?>(json['stopLon']),
       locationType: serializer.fromJson<int?>(json['locationType']),
@@ -759,6 +980,13 @@ class Stop extends DataClass implements Insertable<Stop> {
     return <String, dynamic>{
       'stopId': serializer.toJson<String>(stopId),
       'stopName': serializer.toJson<String>(stopName),
+      'stopCode': serializer.toJson<String?>(stopCode),
+      'ttsStopName': serializer.toJson<String?>(ttsStopName),
+      'stopDesc': serializer.toJson<String?>(stopDesc),
+      'zoneId': serializer.toJson<String?>(zoneId),
+      'stopUrl': serializer.toJson<String?>(stopUrl),
+      'stopTimezone': serializer.toJson<String?>(stopTimezone),
+      'levelId': serializer.toJson<String?>(levelId),
       'stopLat': serializer.toJson<double?>(stopLat),
       'stopLon': serializer.toJson<double?>(stopLon),
       'locationType': serializer.toJson<int?>(locationType),
@@ -772,6 +1000,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   Stop copyWith({
     String? stopId,
     String? stopName,
+    Value<String?> stopCode = const Value.absent(),
+    Value<String?> ttsStopName = const Value.absent(),
+    Value<String?> stopDesc = const Value.absent(),
+    Value<String?> zoneId = const Value.absent(),
+    Value<String?> stopUrl = const Value.absent(),
+    Value<String?> stopTimezone = const Value.absent(),
+    Value<String?> levelId = const Value.absent(),
     Value<double?> stopLat = const Value.absent(),
     Value<double?> stopLon = const Value.absent(),
     Value<int?> locationType = const Value.absent(),
@@ -782,6 +1017,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   }) => Stop(
     stopId: stopId ?? this.stopId,
     stopName: stopName ?? this.stopName,
+    stopCode: stopCode.present ? stopCode.value : this.stopCode,
+    ttsStopName: ttsStopName.present ? ttsStopName.value : this.ttsStopName,
+    stopDesc: stopDesc.present ? stopDesc.value : this.stopDesc,
+    zoneId: zoneId.present ? zoneId.value : this.zoneId,
+    stopUrl: stopUrl.present ? stopUrl.value : this.stopUrl,
+    stopTimezone: stopTimezone.present ? stopTimezone.value : this.stopTimezone,
+    levelId: levelId.present ? levelId.value : this.levelId,
     stopLat: stopLat.present ? stopLat.value : this.stopLat,
     stopLon: stopLon.present ? stopLon.value : this.stopLon,
     locationType: locationType.present ? locationType.value : this.locationType,
@@ -798,6 +1040,17 @@ class Stop extends DataClass implements Insertable<Stop> {
     return Stop(
       stopId: data.stopId.present ? data.stopId.value : this.stopId,
       stopName: data.stopName.present ? data.stopName.value : this.stopName,
+      stopCode: data.stopCode.present ? data.stopCode.value : this.stopCode,
+      ttsStopName: data.ttsStopName.present
+          ? data.ttsStopName.value
+          : this.ttsStopName,
+      stopDesc: data.stopDesc.present ? data.stopDesc.value : this.stopDesc,
+      zoneId: data.zoneId.present ? data.zoneId.value : this.zoneId,
+      stopUrl: data.stopUrl.present ? data.stopUrl.value : this.stopUrl,
+      stopTimezone: data.stopTimezone.present
+          ? data.stopTimezone.value
+          : this.stopTimezone,
+      levelId: data.levelId.present ? data.levelId.value : this.levelId,
       stopLat: data.stopLat.present ? data.stopLat.value : this.stopLat,
       stopLon: data.stopLon.present ? data.stopLon.value : this.stopLon,
       locationType: data.locationType.present
@@ -821,6 +1074,13 @@ class Stop extends DataClass implements Insertable<Stop> {
     return (StringBuffer('Stop(')
           ..write('stopId: $stopId, ')
           ..write('stopName: $stopName, ')
+          ..write('stopCode: $stopCode, ')
+          ..write('ttsStopName: $ttsStopName, ')
+          ..write('stopDesc: $stopDesc, ')
+          ..write('zoneId: $zoneId, ')
+          ..write('stopUrl: $stopUrl, ')
+          ..write('stopTimezone: $stopTimezone, ')
+          ..write('levelId: $levelId, ')
           ..write('stopLat: $stopLat, ')
           ..write('stopLon: $stopLon, ')
           ..write('locationType: $locationType, ')
@@ -836,6 +1096,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   int get hashCode => Object.hash(
     stopId,
     stopName,
+    stopCode,
+    ttsStopName,
+    stopDesc,
+    zoneId,
+    stopUrl,
+    stopTimezone,
+    levelId,
     stopLat,
     stopLon,
     locationType,
@@ -850,6 +1117,13 @@ class Stop extends DataClass implements Insertable<Stop> {
       (other is Stop &&
           other.stopId == this.stopId &&
           other.stopName == this.stopName &&
+          other.stopCode == this.stopCode &&
+          other.ttsStopName == this.ttsStopName &&
+          other.stopDesc == this.stopDesc &&
+          other.zoneId == this.zoneId &&
+          other.stopUrl == this.stopUrl &&
+          other.stopTimezone == this.stopTimezone &&
+          other.levelId == this.levelId &&
           other.stopLat == this.stopLat &&
           other.stopLon == this.stopLon &&
           other.locationType == this.locationType &&
@@ -862,6 +1136,13 @@ class Stop extends DataClass implements Insertable<Stop> {
 class StopsCompanion extends UpdateCompanion<Stop> {
   final Value<String> stopId;
   final Value<String> stopName;
+  final Value<String?> stopCode;
+  final Value<String?> ttsStopName;
+  final Value<String?> stopDesc;
+  final Value<String?> zoneId;
+  final Value<String?> stopUrl;
+  final Value<String?> stopTimezone;
+  final Value<String?> levelId;
   final Value<double?> stopLat;
   final Value<double?> stopLon;
   final Value<int?> locationType;
@@ -873,6 +1154,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   const StopsCompanion({
     this.stopId = const Value.absent(),
     this.stopName = const Value.absent(),
+    this.stopCode = const Value.absent(),
+    this.ttsStopName = const Value.absent(),
+    this.stopDesc = const Value.absent(),
+    this.zoneId = const Value.absent(),
+    this.stopUrl = const Value.absent(),
+    this.stopTimezone = const Value.absent(),
+    this.levelId = const Value.absent(),
     this.stopLat = const Value.absent(),
     this.stopLon = const Value.absent(),
     this.locationType = const Value.absent(),
@@ -885,6 +1173,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   StopsCompanion.insert({
     required String stopId,
     required String stopName,
+    this.stopCode = const Value.absent(),
+    this.ttsStopName = const Value.absent(),
+    this.stopDesc = const Value.absent(),
+    this.zoneId = const Value.absent(),
+    this.stopUrl = const Value.absent(),
+    this.stopTimezone = const Value.absent(),
+    this.levelId = const Value.absent(),
     this.stopLat = const Value.absent(),
     this.stopLon = const Value.absent(),
     this.locationType = const Value.absent(),
@@ -899,6 +1194,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   static Insertable<Stop> custom({
     Expression<String>? stopId,
     Expression<String>? stopName,
+    Expression<String>? stopCode,
+    Expression<String>? ttsStopName,
+    Expression<String>? stopDesc,
+    Expression<String>? zoneId,
+    Expression<String>? stopUrl,
+    Expression<String>? stopTimezone,
+    Expression<String>? levelId,
     Expression<double>? stopLat,
     Expression<double>? stopLon,
     Expression<int>? locationType,
@@ -911,6 +1213,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     return RawValuesInsertable({
       if (stopId != null) 'stop_id': stopId,
       if (stopName != null) 'stop_name': stopName,
+      if (stopCode != null) 'stop_code': stopCode,
+      if (ttsStopName != null) 'tts_stop_name': ttsStopName,
+      if (stopDesc != null) 'stop_desc': stopDesc,
+      if (zoneId != null) 'zone_id': zoneId,
+      if (stopUrl != null) 'stop_url': stopUrl,
+      if (stopTimezone != null) 'stop_timezone': stopTimezone,
+      if (levelId != null) 'level_id': levelId,
       if (stopLat != null) 'stop_lat': stopLat,
       if (stopLon != null) 'stop_lon': stopLon,
       if (locationType != null) 'location_type': locationType,
@@ -925,6 +1234,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   StopsCompanion copyWith({
     Value<String>? stopId,
     Value<String>? stopName,
+    Value<String?>? stopCode,
+    Value<String?>? ttsStopName,
+    Value<String?>? stopDesc,
+    Value<String?>? zoneId,
+    Value<String?>? stopUrl,
+    Value<String?>? stopTimezone,
+    Value<String?>? levelId,
     Value<double?>? stopLat,
     Value<double?>? stopLon,
     Value<int?>? locationType,
@@ -937,6 +1253,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     return StopsCompanion(
       stopId: stopId ?? this.stopId,
       stopName: stopName ?? this.stopName,
+      stopCode: stopCode ?? this.stopCode,
+      ttsStopName: ttsStopName ?? this.ttsStopName,
+      stopDesc: stopDesc ?? this.stopDesc,
+      zoneId: zoneId ?? this.zoneId,
+      stopUrl: stopUrl ?? this.stopUrl,
+      stopTimezone: stopTimezone ?? this.stopTimezone,
+      levelId: levelId ?? this.levelId,
       stopLat: stopLat ?? this.stopLat,
       stopLon: stopLon ?? this.stopLon,
       locationType: locationType ?? this.locationType,
@@ -956,6 +1279,27 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     }
     if (stopName.present) {
       map['stop_name'] = Variable<String>(stopName.value);
+    }
+    if (stopCode.present) {
+      map['stop_code'] = Variable<String>(stopCode.value);
+    }
+    if (ttsStopName.present) {
+      map['tts_stop_name'] = Variable<String>(ttsStopName.value);
+    }
+    if (stopDesc.present) {
+      map['stop_desc'] = Variable<String>(stopDesc.value);
+    }
+    if (zoneId.present) {
+      map['zone_id'] = Variable<String>(zoneId.value);
+    }
+    if (stopUrl.present) {
+      map['stop_url'] = Variable<String>(stopUrl.value);
+    }
+    if (stopTimezone.present) {
+      map['stop_timezone'] = Variable<String>(stopTimezone.value);
+    }
+    if (levelId.present) {
+      map['level_id'] = Variable<String>(levelId.value);
     }
     if (stopLat.present) {
       map['stop_lat'] = Variable<double>(stopLat.value);
@@ -989,6 +1333,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     return (StringBuffer('StopsCompanion(')
           ..write('stopId: $stopId, ')
           ..write('stopName: $stopName, ')
+          ..write('stopCode: $stopCode, ')
+          ..write('ttsStopName: $ttsStopName, ')
+          ..write('stopDesc: $stopDesc, ')
+          ..write('zoneId: $zoneId, ')
+          ..write('stopUrl: $stopUrl, ')
+          ..write('stopTimezone: $stopTimezone, ')
+          ..write('levelId: $levelId, ')
           ..write('stopLat: $stopLat, ')
           ..write('stopLon: $stopLon, ')
           ..write('locationType: $locationType, ')
@@ -1229,6 +1580,13 @@ typedef $$StopsTableCreateCompanionBuilder =
     StopsCompanion Function({
       required String stopId,
       required String stopName,
+      Value<String?> stopCode,
+      Value<String?> ttsStopName,
+      Value<String?> stopDesc,
+      Value<String?> zoneId,
+      Value<String?> stopUrl,
+      Value<String?> stopTimezone,
+      Value<String?> levelId,
       Value<double?> stopLat,
       Value<double?> stopLon,
       Value<int?> locationType,
@@ -1242,6 +1600,13 @@ typedef $$StopsTableUpdateCompanionBuilder =
     StopsCompanion Function({
       Value<String> stopId,
       Value<String> stopName,
+      Value<String?> stopCode,
+      Value<String?> ttsStopName,
+      Value<String?> stopDesc,
+      Value<String?> zoneId,
+      Value<String?> stopUrl,
+      Value<String?> stopTimezone,
+      Value<String?> levelId,
       Value<double?> stopLat,
       Value<double?> stopLon,
       Value<int?> locationType,
@@ -1267,6 +1632,41 @@ class $$StopsTableFilterComposer extends Composer<_$AppDatabase, $StopsTable> {
 
   ColumnFilters<String> get stopName => $composableBuilder(
     column: $table.stopName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopCode => $composableBuilder(
+    column: $table.stopCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ttsStopName => $composableBuilder(
+    column: $table.ttsStopName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopDesc => $composableBuilder(
+    column: $table.stopDesc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get zoneId => $composableBuilder(
+    column: $table.zoneId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopUrl => $composableBuilder(
+    column: $table.stopUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopTimezone => $composableBuilder(
+    column: $table.stopTimezone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get levelId => $composableBuilder(
+    column: $table.levelId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1325,6 +1725,41 @@ class $$StopsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get stopCode => $composableBuilder(
+    column: $table.stopCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ttsStopName => $composableBuilder(
+    column: $table.ttsStopName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopDesc => $composableBuilder(
+    column: $table.stopDesc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get zoneId => $composableBuilder(
+    column: $table.zoneId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopUrl => $composableBuilder(
+    column: $table.stopUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopTimezone => $composableBuilder(
+    column: $table.stopTimezone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get levelId => $composableBuilder(
+    column: $table.levelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get stopLat => $composableBuilder(
     column: $table.stopLat,
     builder: (column) => ColumnOrderings(column),
@@ -1375,6 +1810,31 @@ class $$StopsTableAnnotationComposer
 
   GeneratedColumn<String> get stopName =>
       $composableBuilder(column: $table.stopName, builder: (column) => column);
+
+  GeneratedColumn<String> get stopCode =>
+      $composableBuilder(column: $table.stopCode, builder: (column) => column);
+
+  GeneratedColumn<String> get ttsStopName => $composableBuilder(
+    column: $table.ttsStopName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get stopDesc =>
+      $composableBuilder(column: $table.stopDesc, builder: (column) => column);
+
+  GeneratedColumn<String> get zoneId =>
+      $composableBuilder(column: $table.zoneId, builder: (column) => column);
+
+  GeneratedColumn<String> get stopUrl =>
+      $composableBuilder(column: $table.stopUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get stopTimezone => $composableBuilder(
+    column: $table.stopTimezone,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get levelId =>
+      $composableBuilder(column: $table.levelId, builder: (column) => column);
 
   GeneratedColumn<double> get stopLat =>
       $composableBuilder(column: $table.stopLat, builder: (column) => column);
@@ -1436,6 +1896,13 @@ class $$StopsTableTableManager
               ({
                 Value<String> stopId = const Value.absent(),
                 Value<String> stopName = const Value.absent(),
+                Value<String?> stopCode = const Value.absent(),
+                Value<String?> ttsStopName = const Value.absent(),
+                Value<String?> stopDesc = const Value.absent(),
+                Value<String?> zoneId = const Value.absent(),
+                Value<String?> stopUrl = const Value.absent(),
+                Value<String?> stopTimezone = const Value.absent(),
+                Value<String?> levelId = const Value.absent(),
                 Value<double?> stopLat = const Value.absent(),
                 Value<double?> stopLon = const Value.absent(),
                 Value<int?> locationType = const Value.absent(),
@@ -1447,6 +1914,13 @@ class $$StopsTableTableManager
               }) => StopsCompanion(
                 stopId: stopId,
                 stopName: stopName,
+                stopCode: stopCode,
+                ttsStopName: ttsStopName,
+                stopDesc: stopDesc,
+                zoneId: zoneId,
+                stopUrl: stopUrl,
+                stopTimezone: stopTimezone,
+                levelId: levelId,
                 stopLat: stopLat,
                 stopLon: stopLon,
                 locationType: locationType,
@@ -1460,6 +1934,13 @@ class $$StopsTableTableManager
               ({
                 required String stopId,
                 required String stopName,
+                Value<String?> stopCode = const Value.absent(),
+                Value<String?> ttsStopName = const Value.absent(),
+                Value<String?> stopDesc = const Value.absent(),
+                Value<String?> zoneId = const Value.absent(),
+                Value<String?> stopUrl = const Value.absent(),
+                Value<String?> stopTimezone = const Value.absent(),
+                Value<String?> levelId = const Value.absent(),
                 Value<double?> stopLat = const Value.absent(),
                 Value<double?> stopLon = const Value.absent(),
                 Value<int?> locationType = const Value.absent(),
@@ -1471,6 +1952,13 @@ class $$StopsTableTableManager
               }) => StopsCompanion.insert(
                 stopId: stopId,
                 stopName: stopName,
+                stopCode: stopCode,
+                ttsStopName: ttsStopName,
+                stopDesc: stopDesc,
+                zoneId: zoneId,
+                stopUrl: stopUrl,
+                stopTimezone: stopTimezone,
+                levelId: levelId,
                 stopLat: stopLat,
                 stopLon: stopLon,
                 locationType: locationType,

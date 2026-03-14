@@ -239,7 +239,19 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       final getPositions = widget.getPositions;
       if (getAllVehiclesAggregated != null) {
         final agg = await getAllVehiclesAggregated();
-        aggregatedVehicles = agg['vehicles'] as List<VehiclePosition>?;
+        final vehiclesValue = agg['vehicles'];
+        if (vehiclesValue is List<VehiclePosition>) {
+          aggregatedVehicles = vehiclesValue;
+        } else if (vehiclesValue is List) {
+          // Handle untyped lists (e.g. decoded JSON / dynamic) by casting elements.
+          aggregatedVehicles = vehiclesValue.cast<VehiclePosition>().toList();
+        } else {
+          logger.w(
+            'RealtimeMapWidget: unexpected aggregated vehicles value type',
+            error: {'value': vehiclesValue},
+          );
+          aggregatedVehicles = null;
+        }
       } else if (getPositions != null) {
         mapPositions = await getPositions();
       } else {
@@ -340,7 +352,12 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         _vehicles = vehicles;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      logger.e(
+        'RealtimeMapWidget: failed to load vehicle positions',
+        error: e,
+        stackTrace: st,
+      );
       if (!mounted) return;
       setState(() {
         _error = e.toString();

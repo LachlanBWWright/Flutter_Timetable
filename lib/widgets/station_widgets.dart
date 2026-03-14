@@ -7,6 +7,18 @@ import '../services/debug_service.dart';
 class Station {
   final String name;
   final String id;
+
+  // Optional metadata from GTFS/stop endpoints
+  final String? stopCode;
+  final String? stopDesc;
+  final String? zoneId;
+  final String? stopUrl;
+  final String? stopTimezone;
+  final String? levelId;
+  final String? parentStation;
+  final int? wheelchairBoarding;
+  final String? platformCode;
+
   final double? latitude;
   final double? longitude;
   final double? distance; // Distance from user location in km
@@ -14,6 +26,15 @@ class Station {
   Station({
     required this.name,
     required this.id,
+    this.stopCode,
+    this.stopDesc,
+    this.zoneId,
+    this.stopUrl,
+    this.stopTimezone,
+    this.levelId,
+    this.parentStation,
+    this.wheelchairBoarding,
+    this.platformCode,
     this.latitude,
     this.longitude,
     this.distance,
@@ -23,6 +44,15 @@ class Station {
   Station copyWith({
     String? name,
     String? id,
+    String? stopCode,
+    String? stopDesc,
+    String? zoneId,
+    String? stopUrl,
+    String? stopTimezone,
+    String? levelId,
+    String? parentStation,
+    int? wheelchairBoarding,
+    String? platformCode,
     double? latitude,
     double? longitude,
     double? distance,
@@ -30,6 +60,15 @@ class Station {
     return Station(
       name: name ?? this.name,
       id: id ?? this.id,
+      stopCode: stopCode ?? this.stopCode,
+      stopDesc: stopDesc ?? this.stopDesc,
+      zoneId: zoneId ?? this.zoneId,
+      stopUrl: stopUrl ?? this.stopUrl,
+      stopTimezone: stopTimezone ?? this.stopTimezone,
+      levelId: levelId ?? this.levelId,
+      parentStation: parentStation ?? this.parentStation,
+      wheelchairBoarding: wheelchairBoarding ?? this.wheelchairBoarding,
+      platformCode: platformCode ?? this.platformCode,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       distance: distance ?? this.distance,
@@ -84,7 +123,9 @@ class StationView extends StatelessWidget {
       builder: (context, showDebug, _) {
         final items = <Widget>[];
         final dist = station.distance;
-        if (dist != null) {
+
+        // Always show distance when available
+        if (dist != null && !showDebug) {
           items.add(
             Text(
               '${dist.toStringAsFixed(1)} km away',
@@ -92,14 +133,61 @@ class StationView extends StatelessWidget {
             ),
           );
         }
+
         if (showDebug) {
-          items.add(
+          items.addAll([
             Text(
               'ID: ${station.id}',
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
-          );
+            Text(
+              'Code: ${station.stopCode ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'Parent: ${station.parentStation ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'Desc: ${station.stopDesc ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'Zone: ${station.zoneId ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'URL: ${station.stopUrl ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'TZ: ${station.stopTimezone ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'Level: ${station.levelId ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'Wheelchair: ${station.wheelchairBoarding ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'Platform: ${station.platformCode ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            Text(
+              'Lat/Lon: ${station.latitude?.toStringAsFixed(5) ?? '-'}, ${station.longitude?.toStringAsFixed(5) ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            if (dist != null)
+              Text(
+                'Distance: ${dist.toStringAsFixed(2)} km',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+          ]);
         }
+
         if (items.isEmpty) return const SizedBox.shrink();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

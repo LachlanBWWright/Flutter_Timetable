@@ -80,7 +80,24 @@ class _MyHomePageState extends State<MyHomePage> {
       final pinnedJourneys = await _database.getPinnedJourneys();
       final unpinnedJourneys = await _database.getUnpinnedJourneys();
 
-      // Show a snackbar while fetching location for distance-based sorting
+      // Show the saved trips immediately even if we still need to fetch the
+      // user location for distance-based sorting. This avoids "empty" screens
+      // when the location permission dialog is still open.
+      final initialJourneys = [...pinnedJourneys, ...unpinnedJourneys];
+      if (!mounted) return;
+      setState(() {
+        _journeys = initialJourneys;
+        _filteredJourneys = _applySearchFilter(initialJourneys);
+      });
+
+      // Preemptively fetch trip data for the top 10 journeys in the background.
+      TripCacheService.prefetch(initialJourneys);
+
+      // Preemptively load stations for all modes so the 'Add New Trip' screen
+      // opens without a loading delay.
+      prefetchAllStations();
+
+      // Now sort journeys according to user preference (distance vs alphabetical).
       ScaffoldMessengerState? messenger;
       final isAlphabetical = await LocationService.isAlphabeticalSorting();
       if (!isAlphabetical && mounted) {
@@ -93,30 +110,33 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }
 
-      // Sort unpinned journeys based on user preference
       final sortedUnpinned = await LocationService.sortJourneys(
         unpinnedJourneys,
       );
 
       messenger?.hideCurrentSnackBar();
 
-      final allJourneys = [...pinnedJourneys, ...sortedUnpinned];
-
+      final sortedJourneys = [...pinnedJourneys, ...sortedUnpinned];
       if (!mounted) return;
       setState(() {
-        _journeys = allJourneys;
-        _filteredJourneys = allJourneys;
+        _journeys = sortedJourneys;
+        _filteredJourneys = _applySearchFilter(sortedJourneys);
       });
-
-      // Preemptively fetch trip data for the top 10 journeys in the background.
-      TripCacheService.prefetch(allJourneys);
-
-      // Preemptively load stations for all modes so the 'Add New Trip' screen
-      // opens without a loading delay.
-      prefetchAllStations();
     } catch (e) {
       logger.e('Error loading trips: $e');
     }
+  }
+
+  List<db.Journey> _applySearchFilter(List<db.Journey> journeys) {
+    final query = _searchController.text;
+    if (query.isEmpty) {
+      return journeys;
+    }
+    final lowerQuery = query.toLowerCase();
+    return journeys.where((journey) {
+      return journey.origin.toLowerCase().contains(lowerQuery) ||
+          journey.destination.toLowerCase().contains(lowerQuery);
+    }).toList();
   }
 
   void _filterJourneys(String query) {

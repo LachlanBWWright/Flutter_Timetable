@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
@@ -22,6 +25,8 @@ class _TripScreenState extends State<TripScreen> {
   List<TripJourney> trips = [];
   bool _isLoading = false;
   String? _error;
+
+  String? _rawTripJson;
 
   Future<void> getTripData() async {
     setState(() {
@@ -87,6 +92,7 @@ class _TripScreenState extends State<TripScreen> {
 
           trips = [...upcoming, ...past];
           testText = v.toString();
+          _rawTripJson = const JsonEncoder.withIndent('  ').convert(v.rawJson);
           _isLoading = false;
         });
 
@@ -170,8 +176,37 @@ class _TripScreenState extends State<TripScreen> {
                                 ElevatedButton(
                                   onPressed: getTripData,
                                   child: const Text('Search again'),
-                                ),
-                              ],
+                                ),                              ValueListenableBuilder<bool>(
+                                valueListenable: DebugService.showDebugData,
+                                builder: (context, showDebug, _) {
+                                  if (!showDebug || _rawTripJson == null) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 12),
+                                    child: Container(
+                                      width: double.infinity,
+                                      constraints:
+                                          const BoxConstraints(maxHeight: 240),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black12,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.grey),
+                                      ),
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Text(
+                                          _rawTripJson!,
+                                          style: const TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),                              ],
                             ),
                         ],
                       ),

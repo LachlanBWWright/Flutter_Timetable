@@ -156,10 +156,17 @@ class GetTripsResponse {
   final SystemMessages systemMessages;
   final String version;
 
+  /// Raw JSON response as returned by the transport API.
+  ///
+  /// This is useful for debug/diagnostic features when the parsed model
+  /// doesn't contain enough context.
+  final Map<String, dynamic> rawJson;
+
   GetTripsResponse({
     required this.tripJourneys,
     required this.systemMessages,
     required this.version,
+    required this.rawJson,
   });
 
   factory GetTripsResponse.fromJson(Map<String, dynamic> json) {
@@ -232,6 +239,7 @@ class GetTripsResponse {
       tripJourneys: tripJourneys,
       systemMessages: systemMessages,
       version: version ?? '',
+      rawJson: json,
     );
   }
 }
