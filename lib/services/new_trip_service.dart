@@ -45,6 +45,15 @@ class NewTripService {
       return Station(
         name: displayName,
         id: stop.stopId,
+        stopCode: stop.stopCode,
+        stopDesc: stop.stopDesc,
+        zoneId: stop.zoneId,
+        stopUrl: stop.stopUrl,
+        stopTimezone: stop.stopTimezone,
+        levelId: stop.levelId,
+        parentStation: stop.parentStation,
+        wheelchairBoarding: stop.wheelchairBoarding,
+        platformCode: stop.platformCode,
         latitude: stop.stopLat != 0.0 ? stop.stopLat : null,
         longitude: stop.stopLon != 0.0 ? stop.stopLon : null,
       );
@@ -241,7 +250,11 @@ class NewTripService {
         final lon = station.longitude;
         final double distance = lat != null && lon != null
             ? LocationService.calculateDistance(
-                position.latitude, position.longitude, lat, lon)
+                position.latitude,
+                position.longitude,
+                lat,
+                lon,
+              )
             : 0.0;
         return station.copyWith(distance: distance);
       }).toList();

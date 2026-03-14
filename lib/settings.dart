@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'services/api_key_service.dart';
 import 'services/debug_service.dart';
-import 'services/location_service.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
@@ -24,7 +23,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const String _devGuideUrl =
       'https://opendata.transport.nsw.gov.au/developers/userguide';
 
-  bool _isAlphabeticalSorting = false;
   bool _isUpdating = false;
   String? _updateStatus;
   int _stopsUpdated = 0;
@@ -40,7 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSortingPreference();
     _loadApiKeyState();
   }
 
@@ -162,22 +159,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isUpdating = false;
       });
     }
-  }
-
-  Future<void> _loadSortingPreference() async {
-    final isAlphabetical = await LocationService.isAlphabeticalSorting();
-    if (!mounted) return;
-    setState(() {
-      _isAlphabeticalSorting = isAlphabetical;
-    });
-  }
-
-  Future<void> _updateSortingPreference(bool value) async {
-    await LocationService.setSortingPreference(value);
-    if (!mounted) return;
-    setState(() {
-      _isAlphabeticalSorting = value;
-    });
   }
 
   void _navigateToRealtimeMap(BuildContext context) {
@@ -346,41 +327,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ],
                       ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Trip sorting preference card
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Trip Sorting',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Choose how trips are sorted on the main page',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Sort alphabetically'),
-                      subtitle: Text(
-                        _isAlphabeticalSorting
-                            ? 'Trips sorted by origin station name'
-                            : 'Trips sorted by closest station to your location',
-                      ),
-                      value: _isAlphabeticalSorting,
-                      onChanged: _updateSortingPreference,
                     ),
                   ],
                 ),

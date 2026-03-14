@@ -33,6 +33,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   TransportMode? _secondStationMode;
   bool _isSearching = false;
   bool _isLoading = false;
+  bool _showMapView = false;
   SortMode _sortMode = SortMode.alphabetical;
   final keyController = TextEditingController();
   late FocusNode _searchFocusNode;
@@ -173,6 +174,8 @@ class _NewTripScreenState extends State<NewTripScreen>
         _secondStationId = id;
         _secondStationMode = mode;
         keyController.text = '';
+        // Both stops are now selected — always return to list view
+        _showMapView = false;
       }
     });
     _applySearchFilter();
@@ -246,21 +249,28 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _openMap() {
-    final modeDisplayName = NewTripService.getModeDisplayName(_currentMode);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StopsMapWidget(
-          transportMode: _currentMode,
-          modeDisplayName: modeDisplayName,
-          onStopSelected: setStation,
-        ),
-      ),
-    );
+    setState(() {
+      _showMapView = !_showMapView;
+    });
   }
 
   Future<void> _saveTrip() async {
     if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
+      // Prevent saving a trip where origin and destination are identical
+      if (_firstStationId == _secondStationId) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Origin and destination cannot be the same stop.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
       // Attempting to save trip
       try {
         await _db.insertJourney(
@@ -381,6 +391,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         onOpenMap: _openMap,
         onToggleSort: _toggleSort,
         sortMode: _sortMode,
+        showMapView: _showMapView,
         tabController: _tabController,
       ),
       body: Column(
@@ -419,6 +430,25 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   Widget _buildStationTab(TransportMode mode) {
+    // Show the inline map for this tab's mode when map view is active
+    if (_showMapView) {
+      final modeDisplayName = NewTripService.getModeDisplayName(mode);
+      return StopsMapWidget(
+        key: ValueKey('map_$mode'),
+        transportMode: mode,
+        modeDisplayName: modeDisplayName,
+        embedded: true,
+        onStopSelected: (name, id) {
+          setStation(name, id);
+        },
+        onClose: () {
+          setState(() {
+            _showMapView = false;
+          });
+        },
+      );
+    }
+
     // Build the list for this specific tab mode to avoid relying on a
     // single _filteredStations list which may cause delays when switching tabs.
     final baseList = _getStationListForMode(mode);

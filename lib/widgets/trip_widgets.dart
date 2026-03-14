@@ -229,8 +229,24 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                title: Text(
-                  '${leg.origin.disassembledName} → ${leg.destination.disassembledName}',
+                title: Row(
+                  children: [
+                    // Timestamp left of the leg description
+                    Text(
+                      DateTimeUtils.parseTimeOnly(
+                        leg.origin.departureTimeEstimated ??
+                            leg.origin.departureTimePlanned ??
+                            '',
+                      ),
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${leg.origin.disassembledName} → ${leg.destination.disassembledName}',
+                      ),
+                    ),
+                  ],
                 ),
                 dense: true,
                 trailing: const Padding(

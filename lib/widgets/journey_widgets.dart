@@ -1,6 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
+
+/// Returns a deterministic accent color for [journey] derived from its id.
+///
+/// Used as a fallback when the mode cannot be determined for either stop.
+const _journeyAccentColors = [
+  TransportColors.train, // amber
+  TransportColors.bus, // blue
+  TransportColors.metro, // teal
+  TransportColors.ferry, // green
+  TransportColors.lightRail, // red
+  TransportColors.coach, // purple
+  TransportColors.trainsT2, // mid-blue
+  TransportColors.trainsT9, // crimson
+  TransportColors.trainsT5, // magenta
+  TransportColors.trainsT8, // dark-green
+];
+
+Color _accentColorForJourney(Journey journey) {
+  return _journeyAccentColors[journey.id.abs() % _journeyAccentColors.length];
+}
+
+/// Map a transport mode to a UI accent color, with a fallback to the
+/// deterministic journey color.
+Color _accentColorForMode(TransportMode? mode, Journey journey) {
+  if (mode != null) {
+    return TransportColors.getColorByTransportMode(mode);
+  }
+  return _accentColorForJourney(journey);
+}
 
 /// A reusable card widget for displaying journey information with two-column layout
 class JourneyCard extends StatelessWidget {
@@ -93,11 +124,35 @@ class JourneyCard extends StatelessWidget {
               ],
             ],
           ),
-          // Bottom accent strip to match TripCard
-          Container(
-            height: 6,
-            width: double.infinity,
-            color: TransportColors.train,
+          // Bottom accent strip — split into two halves, each representing
+          // the transport mode of the origin/destination stop.
+          FutureBuilder<List<TransportMode?>>(
+            future: Future.wait([
+              StopsService.getModeForStopId(journey.originId),
+              StopsService.getModeForStopId(journey.destinationId),
+            ]),
+            builder: (context, snapshot) {
+              final originColor = _accentColorForMode(
+                snapshot.hasData ? snapshot.data![0] : null,
+                journey,
+              );
+              final destinationColor = _accentColorForMode(
+                snapshot.hasData ? snapshot.data![1] : null,
+                journey,
+              );
+
+              return SizedBox(
+                width: double.infinity,
+                child: Row(
+                  children: [
+                    Expanded(child: Container(height: 6, color: originColor)),
+                    Expanded(
+                      child: Container(height: 6, color: destinationColor),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -154,10 +209,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isSearching;
   final bool isEditingMode;
   final bool hasTrips;
+  final bool isAlphabeticalSorting;
   final VoidCallback onAddTrip;
   final VoidCallback onSettings;
   final VoidCallback onToggleSearch;
   final VoidCallback onToggleEdit;
+  final VoidCallback onToggleSort;
   final Function(String) onSearchChanged;
   final TextEditingController searchController;
 
@@ -168,10 +225,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.isSearching,
     required this.isEditingMode,
     required this.hasTrips,
+    required this.isAlphabeticalSorting,
     required this.onAddTrip,
     required this.onSettings,
     required this.onToggleSearch,
     required this.onToggleEdit,
+    required this.onToggleSort,
     required this.onSearchChanged,
     required this.searchController,
   });
@@ -187,63 +246,105 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     // LayoutBuilder and, if it's below a reasonable minimum, return a
     // stripped‑down bar with no children. It still obeys the preferred size but
     // cannot overflow because there is nothing to lay out.
-    return LayoutBuilder(builder: (context, constraints) {
-      final maxWidth = constraints.maxWidth;
-      // when the bar is given almost no horizontal space (common during
-      // first layout on hot restart or in focused widget tests) we simply emit
-      // a placeholder app bar with no children. 100px is far less than any
-      // real device width but safely above the combined minimum width of two
-      // icon buttons so that we never try to lay them out into a 1px box.
-      if (maxWidth < 100.0) {
-        return AppBar(
-          automaticallyImplyLeading: false,
-          title: const SizedBox.shrink(),
-        );
-      }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        // when the bar is given almost no horizontal space (common during
+        // first layout on hot restart or in focused widget tests) we simply emit
+        // a placeholder app bar with no children. 100px is far less than any
+        // real device width but safely above the combined minimum width of two
+        // icon buttons so that we never try to lay them out into a 1px box.
+        if (maxWidth < 100.0) {
+          return AppBar(
+            automaticallyImplyLeading: false,
+            title: const SizedBox.shrink(),
+          );
+        }
 
-      if (isSearching) {
-        // when searching we use a simplified app bar: no actions, the close
-        // button on the leading slot and the text field as the title.
-        return AppBar(
-          automaticallyImplyLeading: false,
-          leading: IconButton(
-            onPressed: onToggleSearch,
-            icon: const Icon(Icons.close),
-          ),
-          title: TextField(
-            controller: searchController,
-            onChanged: onSearchChanged,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Search trips...',
-              border: InputBorder.none,
-              hintStyle: TextStyle(color: Colors.white70),
-            ),
-            style: const TextStyle(color: Colors.white),
-          ),
-        );
-      }
-
-      // normal (non-search) app bar
-      return AppBar(
-        title: Text(title),
-        actions: <Widget>[
-          if (hasTrips)
-            IconButton(
+        if (isSearching) {
+          // when searching we use a simplified app bar: no actions, the close
+          // button on the leading slot and the text field as the title.
+          return AppBar(
+            automaticallyImplyLeading: false,
+            leading: IconButton(
               onPressed: onToggleSearch,
-              icon: const Icon(Icons.search),
+              icon: const Icon(Icons.close),
             ),
-          if (hasTrips)
-            IconButton(
-              onPressed: onToggleEdit,
-              icon: Icon(isEditingMode ? Icons.done : Icons.edit),
+            title: TextField(
+              controller: searchController,
+              onChanged: onSearchChanged,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Search trips...',
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: Colors.white70),
+              ),
+              style: const TextStyle(color: Colors.white),
             ),
-          if (hasApiKey)
-            IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),
-          IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
-        ],
-      );
-    });
+          );
+        }
+
+        // normal (non-search) app bar
+        return AppBar(
+          title: Text(title),
+          actions: <Widget>[
+            if (hasTrips)
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.search),
+              ),
+            if (hasTrips)
+              IconButton(
+                onPressed: onToggleEdit,
+                icon: Icon(isEditingMode ? Icons.done : Icons.edit),
+              ),
+            if (hasTrips)
+              PopupMenuButton<bool>(
+                icon: const Icon(Icons.filter_list),
+                tooltip: 'Sort trips',
+                onSelected: (isAlphabetical) {
+                  if (isAlphabetical != isAlphabeticalSorting) {
+                    onToggleSort();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem<bool>(
+                    value: true,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sort_by_alpha,
+                          color: isAlphabeticalSorting ? null : Colors.grey,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('A–Z'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<bool>(
+                    value: false,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.near_me,
+                          color: !isAlphabeticalSorting ? null : Colors.grey,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Nearest first'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            if (hasApiKey)
+              IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),
+            IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
+          ],
+        );
+      },
+    );
   }
 
   @override

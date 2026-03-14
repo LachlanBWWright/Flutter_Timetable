@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
@@ -21,13 +26,15 @@ class _TripScreenState extends State<TripScreen> {
   bool _isLoading = false;
   String? _error;
 
+  String? _rawTripJson;
+
   Future<void> getTripData() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
-    final result = await TransportApiService.getTrips(
+    final result = await TripCacheService.getCachedOrFetch(
       originId: widget.trip.originId,
       destinationId: widget.trip.destinationId,
     );
@@ -85,8 +92,13 @@ class _TripScreenState extends State<TripScreen> {
 
           trips = [...upcoming, ...past];
           testText = v.toString();
+          _rawTripJson = const JsonEncoder.withIndent('  ').convert(v.rawJson);
           _isLoading = false;
         });
+
+        // Preemptively load realtime vehicle positions in the background so
+        // the trip leg detail map loads faster when the user taps a leg.
+        RealtimeService.getAllVehiclePositionsAggregated().ignore();
       case Err(:final e):
         setState(() {
           _error = e;
@@ -110,7 +122,14 @@ class _TripScreenState extends State<TripScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Trip')),
       body: RefreshIndicator(
-        onRefresh: getTripData,
+        onRefresh: () async {
+          // Invalidate cache so pull-to-refresh fetches fresh data.
+          TripCacheService.invalidate(
+            widget.trip.originId,
+            widget.trip.destinationId,
+          );
+          await getTripData();
+        },
         child: trips.isEmpty
             ? ListView(
                 children: [
@@ -157,6 +176,42 @@ class _TripScreenState extends State<TripScreen> {
                                 ElevatedButton(
                                   onPressed: getTripData,
                                   child: const Text('Search again'),
+                                ),
+                                ValueListenableBuilder<bool>(
+                                  valueListenable: DebugService.showDebugData,
+                                  builder: (context, showDebug, _) {
+                                    if (!showDebug || _rawTripJson == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 12),
+                                      child: Container(
+                                        width: double.infinity,
+                                        constraints: const BoxConstraints(
+                                          maxHeight: 240,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black12,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        child: SingleChildScrollView(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Text(
+                                            _rawTripJson!,
+                                            style: const TextStyle(
+                                              fontFamily: 'monospace',
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
