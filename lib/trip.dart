@@ -176,37 +176,44 @@ class _TripScreenState extends State<TripScreen> {
                                 ElevatedButton(
                                   onPressed: getTripData,
                                   child: const Text('Search again'),
-                                ),                              ValueListenableBuilder<bool>(
-                                valueListenable: DebugService.showDebugData,
-                                builder: (context, showDebug, _) {
-                                  if (!showDebug || _rawTripJson == null) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Container(
-                                      width: double.infinity,
-                                      constraints:
-                                          const BoxConstraints(maxHeight: 240),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black12,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.grey),
-                                      ),
-                                      child: SingleChildScrollView(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Text(
-                                          _rawTripJson!,
-                                          style: const TextStyle(
-                                            fontFamily: 'monospace',
-                                            fontSize: 12,
+                                ),
+                                ValueListenableBuilder<bool>(
+                                  valueListenable: DebugService.showDebugData,
+                                  builder: (context, showDebug, _) {
+                                    if (!showDebug || _rawTripJson == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 12),
+                                      child: Container(
+                                        width: double.infinity,
+                                        constraints: const BoxConstraints(
+                                          maxHeight: 240,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black12,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        child: SingleChildScrollView(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Text(
+                                            _rawTripJson!,
+                                            style: const TextStyle(
+                                              fontFamily: 'monospace',
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),                              ],
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                         ],
                       ),

@@ -250,7 +250,11 @@ class NewTripService {
         final lon = station.longitude;
         final double distance = lat != null && lon != null
             ? LocationService.calculateDistance(
-                position.latitude, position.longitude, lat, lon)
+                position.latitude,
+                position.longitude,
+                lat,
+                lon,
+              )
             : 0.0;
         return station.copyWith(distance: distance);
       }).toList();
