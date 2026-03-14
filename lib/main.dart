@@ -70,6 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _hasApiKey = false;
   bool _isEditingMode = false;
   bool _isSearching = false;
+  bool _isAlphabeticalSorting = true;
   final TextEditingController _searchController = TextEditingController();
   // Single database instance for this stateful widget
   final db.AppDatabase _database = db.AppDatabase();
@@ -167,8 +168,28 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _loadInitialSorting();
     getTrips();
     checkApiKey();
+  }
+
+  Future<void> _loadInitialSorting() async {
+    final isAlphabetical = await LocationService.isAlphabeticalSorting();
+    if (!mounted) return;
+    setState(() {
+      _isAlphabeticalSorting = isAlphabetical;
+    });
+  }
+
+  Future<void> _toggleSortMode() async {
+    final newValue = !_isAlphabeticalSorting;
+    await LocationService.setSortingPreference(newValue);
+    if (!mounted) return;
+    setState(() {
+      _isAlphabeticalSorting = newValue;
+    });
+    // Re-sort with the new preference
+    await getTrips();
   }
 
   void _toggleSearchMode() {
@@ -251,10 +272,12 @@ class _MyHomePageState extends State<MyHomePage> {
         isSearching: _isSearching,
         isEditingMode: _isEditingMode,
         hasTrips: _journeys.isNotEmpty,
+        isAlphabeticalSorting: _isAlphabeticalSorting,
         onAddTrip: _navigateToNewTrip,
         onSettings: _navigateToSettings,
         onToggleSearch: _toggleSearchMode,
         onToggleEdit: _toggleEditingMode,
+        onToggleSort: _toggleSortMode,
         onSearchChanged: _filterJourneys,
         searchController: _searchController,
       ),

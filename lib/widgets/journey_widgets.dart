@@ -2,6 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
+/// A fixed palette of opaque transport-brand colors used for accent strips on
+/// home-screen journey cards.  The same journey always gets the same color
+/// because the selection is derived deterministically from the journey id.
+const _journeyAccentColors = [
+  TransportColors.train,      // amber
+  TransportColors.bus,        // blue
+  TransportColors.metro,      // teal
+  TransportColors.ferry,      // green
+  TransportColors.lightRail,  // red
+  TransportColors.coach,      // purple
+  TransportColors.trainsT2,   // mid-blue
+  TransportColors.trainsT9,   // crimson
+  TransportColors.trainsT5,   // magenta
+  TransportColors.trainsT8,   // dark-green
+];
+
+/// Returns a deterministic accent color for [journey] derived from its id.
+Color _accentColorForJourney(Journey journey) {
+  return _journeyAccentColors[journey.id.abs() % _journeyAccentColors.length];
+}
+
 /// A reusable card widget for displaying journey information with two-column layout
 class JourneyCard extends StatelessWidget {
   final Journey journey;
@@ -93,11 +114,12 @@ class JourneyCard extends StatelessWidget {
               ],
             ],
           ),
-          // Bottom accent strip to match TripCard
+          // Bottom accent strip — color is deterministically derived from
+          // the journey id so each card has a consistent, distinctive hue.
           Container(
             height: 6,
             width: double.infinity,
-            color: TransportColors.train,
+            color: _accentColorForJourney(journey),
           ),
         ],
       ),
@@ -154,10 +176,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isSearching;
   final bool isEditingMode;
   final bool hasTrips;
+  final bool isAlphabeticalSorting;
   final VoidCallback onAddTrip;
   final VoidCallback onSettings;
   final VoidCallback onToggleSearch;
   final VoidCallback onToggleEdit;
+  final VoidCallback onToggleSort;
   final Function(String) onSearchChanged;
   final TextEditingController searchController;
 
@@ -168,10 +192,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.isSearching,
     required this.isEditingMode,
     required this.hasTrips,
+    required this.isAlphabeticalSorting,
     required this.onAddTrip,
     required this.onSettings,
     required this.onToggleSearch,
     required this.onToggleEdit,
+    required this.onToggleSort,
     required this.onSearchChanged,
     required this.searchController,
   });
@@ -237,6 +263,18 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
             IconButton(
               onPressed: onToggleEdit,
               icon: Icon(isEditingMode ? Icons.done : Icons.edit),
+            ),
+          if (hasTrips)
+            IconButton(
+              tooltip: isAlphabeticalSorting
+                  ? 'Sorting: A–Z (tap for nearest first)'
+                  : 'Sorting: nearest first (tap for A–Z)',
+              onPressed: onToggleSort,
+              icon: Icon(
+                isAlphabeticalSorting
+                    ? Icons.sort_by_alpha
+                    : Icons.near_me,
+              ),
             ),
           if (hasApiKey)
             IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),
