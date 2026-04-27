@@ -93,6 +93,18 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
     }
   }
 
+  String _formatTimeRange(Leg leg) {
+    final departure = _formatTimeDifference(
+      leg.origin.departureTimePlanned,
+      leg.origin.departureTimeEstimated,
+    );
+    final arrival = _formatTimeDifference(
+      leg.destination.arrivalTimePlanned,
+      leg.destination.arrivalTimeEstimated,
+    );
+    return '$departure - $arrival';
+  }
+
   @override
   Widget build(BuildContext context) {
     final legs = widget.trip.legs;
@@ -233,11 +245,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                   children: [
                     // Timestamp left of the leg description
                     Text(
-                      DateTimeUtils.parseTimeOnly(
-                        leg.origin.departureTimeEstimated ??
-                            leg.origin.departureTimePlanned ??
-                            '',
-                      ),
+                      _formatTimeRange(leg),
                       style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(width: 12),

@@ -56,7 +56,7 @@ void main() {
     eO.vehicle = vpO;
     feedOther.entity.add(eO);
 
-    Future<Map<TransportMode, FeedMessage>> getAllPositionsOverride() async =>
+    Future<Map<TransportMode, FeedMessage?>> getAllPositionsOverride() async =>
         {TransportMode.bus: feedBus};
     Future<List<FeedMessage?>> getRegionBusesOverride() async =>
         [feedRegion, null];
@@ -71,8 +71,8 @@ void main() {
       getAllLightRailOverride: getAllLightRailOverride,
     );
 
-    final vehicles = result['vehicles'] as List<VehiclePosition>;
-    final breakdown = result['breakdown'] as Map<String, int>;
+    final vehicles = result.vehicles;
+    final breakdown = result.breakdown;
 
     // Vehicles should include V1 once (deduped) and V2
     final ids = vehicles

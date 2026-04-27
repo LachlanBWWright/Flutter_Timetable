@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
@@ -28,10 +30,11 @@ void main() {
         home: TripLegDetailScreen(
           leg: leg,
           skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async => {
-            'vehicles': <VehiclePosition>[],
-            'breakdown': <String, int>{},
-          },
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
         ),
       ),
     );
@@ -64,10 +67,11 @@ void main() {
         home: TripLegDetailScreen(
           leg: leg,
           skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async => {
-            'vehicles': <VehiclePosition>[],
-            'breakdown': <String, int>{},
-          },
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
         ),
       ),
     );
@@ -119,10 +123,11 @@ void main() {
           leg: leg,
           trip: trip,
           skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async => {
-            'vehicles': <VehiclePosition>[],
-            'breakdown': <String, int>{},
-          },
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
         ),
       ),
     );
@@ -140,7 +145,7 @@ void main() {
 
     // New: ensure Route IDs and Trip IDs are printed at the top of the debug output
     expect(find.textContaining('Route IDs:'), findsOneWidget);
-    expect(find.textContaining('ROUTE1'), findsOneWidget);
+    expect(find.textContaining('Route IDs: ROUTE1'), findsOneWidget);
     expect(find.textContaining('Trip IDs: N/A'), findsOneWidget);
   });
 
@@ -161,10 +166,11 @@ void main() {
           leg: leg,
           trip: trip,
           skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async => {
-            'vehicles': <VehiclePosition>[],
-            'breakdown': <String, int>{},
-          },
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
         ),
       ),
     );
@@ -219,10 +225,11 @@ void main() {
             leg: leg,
             trip: trip,
             skipInitialLoadDelay: true,
-            getAllVehiclesAggregated: () async => {
-              'vehicles': <VehiclePosition>[],
-              'breakdown': <String, int>{},
-            },
+            getAllVehiclesAggregated: () async =>
+                const VehiclePositionAggregationResult(
+                  vehicles: <VehiclePosition>[],
+                  breakdown: <String, int>{},
+                ),
           ),
         ),
       );
@@ -305,10 +312,11 @@ void main() {
           leg: leg,
           trip: trip,
           skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async => {
-            'vehicles': <VehiclePosition>[vpMatch, vpOther],
-            'breakdown': <String, int>{},
-          },
+          getAllVehiclesAggregated: () async =>
+              VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[vpMatch, vpOther],
+                breakdown: <String, int>{},
+              ),
         ),
       ),
     );
@@ -330,5 +338,115 @@ void main() {
     // Now only the matching vehicle (by trip id) should be visible
     expect(find.textContaining('V-MATCH'), findsOneWidget);
     expect(find.textContaining('V-OTHER'), findsNothing);
+  });
+
+  testWidgets('Stops card toggles to the full vehicle stop list', (tester) async {
+    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    final leg = Leg(
+      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: 'stop',
+        coord: [0.3, 0.3],
+      ),
+      transportation: transportation,
+      stopSequence: [
+        Stop(id: 'LEG1', name: 'Leg Stop 1', type: 'stop'),
+        Stop(id: 'LEG2', name: 'Leg Stop 2', type: 'stop'),
+      ],
+      rawJson: {
+        'transportation': {
+          'id': 'ROUTE1',
+          'properties': {'RealtimeTripId': 'MATCH123'},
+        },
+      },
+    );
+
+    final trip = TripJourney(
+      isAdditional: false,
+      legs: [leg],
+      rating: 0,
+      rawJson: {
+        'transportation': {
+          'properties': {'RealtimeTripId': 'MATCH123'},
+        },
+        'legs': [
+          {
+            'transportation': {
+              'id': 'ROUTE1',
+              'properties': {'RealtimeTripId': 'MATCH123'},
+            },
+          },
+        ],
+      },
+    );
+
+    final tripDescriptor = TripDescriptor();
+    tripDescriptor.tripId = 'MATCH123';
+    tripDescriptor.routeId = 'ROUTE1';
+
+    TripUpdate_StopTimeEvent buildEvent(int unixSeconds) {
+      final event = TripUpdate_StopTimeEvent();
+      event.time = Int64(unixSeconds);
+      return event;
+    }
+
+    final stopA = TripUpdate_StopTimeUpdate();
+    stopA.stopSequence = 1;
+    stopA.stopId = 'RT1';
+    stopA.departure = buildEvent(1_700_000_000);
+
+    final stopB = TripUpdate_StopTimeUpdate();
+    stopB.stopSequence = 2;
+    stopB.stopId = 'RT2';
+    stopB.departure = buildEvent(1_700_000_600);
+
+    final stopC = TripUpdate_StopTimeUpdate();
+    stopC.stopSequence = 3;
+    stopC.stopId = 'RT3';
+    stopC.departure = buildEvent(1_700_001_200);
+
+    final tripUpdate = TripUpdate();
+    tripUpdate.trip = tripDescriptor;
+    tripUpdate.stopTimeUpdate.addAll([stopA, stopB, stopC]);
+
+    DebugService.showDebugData.value = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TripLegDetailScreen(
+          leg: leg,
+          trip: trip,
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
+          getAllTripUpdatesAggregated: () async => TripUpdateAggregationResult(
+            tripUpdates: <TripUpdate>[tripUpdate],
+            breakdown: <String, int>{},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Trip stops (2)'), findsOneWidget);
+    expect(find.text('Show vehicle stops'), findsOneWidget);
+    expect(find.text('Leg Stop 1'), findsOneWidget);
+    expect(find.text('RT1'), findsNothing);
+
+    await tester.tap(find.text('Show vehicle stops'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Vehicle stops (3)'), findsOneWidget);
+    expect(find.text('Show trip stops'), findsOneWidget);
+    expect(find.text('RT1'), findsOneWidget);
+    expect(find.text('RT2'), findsOneWidget);
+    expect(find.text('RT3'), findsOneWidget);
+    expect(find.text('Leg Stop 1'), findsNothing);
   });
 }

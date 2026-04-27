@@ -3,6 +3,26 @@ import '../fetch_data/realtime_positions.dart' as positions;
 import '../fetch_data/realtime_updates.dart' as updates;
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
+class TripUpdateAggregationResult {
+  final List<TripUpdate> tripUpdates;
+  final Map<String, int> breakdown;
+
+  const TripUpdateAggregationResult({
+    required this.tripUpdates,
+    required this.breakdown,
+  });
+}
+
+class VehiclePositionAggregationResult {
+  final List<VehiclePosition> vehicles;
+  final Map<String, int> breakdown;
+
+  const VehiclePositionAggregationResult({
+    required this.vehicles,
+    required this.breakdown,
+  });
+}
+
 /// Service for managing realtime transport data
 class RealtimeService {
   /// Get realtime positions for all broad transport modes.
@@ -153,7 +173,7 @@ class RealtimeService {
 
   /// Aggregate all vehicle positions across all feeds and return a deduplicated
   /// list along with a breakdown of counts per feed group to aid debugging.
-  static Future<Map<String, dynamic>> getAllVehiclePositionsAggregated({
+  static Future<VehiclePositionAggregationResult> getAllVehiclePositionsAggregated({
     Future<Map<TransportMode, FeedMessage?>> Function()?
     getAllPositionsOverride,
     Future<List<FeedMessage?>> Function()? getRegionBusesOverride,
@@ -220,7 +240,77 @@ class RealtimeService {
       if (!unique.containsKey(key)) unique[key] = v;
     }
 
-    return {'vehicles': unique.values.toList(), 'breakdown': breakdown};
+    return VehiclePositionAggregationResult(
+      vehicles: unique.values.toList(),
+      breakdown: breakdown,
+    );
+  }
+
+  /// Aggregate realtime trip updates across all feeds and return a
+  /// deduplicated list plus a breakdown of counts per feed group.
+  static Future<TripUpdateAggregationResult> getAllTripUpdatesAggregated({
+    Future<Map<TransportMode, FeedMessage?>> Function()?
+    getAllUpdatesOverride,
+    Future<List<FeedMessage?>> Function()? getRegionBusesOverride,
+    Future<List<FeedMessage?>> Function()? getAllFerriesOverride,
+    Future<List<FeedMessage?>> Function()? getAllLightRailOverride,
+  }) async {
+    final tripUpdates = <TripUpdate>[];
+    final breakdown = <String, int>{};
+
+    final all = await (getAllUpdatesOverride ?? getAllRealtimeUpdates)();
+    for (final entry in all.entries) {
+      final pack = extractTripUpdates(entry.value);
+      tripUpdates.addAll(pack);
+      breakdown['${entry.key}'] = (breakdown['${entry.key}'] ?? 0) + pack.length;
+    }
+
+    final regionBuses =
+        await (getRegionBusesOverride ?? getRegionBusUpdates)();
+    var regionCount = 0;
+    for (final feed in regionBuses) {
+      final pack = extractTripUpdates(feed);
+      regionCount += pack.length;
+      tripUpdates.addAll(pack);
+    }
+    breakdown['regionBuses'] = regionCount;
+
+    final allFerries = await (getAllFerriesOverride ?? getAllFerryUpdates)();
+    var ferryCount = 0;
+    for (final feed in allFerries) {
+      final pack = extractTripUpdates(feed);
+      ferryCount += pack.length;
+      tripUpdates.addAll(pack);
+    }
+    breakdown['ferries'] = ferryCount;
+
+    final allLightRail =
+        await (getAllLightRailOverride ?? getAllLightRailUpdates)();
+    var lightrailCount = 0;
+    for (final feed in allLightRail) {
+      final pack = extractTripUpdates(feed);
+      lightrailCount += pack.length;
+      tripUpdates.addAll(pack);
+    }
+    breakdown['lightrail'] = lightrailCount;
+
+    final unique = <String, TripUpdate>{};
+    for (final u in tripUpdates) {
+      final tripId = u.trip.hasTripId() ? u.trip.tripId : '';
+      final routeId = u.trip.hasRouteId() ? u.trip.routeId : '';
+      final startDate = u.trip.hasStartDate() ? u.trip.startDate : '';
+      final key = tripId.isNotEmpty
+          ? 'trip:$tripId'
+          : routeId.isNotEmpty
+          ? 'route:$routeId:$startDate'
+          : 'unknown:${unique.length}';
+      if (!unique.containsKey(key)) unique[key] = u;
+    }
+
+    return TripUpdateAggregationResult(
+      tripUpdates: unique.values.toList(),
+      breakdown: breakdown,
+    );
   }
 
   /// Get realtime status summary

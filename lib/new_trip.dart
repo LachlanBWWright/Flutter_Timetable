@@ -283,9 +283,6 @@ class _NewTripScreenState extends State<NewTripScreen>
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Trip saved.')));
           setState(() {
             _firstStation = '';
             _firstStationId = '';
@@ -294,6 +291,13 @@ class _NewTripScreenState extends State<NewTripScreen>
             _secondStationId = '';
             _secondStationMode = null;
           });
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Trip saved.')));
+
+          // Return to the main menu after saving a new trip.
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       } catch (e) {
         // Error inserting journey

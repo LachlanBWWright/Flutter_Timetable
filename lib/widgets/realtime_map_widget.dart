@@ -41,7 +41,8 @@ class RealtimeMapWidget extends StatefulWidget {
   /// Optional override to fetch aggregated vehicle positions + breakdown.
   /// Use this to include all partitioned feeds (region buses, ferries, lightrail)
   /// and facilitate tests.
-  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+  final Future<VehiclePositionAggregationResult> Function()?
+  getAllVehiclesAggregated;
 
   /// Whether to show the small vehicle count overlay in the top-right.
   /// Defaults to true; set false for embedded maps where it is redundant.
@@ -162,7 +163,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     final polylines = <Polyline>[];
 
     // Draw additional (other) legs first so they appear below the active leg.
-    for (final otherLeg in widget.additionalLegs ?? []) {
+    for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
       final points = _legPoints(otherLeg);
       if (points.length >= 2) {
         polylines.add(
@@ -239,19 +240,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       final getPositions = widget.getPositions;
       if (getAllVehiclesAggregated != null) {
         final agg = await getAllVehiclesAggregated();
-        final vehiclesValue = agg['vehicles'];
-        if (vehiclesValue is List<VehiclePosition>) {
-          aggregatedVehicles = vehiclesValue;
-        } else if (vehiclesValue is List) {
-          // Handle untyped lists (e.g. decoded JSON / dynamic) by casting elements.
-          aggregatedVehicles = vehiclesValue.cast<VehiclePosition>().toList();
-        } else {
-          logger.w(
-            'RealtimeMapWidget: unexpected aggregated vehicles value type',
-            error: {'value': vehiclesValue},
-          );
-          aggregatedVehicles = null;
-        }
+        aggregatedVehicles = agg.vehicles;
       } else if (getPositions != null) {
         mapPositions = await getPositions();
       } else {
@@ -427,7 +416,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
     // Markers for other-leg stops: same size as before but fully opaque and
     // coloured according to that leg's transport mode (no icons).
-    for (final otherLeg in widget.additionalLegs ?? []) {
+    for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
       final stops = otherLeg.stopSequence;
       if (stops == null) continue;
 
@@ -729,7 +718,8 @@ class RealtimeMapPage extends StatelessWidget {
   final Leg? leg;
   final String? vehicleId;
   final Future<Map<TransportMode, FeedMessage?>> Function()? getPositions;
-  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+  final Future<VehiclePositionAggregationResult> Function()?
+  getAllVehiclesAggregated;
   final bool filterByLegTrip;
   final Set<String>? tripIds;
 

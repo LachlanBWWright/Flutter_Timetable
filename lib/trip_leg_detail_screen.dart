@@ -7,6 +7,7 @@ import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
@@ -18,7 +19,10 @@ import 'utils/color_utils.dart';
 class TripLegDetailScreen extends StatefulWidget {
   final Leg leg;
   final TripJourney? trip;
-  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+  final Future<VehiclePositionAggregationResult> Function()?
+  getAllVehiclesAggregated;
+  final Future<TripUpdateAggregationResult> Function()?
+  getAllTripUpdatesAggregated;
   // Allow skipping artificial initial delays in scenarios like widget tests.
   final bool skipInitialLoadDelay;
 
@@ -27,11 +31,32 @@ class TripLegDetailScreen extends StatefulWidget {
     required this.leg,
     this.trip,
     this.getAllVehiclesAggregated,
+    this.getAllTripUpdatesAggregated,
     this.skipInitialLoadDelay = false,
   });
 
   @override
   State<TripLegDetailScreen> createState() => _TripLegDetailScreenState();
+}
+
+class _VehicleStopRow {
+  final String label;
+  final String? stopId;
+  final String? arrivalTimePlanned;
+  final String? arrivalTimeEstimated;
+  final String? departureTimePlanned;
+  final String? departureTimeEstimated;
+  final bool skipped;
+
+  const _VehicleStopRow({
+    required this.label,
+    this.stopId,
+    this.arrivalTimePlanned,
+    this.arrivalTimeEstimated,
+    this.departureTimePlanned,
+    this.departureTimeEstimated,
+    this.skipped = false,
+  });
 }
 
 class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
@@ -42,6 +67,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   Map<String, int> _vehicleBreakdown = {};
   bool _isLoadingVehicles = false;
   bool _filterByLegRoute = false;
+  bool _showAllVehicleStops = false;
+  bool _isLoadingVehicleStops = false;
+  String? _vehicleStopsError;
+  List<_VehicleStopRow> _vehicleStops = [];
   int _currentLegIndex = 0;
 
   @override
@@ -67,6 +96,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     setState(() {
       _currentLegIndex = index;
       _updatedLeg = legs[index];
+      _vehicleStops = [];
+      _vehicleStopsError = null;
     });
     _refreshLegData();
   }
@@ -280,6 +311,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       });
       // Refresh vehicles when reloading the leg data
       await _loadVehiclesForLeg();
+      if (_showAllVehicleStops) {
+        await _loadVehicleStopsForLeg();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -299,35 +333,47 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String? _legRouteId() => (_updatedLeg ?? widget.leg).transportation?.id;
 
-  /// Collect only the trip IDs that belong to the active leg (not the whole trip)
-  Set<String> _collectLegTripIds() {
-    final ids = <String>{};
-    final legObj = _updatedLeg ?? widget.leg;
-    final lr = legObj.rawJson;
-    if (lr != null) {
-      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty) {
-        ids.add(lr['tripId'].toString());
+  void _collectTripIdsFromRawJson(
+    Map<String, dynamic>? rawJson,
+    Set<String> ids,
+  ) {
+    if (rawJson == null) return;
+    if (rawJson['tripId'] != null && rawJson['tripId'].toString().isNotEmpty) {
+      ids.add(rawJson['tripId'].toString());
+    }
+    if (rawJson['id'] != null && rawJson['id'].toString().isNotEmpty) {
+      ids.add(rawJson['id'].toString());
+    }
+    if (rawJson['trip_id'] != null && rawJson['trip_id'].toString().isNotEmpty) {
+      ids.add(rawJson['trip_id'].toString());
+    }
+
+    final t = rawJson['transportation'];
+    if (t is Map && t['properties'] is Map) {
+      final p = t['properties'] as Map<dynamic, dynamic>;
+      if (p['RealtimeTripId'] != null && p['RealtimeTripId'].toString().isNotEmpty) {
+        ids.add(p['RealtimeTripId'].toString());
       }
-      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty) {
-        ids.add(lr['trip_id'].toString());
+      if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty) {
+        ids.add(p['AVMSTripID'].toString());
       }
-      final t = lr['transportation'];
-      if (t is Map && t['properties'] is Map) {
-        final p = t['properties'] as Map<dynamic, dynamic>;
-        if (p['RealtimeTripId'] != null &&
-            p['RealtimeTripId'].toString().isNotEmpty) {
-          ids.add(p['RealtimeTripId'].toString());
-        }
-        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty) {
-          ids.add(p['AVMSTripID'].toString());
-        }
-        if (p['realtimeTripId'] != null &&
-            p['realtimeTripId'].toString().isNotEmpty) {
-          ids.add(p['realtimeTripId'].toString());
-        }
+      if (p['realtimeTripId'] != null &&
+          p['realtimeTripId'].toString().isNotEmpty) {
+        ids.add(p['realtimeTripId'].toString());
       }
     }
+  }
+
+  Set<String> _collectTripIdsForActiveLeg() {
+    final ids = <String>{};
+    _collectTripIdsFromRawJson(widget.trip?.rawJson, ids);
+    _collectTripIdsFromRawJson((_updatedLeg ?? widget.leg).rawJson, ids);
     return ids;
+  }
+
+  /// Collect only the trip IDs that belong to the active leg (not the whole trip)
+  Set<String> _collectLegTripIds() {
+    return _collectTripIdsForActiveLeg();
   }
 
   List<VehiclePosition> get _displayedVehicles {
@@ -451,9 +497,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       final aggregate =
           await (widget.getAllVehiclesAggregated?.call() ??
               RealtimeService.getAllVehiclePositionsAggregated());
-      final dedupedVehicles =
-          (aggregate['vehicles'] as List<VehiclePosition>?) ?? [];
-      final breakdown = (aggregate['breakdown'] as Map<String, int>?) ?? {};
+      final dedupedVehicles = aggregate.vehicles;
+      final breakdown = aggregate.breakdown;
 
       dedupedVehicles.sort(
         (a, b) => _vehicleDisplayId(
@@ -472,6 +517,149 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       if (!mounted) return;
       setState(() {
         _isLoadingVehicles = false;
+      });
+    }
+  }
+
+  String? _isoFromUnixSeconds(int? unixSeconds) {
+    if (unixSeconds == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(
+      unixSeconds * 1000,
+      isUtc: true,
+    ).toIso8601String();
+  }
+
+  String? _plannedFromEvent(TripUpdate_StopTimeEvent event) {
+    if (!event.hasTime()) return null;
+    final eventTime = event.time.toInt();
+    final time = _isoFromUnixSeconds(eventTime);
+    if (time == null || !event.hasDelay()) return time;
+    return DateTime.fromMillisecondsSinceEpoch(
+      eventTime * 1000,
+      isUtc: true,
+    )
+        .subtract(Duration(seconds: event.delay))
+        .toIso8601String();
+  }
+
+  Future<String?> _resolveStopName(String? stopId) async {
+    if (stopId == null || stopId.isEmpty) return null;
+    try {
+      final rows = await StopsService.database.getStopsById(stopId);
+      if (rows.isEmpty) return null;
+      return rows.first.stopName;
+    } catch (e) {
+      logger.w('Failed to resolve stop name for $stopId: $e');
+      return null;
+    }
+  }
+
+  Future<List<_VehicleStopRow>> _buildVehicleStopsFromTripUpdate(
+    TripUpdate update,
+  ) async {
+    final stopUpdates = update.stopTimeUpdate;
+    if (stopUpdates.isEmpty) return <_VehicleStopRow>[];
+
+    final stopNameCache = <String, String?>{};
+    final rows = <_VehicleStopRow>[];
+
+    for (var i = 0; i < stopUpdates.length; i++) {
+      final stopUpdate = stopUpdates[i];
+      final stopId = stopUpdate.hasStopId() ? stopUpdate.stopId : null;
+      final seq = stopUpdate.hasStopSequence() ? stopUpdate.stopSequence : i + 1;
+
+      String? stopName;
+      if (stopId != null && stopId.isNotEmpty) {
+        if (stopNameCache.containsKey(stopId)) {
+          stopName = stopNameCache[stopId];
+        } else {
+          stopName = await _resolveStopName(stopId);
+          stopNameCache[stopId] = stopName;
+        }
+      }
+
+      final label = stopName ??
+          (stopId != null && stopId.isNotEmpty
+              ? stopId
+              : 'Stop ${seq > 0 ? seq : i + 1}');
+
+      final arrival = stopUpdate.hasArrival() ? stopUpdate.arrival : null;
+      final departure = stopUpdate.hasDeparture() ? stopUpdate.departure : null;
+
+      rows.add(
+        _VehicleStopRow(
+          label: label,
+          stopId: stopId,
+          arrivalTimePlanned: arrival != null ? _plannedFromEvent(arrival) : null,
+          arrivalTimeEstimated: arrival != null
+              ? _isoFromUnixSeconds(arrival.time.toInt())
+              : null,
+          departureTimePlanned:
+              departure != null ? _plannedFromEvent(departure) : null,
+          departureTimeEstimated: departure != null
+              ? _isoFromUnixSeconds(departure.time.toInt())
+              : null,
+          skipped:
+              stopUpdate.scheduleRelationship ==
+              TripUpdate_StopTimeUpdate_ScheduleRelationship.SKIPPED,
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  Future<void> _loadVehicleStopsForLeg() async {
+    setState(() {
+      _isLoadingVehicleStops = true;
+      _vehicleStopsError = null;
+      _vehicleStops = [];
+    });
+
+    try {
+      final aggregate =
+          await (widget.getAllTripUpdatesAggregated?.call() ??
+              RealtimeService.getAllTripUpdatesAggregated());
+      final tripUpdates = aggregate.tripUpdates;
+      final tripIds = _collectTripIdsForActiveLeg();
+      final routeId = _legRouteId();
+
+      TripUpdate? match;
+      if (tripIds.isNotEmpty) {
+        for (final update in tripUpdates) {
+          if (update.trip.hasTripId() && tripIds.contains(update.trip.tripId)) {
+            match = update;
+            break;
+          }
+        }
+      }
+
+      if (match == null && routeId != null && routeId.isNotEmpty) {
+        for (final update in tripUpdates) {
+          if (update.trip.hasRouteId() && update.trip.routeId == routeId) {
+            match = update;
+            break;
+          }
+        }
+      }
+
+      if (match == null) {
+        throw StateError('No realtime trip update found for this leg');
+      }
+
+      final rows = await _buildVehicleStopsFromTripUpdate(match);
+
+      if (!mounted) return;
+      setState(() {
+        _vehicleStops = rows;
+        _isLoadingVehicleStops = false;
+      });
+    } catch (e) {
+      logger.i('Failed to load vehicle stops for leg: $e');
+      if (!mounted) return;
+      setState(() {
+        _vehicleStopsError = e.toString();
+        _isLoadingVehicleStops = false;
       });
     }
   }
@@ -542,10 +730,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       getAllVehiclesAggregated: hasTransport
           ? (widget.getAllVehiclesAggregated ??
               RealtimeService.getAllVehiclePositionsAggregated)
-          : () async => <String, dynamic>{
-                'vehicles': <dynamic>[],
-                'breakdown': <String, int>{},
-              },
+          : () async => const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
     );
   }
 
@@ -592,10 +780,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           tripIds: hasTransport ? _collectLegTripIds() : null,
                           getAllVehiclesAggregated: hasTransport
                               ? RealtimeService.getAllVehiclePositionsAggregated
-                              : () async => <String, dynamic>{
-                                    'vehicles': <dynamic>[],
-                                    'breakdown': <String, int>{},
-                                  },
+                              : () async =>
+                                  const VehiclePositionAggregationResult(
+                                    vehicles: <VehiclePosition>[],
+                                    breakdown: <String, int>{},
+                                  ),
                         ),
                       ),
                     );
@@ -771,8 +960,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   /// Builds a card listing every stop in the leg's stop sequence with
   /// its planned/estimated departure and arrival times.
   Widget _buildStopList(Leg leg, Color modeColor) {
-    final stops = leg.stopSequence;
-    if (stops == null || stops.isEmpty) return const SizedBox.shrink();
+    final tripStops = leg.stopSequence;
+    if (tripStops == null || tripStops.isEmpty) return const SizedBox.shrink();
+
+    final tripRows = _buildTripStopRows(tripStops);
+    final useVehicleStops = _showAllVehicleStops && _vehicleStops.isNotEmpty;
+    final rows = useVehicleStops ? _vehicleStops : tripRows;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
@@ -782,28 +975,77 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                'Stops (${stops.length})',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      useVehicleStops
+                          ? 'Vehicle stops (${rows.length})'
+                          : 'Trip stops (${rows.length})',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  if (_isLoadingVehicleStops)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      if (_showAllVehicleStops) {
+                        setState(() {
+                          _showAllVehicleStops = false;
+                        });
+                        return;
+                      }
+
+                      setState(() {
+                        _showAllVehicleStops = true;
+                      });
+                      await _loadVehicleStopsForLeg();
+                    },
+                    icon: Icon(
+                      _showAllVehicleStops
+                          ? Icons.view_list_outlined
+                          : Icons.directions_bus,
+                    ),
+                    label: Text(
+                      _showAllVehicleStops
+                          ? 'Show trip stops'
+                          : 'Show vehicle stops',
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (_vehicleStopsError != null && _showAllVehicleStops) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  'Vehicle stop view unavailable: $_vehicleStopsError',
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+            ],
             const Divider(height: 1),
-            ...stops.asMap().entries.map((entry) {
+            ...rows.asMap().entries.map((entry) {
               final idx = entry.key;
               final stop = entry.value;
               final isFirst = idx == 0;
-              final isLast = idx == stops.length - 1;
+              final isLast = idx == rows.length - 1;
 
               final depPlanned = stop.departureTimePlanned;
               final depEstimated = stop.departureTimeEstimated;
               final arrPlanned = stop.arrivalTimePlanned;
               final arrEstimated = stop.arrivalTimeEstimated;
-
-              // Use departure if available, else arrival for the main time
               final mainTimePlanned = depPlanned ?? arrPlanned;
               final mainTimeEstimated = depEstimated ?? arrEstimated;
 
@@ -834,7 +1076,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     ),
                   ),
                   title: Text(
-                    stop.disassembledName ?? stop.name,
+                    stop.label,
                     style: TextStyle(
                       fontWeight: (isFirst || isLast)
                           ? FontWeight.bold
@@ -842,6 +1084,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       fontSize: 14,
                     ),
                   ),
+                  subtitle: stop.skipped
+                      ? const Text(
+                          'Skipped',
+                          style: TextStyle(fontSize: 12, color: Colors.red),
+                        )
+                      : null,
                   trailing: mainTimePlanned != null
                       ? _buildStopTimeWidget(
                           mainTimePlanned,
@@ -856,6 +1104,20 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         ),
       ),
     );
+  }
+
+  List<_VehicleStopRow> _buildTripStopRows(List<Stop> stops) {
+    return stops.asMap().entries.map((entry) {
+      final stop = entry.value;
+      return _VehicleStopRow(
+        label: stop.disassembledName ?? stop.name,
+        stopId: stop.id,
+        arrivalTimePlanned: stop.arrivalTimePlanned,
+        arrivalTimeEstimated: stop.arrivalTimeEstimated,
+        departureTimePlanned: stop.departureTimePlanned,
+        departureTimeEstimated: stop.departureTimeEstimated,
+      );
+    }).toList();
   }
 
   /// Formats a single stop time with optional delay indication.
