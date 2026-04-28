@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -152,11 +149,41 @@ void main() {
   testWidgets('Trip detail screen includes RealtimeTripId from raw JSON', (
     tester,
   ) async {
-    final file = File('lib/trip_leg_raw_json.json');
-    final contents = await file.readAsString();
-    final data = jsonDecode(contents) as Map<String, dynamic>;
-    final trip = TripJourney.fromJson(data);
-    final leg = trip.legs.first;
+    const realtimeTripId = '15-M.951.145.2.B.8.87185004';
+    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    final leg = Leg(
+      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: 'stop',
+        coord: [0.1, 0.1],
+      ),
+      transportation: transportation,
+      rawJson: {
+        'transportation': {
+          'id': 'ROUTE1',
+          'properties': {'RealtimeTripId': realtimeTripId},
+        },
+      },
+    );
+    final trip = TripJourney(
+      isAdditional: false,
+      legs: [leg],
+      rating: 7,
+      rawJson: {
+        'isAdditional': false,
+        'rating': 7,
+        'legs': [
+          {
+            'transportation': {
+              'id': 'ROUTE1',
+              'properties': {'RealtimeTripId': realtimeTripId},
+            },
+          },
+        ],
+      },
+    );
 
     // Ensure debug data is visible for this test
     DebugService.showDebugData.value = true;
@@ -178,8 +205,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.textContaining('Trip IDs:'), findsOneWidget);
-    // Sample data contains RealtimeTripId like '15-M.951.145.2.B.8.87185004'
-    expect(find.textContaining('15-M.'), findsOneWidget);
+    expect(find.textContaining(realtimeTripId), findsOneWidget);
   });
 
   testWidgets(
@@ -340,7 +366,9 @@ void main() {
     expect(find.textContaining('V-OTHER'), findsNothing);
   });
 
-  testWidgets('Stops card toggles to the full vehicle stop list', (tester) async {
+  testWidgets('Stops card toggles to the full vehicle stop list', (
+    tester,
+  ) async {
     final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),

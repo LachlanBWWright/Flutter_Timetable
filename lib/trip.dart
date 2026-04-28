@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/services/saved_trip_render_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
@@ -33,6 +35,28 @@ class _TripScreenState extends State<TripScreen> {
       _isLoading = true;
       _error = null;
     });
+
+    if (widget.trip.isManualMultiLeg) {
+      final manualJourney = await SavedTripRenderService.buildManualTripJourney(
+        widget.trip,
+      );
+
+      if (!context.mounted) return;
+
+      setState(() {
+        trips = manualJourney == null ? [] : [manualJourney];
+        _rawTripJson = manualJourney?.rawJson == null
+            ? null
+            : const JsonEncoder.withIndent(
+                '  ',
+              ).convert(manualJourney!.rawJson);
+        _error = manualJourney == null
+            ? 'Unable to load the saved manual trip.'
+            : null;
+        _isLoading = false;
+      });
+      return;
+    }
 
     final result = await TripCacheService.getCachedOrFetch(
       originId: widget.trip.originId,
@@ -123,11 +147,12 @@ class _TripScreenState extends State<TripScreen> {
       appBar: AppBar(title: const Text('Trip')),
       body: RefreshIndicator(
         onRefresh: () async {
-          // Invalidate cache so pull-to-refresh fetches fresh data.
-          TripCacheService.invalidate(
-            widget.trip.originId,
-            widget.trip.destinationId,
-          );
+          if (!widget.trip.isManualMultiLeg) {
+            TripCacheService.invalidate(
+              widget.trip.originId,
+              widget.trip.destinationId,
+            );
+          }
           await getTripData();
         },
         child: trips.isEmpty
@@ -150,7 +175,9 @@ class _TripScreenState extends State<TripScreen> {
                           const SizedBox(height: 12),
                           if (_isLoading)
                             Text(
-                              'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...',
+                              widget.trip.isManualMultiLeg
+                                  ? 'Loading saved trip from ${widget.trip.origin} to ${widget.trip.destination}...'
+                                  : 'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...',
                             )
                           else if (_error != null)
                             Column(
@@ -170,12 +197,18 @@ class _TripScreenState extends State<TripScreen> {
                             Column(
                               children: [
                                 Text(
-                                  'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.',
+                                  widget.trip.isManualMultiLeg
+                                      ? 'This saved manual trip could not be rendered.'
+                                      : 'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.',
                                 ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
                                   onPressed: getTripData,
-                                  child: const Text('Search again'),
+                                  child: Text(
+                                    widget.trip.isManualMultiLeg
+                                        ? 'Reload'
+                                        : 'Search again',
+                                  ),
                                 ),
                                 ValueListenableBuilder<bool>(
                                   valueListenable: DebugService.showDebugData,

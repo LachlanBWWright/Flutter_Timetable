@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 
@@ -54,6 +55,11 @@ class JourneyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final manualDefinition = journey.manualTripDefinition;
+    final interchangeCount = manualDefinition == null
+        ? null
+        : manualDefinition.legs.length - 1;
+
     return Card(
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: Column(
@@ -124,36 +130,71 @@ class JourneyCard extends StatelessWidget {
               ],
             ],
           ),
+          if (journey.isManualMultiLeg)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                [
+                  'Manual multi-leg',
+                  if (journey.lineName != null && journey.lineName!.isNotEmpty)
+                    journey.lineName!,
+                  if (interchangeCount != null)
+                    '$interchangeCount interchange${interchangeCount == 1 ? '' : 's'}',
+                ].join(' • '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           // Bottom accent strip — split into two halves, each representing
           // the transport mode of the origin/destination stop.
-          FutureBuilder<List<TransportMode?>>(
-            future: Future.wait([
-              StopsService.getModeForStopId(journey.originId),
-              StopsService.getModeForStopId(journey.destinationId),
-            ]),
-            builder: (context, snapshot) {
-              final originColor = _accentColorForMode(
-                snapshot.hasData ? snapshot.data![0] : null,
-                journey,
-              );
-              final destinationColor = _accentColorForMode(
-                snapshot.hasData ? snapshot.data![1] : null,
-                journey,
-              );
-
-              return SizedBox(
-                width: double.infinity,
-                child: Row(
-                  children: [
-                    Expanded(child: Container(height: 6, color: originColor)),
-                    Expanded(
-                      child: Container(height: 6, color: destinationColor),
+          if (journey.isManualMultiLeg && journey.savedMode != null)
+            SizedBox(
+              width: double.infinity,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 6,
+                      color: _accentColorForMode(journey.savedMode, journey),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 6,
+                      color: _accentColorForMode(journey.savedMode, journey),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            FutureBuilder<List<TransportMode?>>(
+              future: Future.wait([
+                StopsService.getModeForStopId(journey.originId),
+                StopsService.getModeForStopId(journey.destinationId),
+              ]),
+              builder: (context, snapshot) {
+                final originColor = _accentColorForMode(
+                  snapshot.hasData ? snapshot.data![0] : null,
+                  journey,
+                );
+                final destinationColor = _accentColorForMode(
+                  snapshot.hasData ? snapshot.data![1] : null,
+                  journey,
+                );
+
+                return SizedBox(
+                  width: double.infinity,
+                  child: Row(
+                    children: [
+                      Expanded(child: Container(height: 6, color: originColor)),
+                      Expanded(
+                        child: Container(height: 6, color: destinationColor),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

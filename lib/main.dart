@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/logs/logger.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/api_key_service.dart';
@@ -260,15 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _navigateToReverseTrip(db.Journey journey) {
-    // Create a reversed journey
-    final reversedJourney = db.Journey(
-      id: journey.id,
-      origin: journey.destination,
-      originId: journey.destinationId,
-      destination: journey.origin,
-      destinationId: journey.originId,
-      isPinned: journey.isPinned,
-    );
+    final reversedJourney = journey.reversedPreviewJourney();
 
     Navigator.push(
       context,

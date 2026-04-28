@@ -7,5 +7,10 @@ class Journeys extends Table {
   TextColumn get originId => text()();
   TextColumn get destination => text()();
   TextColumn get destinationId => text()();
+  TextColumn get tripType => text().withDefault(const Constant('direct'))();
+  TextColumn get mode => text().nullable()();
+  TextColumn get lineId => text().nullable()();
+  TextColumn get lineName => text().nullable()();
+  TextColumn get legsJson => text().nullable()();
   BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
 }

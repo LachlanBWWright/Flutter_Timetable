@@ -7,6 +7,10 @@ import '../services/debug_service.dart';
 class Station {
   final String name;
   final String id;
+  final String? lineId;
+  final String? lineName;
+  final bool isWithinLinePriorityRadius;
+  final int? lineStopOrder;
 
   // Optional metadata from GTFS/stop endpoints
   final String? stopCode;
@@ -26,6 +30,10 @@ class Station {
   Station({
     required this.name,
     required this.id,
+    this.lineId,
+    this.lineName,
+    this.isWithinLinePriorityRadius = false,
+    this.lineStopOrder,
     this.stopCode,
     this.stopDesc,
     this.zoneId,
@@ -44,6 +52,10 @@ class Station {
   Station copyWith({
     String? name,
     String? id,
+    String? lineId,
+    String? lineName,
+    bool? isWithinLinePriorityRadius,
+    int? lineStopOrder,
     String? stopCode,
     String? stopDesc,
     String? zoneId,
@@ -60,6 +72,11 @@ class Station {
     return Station(
       name: name ?? this.name,
       id: id ?? this.id,
+      lineId: lineId ?? this.lineId,
+      lineName: lineName ?? this.lineName,
+      isWithinLinePriorityRadius:
+          isWithinLinePriorityRadius ?? this.isWithinLinePriorityRadius,
+      lineStopOrder: lineStopOrder ?? this.lineStopOrder,
       stopCode: stopCode ?? this.stopCode,
       stopDesc: stopDesc ?? this.stopDesc,
       zoneId: zoneId ?? this.zoneId,

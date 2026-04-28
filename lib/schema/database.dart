@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'package:lbww_flutter/models/manual_trip_models.dart';
+
 part 'tables/journeys.dart';
 part 'tables/stops.dart';
 
@@ -27,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -45,6 +47,17 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(stops, stops.stopUrl);
         await m.addColumn(stops, stops.stopTimezone);
         await m.addColumn(stops, stops.levelId);
+      }
+
+      if (from < 5) {
+        await m.addColumn(journeys, journeys.tripType);
+        await m.addColumn(journeys, journeys.mode);
+        await m.addColumn(journeys, journeys.lineId);
+        await m.addColumn(journeys, journeys.lineName);
+        await m.addColumn(journeys, journeys.legsJson);
+        await customStatement(
+          "UPDATE journeys SET trip_type = '${SavedTripType.direct.storageValue}' WHERE trip_type IS NULL OR trip_type = ''",
+        );
       }
     },
   );

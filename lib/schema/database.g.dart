@@ -63,6 +63,58 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _tripTypeMeta = const VerificationMeta(
+    'tripType',
+  );
+  @override
+  late final GeneratedColumn<String> tripType = GeneratedColumn<String>(
+    'trip_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('direct'),
+  );
+  static const VerificationMeta _modeMeta = const VerificationMeta('mode');
+  @override
+  late final GeneratedColumn<String> mode = GeneratedColumn<String>(
+    'mode',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lineIdMeta = const VerificationMeta('lineId');
+  @override
+  late final GeneratedColumn<String> lineId = GeneratedColumn<String>(
+    'line_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lineNameMeta = const VerificationMeta(
+    'lineName',
+  );
+  @override
+  late final GeneratedColumn<String> lineName = GeneratedColumn<String>(
+    'line_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _legsJsonMeta = const VerificationMeta(
+    'legsJson',
+  );
+  @override
+  late final GeneratedColumn<String> legsJson = GeneratedColumn<String>(
+    'legs_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isPinnedMeta = const VerificationMeta(
     'isPinned',
   );
@@ -85,6 +137,11 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
     originId,
     destination,
     destinationId,
+    tripType,
+    mode,
+    lineId,
+    lineName,
+    legsJson,
     isPinned,
   ];
   @override
@@ -140,6 +197,36 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
     } else if (isInserting) {
       context.missing(_destinationIdMeta);
     }
+    if (data.containsKey('trip_type')) {
+      context.handle(
+        _tripTypeMeta,
+        tripType.isAcceptableOrUnknown(data['trip_type']!, _tripTypeMeta),
+      );
+    }
+    if (data.containsKey('mode')) {
+      context.handle(
+        _modeMeta,
+        mode.isAcceptableOrUnknown(data['mode']!, _modeMeta),
+      );
+    }
+    if (data.containsKey('line_id')) {
+      context.handle(
+        _lineIdMeta,
+        lineId.isAcceptableOrUnknown(data['line_id']!, _lineIdMeta),
+      );
+    }
+    if (data.containsKey('line_name')) {
+      context.handle(
+        _lineNameMeta,
+        lineName.isAcceptableOrUnknown(data['line_name']!, _lineNameMeta),
+      );
+    }
+    if (data.containsKey('legs_json')) {
+      context.handle(
+        _legsJsonMeta,
+        legsJson.isAcceptableOrUnknown(data['legs_json']!, _legsJsonMeta),
+      );
+    }
     if (data.containsKey('is_pinned')) {
       context.handle(
         _isPinnedMeta,
@@ -175,6 +262,26 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
         DriftSqlType.string,
         data['${effectivePrefix}destination_id'],
       )!,
+      tripType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trip_type'],
+      )!,
+      mode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mode'],
+      ),
+      lineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_id'],
+      ),
+      lineName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_name'],
+      ),
+      legsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}legs_json'],
+      ),
       isPinned: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_pinned'],
@@ -194,6 +301,11 @@ class Journey extends DataClass implements Insertable<Journey> {
   final String originId;
   final String destination;
   final String destinationId;
+  final String tripType;
+  final String? mode;
+  final String? lineId;
+  final String? lineName;
+  final String? legsJson;
   final bool isPinned;
   const Journey({
     required this.id,
@@ -201,6 +313,11 @@ class Journey extends DataClass implements Insertable<Journey> {
     required this.originId,
     required this.destination,
     required this.destinationId,
+    required this.tripType,
+    this.mode,
+    this.lineId,
+    this.lineName,
+    this.legsJson,
     required this.isPinned,
   });
   @override
@@ -211,6 +328,19 @@ class Journey extends DataClass implements Insertable<Journey> {
     map['origin_id'] = Variable<String>(originId);
     map['destination'] = Variable<String>(destination);
     map['destination_id'] = Variable<String>(destinationId);
+    map['trip_type'] = Variable<String>(tripType);
+    if (!nullToAbsent || mode != null) {
+      map['mode'] = Variable<String>(mode);
+    }
+    if (!nullToAbsent || lineId != null) {
+      map['line_id'] = Variable<String>(lineId);
+    }
+    if (!nullToAbsent || lineName != null) {
+      map['line_name'] = Variable<String>(lineName);
+    }
+    if (!nullToAbsent || legsJson != null) {
+      map['legs_json'] = Variable<String>(legsJson);
+    }
     map['is_pinned'] = Variable<bool>(isPinned);
     return map;
   }
@@ -222,6 +352,17 @@ class Journey extends DataClass implements Insertable<Journey> {
       originId: Value(originId),
       destination: Value(destination),
       destinationId: Value(destinationId),
+      tripType: Value(tripType),
+      mode: mode == null && nullToAbsent ? const Value.absent() : Value(mode),
+      lineId: lineId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineId),
+      lineName: lineName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineName),
+      legsJson: legsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(legsJson),
       isPinned: Value(isPinned),
     );
   }
@@ -237,6 +378,11 @@ class Journey extends DataClass implements Insertable<Journey> {
       originId: serializer.fromJson<String>(json['originId']),
       destination: serializer.fromJson<String>(json['destination']),
       destinationId: serializer.fromJson<String>(json['destinationId']),
+      tripType: serializer.fromJson<String>(json['tripType']),
+      mode: serializer.fromJson<String?>(json['mode']),
+      lineId: serializer.fromJson<String?>(json['lineId']),
+      lineName: serializer.fromJson<String?>(json['lineName']),
+      legsJson: serializer.fromJson<String?>(json['legsJson']),
       isPinned: serializer.fromJson<bool>(json['isPinned']),
     );
   }
@@ -249,6 +395,11 @@ class Journey extends DataClass implements Insertable<Journey> {
       'originId': serializer.toJson<String>(originId),
       'destination': serializer.toJson<String>(destination),
       'destinationId': serializer.toJson<String>(destinationId),
+      'tripType': serializer.toJson<String>(tripType),
+      'mode': serializer.toJson<String?>(mode),
+      'lineId': serializer.toJson<String?>(lineId),
+      'lineName': serializer.toJson<String?>(lineName),
+      'legsJson': serializer.toJson<String?>(legsJson),
       'isPinned': serializer.toJson<bool>(isPinned),
     };
   }
@@ -259,6 +410,11 @@ class Journey extends DataClass implements Insertable<Journey> {
     String? originId,
     String? destination,
     String? destinationId,
+    String? tripType,
+    Value<String?> mode = const Value.absent(),
+    Value<String?> lineId = const Value.absent(),
+    Value<String?> lineName = const Value.absent(),
+    Value<String?> legsJson = const Value.absent(),
     bool? isPinned,
   }) => Journey(
     id: id ?? this.id,
@@ -266,6 +422,11 @@ class Journey extends DataClass implements Insertable<Journey> {
     originId: originId ?? this.originId,
     destination: destination ?? this.destination,
     destinationId: destinationId ?? this.destinationId,
+    tripType: tripType ?? this.tripType,
+    mode: mode.present ? mode.value : this.mode,
+    lineId: lineId.present ? lineId.value : this.lineId,
+    lineName: lineName.present ? lineName.value : this.lineName,
+    legsJson: legsJson.present ? legsJson.value : this.legsJson,
     isPinned: isPinned ?? this.isPinned,
   );
   Journey copyWithCompanion(JourneysCompanion data) {
@@ -279,6 +440,11 @@ class Journey extends DataClass implements Insertable<Journey> {
       destinationId: data.destinationId.present
           ? data.destinationId.value
           : this.destinationId,
+      tripType: data.tripType.present ? data.tripType.value : this.tripType,
+      mode: data.mode.present ? data.mode.value : this.mode,
+      lineId: data.lineId.present ? data.lineId.value : this.lineId,
+      lineName: data.lineName.present ? data.lineName.value : this.lineName,
+      legsJson: data.legsJson.present ? data.legsJson.value : this.legsJson,
       isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
     );
   }
@@ -291,14 +457,30 @@ class Journey extends DataClass implements Insertable<Journey> {
           ..write('originId: $originId, ')
           ..write('destination: $destination, ')
           ..write('destinationId: $destinationId, ')
+          ..write('tripType: $tripType, ')
+          ..write('mode: $mode, ')
+          ..write('lineId: $lineId, ')
+          ..write('lineName: $lineName, ')
+          ..write('legsJson: $legsJson, ')
           ..write('isPinned: $isPinned')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, origin, originId, destination, destinationId, isPinned);
+  int get hashCode => Object.hash(
+    id,
+    origin,
+    originId,
+    destination,
+    destinationId,
+    tripType,
+    mode,
+    lineId,
+    lineName,
+    legsJson,
+    isPinned,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -308,6 +490,11 @@ class Journey extends DataClass implements Insertable<Journey> {
           other.originId == this.originId &&
           other.destination == this.destination &&
           other.destinationId == this.destinationId &&
+          other.tripType == this.tripType &&
+          other.mode == this.mode &&
+          other.lineId == this.lineId &&
+          other.lineName == this.lineName &&
+          other.legsJson == this.legsJson &&
           other.isPinned == this.isPinned);
 }
 
@@ -317,6 +504,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
   final Value<String> originId;
   final Value<String> destination;
   final Value<String> destinationId;
+  final Value<String> tripType;
+  final Value<String?> mode;
+  final Value<String?> lineId;
+  final Value<String?> lineName;
+  final Value<String?> legsJson;
   final Value<bool> isPinned;
   const JourneysCompanion({
     this.id = const Value.absent(),
@@ -324,6 +516,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     this.originId = const Value.absent(),
     this.destination = const Value.absent(),
     this.destinationId = const Value.absent(),
+    this.tripType = const Value.absent(),
+    this.mode = const Value.absent(),
+    this.lineId = const Value.absent(),
+    this.lineName = const Value.absent(),
+    this.legsJson = const Value.absent(),
     this.isPinned = const Value.absent(),
   });
   JourneysCompanion.insert({
@@ -332,6 +529,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     required String originId,
     required String destination,
     required String destinationId,
+    this.tripType = const Value.absent(),
+    this.mode = const Value.absent(),
+    this.lineId = const Value.absent(),
+    this.lineName = const Value.absent(),
+    this.legsJson = const Value.absent(),
     this.isPinned = const Value.absent(),
   }) : origin = Value(origin),
        originId = Value(originId),
@@ -343,6 +545,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     Expression<String>? originId,
     Expression<String>? destination,
     Expression<String>? destinationId,
+    Expression<String>? tripType,
+    Expression<String>? mode,
+    Expression<String>? lineId,
+    Expression<String>? lineName,
+    Expression<String>? legsJson,
     Expression<bool>? isPinned,
   }) {
     return RawValuesInsertable({
@@ -351,6 +558,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
       if (originId != null) 'origin_id': originId,
       if (destination != null) 'destination': destination,
       if (destinationId != null) 'destination_id': destinationId,
+      if (tripType != null) 'trip_type': tripType,
+      if (mode != null) 'mode': mode,
+      if (lineId != null) 'line_id': lineId,
+      if (lineName != null) 'line_name': lineName,
+      if (legsJson != null) 'legs_json': legsJson,
       if (isPinned != null) 'is_pinned': isPinned,
     });
   }
@@ -361,6 +573,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     Value<String>? originId,
     Value<String>? destination,
     Value<String>? destinationId,
+    Value<String>? tripType,
+    Value<String?>? mode,
+    Value<String?>? lineId,
+    Value<String?>? lineName,
+    Value<String?>? legsJson,
     Value<bool>? isPinned,
   }) {
     return JourneysCompanion(
@@ -369,6 +586,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
       originId: originId ?? this.originId,
       destination: destination ?? this.destination,
       destinationId: destinationId ?? this.destinationId,
+      tripType: tripType ?? this.tripType,
+      mode: mode ?? this.mode,
+      lineId: lineId ?? this.lineId,
+      lineName: lineName ?? this.lineName,
+      legsJson: legsJson ?? this.legsJson,
       isPinned: isPinned ?? this.isPinned,
     );
   }
@@ -391,6 +613,21 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     if (destinationId.present) {
       map['destination_id'] = Variable<String>(destinationId.value);
     }
+    if (tripType.present) {
+      map['trip_type'] = Variable<String>(tripType.value);
+    }
+    if (mode.present) {
+      map['mode'] = Variable<String>(mode.value);
+    }
+    if (lineId.present) {
+      map['line_id'] = Variable<String>(lineId.value);
+    }
+    if (lineName.present) {
+      map['line_name'] = Variable<String>(lineName.value);
+    }
+    if (legsJson.present) {
+      map['legs_json'] = Variable<String>(legsJson.value);
+    }
     if (isPinned.present) {
       map['is_pinned'] = Variable<bool>(isPinned.value);
     }
@@ -405,6 +642,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
           ..write('originId: $originId, ')
           ..write('destination: $destination, ')
           ..write('destinationId: $destinationId, ')
+          ..write('tripType: $tripType, ')
+          ..write('mode: $mode, ')
+          ..write('lineId: $lineId, ')
+          ..write('lineName: $lineName, ')
+          ..write('legsJson: $legsJson, ')
           ..write('isPinned: $isPinned')
           ..write(')'))
         .toString();
@@ -1372,6 +1614,11 @@ typedef $$JourneysTableCreateCompanionBuilder =
       required String originId,
       required String destination,
       required String destinationId,
+      Value<String> tripType,
+      Value<String?> mode,
+      Value<String?> lineId,
+      Value<String?> lineName,
+      Value<String?> legsJson,
       Value<bool> isPinned,
     });
 typedef $$JourneysTableUpdateCompanionBuilder =
@@ -1381,6 +1628,11 @@ typedef $$JourneysTableUpdateCompanionBuilder =
       Value<String> originId,
       Value<String> destination,
       Value<String> destinationId,
+      Value<String> tripType,
+      Value<String?> mode,
+      Value<String?> lineId,
+      Value<String?> lineName,
+      Value<String?> legsJson,
       Value<bool> isPinned,
     });
 
@@ -1415,6 +1667,31 @@ class $$JourneysTableFilterComposer
 
   ColumnFilters<String> get destinationId => $composableBuilder(
     column: $table.destinationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tripType => $composableBuilder(
+    column: $table.tripType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineName => $composableBuilder(
+    column: $table.lineName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get legsJson => $composableBuilder(
+    column: $table.legsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1458,6 +1735,31 @@ class $$JourneysTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get tripType => $composableBuilder(
+    column: $table.tripType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineName => $composableBuilder(
+    column: $table.lineName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get legsJson => $composableBuilder(
+    column: $table.legsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isPinned => $composableBuilder(
     column: $table.isPinned,
     builder: (column) => ColumnOrderings(column),
@@ -1491,6 +1793,21 @@ class $$JourneysTableAnnotationComposer
     column: $table.destinationId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get tripType =>
+      $composableBuilder(column: $table.tripType, builder: (column) => column);
+
+  GeneratedColumn<String> get mode =>
+      $composableBuilder(column: $table.mode, builder: (column) => column);
+
+  GeneratedColumn<String> get lineId =>
+      $composableBuilder(column: $table.lineId, builder: (column) => column);
+
+  GeneratedColumn<String> get lineName =>
+      $composableBuilder(column: $table.lineName, builder: (column) => column);
+
+  GeneratedColumn<String> get legsJson =>
+      $composableBuilder(column: $table.legsJson, builder: (column) => column);
 
   GeneratedColumn<bool> get isPinned =>
       $composableBuilder(column: $table.isPinned, builder: (column) => column);
@@ -1529,6 +1846,11 @@ class $$JourneysTableTableManager
                 Value<String> originId = const Value.absent(),
                 Value<String> destination = const Value.absent(),
                 Value<String> destinationId = const Value.absent(),
+                Value<String> tripType = const Value.absent(),
+                Value<String?> mode = const Value.absent(),
+                Value<String?> lineId = const Value.absent(),
+                Value<String?> lineName = const Value.absent(),
+                Value<String?> legsJson = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
               }) => JourneysCompanion(
                 id: id,
@@ -1536,6 +1858,11 @@ class $$JourneysTableTableManager
                 originId: originId,
                 destination: destination,
                 destinationId: destinationId,
+                tripType: tripType,
+                mode: mode,
+                lineId: lineId,
+                lineName: lineName,
+                legsJson: legsJson,
                 isPinned: isPinned,
               ),
           createCompanionCallback:
@@ -1545,6 +1872,11 @@ class $$JourneysTableTableManager
                 required String originId,
                 required String destination,
                 required String destinationId,
+                Value<String> tripType = const Value.absent(),
+                Value<String?> mode = const Value.absent(),
+                Value<String?> lineId = const Value.absent(),
+                Value<String?> lineName = const Value.absent(),
+                Value<String?> legsJson = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
               }) => JourneysCompanion.insert(
                 id: id,
@@ -1552,6 +1884,11 @@ class $$JourneysTableTableManager
                 originId: originId,
                 destination: destination,
                 destinationId: destinationId,
+                tripType: tripType,
+                mode: mode,
+                lineId: lineId,
+                lineName: lineName,
+                legsJson: legsJson,
                 isPinned: isPinned,
               ),
           withReferenceMapper: (p0) => p0

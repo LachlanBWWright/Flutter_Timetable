@@ -1,4 +1,5 @@
 import 'package:lbww_flutter/logs/logger.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:option_result/option_result.dart';
@@ -71,6 +72,9 @@ class TripCacheService {
   static void prefetch(List<db.Journey> journeys, {int limit = 10}) {
     final toFetch = journeys.take(limit).toList();
     for (final j in toFetch) {
+      if (j.isManualMultiLeg) {
+        continue;
+      }
       if (!isCached(j.originId, j.destinationId)) {
         // Fire and forget — errors are logged inside getCachedOrFetch
         getCachedOrFetch(
