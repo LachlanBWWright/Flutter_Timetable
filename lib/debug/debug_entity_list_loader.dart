@@ -63,13 +63,36 @@ class DebugEntityListLoader {
                   .toSet()
                   .toList()
                 ..sort();
+          final localities = _sortedStrings(
+            stopRows.map((row) => row.stopDesc),
+          );
+          final parentStations = _sortedStrings(
+            stopRows.map((row) => row.parentStation),
+          );
+          final coverage = endpoints.length > 1
+              ? 'multi_endpoint'
+              : 'single_endpoint';
           final searchTerms = <String>{
             primary.stopName,
             primary.stopCode ?? '',
             primary.stopDesc ?? '',
             primary.parentStation ?? '',
             ...endpoints,
+            ...localities,
+            ...parentStations,
           }..removeWhere((term) => term.isEmpty);
+
+          final filterValues = <String, List<String>>{
+            'mode': modes,
+            'endpoint': endpoints,
+            'coverage': [coverage],
+          };
+          if (localities.isNotEmpty) {
+            filterValues['locality'] = localities;
+          }
+          if (parentStations.isNotEmpty) {
+            filterValues['parent'] = parentStations;
+          }
 
           return DebugEntityListItem(
             entityType: DebugEntityType.stop,
@@ -79,7 +102,7 @@ class DebugEntityListLoader {
                 '$stopId • ${endpoints.length} endpoint${endpoints.length == 1 ? '' : 's'}',
             description: primary.stopDesc,
             sources: const [DebugDataSource.localDb],
-            filterValues: {'mode': modes, 'endpoint': endpoints},
+            filterValues: filterValues,
             searchTerms: searchTerms.toList()..sort(),
             request: DebugEntityRequest(
               entityType: DebugEntityType.stop,
@@ -102,6 +125,9 @@ class DebugEntityListLoader {
       filterGroups: _buildFilterGroups(items, const {
         'mode': 'Mode',
         'endpoint': 'Endpoint',
+        'coverage': 'Coverage',
+        'locality': 'Locality',
+        'parent': 'Parent stop',
       }),
       sortOptions: const [
         DebugEntityListSort.titleAsc,
@@ -209,6 +235,11 @@ class DebugEntityListLoader {
           if (endpoints.isNotEmpty) {
             filterValues['endpoint'] = endpoints;
           }
+          final agencyName = entry.agency?.agencyName;
+          if (agencyName != null && agencyName.isNotEmpty) {
+            filterValues['agency'] = [agencyName];
+          }
+          filterValues['activity'] = [_routeActivity(entry)];
           filterValues['source'] =
               entry.sources.map((source) => source.label).toList()..sort();
 
@@ -222,6 +253,7 @@ class DebugEntityListLoader {
               ..sort((left, right) => left.label.compareTo(right.label)),
             filterValues: filterValues,
             searchTerms: [
+              entry.routeId,
               if (route?.routeShortName case final shortName?) shortName,
               if (route?.routeLongName case final longName?) longName,
               if (route?.routeDesc case final routeDesc?) routeDesc,
@@ -256,6 +288,8 @@ class DebugEntityListLoader {
         'source': 'Source',
         'mode': 'Mode',
         'endpoint': 'Endpoint',
+        'agency': 'Agency',
+        'activity': 'Activity',
       }),
       sortOptions: const [
         DebugEntityListSort.titleAsc,
@@ -304,6 +338,32 @@ class DebugEntityListLoader {
       final timestamp = update.hasTimestamp()
           ? DateTime.fromMillisecondsSinceEpoch(update.timestamp.toInt() * 1000)
           : null;
+      final matchedVehicle = vehiclesByTripId[tripId];
+      final stopIds = update.stopTimeUpdate
+          .where(
+            (stopUpdate) =>
+                stopUpdate.hasStopId() && stopUpdate.stopId.isNotEmpty,
+          )
+          .map((stopUpdate) => stopUpdate.stopId)
+          .toSet()
+          .toList()
+        ..sort();
+      final filterValues = <String, List<String>>{
+        'route': [routeId],
+        'source': [
+          DebugDataSource.realtime.label,
+          DebugDataSource.derived.label,
+        ],
+        'vehicle': [
+          matchedVehicle == null ? 'no_vehicle_match' : 'matched_vehicle',
+        ],
+      };
+      if (update.trip.hasStartDate()) {
+        filterValues['service_date'] = [update.trip.startDate];
+      }
+      if (stopIds.isNotEmpty) {
+        filterValues['stop'] = stopIds;
+      }
 
       items.add(
         DebugEntityListItem(
@@ -311,20 +371,20 @@ class DebugEntityListLoader {
           entityId: tripId,
           title: tripId,
           subtitle: 'Route: $routeId',
-          description: update.trip.hasStartDate()
-              ? 'Service date: ${update.trip.startDate}'
-              : 'Active realtime trip update',
+          description: _tripDescription(
+            update,
+            matchedVehicle: matchedVehicle,
+            stopCount: stopIds.length,
+          ),
           sources: const [DebugDataSource.realtime, DebugDataSource.derived],
-          filterValues: {
-            'route': [routeId],
-            'source': [
-              DebugDataSource.realtime.label,
-              DebugDataSource.derived.label,
-            ],
-          },
+          filterValues: filterValues,
           searchTerms: [
+            tripId,
             routeId,
             if (update.trip.hasStartDate()) update.trip.startDate,
+            ...stopIds,
+            if (matchedVehicle != null)
+              DebugExtractors.vehicleDisplayId(matchedVehicle),
           ],
           timestamp: timestamp,
           request: DebugEntityRequest(
@@ -332,7 +392,7 @@ class DebugEntityListLoader {
             entityId: tripId,
             context: DebugEntityContext(
               tripUpdate: update,
-              vehiclePosition: vehiclesByTripId[tripId],
+              vehiclePosition: matchedVehicle,
             ),
           ),
         ),
@@ -351,6 +411,9 @@ class DebugEntityListLoader {
       filterGroups: _buildFilterGroups(items, const {
         'route': 'Route',
         'source': 'Source',
+        'service_date': 'Service date',
+        'vehicle': 'Vehicle match',
+        'stop': 'Stop',
       }),
       sortOptions: const [
         DebugEntityListSort.recentFirst,
@@ -379,11 +442,27 @@ class DebugEntityListLoader {
               DebugExtractors.vehicleDisplayId(vehicle);
           final routeId = DebugExtractors.vehicleRouteId(vehicle) ?? 'unknown';
           final tripId = DebugExtractors.vehicleTripId(vehicle) ?? 'unknown';
+          final occupancy = vehicle.hasOccupancyStatus()
+              ? vehicle.occupancyStatus.name
+              : 'unknown';
           final timestamp = vehicle.hasTimestamp()
               ? DateTime.fromMillisecondsSinceEpoch(
                   vehicle.timestamp.toInt() * 1000,
                 )
               : null;
+
+          final filterValues = <String, List<String>>{
+            'route': [routeId],
+            'trip': [tripId],
+            'status': [
+              vehicle.hasCurrentStatus()
+                  ? vehicle.currentStatus.name
+                  : 'unknown',
+            ],
+          };
+          if (occupancy != 'unknown') {
+            filterValues['occupancy'] = [occupancy];
+          }
 
           return DebugEntityListItem(
             entityType: DebugEntityType.vehicle,
@@ -394,15 +473,16 @@ class DebugEntityListLoader {
                 ? 'Status: ${vehicle.currentStatus.name}'
                 : 'Realtime vehicle position',
             sources: const [DebugDataSource.realtime],
-            filterValues: {
-              'route': [routeId],
-              'status': [
-                vehicle.hasCurrentStatus()
-                    ? vehicle.currentStatus.name
-                    : 'unknown',
-              ],
-            },
-            searchTerms: [tripId, routeId],
+            filterValues: filterValues,
+            searchTerms: [
+              vehicleId,
+              DebugExtractors.vehicleDisplayId(vehicle),
+              tripId,
+              routeId,
+              if (vehicle.vehicle.hasLicensePlate())
+                vehicle.vehicle.licensePlate,
+              if (occupancy != 'unknown') occupancy,
+            ],
             timestamp: timestamp,
             request: DebugEntityRequest(
               entityType: DebugEntityType.vehicle,
@@ -424,7 +504,9 @@ class DebugEntityListLoader {
       sourceBadges: const [DebugDataSource.realtime],
       filterGroups: _buildFilterGroups(items, const {
         'route': 'Route',
+        'trip': 'Trip',
         'status': 'Status',
+        'occupancy': 'Occupancy',
       }),
       sortOptions: const [
         DebugEntityListSort.recentFirst,
@@ -543,8 +625,55 @@ class DebugEntityListLoader {
     return parts.join(' • ');
   }
 
+  String _routeActivity(_RouteListEntry entry) {
+    final hasGtfs = entry.sources.contains(DebugDataSource.gtfs);
+    final hasRealtime = entry.sources.contains(DebugDataSource.realtime);
+    if (!hasGtfs && hasRealtime) {
+      return 'realtime_only';
+    }
+    if (entry.activeTrips > 0 && entry.activeVehicles > 0) {
+      return 'active_trips_and_vehicles';
+    }
+    if (entry.activeTrips > 0) {
+      return 'active_trips';
+    }
+    if (entry.activeVehicles > 0) {
+      return 'active_vehicles';
+    }
+    return 'catalog_only';
+  }
+
+  String _tripDescription(
+    TripUpdate update, {
+    required VehiclePosition? matchedVehicle,
+    required int stopCount,
+  }) {
+    final parts = <String>[];
+    if (update.trip.hasStartDate()) {
+      parts.add('Service date: ${update.trip.startDate}');
+    }
+    parts.add(
+      '$stopCount stop update${stopCount == 1 ? '' : 's'}',
+    );
+    if (matchedVehicle != null) {
+      parts.add('Vehicle: ${DebugExtractors.vehicleDisplayId(matchedVehicle)}');
+    }
+    return parts.join(' • ');
+  }
+
   String _modeNameForEndpoint(StopsEndpoint endpoint) {
     return StopsService.modeForEndpointKey(endpoint.key)?.name ?? 'unknown';
+  }
+
+  List<String> _sortedStrings(Iterable<String?> values) {
+    final result = values
+        .whereType<String>()
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+    return result;
   }
 
   String _filterLabel(String value) {

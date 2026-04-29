@@ -89,7 +89,10 @@ void main() {
     );
   }
 
-  Widget appFor() {
+  Widget appFor({
+    String? initialSearchQuery,
+    Map<String, String> initialFilters = const {},
+  }) {
     return MaterialApp(
       onGenerateRoute: DebugNavigation.onGenerateRoute,
       home: DebugEntityListScreen(
@@ -97,6 +100,8 @@ void main() {
           entityType: DebugEntityType.stop,
           listLoader: listLoader,
           pageLoader: pageLoader,
+          initialSearchQuery: initialSearchQuery,
+          initialFilters: initialFilters,
         ),
       ),
     );
@@ -149,5 +154,16 @@ void main() {
     expect(find.text('Stop Debug'), findsOneWidget);
     expect(find.text('STOP-1'), findsAtLeastNWidgets(1));
     expect(find.text('Loaded'), findsOneWidget);
+  });
+
+  testWidgets('debug browser applies initial search and filters', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      appFor(initialSearchQuery: 'beta', initialFilters: {'mode': 'train'}),
+    );
+    await tester.pumpAndSettle();
+
+    expect(visibleTitles(tester), ['Beta']);
   });
 }

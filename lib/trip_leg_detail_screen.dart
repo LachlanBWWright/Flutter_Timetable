@@ -2,14 +2,17 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/debug/debug_page_loader.dart';
 import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
-import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
@@ -27,6 +30,8 @@ import 'utils/color_utils.dart';
 class TripLegDetailScreen extends StatefulWidget {
   final Leg leg;
   final TripJourney? trip;
+  final DebugEntityPageLoader? debugPageLoader;
+  final DebugEntityListPageLoader? debugListLoader;
   final Future<VehiclePositionAggregationResult> Function()?
   getAllVehiclesAggregated;
   final Future<TripUpdateAggregationResult> Function()?
@@ -40,6 +45,8 @@ class TripLegDetailScreen extends StatefulWidget {
     super.key,
     required this.leg,
     this.trip,
+    this.debugPageLoader,
+    this.debugListLoader,
     this.getAllVehiclesAggregated,
     this.getAllTripUpdatesAggregated,
     this.getGtfsDataForEndpoint,
@@ -72,7 +79,9 @@ class _VehicleStopRow {
 
 class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   Leg? _updatedLeg;
+  late final DebugEntityResolver _debugResolver;
   late final DebugEntityPageLoader _debugPageLoader;
+  late final DebugEntityListPageLoader _debugListLoader;
   bool _isLoading = false;
   String? _error;
   List<VehiclePosition> _vehicles = [];
@@ -94,11 +103,17 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _debugPageLoader = buildDebugEntityPageLoader(
+    _debugResolver = DebugEntityResolver(
       getGtfsDataForEndpoint: widget.getGtfsDataForEndpoint,
       getAllVehiclesAggregated: widget.getAllVehiclesAggregated,
       getAllTripUpdatesAggregated: widget.getAllTripUpdatesAggregated,
     );
+    _debugPageLoader =
+        widget.debugPageLoader ??
+        DebugPageLoaderCoordinator(resolver: _debugResolver).load;
+    _debugListLoader =
+        widget.debugListLoader ??
+        DebugEntityListLoader(resolver: _debugResolver).load;
     _updatedLeg = widget.leg;
     final legs = widget.trip?.legs;
     if (legs != null) {
@@ -200,6 +215,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln('\nProperties:');
     buffer.writeln('  differentFares: ${leg.properties?.differentFares}');
     buffer.writeln('  lineType: ${leg.properties?.lineType}');
+
+    _appendLegRelationshipSnapshot(buffer, leg);
 
     // Raw JSON for the leg
     buffer.writeln('\nRaw leg JSON:');
@@ -341,8 +358,40 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       '  transport: ${leg.transportation?.name ?? leg.transportation?.id ?? 'N/A'}',
     );
     buffer.writeln('  stops: ${leg.stopSequence?.length ?? 0}');
+    _appendLegRelationshipSnapshot(buffer, leg);
     _appendScalarPreviewFields(buffer, leg.rawJson, title: 'Leg raw fields');
     return buffer.toString();
+  }
+
+  void _appendLegRelationshipSnapshot(StringBuffer buffer, Leg leg) {
+    final tripIds = _collectTripIdsForActiveLeg().toList(growable: false)
+      ..sort();
+    final stopIds = <String>{
+      leg.origin.id,
+      leg.destination.id,
+      ...?(leg.stopSequence?.map((stop) => stop.id)),
+    }.where((id) => id.isNotEmpty).toList(growable: false)
+      ..sort();
+    final vehicleIds = _displayedVehicles
+        .map(_vehicleDisplayId)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+
+    buffer.writeln('\nRelationship snapshot:');
+    buffer.writeln('  routeId: ${leg.transportation?.id ?? 'N/A'}');
+    buffer.writeln(
+      '  tripIds: ${tripIds.isEmpty ? 'N/A' : tripIds.join(', ')}',
+    );
+    buffer.writeln(
+      '  stopIds: ${stopIds.isEmpty ? 'N/A' : stopIds.join(', ')}',
+    );
+    buffer.writeln(
+      '  displayedVehicleIds: ${vehicleIds.isEmpty ? 'N/A' : vehicleIds.join(', ')}',
+    );
+    buffer.writeln('  gtfsEndpoint: ${_gtfsRouteEndpointKey ?? 'N/A'}');
+    buffer.writeln('  gtfsRouteId: ${_gtfsRoute?.routeId ?? 'N/A'}');
+    buffer.writeln('  gtfsAgency: ${_gtfsAgency?.agencyName ?? 'N/A'}');
   }
 
   String _routeDebugString(Leg leg) {
@@ -826,6 +875,63 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         context: _debugContextForLeg(leg, vehicle: vehicle),
       ),
       loader: _debugPageLoader,
+    );
+  }
+
+  Future<void> _openDebugBrowser(
+    DebugEntityType entityType, {
+    String? initialSearchQuery,
+    Map<String, String> initialFilters = const {},
+  }) async {
+    await DebugNavigation.pushBrowser(
+      context,
+      entityType: entityType,
+      listLoader: _debugListLoader,
+      pageLoader: _debugPageLoader,
+      initialSearchQuery: initialSearchQuery,
+      initialFilters: initialFilters,
+    );
+  }
+
+  String? _firstSortedValue(Iterable<String> values) {
+    final sorted = values.where((value) => value.isNotEmpty).toSet().toList()
+      ..sort();
+    if (sorted.isEmpty) {
+      return null;
+    }
+    return sorted.first;
+  }
+
+  Future<void> _openTripDebugBrowser(Leg leg) async {
+    final routeId = leg.transportation?.id;
+    final tripId = _firstSortedValue(_collectTripIdsForActiveLeg());
+    await _openDebugBrowser(
+      DebugEntityType.trip,
+      initialSearchQuery: tripId,
+      initialFilters: {
+        if (routeId != null && routeId.isNotEmpty) 'route': routeId,
+      },
+    );
+  }
+
+  Future<void> _openRouteDebugBrowser(Leg leg) async {
+    final routeId = leg.transportation?.id;
+    await _openDebugBrowser(
+      DebugEntityType.route,
+      initialSearchQuery:
+          routeId != null && routeId.isNotEmpty ? routeId : null,
+    );
+  }
+
+  Future<void> _openVehicleDebugBrowser(Leg leg) async {
+    final routeId = leg.transportation?.id;
+    final tripId = _firstSortedValue(_collectTripIdsForActiveLeg());
+    await _openDebugBrowser(
+      DebugEntityType.vehicle,
+      initialFilters: {
+        if (routeId != null && routeId.isNotEmpty) 'route': routeId,
+        if (tripId != null) 'trip': tripId,
+      },
     );
   }
 
@@ -1824,6 +1930,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                                 icon: const Icon(Icons.open_in_new, size: 18),
                               ),
                               IconButton(
+                                tooltip: 'Open trip debug browser',
+                                onPressed: () => _openTripDebugBrowser(leg),
+                                icon: const Icon(Icons.manage_search, size: 18),
+                              ),
+                              IconButton(
                                 tooltip: 'Copy trip debug to clipboard',
                                 onPressed: () async {
                                   final messenger = ScaffoldMessenger.of(
@@ -1909,6 +2020,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               tooltip: 'Open standalone route debug page',
                               onPressed: () => _openRouteDebugPage(leg),
                               icon: const Icon(Icons.open_in_new, size: 18),
+                            ),
+                            IconButton(
+                              tooltip: 'Open route debug browser',
+                              onPressed: () => _openRouteDebugBrowser(leg),
+                              icon: const Icon(Icons.manage_search, size: 18),
                             ),
                             IconButton(
                               tooltip: 'Copy route debug to clipboard',
@@ -2057,6 +2173,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            IconButton(
+                              tooltip: 'Open vehicle debug browser',
+                              onPressed: () => _openVehicleDebugBrowser(leg),
+                              icon: const Icon(Icons.manage_search, size: 18),
+                            ),
                             IconButton(
                               tooltip: 'Copy vehicle debug to clipboard',
                               onPressed: () async {

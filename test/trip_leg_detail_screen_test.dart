@@ -1,6 +1,10 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_type.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/gtfs/note.dart';
@@ -244,8 +248,165 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.textContaining('Trip IDs:'), findsOneWidget);
-    expect(find.textContaining(realtimeTripId), findsOneWidget);
+    expect(find.textContaining(realtimeTripId), findsAtLeastNWidgets(1));
   });
+
+  testWidgets(
+    'Trip leg debug data shows relationship snapshot and opens scoped trip browser',
+    (tester) async {
+      const realtimeTripId = 'MATCH123';
+      final transportation = Transportation(
+        id: 'ROUTE1',
+        name: 'Line 1',
+        product: Product(classField: 5),
+      );
+      final leg = Leg(
+        origin: Stop(
+          id: 'O1',
+          name: 'Origin',
+          type: 'stop',
+          coord: [0.0, 0.0],
+        ),
+        destination: Stop(
+          id: 'D1',
+          name: 'Destination',
+          type: 'stop',
+          coord: [0.1, 0.1],
+        ),
+        transportation: transportation,
+        rawJson: {
+          'transportation': {
+            'id': 'ROUTE1',
+            'properties': {'RealtimeTripId': realtimeTripId},
+          },
+        },
+      );
+      final trip = TripJourney(
+        isAdditional: false,
+        legs: [leg],
+        rating: 7,
+        rawJson: {
+          'legs': [
+            {
+              'transportation': {
+                'id': 'ROUTE1',
+                'properties': {'RealtimeTripId': realtimeTripId},
+              },
+            },
+          ],
+        },
+      );
+
+      Future<DebugEntityListPageData> listLoader(
+        DebugEntityType entityType,
+      ) async {
+        return DebugEntityListPageData(
+          entityType: entityType,
+          title: '${entityType.label} Debug Browser',
+          description: 'Mock browser',
+          emptyMessage: 'No items',
+          items: entityType == DebugEntityType.trip
+              ? const [
+                  DebugEntityListItem(
+                    entityType: DebugEntityType.trip,
+                    entityId: 'MATCH123',
+                    title: 'MATCH123',
+                    subtitle: 'Route: ROUTE1',
+                    filterValues: {
+                      'route': ['ROUTE1'],
+                    },
+                    request: DebugEntityRequest(
+                      entityType: DebugEntityType.trip,
+                      entityId: 'MATCH123',
+                    ),
+                  ),
+                  DebugEntityListItem(
+                    entityType: DebugEntityType.trip,
+                    entityId: 'OTHER999',
+                    title: 'OTHER999',
+                    subtitle: 'Route: OTHER',
+                    filterValues: {
+                      'route': ['OTHER'],
+                    },
+                    request: DebugEntityRequest(
+                      entityType: DebugEntityType.trip,
+                      entityId: 'OTHER999',
+                    ),
+                  ),
+                ]
+              : const [],
+          filterGroups: entityType == DebugEntityType.trip
+              ? const [
+                  DebugEntityListFilterGroup(
+                    key: 'route',
+                    label: 'Route',
+                    options: [
+                      DebugEntityListFilterOption(
+                        id: 'OTHER',
+                        label: 'OTHER',
+                        count: 1,
+                      ),
+                      DebugEntityListFilterOption(
+                        id: 'ROUTE1',
+                        label: 'ROUTE1',
+                        count: 1,
+                      ),
+                    ],
+                  ),
+                ]
+              : const [],
+        );
+      }
+
+      Future<DebugPageData> pageLoader(DebugEntityRequest request) async {
+        return DebugPageData(
+          entityType: request.entityType,
+          title: request.entityId,
+          canonicalId: request.entityId,
+        );
+      }
+
+      DebugService.showDebugData.value = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          onGenerateRoute: DebugNavigation.onGenerateRoute,
+          home: TripLegDetailScreen(
+            leg: leg,
+            trip: trip,
+            debugPageLoader: pageLoader,
+            debugListLoader: listLoader,
+            getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
+            skipInitialLoadDelay: true,
+            getAllVehiclesAggregated: () async =>
+                const VehiclePositionAggregationResult(
+                  vehicles: <VehiclePosition>[],
+                  breakdown: <String, int>{},
+                ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.textContaining('Relationship snapshot:'), findsOneWidget);
+      expect(find.textContaining('tripIds: MATCH123'), findsOneWidget);
+      expect(find.byTooltip('Open trip debug browser'), findsOneWidget);
+      expect(find.byTooltip('Open route debug browser'), findsOneWidget);
+      expect(find.byTooltip('Open vehicle debug browser'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Open trip debug browser'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Trip Browser'), findsOneWidget);
+      expect(find.text('Trip Debug Browser'), findsOneWidget);
+      final titles = tester
+          .widgetList<ListTile>(find.byType(ListTile))
+          .map((tile) => (tile.title as Text).data)
+          .whereType<String>()
+          .toList(growable: false);
+      expect(titles, ['MATCH123']);
+    },
+  );
 
   testWidgets(
     'TripLegDetailScreen respects DebugService.showDebugData toggle',
@@ -401,8 +562,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // Ensure both vehicles are visible initially (filter off)
-    expect(find.textContaining('V-MATCH'), findsOneWidget);
-    expect(find.textContaining('V-OTHER'), findsOneWidget);
+    expect(find.textContaining('V-MATCH'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('V-OTHER'), findsAtLeastNWidgets(1));
 
     // Toggle the filter switch on (Filter by route/trip)
     final switchFinder = find.byType(Switch).first;
@@ -411,7 +572,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // Now only the matching vehicle (by trip id) should be visible
-    expect(find.textContaining('V-MATCH'), findsOneWidget);
+    expect(find.textContaining('V-MATCH'), findsAtLeastNWidgets(1));
     expect(find.textContaining('V-OTHER'), findsNothing);
   });
 

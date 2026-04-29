@@ -16,11 +16,15 @@ class DebugBrowserNavigationArgs {
   final DebugEntityType entityType;
   final DebugEntityListPageLoader listLoader;
   final DebugEntityPageLoader pageLoader;
+  final String? initialSearchQuery;
+  final Map<String, String> initialFilters;
 
   const DebugBrowserNavigationArgs({
     required this.entityType,
     required this.listLoader,
     required this.pageLoader,
+    this.initialSearchQuery,
+    this.initialFilters = const {},
   });
 }
 
@@ -44,6 +48,8 @@ class DebugNavigation {
     required DebugEntityType entityType,
     required DebugEntityListPageLoader listLoader,
     required DebugEntityPageLoader pageLoader,
+    String? initialSearchQuery,
+    Map<String, String> initialFilters = const {},
   }) {
     return Navigator.of(context).pushNamed<T>(
       browserRouteName,
@@ -51,6 +57,8 @@ class DebugNavigation {
         entityType: entityType,
         listLoader: listLoader,
         pageLoader: pageLoader,
+        initialSearchQuery: initialSearchQuery,
+        initialFilters: initialFilters,
       ),
     );
   }

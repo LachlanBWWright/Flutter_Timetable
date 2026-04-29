@@ -177,6 +177,9 @@ void main() {
       expect(central.filterValues['mode'], contains(TransportMode.bus.name));
       expect(central.filterValues['mode'], contains(TransportMode.metro.name));
       expect(page.filterGroups.any((group) => group.key == 'endpoint'), isTrue);
+      expect(page.filterGroups.any((group) => group.key == 'coverage'), isTrue);
+      expect(central.filterValues['coverage'], ['multi_endpoint']);
+      expect(central.filterValues['locality'], ['Sydney']);
       expect(central.request.context.dbStops?.length, 2);
     },
   );
@@ -205,6 +208,8 @@ void main() {
       expect(route.sources, contains(DebugDataSource.realtime));
       expect(route.filterValues['endpoint'], contains(StopsEndpoint.buses.key));
       expect(route.filterValues['mode'], contains(TransportMode.bus.name));
+      expect(route.filterValues['agency'], ['Agency Name']);
+      expect(route.filterValues['activity'], ['active_trips_and_vehicles']);
       expect(route.request.context.gtfsEndpoint, StopsEndpoint.buses);
     },
   );
@@ -225,11 +230,16 @@ void main() {
       expect(trip.entityId, 'TRIP-1');
       expect(trip.request.context.tripUpdate, same(update));
       expect(trip.request.context.vehiclePosition, same(vehicle));
+      expect(trip.filterValues['service_date'], ['20260429']);
+      expect(trip.filterValues['vehicle'], ['matched_vehicle']);
+      expect(trip.filterValues['stop'], ['STOP-1']);
 
       final vehicleItem = vehiclePage.items.single;
       expect(vehicleItem.entityId, 'VEH-1');
       expect(vehicleItem.request.context.vehiclePosition, same(vehicle));
       expect(vehicleItem.filterValues['route'], ['ROUTE-1']);
+      expect(vehicleItem.filterValues['trip'], ['TRIP-1']);
+      expect(vehicleItem.filterValues['status'], ['IN_TRANSIT_TO']);
     },
   );
 }

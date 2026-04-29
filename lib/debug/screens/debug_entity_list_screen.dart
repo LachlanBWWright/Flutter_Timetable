@@ -39,6 +39,8 @@ class _DebugEntityListScreenState extends State<DebugEntityListScreen> {
             _ when snapshot.hasData => _DebugEntityListView(
               pageData: snapshot.data!,
               pageLoader: widget.args.pageLoader,
+              initialSearchQuery: widget.args.initialSearchQuery,
+              initialFilters: widget.args.initialFilters,
             ),
             _ => const Center(child: Text('No debug list data available.')),
           },
@@ -51,10 +53,14 @@ class _DebugEntityListScreenState extends State<DebugEntityListScreen> {
 class _DebugEntityListView extends StatefulWidget {
   final DebugEntityListPageData pageData;
   final DebugEntityPageLoader pageLoader;
+  final String? initialSearchQuery;
+  final Map<String, String> initialFilters;
 
   const _DebugEntityListView({
     required this.pageData,
     required this.pageLoader,
+    this.initialSearchQuery,
+    this.initialFilters = const {},
   });
 
   @override
@@ -62,16 +68,32 @@ class _DebugEntityListView extends StatefulWidget {
 }
 
 class _DebugEntityListViewState extends State<_DebugEntityListView> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController = TextEditingController(
+    text: widget.initialSearchQuery ?? '',
+  );
   late DebugEntityListSort _selectedSort = widget.pageData.defaultSort;
   late final Map<String, String?> _selectedFilters = {
-    for (final group in widget.pageData.filterGroups) group.key: null,
+    for (final group in widget.pageData.filterGroups)
+      group.key: _initialFilterValueFor(group),
   };
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  String? _initialFilterValueFor(DebugEntityListFilterGroup group) {
+    final requestedValue = widget.initialFilters[group.key];
+    if (requestedValue == null) {
+      return null;
+    }
+    for (final option in group.options) {
+      if (option.id == requestedValue) {
+        return requestedValue;
+      }
+    }
+    return null;
   }
 
   @override
@@ -140,9 +162,10 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              SizedBox(
-                width: 220,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
                 child: DropdownButtonFormField<DebugEntityListSort>(
+                  isExpanded: true,
                   key: const ValueKey('debug-list-sort'),
                   initialValue: _selectedSort,
                   decoration: const InputDecoration(
@@ -168,9 +191,10 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                 ),
               ),
               ...widget.pageData.filterGroups.map((group) {
-                return SizedBox(
-                  width: 220,
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 220),
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     key: ValueKey('debug-list-filter-${group.key}'),
                     initialValue: _selectedFilters[group.key],
                     decoration: InputDecoration(
