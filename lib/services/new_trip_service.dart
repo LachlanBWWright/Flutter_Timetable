@@ -63,6 +63,10 @@ class NewTripService {
   }
 
   /// Get the list of API endpoints for a transport mode
+  static List<StopsEndpoint> getEndpointsForMode(TransportMode mode) {
+    return _getEndpointsForMode(mode);
+  }
+
   static List<StopsEndpoint> _getEndpointsForMode(TransportMode mode) {
     switch (mode) {
       case TransportMode.train:
@@ -149,6 +153,9 @@ class NewTripService {
         return await fetchNswTrainsGtfsData();
       case StopsEndpoint.sydneytrains:
         return await fetchSydneyTrainsGtfsData();
+
+      case StopsEndpoint.metro:
+        return await fetchMetroGtfsData();
 
       // Light Rail
       case StopsEndpoint.lightrailInnerwest:

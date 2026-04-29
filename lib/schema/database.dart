@@ -92,6 +92,15 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(t) => OrderingTerm(expression: t.stopName)]))
           .get();
 
+  Future<List<Stop>> getAllStops({int? limit}) {
+    final query = select(stops)
+      ..orderBy([(t) => OrderingTerm(expression: t.stopName)]);
+    if (limit != null) {
+      query.limit(limit);
+    }
+    return query.get();
+  }
+
   Future<List<Stop>> searchStops(String query, {int limit = 50}) =>
       (select(stops)
             ..where((tbl) => tbl.stopName.like('%$query%'))

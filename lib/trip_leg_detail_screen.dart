@@ -2,11 +2,20 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_type.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
+import 'package:lbww_flutter/debug/debug_page_loader.dart';
+import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
+import 'package:lbww_flutter/gtfs/gtfs_data.dart';
+import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
@@ -22,6 +31,8 @@ class TripLegDetailScreen extends StatefulWidget {
   getAllVehiclesAggregated;
   final Future<TripUpdateAggregationResult> Function()?
   getAllTripUpdatesAggregated;
+  final Future<GtfsData?> Function(StopsEndpoint endpoint)?
+  getGtfsDataForEndpoint;
   // Allow skipping artificial initial delays in scenarios like widget tests.
   final bool skipInitialLoadDelay;
 
@@ -31,6 +42,7 @@ class TripLegDetailScreen extends StatefulWidget {
     this.trip,
     this.getAllVehiclesAggregated,
     this.getAllTripUpdatesAggregated,
+    this.getGtfsDataForEndpoint,
     this.skipInitialLoadDelay = false,
   });
 
@@ -60,6 +72,7 @@ class _VehicleStopRow {
 
 class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   Leg? _updatedLeg;
+  late final DebugEntityPageLoader _debugPageLoader;
   bool _isLoading = false;
   String? _error;
   List<VehiclePosition> _vehicles = [];
@@ -70,11 +83,22 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   bool _isLoadingVehicleStops = false;
   String? _vehicleStopsError;
   List<_VehicleStopRow> _vehicleStops = [];
+  bool _isLoadingRouteDebug = false;
+  String? _routeDebugError;
+  gtfs_route.Route? _gtfsRoute;
+  gtfs_agency.Agency? _gtfsAgency;
+  String? _gtfsRouteEndpointKey;
+  String? _gtfsRouteMatchReason;
   int _currentLegIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _debugPageLoader = buildDebugEntityPageLoader(
+      getGtfsDataForEndpoint: widget.getGtfsDataForEndpoint,
+      getAllVehiclesAggregated: widget.getAllVehiclesAggregated,
+      getAllTripUpdatesAggregated: widget.getAllTripUpdatesAggregated,
+    );
     _updatedLeg = widget.leg;
     final legs = widget.trip?.legs;
     if (legs != null) {
@@ -85,9 +109,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       if (_supportsRealtimeForLeg(_updatedLeg ?? widget.leg)) {
         _loadVehiclesForLeg();
       }
+      if (DebugService.showDebugData.value) {
+        _ensureRouteDebugLoaded();
+      }
     } else {
       _refreshLegData();
     }
+    DebugService.showDebugData.addListener(_handleDebugVisibilityChanged);
   }
 
   void _goToLeg(int index) {
@@ -98,8 +126,30 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       _updatedLeg = legs[index];
       _vehicleStops = [];
       _vehicleStopsError = null;
+      _resetRouteDebugState();
     });
     _refreshLegData();
+  }
+
+  @override
+  void dispose() {
+    DebugService.showDebugData.removeListener(_handleDebugVisibilityChanged);
+    super.dispose();
+  }
+
+  void _handleDebugVisibilityChanged() {
+    if (DebugService.showDebugData.value) {
+      _ensureRouteDebugLoaded();
+    }
+  }
+
+  void _resetRouteDebugState() {
+    _isLoadingRouteDebug = false;
+    _routeDebugError = null;
+    _gtfsRoute = null;
+    _gtfsAgency = null;
+    _gtfsRouteEndpointKey = null;
+    _gtfsRouteMatchReason = null;
   }
 
   // ... (debug string methods omitted for brevity, keeping existing implementation) ...
@@ -295,6 +345,151 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     return buffer.toString();
   }
 
+  String _routeDebugString(Leg leg) {
+    final buffer = StringBuffer();
+    final transport = leg.transportation;
+    final rawTransport = leg.rawJson?['transportation'];
+
+    buffer.writeln('Route summary:');
+    buffer.writeln('  id: ${transport?.id ?? 'N/A'}');
+    buffer.writeln(
+      '  name: ${transport?.name ?? transport?.disassembledName ?? 'N/A'}',
+    );
+    buffer.writeln(
+      '  disassembledName: ${transport?.disassembledName ?? 'N/A'}',
+    );
+    buffer.writeln('  description: ${transport?.description ?? 'N/A'}');
+    buffer.writeln('  number: ${transport?.number ?? 'N/A'}');
+    buffer.writeln('  operator.id: ${transport?.operator?.id ?? 'N/A'}');
+    buffer.writeln('  operator.name: ${transport?.operator?.name ?? 'N/A'}');
+    buffer.writeln('  destination.id: ${transport?.destination?.id ?? 'N/A'}');
+    buffer.writeln(
+      '  destination.name: ${transport?.destination?.name ?? 'N/A'}',
+    );
+    buffer.writeln('  product.name: ${transport?.product?.name ?? 'N/A'}');
+    buffer.writeln(
+      '  product.class: ${transport?.product?.classField ?? 'N/A'}',
+    );
+    buffer.writeln('  product.iconId: ${transport?.product?.iconId ?? 'N/A'}');
+    buffer.writeln('  iconId: ${transport?.iconId ?? 'N/A'}');
+    buffer.writeln();
+
+    buffer.writeln('Route properties:');
+    if (transport?.properties != null) {
+      buffer.writeln('  isTTB: ${transport?.properties?.isTTB}');
+      buffer.writeln('  tripCode: ${transport?.properties?.tripCode}');
+    } else {
+      buffer.writeln('  N/A');
+    }
+
+    _appendGtfsRouteDebugFields(buffer);
+
+    buffer.writeln('\nTransportation raw JSON:');
+    try {
+      const enc = JsonEncoder.withIndent('  ');
+      if (transport?.rawJson != null) {
+        buffer.writeln(enc.convert(transport!.rawJson));
+      } else if (rawTransport != null) {
+        buffer.writeln(enc.convert(rawTransport));
+      } else {
+        buffer.writeln('  <no raw JSON available for route>');
+      }
+    } catch (e) {
+      buffer.writeln('  <failed to pretty-print raw JSON for route>');
+    }
+
+    return buffer.toString();
+  }
+
+  String _routeDebugPreviewString(Leg leg) {
+    final buffer = StringBuffer();
+    final transport = leg.transportation;
+    final rawTransport = leg.rawJson?['transportation'];
+
+    buffer.writeln('Route summary:');
+    buffer.writeln('  id: ${transport?.id ?? 'N/A'}');
+    buffer.writeln(
+      '  name: ${transport?.name ?? transport?.disassembledName ?? 'N/A'}',
+    );
+    buffer.writeln(
+      '  disassembledName: ${transport?.disassembledName ?? 'N/A'}',
+    );
+    buffer.writeln('  description: ${transport?.description ?? 'N/A'}');
+    buffer.writeln('  number: ${transport?.number ?? 'N/A'}');
+    buffer.writeln('  operator.id: ${transport?.operator?.id ?? 'N/A'}');
+    buffer.writeln('  operator.name: ${transport?.operator?.name ?? 'N/A'}');
+    buffer.writeln('  destination.id: ${transport?.destination?.id ?? 'N/A'}');
+    buffer.writeln(
+      '  destination.name: ${transport?.destination?.name ?? 'N/A'}',
+    );
+    buffer.writeln('  product.name: ${transport?.product?.name ?? 'N/A'}');
+    buffer.writeln(
+      '  product class: ${transport?.product?.classField ?? 'N/A'}',
+    );
+    buffer.writeln('  product.iconId: ${transport?.product?.iconId ?? 'N/A'}');
+    buffer.writeln('  iconId: ${transport?.iconId ?? 'N/A'}');
+
+    _appendGtfsRouteDebugFields(buffer);
+
+    if (rawTransport is Map<String, dynamic>) {
+      _appendScalarPreviewFields(
+        buffer,
+        rawTransport,
+        title: 'Transportation raw fields',
+      );
+    }
+
+    return buffer.toString();
+  }
+
+  void _appendGtfsRouteDebugFields(StringBuffer buffer) {
+    buffer.writeln();
+    buffer.writeln('GTFS route lookup:');
+    if (_isLoadingRouteDebug) {
+      buffer.writeln('  status: loading');
+      return;
+    }
+    if (_routeDebugError != null) {
+      buffer.writeln('  status: error');
+      buffer.writeln('  message: $_routeDebugError');
+      return;
+    }
+    if (_gtfsRoute == null) {
+      buffer.writeln('  status: not loaded');
+      return;
+    }
+
+    final route = _gtfsRoute!;
+    final agency = _gtfsAgency;
+    buffer.writeln('  status: loaded');
+    buffer.writeln('  endpoint: ${_gtfsRouteEndpointKey ?? 'N/A'}');
+    buffer.writeln('  match_reason: ${_gtfsRouteMatchReason ?? 'N/A'}');
+    buffer.writeln('  route_id: ${route.routeId}');
+    buffer.writeln('  route_short_name: ${route.routeShortName}');
+    buffer.writeln('  route_long_name: ${route.routeLongName}');
+    buffer.writeln('  route_desc: ${route.routeDesc ?? 'N/A'}');
+    buffer.writeln('  route_type: ${route.routeType}');
+    buffer.writeln('  route_url: ${route.routeUrl ?? 'N/A'}');
+    buffer.writeln('  route_color: ${route.routeColor ?? 'N/A'}');
+    buffer.writeln('  route_text_color: ${route.routeTextColor ?? 'N/A'}');
+    buffer.writeln('  route_sort_order: ${route.routeSortOrder ?? 'N/A'}');
+    buffer.writeln('  continuous_pickup: ${route.continuousPickup ?? 'N/A'}');
+    buffer.writeln(
+      '  continuous_drop_off: ${route.continuousDropOff ?? 'N/A'}',
+    );
+    buffer.writeln('  network_id: ${route.networkId ?? 'N/A'}');
+    buffer.writeln('  agency_id: ${route.agencyId ?? 'N/A'}');
+    if (agency != null) {
+      buffer.writeln('  agency_name: ${agency.agencyName}');
+      buffer.writeln('  agency_url: ${agency.agencyUrl}');
+      buffer.writeln('  agency_timezone: ${agency.agencyTimezone}');
+      buffer.writeln('  agency_lang: ${agency.agencyLang ?? 'N/A'}');
+      buffer.writeln('  agency_phone: ${agency.agencyPhone ?? 'N/A'}');
+      buffer.writeln('  agency_fare_url: ${agency.agencyFareUrl ?? 'N/A'}');
+      buffer.writeln('  agency_email: ${agency.agencyEmail ?? 'N/A'}');
+    }
+  }
+
   TransportMode? _getRealtimeModeFromClass(int? transportClass) {
     if (transportClass == null) return null;
     switch (transportClass) {
@@ -350,6 +545,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         if (_showAllVehicleStops) {
           await _loadVehicleStopsForLeg();
         }
+        if (DebugService.showDebugData.value) {
+          _ensureRouteDebugLoaded();
+        }
       } else if (mounted) {
         setState(() {
           _vehicles = [];
@@ -358,6 +556,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           _vehicleStopsError = null;
           _isLoadingVehicles = false;
           _isLoadingVehicleStops = false;
+          _resetRouteDebugState();
         });
       }
     } catch (e) {
@@ -369,12 +568,265 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
+  Future<void> _ensureRouteDebugLoaded() async {
+    final leg = _updatedLeg ?? widget.leg;
+    final transportId = leg.transportation?.id;
+    final mode = _getRealtimeModeFromClass(
+      leg.transportation?.product?.classField,
+    );
+    if (transportId == null || transportId.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _routeDebugError = 'No route id available for this leg';
+      });
+      return;
+    }
+    if (_isLoadingRouteDebug || _gtfsRoute?.routeId == transportId) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingRouteDebug = true;
+      _routeDebugError = null;
+      _gtfsRoute = null;
+      _gtfsAgency = null;
+      _gtfsRouteEndpointKey = null;
+      _gtfsRouteMatchReason = null;
+    });
+
+    try {
+      final endpoints = await _candidateRouteEndpoints(leg, mode);
+      if (endpoints.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingRouteDebug = false;
+          _routeDebugError =
+              'No GTFS endpoint mapping found for this leg. Load stops data first or provide a transport mode.';
+        });
+        return;
+      }
+      final gtfsLoader =
+          widget.getGtfsDataForEndpoint ??
+          NewTripService.fetchGtfsDataForEndpoint;
+
+      for (final endpoint in endpoints) {
+        final data = await gtfsLoader(endpoint);
+        if (data == null) {
+          continue;
+        }
+        final match = _matchGtfsRoute(leg, data.routes);
+        final route = match?.$1;
+        if (route == null) {
+          continue;
+        }
+        final agency = _matchAgencyForRoute(route, data.agencies);
+        if (!mounted) return;
+        setState(() {
+          _gtfsRoute = route;
+          _gtfsAgency = agency;
+          _gtfsRouteEndpointKey = endpoint.key;
+          _gtfsRouteMatchReason = match?.$2;
+          _isLoadingRouteDebug = false;
+          _routeDebugError = null;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isLoadingRouteDebug = false;
+        _routeDebugError =
+            'No GTFS route match found for route id $transportId';
+      });
+    } catch (e) {
+      logger.i('Failed to load GTFS route debug data: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingRouteDebug = false;
+        _routeDebugError = e.toString();
+      });
+    }
+  }
+
+  Future<List<StopsEndpoint>> _candidateRouteEndpoints(
+    Leg leg,
+    TransportMode? mode,
+  ) async {
+    if (mode != null) {
+      return NewTripService.getEndpointsForMode(mode);
+    }
+
+    final endpointByKey = <String, StopsEndpoint>{
+      for (final endpoint in StopsEndpoint.values) endpoint.key: endpoint,
+    };
+    final orderedKeys = <String>[];
+
+    final stopIds = <String>{
+      leg.origin.id,
+      leg.destination.id,
+      ...?leg.stopSequence?.map((stop) => stop.id),
+    }.where((id) => id.isNotEmpty);
+
+    for (final stopId in stopIds) {
+      try {
+        final rows = await StopsService.database.getStopsById(stopId);
+        for (final row in rows) {
+          if (!orderedKeys.contains(row.endpoint)) {
+            orderedKeys.add(row.endpoint);
+          }
+        }
+      } catch (e) {
+        logger.i('Failed to resolve stop endpoint for route debug: $e');
+      }
+    }
+
+    return orderedKeys
+        .map((key) => endpointByKey[key])
+        .whereType<StopsEndpoint>()
+        .toList();
+  }
+
+  (gtfs_route.Route, String)? _matchGtfsRoute(
+    Leg leg,
+    List<gtfs_route.Route> routes,
+  ) {
+    final transport = leg.transportation;
+    final transportId = transport?.id?.trim();
+    final transportNumber = transport?.number?.trim();
+    final transportNames = <String>{
+      if (transport?.name != null && transport!.name!.trim().isNotEmpty)
+        transport.name!.trim(),
+      if (transport?.disassembledName != null &&
+          transport!.disassembledName!.trim().isNotEmpty)
+        transport.disassembledName!.trim(),
+    };
+
+    for (final route in routes) {
+      if (transportId != null &&
+          transportId.isNotEmpty &&
+          route.routeId == transportId) {
+        return (route, 'route_id == transportation.id');
+      }
+    }
+
+    if (transportNumber != null && transportNumber.isNotEmpty) {
+      for (final route in routes) {
+        if (route.routeShortName == transportNumber) {
+          return (route, 'route_short_name == transportation.number');
+        }
+      }
+    }
+
+    for (final name in transportNames) {
+      for (final route in routes) {
+        if (route.routeShortName == name) {
+          return (route, 'route_short_name == transportation.name');
+        }
+        if (route.routeLongName == name) {
+          return (route, 'route_long_name == transportation.name');
+        }
+      }
+    }
+
+    return null;
+  }
+
+  gtfs_agency.Agency? _matchAgencyForRoute(
+    gtfs_route.Route route,
+    List<gtfs_agency.Agency> agencies,
+  ) {
+    if (agencies.isEmpty) {
+      return null;
+    }
+    if (route.agencyId != null && route.agencyId!.isNotEmpty) {
+      for (final agency in agencies) {
+        if (agency.agencyId == route.agencyId) {
+          return agency;
+        }
+      }
+    }
+    return agencies.length == 1 ? agencies.first : null;
+  }
+
   String _vehicleDisplayId(VehiclePosition v) {
     final desc = v.vehicle;
     if (desc.hasId()) return desc.id;
     if (v.trip.hasTripId()) return 'trip:${v.trip.tripId}';
     if (v.trip.hasRouteId()) return 'route:${v.trip.routeId}';
     return 'unknown';
+  }
+
+  StopsEndpoint? _currentGtfsEndpoint() {
+    final endpointKey = _gtfsRouteEndpointKey;
+    if (endpointKey == null || endpointKey.isEmpty) {
+      return null;
+    }
+    for (final endpoint in StopsEndpoint.values) {
+      if (endpoint.key == endpointKey) {
+        return endpoint;
+      }
+    }
+    return null;
+  }
+
+  DebugEntityContext _debugContextForLeg(Leg leg, {VehiclePosition? vehicle}) {
+    return DebugEntityContext(
+      tripJourney: widget.trip,
+      leg: leg,
+      transportation: leg.transportation,
+      vehiclePosition: vehicle,
+      gtfsRoute: _gtfsRoute,
+      gtfsAgency: _gtfsAgency,
+      gtfsEndpoint: _currentGtfsEndpoint(),
+      gtfsMatchReason: _gtfsRouteMatchReason,
+    );
+  }
+
+  Future<void> _openTripDebugPage(Leg leg) async {
+    final trip = widget.trip;
+    if (trip == null) {
+      return;
+    }
+    final tripIds = _collectDebugTripIds(trip);
+    final tripId = tripIds.isNotEmpty ? tripIds.first : 'trip';
+    await DebugNavigation.pushEntity(
+      context,
+      request: DebugEntityRequest(
+        entityType: DebugEntityType.trip,
+        entityId: tripId,
+        context: _debugContextForLeg(leg),
+      ),
+      loader: _debugPageLoader,
+    );
+  }
+
+  Future<void> _openRouteDebugPage(Leg leg) async {
+    final routeId = leg.transportation?.id;
+    if (routeId == null || routeId.isEmpty) {
+      return;
+    }
+    await DebugNavigation.pushEntity(
+      context,
+      request: DebugEntityRequest(
+        entityType: DebugEntityType.route,
+        entityId: routeId,
+        context: _debugContextForLeg(leg),
+      ),
+      loader: _debugPageLoader,
+    );
+  }
+
+  Future<void> _openVehicleDebugPage(Leg leg, VehiclePosition vehicle) async {
+    final vehicleId = _vehicleDisplayId(vehicle);
+    await DebugNavigation.pushEntity(
+      context,
+      request: DebugEntityRequest(
+        entityType: DebugEntityType.vehicle,
+        entityId: vehicleId,
+        context: _debugContextForLeg(leg, vehicle: vehicle),
+      ),
+      loader: _debugPageLoader,
+    );
   }
 
   String? _legRouteId() => (_updatedLeg ?? widget.leg).transportation?.id;
@@ -592,27 +1044,86 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     TripUpdate update,
   ) async {
     final stopUpdates = update.stopTimeUpdate;
-    if (stopUpdates.isEmpty) return <_VehicleStopRow>[];
+    final legStops = (_updatedLeg ?? widget.leg).stopSequence ?? const <Stop>[];
+    final rows = _buildTripStopRows(legStops);
+    final usedUpdateIndexes = <int>{};
 
-    final rows = <_VehicleStopRow>[];
+    _VehicleStopRow overlayRealtimeStop(
+      _VehicleStopRow row,
+      TripUpdate_StopTimeUpdate stopUpdate,
+    ) {
+      final arrival = stopUpdate.hasArrival() ? stopUpdate.arrival : null;
+      final departure = stopUpdate.hasDeparture() ? stopUpdate.departure : null;
+
+      return _VehicleStopRow(
+        label: row.label,
+        stopId: row.stopId,
+        arrivalTimePlanned: arrival != null
+            ? _plannedFromEvent(arrival)
+            : row.arrivalTimePlanned,
+        arrivalTimeEstimated: arrival != null
+            ? _isoFromUnixSeconds(arrival.time.toInt())
+            : row.arrivalTimeEstimated,
+        departureTimePlanned: departure != null
+            ? _plannedFromEvent(departure)
+            : row.departureTimePlanned,
+        departureTimeEstimated: departure != null
+            ? _isoFromUnixSeconds(departure.time.toInt())
+            : row.departureTimeEstimated,
+        skipped:
+            stopUpdate.scheduleRelationship ==
+            TripUpdate_StopTimeUpdate_ScheduleRelationship.SKIPPED,
+      );
+    }
+
+    int? matchUpdateIndexForRow(_VehicleStopRow row, int rowIndex) {
+      if (stopUpdates.isEmpty) return null;
+
+      final rowStopId = row.stopId;
+      if (rowStopId != null && rowStopId.isNotEmpty) {
+        for (var i = 0; i < stopUpdates.length; i++) {
+          if (usedUpdateIndexes.contains(i)) continue;
+          final update = stopUpdates[i];
+          if (update.hasStopId() && update.stopId == rowStopId) {
+            return i;
+          }
+        }
+      }
+
+      final targetSequence = rowIndex + 1;
+      for (var i = 0; i < stopUpdates.length; i++) {
+        if (usedUpdateIndexes.contains(i)) continue;
+        final update = stopUpdates[i];
+        if (update.hasStopSequence() && update.stopSequence == targetSequence) {
+          return i;
+        }
+      }
+
+      return null;
+    }
+
+    for (var i = 0; i < rows.length; i++) {
+      final matchIndex = matchUpdateIndexForRow(rows[i], i);
+      if (matchIndex == null) continue;
+      usedUpdateIndexes.add(matchIndex);
+      rows[i] = overlayRealtimeStop(rows[i], stopUpdates[matchIndex]);
+    }
 
     for (var i = 0; i < stopUpdates.length; i++) {
+      if (usedUpdateIndexes.contains(i)) continue;
       final stopUpdate = stopUpdates[i];
       final stopId = stopUpdate.hasStopId() ? stopUpdate.stopId : null;
       final seq = stopUpdate.hasStopSequence()
           ? stopUpdate.stopSequence
-          : i + 1;
-
-      final label = stopId != null && stopId.isNotEmpty
-          ? stopId
-          : 'Stop ${seq > 0 ? seq : i + 1}';
-
+          : rows.length + 1;
       final arrival = stopUpdate.hasArrival() ? stopUpdate.arrival : null;
       final departure = stopUpdate.hasDeparture() ? stopUpdate.departure : null;
 
       rows.add(
         _VehicleStopRow(
-          label: label,
+          label: stopId != null && stopId.isNotEmpty
+              ? stopId
+              : 'Stop ${seq > 0 ? seq : i + 1}',
           stopId: stopId,
           arrivalTimePlanned: arrival != null
               ? _plannedFromEvent(arrival)
@@ -1013,7 +1524,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   Expanded(
                     child: Text(
                       useVehicleStops
-                          ? 'Vehicle stops (${rows.length})'
+                          ? 'All stops (${rows.length})'
                           : 'Trip stops (${rows.length})',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
@@ -1052,8 +1563,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       ),
                       label: Text(
                         _showAllVehicleStops
-                            ? 'Show trip stops'
-                            : 'Show vehicle stops',
+                            ? 'Show scheduled stops'
+                            : 'Show all stops',
                       ),
                     ),
                 ],
@@ -1254,6 +1765,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         final tripDebugPreviewText = widget.trip != null
             ? _tripDebugPreviewString(widget.trip!)
             : null;
+        final routeDebugPreviewText = _routeDebugPreviewString(leg);
         final legDebugPreviewText = _legDebugPreviewString(leg);
         return Column(
           children: [
@@ -1303,36 +1815,48 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ),
-                          IconButton(
-                            tooltip: 'Copy trip debug to clipboard',
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              try {
-                                await Clipboard.setData(
-                                  ClipboardData(
-                                    text: _tripDebugString(widget.trip!),
-                                  ),
-                                );
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Copied trip debug data to clipboard',
-                                    ),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Failed to copy trip debug data',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.copy, size: 18),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: 'Open standalone trip debug page',
+                                onPressed: () => _openTripDebugPage(leg),
+                                icon: const Icon(Icons.open_in_new, size: 18),
+                              ),
+                              IconButton(
+                                tooltip: 'Copy trip debug to clipboard',
+                                onPressed: () async {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  try {
+                                    await Clipboard.setData(
+                                      ClipboardData(
+                                        text: _tripDebugString(widget.trip!),
+                                      ),
+                                    );
+                                    if (!mounted) return;
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Copied trip debug data to clipboard',
+                                        ),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Failed to copy trip debug data',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.copy, size: 18),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1362,6 +1886,88 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               ),
               const SizedBox(height: 16),
             ],
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Route debug data',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Open standalone route debug page',
+                              onPressed: () => _openRouteDebugPage(leg),
+                              icon: const Icon(Icons.open_in_new, size: 18),
+                            ),
+                            IconButton(
+                              tooltip: 'Copy route debug to clipboard',
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                try {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: _routeDebugString(leg)),
+                                  );
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Copied route debug data to clipboard',
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Failed to copy route debug data',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.copy, size: 18),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Active route/transport details for this leg:',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          routeDebugPreviewText,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -1448,60 +2054,65 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Copy vehicle debug to clipboard',
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            try {
-                              final lines = _displayedVehicles
-                                  .map((v) {
-                                    final id = v.vehicle.hasId()
-                                        ? v.vehicle.id
-                                        : 'N/A';
-                                    final tripId = v.trip.hasTripId()
-                                        ? v.trip.tripId
-                                        : 'N/A';
-                                    final routeId = v.trip.hasRouteId()
-                                        ? v.trip.routeId
-                                        : 'N/A';
-                                    final pos =
-                                        v.hasPosition() &&
-                                            v.position.hasLatitude() &&
-                                            v.position.hasLongitude()
-                                        ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
-                                        : 'N/A';
-                                    final ts = v.hasTimestamp()
-                                        ? DateTime.fromMillisecondsSinceEpoch(
-                                            v.timestamp.toInt() * 1000,
-                                          ).toIso8601String()
-                                        : 'N/A';
-                                    return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
-                                  })
-                                  .join('\n');
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Copy vehicle debug to clipboard',
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                try {
+                                  final lines = _displayedVehicles
+                                      .map((v) {
+                                        final id = v.vehicle.hasId()
+                                            ? v.vehicle.id
+                                            : 'N/A';
+                                        final tripId = v.trip.hasTripId()
+                                            ? v.trip.tripId
+                                            : 'N/A';
+                                        final routeId = v.trip.hasRouteId()
+                                            ? v.trip.routeId
+                                            : 'N/A';
+                                        final pos =
+                                            v.hasPosition() &&
+                                                v.position.hasLatitude() &&
+                                                v.position.hasLongitude()
+                                            ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
+                                            : 'N/A';
+                                        final ts = v.hasTimestamp()
+                                            ? DateTime.fromMillisecondsSinceEpoch(
+                                                v.timestamp.toInt() * 1000,
+                                              ).toIso8601String()
+                                            : 'N/A';
+                                        return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
+                                      })
+                                      .join('\n');
 
-                              await Clipboard.setData(
-                                ClipboardData(text: lines),
-                              );
-                              if (!mounted) return;
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Copied vehicle debug data to clipboard',
-                                  ),
-                                ),
-                              );
-                            } catch (e) {
-                              if (!mounted) return;
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Failed to copy vehicle debug data',
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.copy, size: 18),
+                                  await Clipboard.setData(
+                                    ClipboardData(text: lines),
+                                  );
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Copied vehicle debug data to clipboard',
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Failed to copy vehicle debug data',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.copy, size: 18),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1590,13 +2201,20 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                                 'Trip: $tripId • Route: $routeId • Pos: $pos',
                               ),
                               dense: true,
-                              trailing: routeMatch
-                                  ? const Icon(
+                              onTap: () => _openVehicleDebugPage(leg, v),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (routeMatch)
+                                    const Icon(
                                       Icons.check_circle,
                                       color: Colors.orange,
                                       size: 18,
-                                    )
-                                  : null,
+                                    ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.open_in_new, size: 18),
+                                ],
+                              ),
                             );
                           },
                         ),

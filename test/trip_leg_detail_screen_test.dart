@@ -1,13 +1,40 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
+import 'package:lbww_flutter/gtfs/gtfs_data.dart';
+import 'package:lbww_flutter/gtfs/note.dart';
+import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
+import 'package:lbww_flutter/gtfs/shape.dart';
+import 'package:lbww_flutter/gtfs/stop.dart' as gtfs_stop;
+import 'package:lbww_flutter/gtfs/stop_time.dart';
+import 'package:lbww_flutter/gtfs/trip.dart' as gtfs_trip;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
 void main() {
+  setUp(() {
+    DebugService.showDebugData.value = false;
+  });
+
+  GtfsData emptyGtfsData() {
+    return GtfsData(
+      agencies: const <gtfs_agency.Agency>[],
+      calendars: const [],
+      calendarDates: const [],
+      routes: const <gtfs_route.Route>[],
+      stops: const <gtfs_stop.Stop>[],
+      stopTimes: const <StopTime>[],
+      trips: const <gtfs_trip.Trip>[],
+      shapes: const <Shape>[],
+      notes: const <Note>[],
+    );
+  }
+
   testWidgets('TripLegDetailScreen hides map button when transport id missing', (
     tester,
   ) async {
@@ -47,7 +74,11 @@ void main() {
   testWidgets('TripLegDetailScreen shows map button when transport id present', (
     tester,
   ) async {
-    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    final transportation = Transportation(
+      id: 'ROUTE1',
+      name: 'Line 1',
+      product: Product(classField: 5),
+    );
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
       destination: Stop(
@@ -119,6 +150,7 @@ void main() {
         home: TripLegDetailScreen(
           leg: leg,
           trip: trip,
+          getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
           skipInitialLoadDelay: true,
           getAllVehiclesAggregated: () async =>
               const VehiclePositionAggregationResult(
@@ -132,6 +164,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Trip debug data'), findsOneWidget);
+    expect(find.text('Route debug data'), findsOneWidget);
+    expect(find.textContaining('GTFS route lookup:'), findsOneWidget);
     expect(find.textContaining('rating:'), findsOneWidget);
     // Now that trip debug prints legs in full, ensure we see a leg detail in output
     // Use a more unique string to avoid matching other 'Origin' labels
@@ -150,7 +184,11 @@ void main() {
     tester,
   ) async {
     const realtimeTripId = '15-M.951.145.2.B.8.87185004';
-    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    final transportation = Transportation(
+      id: 'ROUTE1',
+      name: 'Line 1',
+      product: Product(classField: 5),
+    );
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
       destination: Stop(
@@ -192,6 +230,7 @@ void main() {
         home: TripLegDetailScreen(
           leg: leg,
           trip: trip,
+          getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
           skipInitialLoadDelay: true,
           getAllVehiclesAggregated: () async =>
               const VehiclePositionAggregationResult(
@@ -211,7 +250,11 @@ void main() {
   testWidgets(
     'TripLegDetailScreen respects DebugService.showDebugData toggle',
     (tester) async {
-      final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+      final transportation = Transportation(
+        id: 'ROUTE1',
+        name: 'Line 1',
+        product: Product(classField: 5),
+      );
       final leg = Leg(
         origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
         destination: Stop(
@@ -250,6 +293,7 @@ void main() {
           home: TripLegDetailScreen(
             leg: leg,
             trip: trip,
+            getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
             skipInitialLoadDelay: true,
             getAllVehiclesAggregated: () async =>
                 const VehiclePositionAggregationResult(
@@ -276,7 +320,11 @@ void main() {
 
   testWidgets('Filter uses RealtimeTripId when present', (tester) async {
     // Trip/raw JSON contains a RealtimeTripId which should be preferred for filtering
-    final transportation = Transportation(id: 'ROUTE-A', name: 'Line A');
+    final transportation = Transportation(
+      id: 'ROUTE-A',
+      name: 'Line A',
+      product: Product(classField: 5),
+    );
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
       destination: Stop(
@@ -337,6 +385,7 @@ void main() {
         home: TripLegDetailScreen(
           leg: leg,
           trip: trip,
+          getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
           skipInitialLoadDelay: true,
           getAllVehiclesAggregated: () async =>
               VehiclePositionAggregationResult(
@@ -369,7 +418,11 @@ void main() {
   testWidgets('Stops card toggles to the full vehicle stop list', (
     tester,
   ) async {
-    final transportation = Transportation(id: 'ROUTE1', name: 'Line 1');
+    final transportation = Transportation(
+      id: 'ROUTE1',
+      name: 'Line 1',
+      product: Product(classField: 5),
+    );
     final leg = Leg(
       origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
       destination: Stop(
@@ -445,6 +498,7 @@ void main() {
         home: TripLegDetailScreen(
           leg: leg,
           trip: trip,
+          getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
           skipInitialLoadDelay: true,
           getAllVehiclesAggregated: () async =>
               const VehiclePositionAggregationResult(
@@ -462,19 +516,123 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Trip stops (2)'), findsOneWidget);
-    expect(find.text('Show vehicle stops'), findsOneWidget);
+    expect(find.text('Show all stops'), findsOneWidget);
     expect(find.text('Leg Stop 1'), findsOneWidget);
     expect(find.text('RT1'), findsNothing);
 
-    await tester.tap(find.text('Show vehicle stops'));
+    await tester.tap(find.text('Show all stops'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Vehicle stops (3)'), findsOneWidget);
-    expect(find.text('Show trip stops'), findsOneWidget);
-    expect(find.text('RT1'), findsOneWidget);
-    expect(find.text('RT2'), findsOneWidget);
+    expect(find.text('All stops (3)'), findsOneWidget);
+    expect(find.text('Show scheduled stops'), findsOneWidget);
+    expect(find.text('Leg Stop 1'), findsOneWidget);
+    expect(find.text('Leg Stop 2'), findsOneWidget);
+    expect(find.text('RT1'), findsNothing);
+    expect(find.text('RT2'), findsNothing);
     expect(find.text('RT3'), findsOneWidget);
-    expect(find.text('Leg Stop 1'), findsNothing);
+  });
+
+  testWidgets('Route debug card shows GTFS route and agency fields', (
+    tester,
+  ) async {
+    final transportation = Transportation(
+      id: 'ROUTE1',
+      name: 'Line 1',
+      description: 'Limited stops',
+      disassembledName: 'Line 1 City',
+      iconId: 77,
+      number: 'L1',
+      operator: Operator(id: 'OP1', name: 'Transit Co'),
+      destination: TransportationDestination(id: 'DEST1', name: 'Central'),
+      product: Product(classField: 5, iconId: 12, name: 'Bus'),
+      properties: TransportationProperties(isTTB: true, tripCode: 456),
+    );
+    final leg = Leg(
+      origin: Stop(id: 'O1', name: 'Origin', type: 'stop'),
+      destination: Stop(id: 'D1', name: 'Destination', type: 'stop'),
+      transportation: transportation,
+      rawJson: {
+        'transportation': {'id': 'ROUTE1', 'customField': 'customValue'},
+      },
+    );
+    final trip = TripJourney(isAdditional: false, legs: [leg], rating: 1);
+
+    final gtfsData = GtfsData(
+      agencies: [
+        gtfs_agency.Agency(
+          agencyId: 'A1',
+          agencyName: 'Agency Name',
+          agencyUrl: 'https://agency.example',
+          agencyTimezone: 'Australia/Sydney',
+          agencyLang: 'en',
+          agencyPhone: '1234',
+          agencyFareUrl: 'https://agency.example/fares',
+          agencyEmail: 'info@agency.example',
+        ),
+      ],
+      calendars: const [],
+      calendarDates: const [],
+      routes: [
+        gtfs_route.Route(
+          routeId: 'ROUTE1',
+          agencyId: 'A1',
+          routeShortName: 'L1',
+          routeLongName: 'Line 1 Long Name',
+          routeDesc: 'Main corridor',
+          routeType: '3',
+          routeUrl: 'https://route.example',
+          routeColor: '112233',
+          routeTextColor: 'FAFAFA',
+          routeSortOrder: '10',
+          continuousPickup: '0',
+          continuousDropOff: '1',
+          networkId: 'NET1',
+        ),
+      ],
+      stops: const <gtfs_stop.Stop>[],
+      stopTimes: const <StopTime>[],
+      trips: const <gtfs_trip.Trip>[],
+      shapes: const <Shape>[],
+      notes: const <Note>[],
+    );
+
+    DebugService.showDebugData.value = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TripLegDetailScreen(
+          leg: leg,
+          trip: trip,
+          skipInitialLoadDelay: true,
+          getGtfsDataForEndpoint: (endpoint) async {
+            if (endpoint == StopsEndpoint.buses) {
+              return gtfsData;
+            }
+            return emptyGtfsData();
+          },
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+
+    expect(find.text('Route debug data'), findsOneWidget);
+    expect(find.textContaining('description: Limited stops'), findsOneWidget);
+    expect(find.textContaining('operator.name: Transit Co'), findsOneWidget);
+    expect(find.textContaining('product.name: Bus'), findsOneWidget);
+    expect(find.textContaining('route_short_name: L1'), findsOneWidget);
+    expect(
+      find.textContaining('route_long_name: Line 1 Long Name'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('route_color: 112233'), findsOneWidget);
+    expect(find.textContaining('agency_name: Agency Name'), findsOneWidget);
+    expect(find.textContaining('endpoint: buses'), findsOneWidget);
   });
 }

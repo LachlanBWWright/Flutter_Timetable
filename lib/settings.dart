@@ -1,8 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:url_launcher/url_launcher.dart';
 
+import 'debug/debug_entity_resolver.dart';
+import 'debug/debug_entity_type.dart';
+import 'debug/debug_navigation.dart';
+import 'debug/debug_page_loader.dart';
 import 'services/api_key_service.dart';
 import 'services/debug_service.dart';
 import 'set_home_stop_screen.dart';
@@ -13,7 +20,24 @@ import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final DebugEntityPageLoader? debugPageLoader;
+  final DebugEntityListPageLoader? debugListLoader;
+  final bool Function()? hasUserApiKey;
+  final bool Function()? hasBuiltInApiKey;
+  final Widget? stopsManagementWidget;
+  final Widget? stopsSearchWidget;
+  final Widget? realtimeInfoWidget;
+
+  const SettingsScreen({
+    super.key,
+    this.debugPageLoader,
+    this.debugListLoader,
+    this.hasUserApiKey,
+    this.hasBuiltInApiKey,
+    this.stopsManagementWidget,
+    this.stopsSearchWidget,
+    this.realtimeInfoWidget,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -27,6 +51,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _updateStatus;
   int _stopsUpdated = 0;
   int _realtimeFeedsUpdated = 0;
+
+  late final DebugEntityResolver _debugResolver = DebugEntityResolver();
+  late final DebugEntityPageLoader _debugPageLoader =
+      widget.debugPageLoader ??
+      DebugPageLoaderCoordinator(resolver: _debugResolver).load;
+  late final DebugEntityListPageLoader _debugListLoader =
+      widget.debugListLoader ??
+      DebugEntityListLoader(resolver: _debugResolver).load;
 
   // API key card state
   final TextEditingController _apiKeyController = TextEditingController();
@@ -49,7 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _loadApiKeyState() {
     setState(() {
-      _hasUserApiKey = ApiKeyService.hasUserApiKey();
+      _hasUserApiKey =
+          widget.hasUserApiKey?.call() ?? ApiKeyService.hasUserApiKey();
     });
   }
 
@@ -86,7 +119,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _hasUserApiKey = false;
         _apiKeyController.clear();
-        _apiKeyStatus = ApiKeyService.hasBuiltInApiKey()
+        _apiKeyStatus =
+            (widget.hasBuiltInApiKey?.call() ??
+                ApiKeyService.hasBuiltInApiKey())
             ? 'Custom key removed - using built-in API key.'
             : 'Custom key removed - no API key is configured.';
         _isSavingApiKey = false;
@@ -161,6 +196,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _openDebugBrowser(DebugEntityType entityType) {
+    DebugNavigation.pushBrowser(
+      context,
+      entityType: entityType,
+      listLoader: _debugListLoader,
+      pageLoader: _debugPageLoader,
+    );
+  }
+
   void _navigateToRealtimeMap(BuildContext context) {
     Navigator.push(
       context,
@@ -177,6 +221,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasBuiltInApiKey =
+        widget.hasBuiltInApiKey?.call() ?? ApiKeyService.hasBuiltInApiKey();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings & Management'),
@@ -256,13 +303,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       _hasUserApiKey
                           ? 'Using your custom API key.'
-                          : ApiKeyService.hasBuiltInApiKey()
+                          : hasBuiltInApiKey
                           ? 'Using the built-in API key.'
                           : 'No API key configured.',
                       style: TextStyle(
                         color: _hasUserApiKey
                             ? Colors.green
-                            : ApiKeyService.hasBuiltInApiKey()
+                            : hasBuiltInApiKey
                             ? Colors.grey
                             : Colors.orange,
                       ),
@@ -401,12 +448,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         );
                       },
                     ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Standalone Debug Pages',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.stop),
+                          icon: const Icon(Icons.place),
+                          label: const Text('Browse stop debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.route),
+                          icon: const Icon(Icons.alt_route),
+                          label: const Text('Browse route debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.trip),
+                          icon: const Icon(Icons.route),
+                          label: const Text('Browse trip debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.vehicle),
+                          icon: const Icon(Icons.directions_bus),
+                          label: const Text('Browse vehicle debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
-            const StopsManagementWidget(),
-            const StopsSearchWidget(),
+            widget.stopsManagementWidget ??
+                StopsManagementWidget(
+                  debugPageLoader: _debugPageLoader,
+                  debugListLoader: _debugListLoader,
+                ),
+            widget.stopsSearchWidget ?? const StopsSearchWidget(),
             // Data update / management card
             Card(
               margin: const EdgeInsets.all(8.0),
@@ -532,7 +628,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            const RealtimeInfoWidget(),
+            widget.realtimeInfoWidget ?? const RealtimeInfoWidget(),
           ],
         ),
       ),

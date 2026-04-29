@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/logs/logger.dart';
@@ -52,6 +53,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
       ),
       themeMode: ThemeMode.dark, // Use dark mode throughout the application
+      onGenerateRoute: DebugNavigation.onGenerateRoute,
       home: const MyHomePage(title: AppConstants.appTitle),
     );
   }
