@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/debug/widgets/debug_entity_page.dart';
 
 class DebugEntityScreen extends StatelessWidget {

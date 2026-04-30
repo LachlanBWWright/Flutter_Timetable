@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/debug/debug_extractors.dart';
 import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
@@ -365,7 +363,7 @@ class DebugEntityResolver {
       }
     }
 
-    final orderedHints = LinkedHashSet<StopsEndpoint>();
+    final orderedHints = <StopsEndpoint>{};
     if (explicitEndpoint != null) {
       orderedHints.add(explicitEndpoint);
     }
@@ -407,12 +405,12 @@ class DebugEntityResolver {
     TransportMode? modeHint,
     StopsEndpoint? explicitEndpoint,
   }) async {
-    final ordered = LinkedHashSet<StopsEndpoint>();
+    final ordered = <StopsEndpoint>{};
     if (explicitEndpoint != null) {
       ordered.add(explicitEndpoint);
     }
 
-    final stopIds = LinkedHashSet<String>();
+    final stopIds = <String>{};
     if (leg != null) {
       stopIds.add(leg.origin.id);
       stopIds.add(leg.destination.id);
@@ -426,7 +424,7 @@ class DebugEntityResolver {
       );
     }
 
-    final endpointByKey = {
+    final endpointByKey = <String, StopsEndpoint>{
       for (final endpoint in StopsEndpoint.values) endpoint.key: endpoint,
     };
     for (final stopId in stopIds.where((stopId) => stopId.isNotEmpty)) {

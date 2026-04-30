@@ -1,15 +1,13 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
+import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/saved_trip_render_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
-import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
 import 'package:option_result/option_result.dart';
 
@@ -45,11 +43,7 @@ class _TripScreenState extends State<TripScreen> {
 
       setState(() {
         trips = manualJourney == null ? [] : [manualJourney];
-        _rawTripJson = manualJourney?.rawJson == null
-            ? null
-            : const JsonEncoder.withIndent(
-                '  ',
-              ).convert(manualJourney!.rawJson);
+        _rawTripJson = prettyPrintRawJson(manualJourney?.rawJson);
         _error = manualJourney == null
             ? 'Unable to load the saved manual trip.'
             : null;
@@ -68,55 +62,9 @@ class _TripScreenState extends State<TripScreen> {
     switch (result) {
       case Ok(:final v):
         setState(() {
-          // Reorder trips so upcoming trips (departing now or in future) appear
-          // first, followed by past trips. This ensures the UI shows both future
-          // and past trips (previously only past trips were prominent).
-          final now = DateTime.now();
-
-          DateTime? getDeparture(TripJourney t) {
-            if (t.legs.isEmpty) return null;
-            final firstLeg = t.legs.first;
-            final dep =
-                firstLeg.origin.departureTimeEstimated ??
-                firstLeg.origin.departureTimePlanned;
-            return dep != null ? DateTimeUtils.parseTimeToDateTime(dep) : null;
-          }
-
-          final allTrips = v.tripJourneys;
-          final upcoming = <TripJourney>[];
-          final past = <TripJourney>[];
-
-          for (final t in allTrips) {
-            final dt = getDeparture(t);
-            if (dt != null && !dt.isBefore(now)) {
-              upcoming.add(t);
-            } else {
-              past.add(t);
-            }
-          }
-
-          // Upcoming: earliest-first
-          upcoming.sort((a, b) {
-            final da = getDeparture(a);
-            final db = getDeparture(b);
-            if (da == null && db == null) return 0;
-            if (da == null) return 1;
-            if (db == null) return -1;
-            return da.compareTo(db);
-          });
-
-          // Past: most-recent-first
-          past.sort((a, b) {
-            final da = getDeparture(a), db = getDeparture(b);
-            if (da == null && db == null) return 0;
-            if (da == null) return 1;
-            if (db == null) return -1;
-            return db.compareTo(da);
-          });
-
-          trips = [...upcoming, ...past];
+          trips = sortTripJourneysForDisplay(v.tripJourneys);
           testText = v.toString();
-          _rawTripJson = const JsonEncoder.withIndent('  ').convert(v.rawJson);
+          _rawTripJson = prettyPrintRawJson(v.rawJson);
           _isLoading = false;
         });
 
@@ -135,10 +83,6 @@ class _TripScreenState extends State<TripScreen> {
   void initState() {
     super.initState();
     getTripData();
-  }
-
-  String parseTime(String time) {
-    return DateTimeUtils.parseTime(time);
   }
 
   @override
@@ -174,11 +118,7 @@ class _TripScreenState extends State<TripScreen> {
                             ),
                           const SizedBox(height: 12),
                           if (_isLoading)
-                            Text(
-                              widget.trip.isManualMultiLeg
-                                  ? 'Loading saved trip from ${widget.trip.origin} to ${widget.trip.destination}...'
-                                  : 'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...',
-                            )
+                            Text(loadingTripMessage(widget.trip))
                           else if (_error != null)
                             Column(
                               children: [
@@ -196,19 +136,11 @@ class _TripScreenState extends State<TripScreen> {
                           else
                             Column(
                               children: [
-                                Text(
-                                  widget.trip.isManualMultiLeg
-                                      ? 'This saved manual trip could not be rendered.'
-                                      : 'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.',
-                                ),
+                                Text(emptyTripMessage(widget.trip)),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
                                   onPressed: getTripData,
-                                  child: Text(
-                                    widget.trip.isManualMultiLeg
-                                        ? 'Reload'
-                                        : 'Search again',
-                                  ),
+                                  child: Text(retryButtonLabel(widget.trip)),
                                 ),
                                 ValueListenableBuilder<bool>(
                                   valueListenable: DebugService.showDebugData,

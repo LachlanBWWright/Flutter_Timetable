@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
@@ -195,7 +193,7 @@ class StopDebugPageBuilder {
     List<db.Stop> dbStops,
     String? gtfsParentStation,
   ) {
-    final parentIds = LinkedHashSet<String>();
+    final parentIds = <String>{};
     if (apiStop?.parent?.id case final id?) {
       parentIds.add(id);
     }

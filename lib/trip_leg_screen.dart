@@ -6,7 +6,7 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
-import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 import 'utils/color_utils.dart';
@@ -34,18 +34,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     super.initState();
     _loadUserLocation();
     _loadRealtimeData();
-  }
-
-  int? _extractTransportClassFromLeg(Map<String, dynamic>? leg) {
-    if (leg == null) return 5;
-    final transportation = leg['transportation'];
-    if (transportation is! Map<String, dynamic>) return 5;
-    final product = transportation['product'];
-    if (product is! Map<String, dynamic>) return 5;
-    final raw = product['class'];
-    if (raw == null) return null;
-    if (raw is int) return raw;
-    return int.tryParse('$raw');
   }
 
   Future<void> _loadUserLocation() async {
@@ -76,20 +64,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     });
 
     try {
-      // Get the transport mode from leg data
-      final dynamic transportationRaw = widget.leg['transportation'];
-      final Map<String, dynamic>? transportation =
-          transportationRaw is Map<String, dynamic> ? transportationRaw : null;
-      final int? transportClass = _extractTransportClassFromLeg(widget.leg);
-      String? tripId;
-      if (transportation != null) {
-        final id = transportation['id'];
-        if (id != null) tripId = '$id';
-      }
+      final int? transportClass = extractTransportClassFromLeg(widget.leg);
+      final tripId = extractTripId(widget.leg);
 
       if (transportClass != null) {
-        // Determine which high-level transport mode to query based on transport class
-        final TransportMode? mode = _getRealtimeModeFromClass(transportClass);
+        final TransportMode? mode = realtimeModeFromClass(transportClass);
 
         if (mode != null) {
           final feedMessage =
@@ -125,22 +104,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
   }
 
-  TransportMode? _getRealtimeModeFromClass(int transportClass) {
-    switch (transportClass) {
-      case 1: // Train
-        return TransportMode.train;
-      case 4: // Light Rail
-        return TransportMode.lightrail;
-      case 5: // Bus
-      case 11: // School Bus
-        return TransportMode.bus;
-      case 9: // Ferry
-        return TransportMode.ferry;
-      default:
-        return null;
-    }
-  }
-
   LatLng _getMapCenter() {
     // Prefer current vehicle position
     final currentVehicle = _currentVehicle;
@@ -154,20 +117,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       );
     }
 
-    // Try to get center from stop coordinates
     final origin = widget.leg['origin'] as Map<String, dynamic>?;
-
-    if (origin != null && origin['coord'] != null) {
-      final coord = origin['coord'] as List?;
-      if (coord != null &&
-          coord.length >= 2 &&
-          coord[0] != null &&
-          coord[1] != null) {
-        return LatLng(
-          (coord[0] as num).toDouble(),
-          (coord[1] as num).toDouble(),
-        );
-      }
+    final originCoord = parseStopCoord(origin);
+    if (originCoord != null) {
+      return originCoord;
     }
 
     // Fall back to user location
@@ -183,7 +136,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   List<Marker> _buildMapMarkers() {
     final markers = <Marker>[];
     final int transportClassForMarkers =
-        _extractTransportClassFromLeg(widget.leg) ?? 5;
+        extractTransportClassFromLeg(widget.leg) ?? 5;
 
     // Add user location marker
     final userLocation = _userLocation;
@@ -224,35 +177,24 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     // Add origin and destination markers
     final origin = widget.leg['origin'] as Map<String, dynamic>?;
     final destination = widget.leg['destination'] as Map<String, dynamic>?;
-
-    if (origin != null && origin['coord'] != null) {
-      final coord = origin['coord'] as List?;
-      if (coord != null && coord.length >= 2) {
-        markers.add(
-          Marker(
-            point: LatLng(
-              (coord[0] as num).toDouble(),
-              (coord[1] as num).toDouble(),
-            ),
-            child: const Icon(Icons.play_arrow, color: Colors.green, size: 25),
-          ),
-        );
-      }
+    final originCoord = parseStopCoord(origin);
+    if (originCoord != null) {
+      markers.add(
+        Marker(
+          point: originCoord,
+          child: const Icon(Icons.play_arrow, color: Colors.green, size: 25),
+        ),
+      );
     }
 
-    if (destination != null && destination['coord'] != null) {
-      final destCoord = destination['coord'] as List?;
-      if (destCoord != null && destCoord.length >= 2) {
-        markers.add(
-          Marker(
-            point: LatLng(
-              (destCoord[0] as num).toDouble(),
-              (destCoord[1] as num).toDouble(),
-            ),
-            child: const Icon(Icons.stop, color: Colors.red, size: 25),
-          ),
-        );
-      }
+    final destinationCoord = parseStopCoord(destination);
+    if (destinationCoord != null) {
+      markers.add(
+        Marker(
+          point: destinationCoord,
+          child: const Icon(Icons.stop, color: Colors.red, size: 25),
+        ),
+      );
     }
 
     return markers;
@@ -331,7 +273,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Depart: ${_formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
+                      'Depart: ${formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ],
@@ -342,7 +284,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     const Icon(Icons.schedule, size: 16, color: Colors.red),
                     const SizedBox(width: 4),
                     Text(
-                      'Arrive: ${_formatTimeDifference(arrivalTimePlanned, arrivalTimeEstimated)}',
+                      'Arrive: ${formatTimeDifference(arrivalTimePlanned, arrivalTimeEstimated)}',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ],
@@ -357,45 +299,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
-    if (estimatedTime == null) {
-      return plannedTime != null
-          ? DateTimeUtils.parseTimeOnly(plannedTime)
-          : 'TBD';
-    }
-
-    if (plannedTime == null) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
-
-    try {
-      final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
-      final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
-
-      if (planned == null || estimated == null) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      }
-
-      final difference = estimated.difference(planned).inMinutes;
-
-      if (difference == 0) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      } else if (difference > 0) {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)';
-      } else {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
-      }
-    } catch (e) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final dynamic transportationRaw = widget.leg['transportation'];
     final Map<String, dynamic>? transportation =
         transportationRaw is Map<String, dynamic> ? transportationRaw : null;
-    final int? transportClass = _extractTransportClassFromLeg(widget.leg);
+    final int? transportClass = extractTransportClassFromLeg(widget.leg);
 
     final origin = widget.leg['origin'] as Map<String, dynamic>?;
     final destination = widget.leg['destination'] as Map<String, dynamic>?;
@@ -403,7 +312,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final destinationName =
         destination?['disassembledName'] ?? destination?['name'];
     final transportName =
-        (transportation?['name'] ?? transportation?['disassembledName'] ?? '') as String;
+        (transportation?['name'] ?? transportation?['disassembledName'] ?? '')
+            as String;
     final stopSequence = widget.leg['stopSequence'] as List?;
 
     final currentVehicle = _currentVehicle;

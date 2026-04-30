@@ -9,32 +9,43 @@ import 'api_key_service.dart';
 class TransportApiService {
   static const String _baseUrl = 'api.transport.nsw.gov.au';
 
+  static const Map<String, String> _rapidJsonBaseParams = {
+    'outputFormat': 'rapidJSON',
+    'coordOutputFormat': 'EPSG:4326',
+    'version': '10.2.1.42',
+  };
+
   /// Get the effective API key (user override or built-in .env key).
   static Future<String?> _getApiKey() async {
     final key = ApiKeyService.getEffectiveApiKey();
     return key.isEmpty ? null : key;
   }
 
+  static Future<http.Response?> _authorizedGet(
+    String path,
+    Map<String, String> params,
+  ) async {
+    final apiKey = await _getApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      return null;
+    }
+
+    final uri = Uri.https(_baseUrl, path, params);
+    return http.get(uri, headers: {'authorization': 'apikey $apiKey'});
+  }
+
   /// Test if API key is valid
   static Future<bool> isApiKeyValid() async {
     try {
-      final apiKey = await _getApiKey();
-      if (apiKey == null || apiKey.isEmpty) return false;
-
       final params = {
-        'outputFormat': 'rapidJSON',
+        ..._rapidJsonBaseParams,
         'type_sf': 'stop',
         'name_sf': '',
-        'coordOutputFormat': 'EPSG:4326',
         'TfNSWSF': 'true',
-        'version': '10.2.1.42',
       };
 
-      final uri = Uri.https(_baseUrl, '/v1/tp/stop_finder/', params);
-      final response = await http.get(
-        uri,
-        headers: {'authorization': 'apikey $apiKey'},
-      );
+      final response = await _authorizedGet('/v1/tp/stop_finder/', params);
+      if (response == null) return false;
 
       return response.statusCode == 200;
     } catch (e) {
@@ -47,28 +58,19 @@ class TransportApiService {
   static Future<Result<List<Map<String, dynamic>>, String>> searchStations(
     String query,
   ) async {
-    final apiKey = await _getApiKey();
+    final params = {
+      ..._rapidJsonBaseParams,
+      'type_sf': 'any',
+      'name_sf': query,
+      'TfNSWSF': 'true',
+    };
 
-    if (apiKey == null || apiKey.isEmpty) {
+    final response = await _authorizedGet('/v1/tp/stop_finder/', params);
+    if (response == null) {
       return const Err('API key not set');
     }
 
-    final params = {
-      'outputFormat': 'rapidJSON',
-      'type_sf': 'any',
-      'name_sf': query,
-      'coordOutputFormat': 'EPSG:4326',
-      'TfNSWSF': 'true',
-      'version': '10.2.1.42',
-    };
-
     try {
-      final uri = Uri.https(_baseUrl, '/v1/tp/stop_finder/', params);
-      final response = await http.get(
-        uri,
-        headers: {'authorization': 'apikey $apiKey'},
-      );
-
       if (response.statusCode != 200) {
         return Err(
           'Failed to search stations: ${response.statusCode}, ${response.body}',
@@ -98,14 +100,8 @@ class TransportApiService {
     required String originId,
     required String destinationId,
   }) async {
-    final apiKey = await _getApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
-      return const Err('API key not set');
-    }
-
     final params = {
-      'outputFormat': 'rapidJSON',
-      'coordOutputFormat': 'EPSG:4326',
+      ..._rapidJsonBaseParams,
       'depArrMacro': 'dep',
       'type_origin': 'any',
       'name_origin': originId,
@@ -116,16 +112,15 @@ class TransportApiService {
       'exclMOT_7': '1',
       'exclMOT_11': '1',
       'TfNSWTR': 'true',
-      'version': '10.2.1.42',
       'itOptionsActive': '0',
     };
 
+    final response = await _authorizedGet('/v1/tp/trip/', params);
+    if (response == null) {
+      return const Err('API key not set');
+    }
+
     try {
-      final uri = Uri.https(_baseUrl, '/v1/tp/trip/', params);
-      final response = await http.get(
-        uri,
-        headers: {'authorization': 'apikey $apiKey'},
-      );
       logger.i('Response code ${response.statusCode}');
 
       if (response.statusCode != 200) {

@@ -1,38 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/constants/transport_colors.dart';
-import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
-import 'package:lbww_flutter/services/stops_service.dart';
-
-/// Returns a deterministic accent color for [journey] derived from its id.
-///
-/// Used as a fallback when the mode cannot be determined for either stop.
-const _journeyAccentColors = [
-  TransportColors.train, // amber
-  TransportColors.bus, // blue
-  TransportColors.metro, // teal
-  TransportColors.ferry, // green
-  TransportColors.lightRail, // red
-  TransportColors.coach, // purple
-  TransportColors.trainsT2, // mid-blue
-  TransportColors.trainsT9, // crimson
-  TransportColors.trainsT5, // magenta
-  TransportColors.trainsT8, // dark-green
-];
-
-Color _accentColorForJourney(Journey journey) {
-  return _journeyAccentColors[journey.id.abs() % _journeyAccentColors.length];
-}
-
-/// Map a transport mode to a UI accent color, with a fallback to the
-/// deterministic journey color.
-Color _accentColorForMode(TransportMode? mode, Journey journey) {
-  if (mode != null) {
-    return TransportColors.getColorByTransportMode(mode);
-  }
-  return _accentColorForJourney(journey);
-}
+import 'package:lbww_flutter/widgets/journey/journey_accent_strip.dart';
 
 /// A reusable card widget for displaying journey information with two-column layout
 class JourneyCard extends StatelessWidget {
@@ -144,57 +113,7 @@ class JourneyCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-          // Bottom accent strip — split into two halves, each representing
-          // the transport mode of the origin/destination stop.
-          if (journey.isManualMultiLeg && journey.savedMode != null)
-            SizedBox(
-              width: double.infinity,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 6,
-                      color: _accentColorForMode(journey.savedMode, journey),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 6,
-                      color: _accentColorForMode(journey.savedMode, journey),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            FutureBuilder<List<TransportMode?>>(
-              future: Future.wait([
-                StopsService.getModeForStopId(journey.originId),
-                StopsService.getModeForStopId(journey.destinationId),
-              ]),
-              builder: (context, snapshot) {
-                final originColor = _accentColorForMode(
-                  snapshot.hasData ? snapshot.data![0] : null,
-                  journey,
-                );
-                final destinationColor = _accentColorForMode(
-                  snapshot.hasData ? snapshot.data![1] : null,
-                  journey,
-                );
-
-                return SizedBox(
-                  width: double.infinity,
-                  child: Row(
-                    children: [
-                      Expanded(child: Container(height: 6, color: originColor)),
-                      Expanded(
-                        child: Container(height: 6, color: destinationColor),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+          JourneyAccentStrip(journey: journey),
         ],
       ),
     );

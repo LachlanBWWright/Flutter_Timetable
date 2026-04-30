@@ -162,10 +162,9 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
+              SizedBox(
+                width: 220,
                 child: DropdownButtonFormField<DebugEntityListSort>(
-                  isExpanded: true,
                   key: const ValueKey('debug-list-sort'),
                   initialValue: _selectedSort,
                   decoration: const InputDecoration(
@@ -191,10 +190,9 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                 ),
               ),
               ...widget.pageData.filterGroups.map((group) {
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 220),
+                return SizedBox(
+                  width: 220,
                   child: DropdownButtonFormField<String>(
-                    isExpanded: true,
                     key: ValueKey('debug-list-filter-${group.key}'),
                     initialValue: _selectedFilters[group.key],
                     decoration: InputDecoration(

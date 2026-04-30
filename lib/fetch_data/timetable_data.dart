@@ -61,6 +61,29 @@ Map<String, String> getHeaders() {
   };
 }
 
+Future<FeedMessage?> _fetchRealtimeFeed(
+  String versionPath,
+  String endpoint, {
+  required String logLabel,
+}) async {
+  try {
+    final url = Uri.parse(
+      'https://api.transport.nsw.gov.au/$versionPath/gtfs/realtime$endpoint',
+    );
+    final response = await http.get(url, headers: getHeaders());
+    if (response.statusCode != 200) {
+      logger.e(
+        'Failed to fetch $logLabel for $endpoint: ${response.statusCode}, ${response.body}',
+      );
+      return null;
+    }
+    return FeedMessage.fromBuffer(response.bodyBytes);
+  } catch (e, st) {
+    logger.e('Error fetching $logLabel for $endpoint: $e\n$st');
+    return null;
+  }
+}
+
 Future<GtfsData?> _fetchGtfsDataFromEndpoint(
   String endpoint, {
   GtfsScheduleVersion version = GtfsScheduleVersion.v1,
@@ -100,22 +123,7 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
 /// CSV map from a schedule ZIP; the tests expect a realtime FeedMessage so
 /// this function now calls the realtime endpoint.
 Future<FeedMessage?> fetchMetroScheduleRealtime() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      logger.e(
-        'Failed to fetch Metro realtime: ${response.statusCode}, ${response.body}',
-      );
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e, st) {
-    logger.e('Error fetching Metro realtime: $e\n$st');
-    return null;
-  }
+  return _fetchRealtimeFeed('v2', '/metro', logLabel: 'Metro realtime');
 }
 
 /// Fetches a GTFS-realtime feed from the v1 realtime surface and parses it
@@ -124,22 +132,7 @@ Future<FeedMessage?> fetchMetroScheduleRealtime() async {
 Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV1(
   String endpoint,
 ) async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime$endpoint',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      logger.e(
-        'Failed to fetch GTFS realtime (v1) for $endpoint: ${response.statusCode}, ${response.body}',
-      );
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e, st) {
-    logger.e('Error fetching GTFS realtime (v1) for $endpoint: $e\n$st');
-    return null;
-  }
+  return _fetchRealtimeFeed('v1', endpoint, logLabel: 'GTFS realtime (v1)');
 }
 
 /// Fetches a GTFS-realtime feed from the v2 realtime surface and parses it
@@ -148,22 +141,7 @@ Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV1(
 Future<FeedMessage?> fetchGtfsRealtimeDataFromEndpointV2(
   String endpoint,
 ) async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v2/gtfs/realtime$endpoint',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      logger.e(
-        'Failed to fetch GTFS realtime (v2) for $endpoint: ${response.statusCode}, ${response.body}',
-      );
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e, st) {
-    logger.e('Error fetching GTFS realtime (v2) for $endpoint: $e\n$st');
-    return null;
-  }
+  return _fetchRealtimeFeed('v2', endpoint, logLabel: 'GTFS realtime (v2)');
 }
 
 /// Fetch Metro schedule GTFS using the v2 schedule surface
@@ -577,7 +555,9 @@ GtfsData parseGtfsFiles(Map<String, String> files) {
   return GtfsData(
     agencies: agencyFile != null ? parseAgencyCsv(agencyFile) : [],
     calendars: calendarFile != null ? parseCalendarCsv(calendarFile) : [],
-    calendarDates: calendarDatesFile != null ? parseCalendarDatesCsv(calendarDatesFile) : [],
+    calendarDates: calendarDatesFile != null
+        ? parseCalendarDatesCsv(calendarDatesFile)
+        : [],
     routes: routesFile != null ? parseRoutesCsv(routesFile) : [],
     stops: stopsFile != null ? parseStopsCsv(stopsFile) : [],
     stopTimes: stopTimesFile != null ? parseStopTimesCsv(stopTimesFile) : [],

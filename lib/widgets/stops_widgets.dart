@@ -14,7 +14,7 @@ import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 import '../services/stops_service.dart';
 import '../utils/button_styles.dart';
-import '../utils/transport_display.dart';
+import '../utils/stops_widget_utils.dart';
 
 /// Widget for managing and displaying GTFS stops data
 class StopsManagementWidget extends StatefulWidget {
@@ -72,13 +72,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
       if (!mounted) return;
 
-      // Flatten grouped map for any places that still expect endpoint->count
-      final flattened = <String, int>{};
-      for (final grp in grouped.values) {
-        for (final e in grp.entries) {
-          flattened[e.key] = e.value;
-        }
-      }
+      final flattened = flattenStopsCountByEndpoint(grouped);
 
       setState(() {
         _totalStops = count;
@@ -448,24 +442,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             (sum, count) => sum + count,
           );
 
-          final displayName = (() {
-            if (modeKey != null) {
-              // For buses we preserve the distinction between city and regional
-              // when the endpoints are exclusively one or the other.
-              if (modeKey == TransportMode.bus) {
-                final hasRegion = endpoints.keys.any(
-                  (k) => k.startsWith('regionbuses'),
-                );
-                final hasCity = endpoints.keys.any(
-                  (k) => k.startsWith('buses'),
-                );
-                if (hasRegion && !hasCity) return 'Regional Buses';
-                if (hasCity && !hasRegion) return 'City Buses';
-              }
-              return getDisplayNameForTransportMode(modeKey);
-            }
-            return 'Other';
-          })();
+          final displayName = displayNameForStopsModeGroup(modeKey, endpoints);
 
           return ExpansionTile(
             leading: Container(
@@ -489,15 +466,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               return ListTile(
                 contentPadding: const EdgeInsets.only(left: 32, right: 16),
                 title: Text(
-                  endpoint.key
-                      .replaceAll('_', ' ')
-                      .split(' ')
-                      .map(
-                        (word) => word.isNotEmpty
-                            ? word[0].toUpperCase() + word.substring(1)
-                            : word,
-                      )
-                      .join(' '),
+                  formatEndpointDisplayName(endpoint.key),
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Container(

@@ -21,6 +21,8 @@ import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/realtime_trip_id_utils.dart';
+import 'package:lbww_flutter/utils/trip_leg_debug_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
@@ -265,12 +267,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   Set<String> _collectDebugTripIds(TripJourney trip) {
     final tripIds = <String>{};
-    _collectTripIdsFromRawJson(trip.rawJson, tripIds);
+    tripIds.addAll(collectTripIdsFromRawJson(trip.rawJson));
 
     final legsJson = trip.rawJson?['legs'];
     if (legsJson is List) {
       for (final legJson in legsJson.whereType<Map<String, dynamic>>()) {
-        _collectTripIdsFromRawJson(legJson, tripIds);
+        tripIds.addAll(collectTripIdsFromRawJson(legJson));
       }
     }
 
@@ -338,7 +340,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         '  transport: ${leg.transportation?.name ?? leg.transportation?.id ?? 'N/A'}',
       );
     }
-    _appendScalarPreviewFields(
+    appendScalarPreviewFields(
       buffer,
       trip.rawJson,
       title: 'Top-level raw fields',
@@ -359,7 +361,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
     buffer.writeln('  stops: ${leg.stopSequence?.length ?? 0}');
     _appendLegRelationshipSnapshot(buffer, leg);
-    _appendScalarPreviewFields(buffer, leg.rawJson, title: 'Leg raw fields');
+    appendScalarPreviewFields(buffer, leg.rawJson, title: 'Leg raw fields');
     return buffer.toString();
   }
 
@@ -370,13 +372,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       leg.origin.id,
       leg.destination.id,
       ...?(leg.stopSequence?.map((stop) => stop.id)),
-    }.where((id) => id.isNotEmpty).toList(growable: false)
-      ..sort();
-    final vehicleIds = _displayedVehicles
-        .map(_vehicleDisplayId)
-        .toSet()
-        .toList(growable: false)
-      ..sort();
+    }.where((id) => id.isNotEmpty).toList(growable: false)..sort();
+    final vehicleIds =
+        _displayedVehicles.map(vehicleDisplayId).toSet().toList(growable: false)
+          ..sort();
 
     buffer.writeln('\nRelationship snapshot:');
     buffer.writeln('  routeId: ${leg.transportation?.id ?? 'N/A'}');
@@ -481,7 +480,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     _appendGtfsRouteDebugFields(buffer);
 
     if (rawTransport is Map<String, dynamic>) {
-      _appendScalarPreviewFields(
+      appendScalarPreviewFields(
         buffer,
         rawTransport,
         title: 'Transportation raw fields',
@@ -797,25 +796,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     return agencies.length == 1 ? agencies.first : null;
   }
 
-  String _vehicleDisplayId(VehiclePosition v) {
-    final desc = v.vehicle;
-    if (desc.hasId()) return desc.id;
-    if (v.trip.hasTripId()) return 'trip:${v.trip.tripId}';
-    if (v.trip.hasRouteId()) return 'route:${v.trip.routeId}';
-    return 'unknown';
-  }
-
   StopsEndpoint? _currentGtfsEndpoint() {
-    final endpointKey = _gtfsRouteEndpointKey;
-    if (endpointKey == null || endpointKey.isEmpty) {
-      return null;
-    }
-    for (final endpoint in StopsEndpoint.values) {
-      if (endpoint.key == endpointKey) {
-        return endpoint;
-      }
-    }
-    return null;
+    return currentGtfsEndpointFromKey(_gtfsRouteEndpointKey);
   }
 
   DebugEntityContext _debugContextForLeg(Leg leg, {VehiclePosition? vehicle}) {
@@ -866,7 +848,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _openVehicleDebugPage(Leg leg, VehiclePosition vehicle) async {
-    final vehicleId = _vehicleDisplayId(vehicle);
+    final vehicleId = vehicleDisplayId(vehicle);
     await DebugNavigation.pushEntity(
       context,
       request: DebugEntityRequest(
@@ -893,18 +875,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  String? _firstSortedValue(Iterable<String> values) {
-    final sorted = values.where((value) => value.isNotEmpty).toSet().toList()
-      ..sort();
-    if (sorted.isEmpty) {
-      return null;
-    }
-    return sorted.first;
-  }
-
   Future<void> _openTripDebugBrowser(Leg leg) async {
     final routeId = leg.transportation?.id;
-    final tripId = _firstSortedValue(_collectTripIdsForActiveLeg());
+    final tripId = firstSortedValue(_collectTripIdsForActiveLeg());
     await _openDebugBrowser(
       DebugEntityType.trip,
       initialSearchQuery: tripId,
@@ -918,14 +891,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final routeId = leg.transportation?.id;
     await _openDebugBrowser(
       DebugEntityType.route,
-      initialSearchQuery:
-          routeId != null && routeId.isNotEmpty ? routeId : null,
+      initialSearchQuery: routeId != null && routeId.isNotEmpty
+          ? routeId
+          : null,
     );
   }
 
   Future<void> _openVehicleDebugBrowser(Leg leg) async {
     final routeId = leg.transportation?.id;
-    final tripId = _firstSortedValue(_collectTripIdsForActiveLeg());
+    final tripId = firstSortedValue(_collectTripIdsForActiveLeg());
     await _openDebugBrowser(
       DebugEntityType.vehicle,
       initialFilters: {
@@ -937,44 +911,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String? _legRouteId() => (_updatedLeg ?? widget.leg).transportation?.id;
 
-  void _collectTripIdsFromRawJson(
-    Map<String, dynamic>? rawJson,
-    Set<String> ids,
-  ) {
-    if (rawJson == null) return;
-    if (rawJson['tripId'] != null && rawJson['tripId'].toString().isNotEmpty) {
-      ids.add(rawJson['tripId'].toString());
-    }
-    if (rawJson['id'] != null && rawJson['id'].toString().isNotEmpty) {
-      ids.add(rawJson['id'].toString());
-    }
-    if (rawJson['trip_id'] != null &&
-        rawJson['trip_id'].toString().isNotEmpty) {
-      ids.add(rawJson['trip_id'].toString());
-    }
-
-    final t = rawJson['transportation'];
-    if (t is Map && t['properties'] is Map) {
-      final p = t['properties'] as Map<dynamic, dynamic>;
-      if (p['RealtimeTripId'] != null &&
-          p['RealtimeTripId'].toString().isNotEmpty) {
-        ids.add(p['RealtimeTripId'].toString());
-      }
-      if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty) {
-        ids.add(p['AVMSTripID'].toString());
-      }
-      if (p['realtimeTripId'] != null &&
-          p['realtimeTripId'].toString().isNotEmpty) {
-        ids.add(p['realtimeTripId'].toString());
-      }
-    }
-  }
-
   Set<String> _collectTripIdsForActiveLeg() {
-    final ids = <String>{};
-    _collectTripIdsFromRawJson(widget.trip?.rawJson, ids);
-    _collectTripIdsFromRawJson((_updatedLeg ?? widget.leg).rawJson, ids);
-    return ids;
+    return collectTripIdsForVehicleFiltering(
+      tripRawJson: widget.trip?.rawJson,
+      legRawJson: (_updatedLeg ?? widget.leg).rawJson,
+    );
   }
 
   /// Collect only the trip IDs that belong to the active leg (not the whole trip)
@@ -988,100 +929,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return _vehicles;
     }
 
-    // If the trip/leg contains any explicit trip IDs (e.g., RealtimeTripId),
-    // prefer filtering vehicles by trip id rather than by route id.
-    final tripIds = <String>{};
-
-    // Collect trip IDs from provided TripJourney raw JSON
-    if (widget.trip?.rawJson case final r?) {
-      if (r['tripId'] != null && r['tripId'].toString().isNotEmpty) {
-        tripIds.add(r['tripId'].toString());
-      }
-      if (r['id'] != null && r['id'].toString().isNotEmpty) {
-        tripIds.add(r['id'].toString());
-      }
-      if (r['trip_id'] != null && r['trip_id'].toString().isNotEmpty) {
-        tripIds.add(r['trip_id'].toString());
-      }
-
-      if (r['transportation'] is Map) {
-        final tp = r['transportation'] as Map<dynamic, dynamic>;
-        if (tp['properties'] is Map) {
-          final p = tp['properties'] as Map<dynamic, dynamic>;
-          if (p['RealtimeTripId'] != null &&
-              p['RealtimeTripId'].toString().isNotEmpty) {
-            tripIds.add(p['RealtimeTripId'].toString());
-          }
-          if (p['AVMSTripID'] != null &&
-              p['AVMSTripID'].toString().isNotEmpty) {
-            tripIds.add(p['AVMSTripID'].toString());
-          }
-          if (p['realtimeTripId'] != null &&
-              p['realtimeTripId'].toString().isNotEmpty) {
-            tripIds.add(p['realtimeTripId'].toString());
-          }
-        }
-      }
-
-      final legsJson = r['legs'];
-      if (legsJson is List) {
-        for (var l in legsJson) {
-          if (l is Map<String, dynamic>) {
-            if (l['tripId'] != null && l['tripId'].toString().isNotEmpty) {
-              tripIds.add(l['tripId'].toString());
-            }
-            if (l['trip_id'] != null && l['trip_id'].toString().isNotEmpty) {
-              tripIds.add(l['trip_id'].toString());
-            }
-
-            final ttp = l['transportation'];
-            if (ttp is Map && ttp['properties'] is Map) {
-              final p = ttp['properties'] as Map<dynamic, dynamic>;
-              if (p['RealtimeTripId'] != null &&
-                  p['RealtimeTripId'].toString().isNotEmpty) {
-                tripIds.add(p['RealtimeTripId'].toString());
-              }
-              if (p['AVMSTripID'] != null &&
-                  p['AVMSTripID'].toString().isNotEmpty) {
-                tripIds.add(p['AVMSTripID'].toString());
-              }
-              if (p['realtimeTripId'] != null &&
-                  p['realtimeTripId'].toString().isNotEmpty) {
-                tripIds.add(p['realtimeTripId'].toString());
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Also collect trip IDs from the active leg's raw JSON or transportation raw JSON
-    final legObj = _updatedLeg ?? widget.leg;
-    final lr = legObj.rawJson;
-    if (lr != null) {
-      if (lr['tripId'] != null && lr['tripId'].toString().isNotEmpty) {
-        tripIds.add(lr['tripId'].toString());
-      }
-      if (lr['trip_id'] != null && lr['trip_id'].toString().isNotEmpty) {
-        tripIds.add(lr['trip_id'].toString());
-      }
-
-      final t = lr['transportation'];
-      if (t is Map && t['properties'] is Map) {
-        final p = t['properties'] as Map<dynamic, dynamic>;
-        if (p['RealtimeTripId'] != null &&
-            p['RealtimeTripId'].toString().isNotEmpty) {
-          tripIds.add(p['RealtimeTripId'].toString());
-        }
-        if (p['AVMSTripID'] != null && p['AVMSTripID'].toString().isNotEmpty) {
-          tripIds.add(p['AVMSTripID'].toString());
-        }
-        if (p['realtimeTripId'] != null &&
-            p['realtimeTripId'].toString().isNotEmpty) {
-          tripIds.add(p['realtimeTripId'].toString());
-        }
-      }
-    }
+    final tripIds = collectTripIdsForVehicleFiltering(
+      tripRawJson: widget.trip?.rawJson,
+      legRawJson: (_updatedLeg ?? widget.leg).rawJson,
+    );
 
     // If we found any trip IDs, filter vehicles by trip id; otherwise fallback to route id filter
     if (tripIds.isNotEmpty) {
@@ -1107,9 +958,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       final breakdown = aggregate.breakdown;
 
       dedupedVehicles.sort(
-        (a, b) => _vehicleDisplayId(
+        (a, b) => vehicleDisplayId(
           a,
-        ).toLowerCase().compareTo(_vehicleDisplayId(b).toLowerCase()),
+        ).toLowerCase().compareTo(vehicleDisplayId(b).toLowerCase()),
       );
 
       if (!mounted) return;
@@ -1829,37 +1680,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return DateTimeUtils.parseTimeOnly(timeStr);
     } catch (_) {
       return timeStr;
-    }
-  }
-
-  void _appendScalarPreviewFields(
-    StringBuffer buffer,
-    Map<String, dynamic>? json, {
-    required String title,
-    int maxEntries = 8,
-  }) {
-    if (json == null) {
-      return;
-    }
-
-    final entries = json.entries
-        .where((entry) {
-          final value = entry.value;
-          return value == null ||
-              value is String ||
-              value is num ||
-              value is bool;
-        })
-        .take(maxEntries)
-        .toList();
-
-    if (entries.isEmpty) {
-      return;
-    }
-
-    buffer.writeln('\n$title:');
-    for (final entry in entries) {
-      buffer.writeln('  ${entry.key}: ${entry.value}');
     }
   }
 

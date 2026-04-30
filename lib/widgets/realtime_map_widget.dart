@@ -8,6 +8,7 @@ import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/debug_service.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart';
+import '../utils/realtime_map_widget_utils.dart';
 import 'realtime_map_helpers.dart';
 import 'trip_widgets.dart' show TransportModeUtils;
 
@@ -110,7 +111,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     final leg = widget.leg;
     if (leg != null) {
       // Prefer fitting camera to show all leg stops; fall back to leg origin.
-      final points = _legPoints(leg);
+      final points = legPointsForMap(leg);
       if (points.length >= 2) {
         _pendingFit = CameraFit.bounds(
           bounds: LatLngBounds.fromPoints(points),
@@ -140,7 +141,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     // without recreating the whole widget (avoids visible flash/reload).
     if (oldWidget.leg != widget.leg && widget.leg != null) {
       final newLeg = widget.leg!;
-      final points = _legPoints(newLeg);
+      final points = legPointsForMap(newLeg);
       if (points.length >= 2) {
         final fit = CameraFit.bounds(
           bounds: LatLngBounds.fromPoints(points),
@@ -164,7 +165,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
     // Draw additional (other) legs first so they appear below the active leg.
     for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
-      final points = _legPoints(otherLeg);
+      final points = legPointsForMap(otherLeg);
       if (points.length >= 2) {
         polylines.add(
           Polyline(
@@ -179,7 +180,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     final leg = widget.leg;
     if (leg == null) return polylines;
 
-    final points = _legPoints(leg);
+    final points = legPointsForMap(leg);
     if (points.length < 2) return polylines;
 
     final mode = widget.transportMode;
@@ -203,28 +204,6 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       );
     }
     return polylines;
-  }
-
-  /// Extract an ordered list of [LatLng] points from a leg's stop sequence or
-  /// coords polyline.
-  List<LatLng> _legPoints(Leg leg) {
-    final points = <LatLng>[];
-    final stopSequence = leg.stopSequence;
-    if (stopSequence != null && stopSequence.isNotEmpty) {
-      for (final s in stopSequence) {
-        final coord = s.coord;
-        if (coord != null && coord.length >= 2) {
-          points.add(LatLng(coord[0], coord[1]));
-        }
-      }
-    }
-    final legCoords = leg.coords;
-    if (points.length < 2 && legCoords != null && legCoords.length >= 2) {
-      for (final c in legCoords) {
-        if (c.length >= 2) points.add(LatLng(c[0], c[1]));
-      }
-    }
-    return points;
   }
 
   Future<void> _loadVehiclePositions() async {
@@ -693,7 +672,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'No vehicle found for id ${widget.vehicleId}',
+                vehicleNotFoundMessage(widget.vehicleId!),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -741,13 +720,7 @@ class RealtimeMapPage extends StatelessWidget {
     final GlobalKey<_RealtimeMapWidgetState> mapKey = GlobalKey();
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          mode != null
-              ? '$mode Map'
-              : leg != null
-              ? 'Trip Leg Map'
-              : 'Realtime Map',
-        ),
+        title: Text(realtimeMapPageTitle(mode: mode, leg: leg)),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

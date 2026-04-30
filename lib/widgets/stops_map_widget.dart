@@ -14,6 +14,7 @@ import '../services/debug_service.dart';
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
 import '../utils/color_utils.dart';
+import '../utils/stops_map_utils.dart';
 
 /// Widget for displaying stops on a map for a specific transport mode.
 ///
@@ -151,7 +152,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   }
 
   Future<List<Stop>> _getStopsForTransportMode(TransportMode mode) async {
-    final List<StopsEndpoint> endpoints = _getEndpointsForMode(mode);
+    final endpoints = endpointsForTransportMode(mode);
     final List<Stop> allStops = [];
 
     for (final endpoint in endpoints) {
@@ -166,51 +167,6 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     }
 
     return allStops;
-  }
-
-  List<StopsEndpoint> _getEndpointsForMode(TransportMode mode) {
-    switch (mode) {
-      case TransportMode.metro:
-        return [StopsEndpoint.metro];
-      case TransportMode.train:
-        return [StopsEndpoint.nswtrains, StopsEndpoint.sydneytrains];
-      case TransportMode.lightrail:
-        return [
-          StopsEndpoint.lightrailInnerwest,
-          StopsEndpoint.lightrailNewcastle,
-          StopsEndpoint.lightrailCbdandsoutheast,
-          StopsEndpoint.lightrailParramatta,
-        ];
-      case TransportMode.bus:
-        return [
-          StopsEndpoint.buses,
-          StopsEndpoint.busesSbsc006,
-          StopsEndpoint.busesGbsc001,
-          StopsEndpoint.busesGsbc002,
-          StopsEndpoint.busesGsbc003,
-          StopsEndpoint.busesGsbc004,
-          StopsEndpoint.busesGsbc007,
-          StopsEndpoint.busesGsbc008,
-          StopsEndpoint.busesGsbc009,
-          StopsEndpoint.busesGsbc010,
-          StopsEndpoint.busesGsbc014,
-          StopsEndpoint.busesOsmbsc001,
-          StopsEndpoint.busesOsmbsc002,
-          StopsEndpoint.busesOsmbsc003,
-          StopsEndpoint.busesOsmbsc004,
-          StopsEndpoint.busesOmbsc006,
-          StopsEndpoint.busesOmbsc007,
-          StopsEndpoint.busesOsmbsc008,
-          StopsEndpoint.busesOsmbsc009,
-          StopsEndpoint.busesOsmbsc010,
-          StopsEndpoint.busesOsmbsc011,
-          StopsEndpoint.busesOsmbsc012,
-          StopsEndpoint.busesNisc001,
-          StopsEndpoint.busesReplacementBus,
-        ];
-      case TransportMode.ferry:
-        return [StopsEndpoint.ferriesSydneyFerries, StopsEndpoint.ferriesMff];
-    }
   }
 
   void _centerMapOnStops() {
@@ -239,11 +195,10 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   /// Determine if markers should be shown based on zoom level
   /// For buses, require higher zoom to prevent crashes from too many markers
   bool _shouldShowMarkers() {
-    if (widget.transportMode == TransportMode.bus) {
-      return _currentZoom >= 13.0;
-    }
-    // Other modes can show markers at any zoom level
-    return true;
+    return shouldShowStopsMapMarkers(
+      mode: widget.transportMode,
+      currentZoom: _currentZoom,
+    );
   }
 
   Color _getModeColor() {
@@ -347,9 +302,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
           children: [
             const Icon(Icons.location_off, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            Text(
-              'No ${widget.modeDisplayName.toLowerCase()} stops found',
-            ),
+            Text('No ${widget.modeDisplayName.toLowerCase()} stops found'),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadStopsAndLocation,
@@ -371,18 +324,16 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
             maxZoom: 18.0,
             onPositionChanged: (position, hasGesture) {
               _zoomDebounce?.cancel();
-              _zoomDebounce = Timer(
-                const Duration(milliseconds: 150),
-                () {
-                  if (!mounted) return;
-                  setState(() {
-                    _currentZoom = position.zoom;
-                    _showZoomWarning =
-                        widget.transportMode == TransportMode.bus &&
-                        _currentZoom < 13.0;
-                  });
-                },
-              );
+              _zoomDebounce = Timer(const Duration(milliseconds: 150), () {
+                if (!mounted) return;
+                setState(() {
+                  _currentZoom = position.zoom;
+                  _showZoomWarning = shouldShowBusZoomWarning(
+                    mode: widget.transportMode,
+                    currentZoom: _currentZoom,
+                  );
+                });
+              });
             },
             onMapReady: () {
               // Mark map as ready and run any pending map action
@@ -398,8 +349,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
           ),
           children: [
             TileLayer(
-              urlTemplate:
-                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.flutter_timetable',
             ),
             if (userLoc != null)
@@ -428,10 +378,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                       decoration: BoxDecoration(
                         color: _getModeColor(),
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 2,
-                        ),
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                       child: Center(
                         child: Text(
@@ -462,11 +409,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.warning,
-                      color: Colors.orange,
-                      size: 32,
-                    ),
+                    const Icon(Icons.warning, color: Colors.orange, size: 32),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -498,28 +441,13 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
           ),
         // In embedded mode, show FABs inside the map Stack
         if (widget.embedded)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: _buildFABs(userLoc),
-          ),
+          Positioned(bottom: 16, right: 16, child: _buildFABs(userLoc)),
       ],
     );
   }
 
   IconData _getModeIcon() {
-    switch (widget.transportMode) {
-      case TransportMode.metro:
-        return Icons.subway;
-      case TransportMode.train:
-        return Icons.directions_train;
-      case TransportMode.lightrail:
-        return Icons.tram;
-      case TransportMode.bus:
-        return Icons.directions_bus;
-      case TransportMode.ferry:
-        return Icons.directions_ferry;
-    }
+    return iconForTransportMode(widget.transportMode);
   }
 
   void _showStopDetails(Stop stop) {
@@ -542,8 +470,9 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
               height: 4,
               decoration: BoxDecoration(
                 color: modeColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
               ),
             ),
             Padding(
@@ -559,9 +488,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                       Expanded(
                         child: Text(
                           stop.stopName,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
+                          style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -592,9 +519,9 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                     const SizedBox(height: 4),
                     Text(
                       'Coordinates: ${stop.stopLat.toStringAsFixed(6)}, ${stop.stopLon.toStringAsFixed(6)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                     ),
                     if (stop.parentStation != null) ...[
                       const SizedBox(height: 2),

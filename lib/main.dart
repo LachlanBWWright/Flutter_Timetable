@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
@@ -14,6 +14,7 @@ import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
+import 'package:lbww_flutter/utils/journey_filter_utils.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
 
 Future<void> main() async {
@@ -131,27 +132,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<db.Journey> _applySearchFilter(List<db.Journey> journeys) {
-    final query = _searchController.text;
-    if (query.isEmpty) {
-      return journeys;
-    }
-    final lowerQuery = query.toLowerCase();
-    return journeys.where((journey) {
-      return journey.origin.toLowerCase().contains(lowerQuery) ||
-          journey.destination.toLowerCase().contains(lowerQuery);
-    }).toList();
+    return filterJourneysByQuery(journeys, _searchController.text);
   }
 
   void _filterJourneys(String query) {
     setState(() {
-      if (query.isEmpty) {
-        _filteredJourneys = _journeys;
-      } else {
-        _filteredJourneys = _journeys.where((journey) {
-          return journey.origin.toLowerCase().contains(query.toLowerCase()) ||
-              journey.destination.toLowerCase().contains(query.toLowerCase());
-        }).toList();
-      }
+      _filteredJourneys = filterJourneysByQuery(_journeys, query);
     });
   }
 
@@ -275,10 +261,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final pinnedJourneys = _filteredJourneys.where((j) => j.isPinned).toList();
-    final unpinnedJourneys = _filteredJourneys
-        .where((j) => !j.isPinned)
-        .toList();
+    final sections = splitJourneySections(_filteredJourneys);
+    final pinnedJourneys = sections.pinnedJourneys;
+    final unpinnedJourneys = sections.unpinnedJourneys;
 
     return Scaffold(
       appBar: HomeAppBar(

@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
@@ -299,7 +297,7 @@ class RouteDebugPageBuilder {
 
     final stopById = {for (final stop in gtfsData.stops) stop.stopId: stop};
     final refs = <DebugEntityRef>[];
-    final seen = LinkedHashSet<String>();
+    final seen = <String>{};
     for (final stopTime in stopTimes) {
       if (!seen.add(stopTime.stopId)) {
         continue;

@@ -15,6 +15,7 @@ import 'services/debug_service.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
+import 'utils/settings_screen_utils.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
@@ -196,6 +197,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _toggleDebugData(bool value) async {
+    await DebugService.setShowDebugData(value);
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Color _apiKeyStatusColor(String status) {
+    return isPositiveApiKeyStatus(status) ? Colors.green : Colors.orange;
+  }
+
+  void _clearUpdateStatus() {
+    setState(() => _updateStatus = null);
+  }
+
+  Future<void> _resetDatabase() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() {
+      _isUpdating = true;
+      _updateStatus = 'Resetting database...';
+    });
+
+    try {
+      await db.AppDatabase.resetDatabase();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Database reset successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Database reset failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+          _updateStatus = null;
+        });
+      }
+    }
+  }
+
   void _openDebugBrowser(DebugEntityType entityType) {
     DebugNavigation.pushBrowser(
       context,
@@ -301,17 +350,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _hasUserApiKey
-                          ? 'Using your custom API key.'
-                          : hasBuiltInApiKey
-                          ? 'Using the built-in API key.'
-                          : 'No API key configured.',
+                      apiKeyUsageText(
+                        hasUserApiKey: _hasUserApiKey,
+                        hasBuiltInApiKey: hasBuiltInApiKey,
+                      ),
                       style: TextStyle(
-                        color: _hasUserApiKey
-                            ? Colors.green
-                            : hasBuiltInApiKey
-                            ? Colors.grey
-                            : Colors.orange,
+                        color: apiKeyUsageColor(
+                          hasUserApiKey: _hasUserApiKey,
+                          hasBuiltInApiKey: hasBuiltInApiKey,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -342,12 +389,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Text(
                           apiKeyStatus,
                           style: TextStyle(
-                            color:
-                                apiKeyStatus.contains('success') ||
-                                    apiKeyStatus.contains('saved') ||
-                                    apiKeyStatus.contains('removed')
-                                ? Colors.green
-                                : Colors.orange,
+                            color: _apiKeyStatusColor(apiKeyStatus),
                             fontSize: 13,
                           ),
                         ),
@@ -440,11 +482,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return SwitchListTile(
                           title: const Text('Show debug data'),
                           value: showDebug,
-                          onChanged: (val) async {
-                            await DebugService.setShowDebugData(val);
-                            if (!mounted) return;
-                            setState(() {});
-                          },
+                          onChanged: _toggleDebugData,
                         );
                       },
                     ),
@@ -566,13 +604,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 8),
                     if (_stopsUpdated > 0 || _realtimeFeedsUpdated > 0)
                       Text(
-                        'Stops updated: $_stopsUpdated • Realtime feeds updated: $_realtimeFeedsUpdated',
+                        formatUpdateSummary(
+                          stopsUpdated: _stopsUpdated,
+                          realtimeFeedsUpdated: _realtimeFeedsUpdated,
+                        ),
                       ),
                     if (_updateStatus?.isNotEmpty == true && !_isUpdating)
                       SizedBox(
                         width: double.infinity,
                         child: TextButton(
-                          onPressed: () => setState(() => _updateStatus = null),
+                          onPressed: _clearUpdateStatus,
                           child: const Text('Clear status'),
                         ),
                       ),
@@ -584,40 +625,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              setState(() {
-                                _isUpdating = true;
-                                _updateStatus = 'Resetting database...';
-                              });
-                              try {
-                                await db.AppDatabase.resetDatabase();
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Database reset successfully',
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text('Database reset failed: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              } finally {
-                                if (mounted) {
-                                  setState(() {
-                                    _isUpdating = false;
-                                    _updateStatus = null;
-                                  });
-                                }
-                              }
-                            },
+                            onPressed: _resetDatabase,
                             icon: const Icon(Icons.restore),
                             label: const Text('Reset DB (dev)'),
                             style: ButtonStyles.elevated(Colors.redAccent),

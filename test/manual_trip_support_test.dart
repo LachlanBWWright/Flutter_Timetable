@@ -9,11 +9,11 @@ import 'package:lbww_flutter/widgets/station_widgets.dart';
 void main() {
   group('ManualTripDefinition', () {
     test('reversed keeps the same line and reverses stop order', () {
-      final definition = ManualTripDefinition(
+      final definition = const ManualTripDefinition(
         mode: TransportMode.train,
         lineId: 'sydneytrains|T1',
         lineName: 'T1 North Shore Line',
-        legs: const [
+        legs: [
           ManualTripLeg(
             index: 0,
             originName: 'Central',
@@ -52,11 +52,11 @@ void main() {
     });
 
     test('journey reverse preview swaps endpoints and reversed legs json', () {
-      final definition = ManualTripDefinition(
+      final definition = const ManualTripDefinition(
         mode: TransportMode.train,
         lineId: 'sydneytrains|T1',
         lineName: 'T1 North Shore Line',
-        legs: const [
+        legs: [
           ManualTripLeg(
             index: 0,
             originName: 'Central',

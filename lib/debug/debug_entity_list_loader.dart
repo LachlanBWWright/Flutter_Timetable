@@ -1,5 +1,6 @@
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_utils.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
@@ -63,10 +64,8 @@ class DebugEntityListLoader {
                   .toSet()
                   .toList()
                 ..sort();
-          final localities = _sortedStrings(
-            stopRows.map((row) => row.stopDesc),
-          );
-          final parentStations = _sortedStrings(
+          final localities = sortedStrings(stopRows.map((row) => row.stopDesc));
+          final parentStations = sortedStrings(
             stopRows.map((row) => row.parentStation),
           );
           final coverage = endpoints.length > 1
@@ -98,8 +97,11 @@ class DebugEntityListLoader {
             entityType: DebugEntityType.stop,
             entityId: stopId,
             title: primary.stopName,
-            subtitle:
-                '$stopId • ${endpoints.length} endpoint${endpoints.length == 1 ? '' : 's'}',
+            subtitle: listSubtitleForEntity(
+              DebugEntityType.stop,
+              stopId,
+              endpoints.length,
+            ),
             description: primary.stopDesc,
             sources: const [DebugDataSource.localDb],
             filterValues: filterValues,
@@ -190,11 +192,9 @@ class DebugEntityListLoader {
       entry.sources.add(DebugDataSource.realtime);
       entry.activeVehicles += 1;
       if (vehicle.hasTimestamp()) {
-        final timestamp = DateTime.fromMillisecondsSinceEpoch(
-          vehicle.timestamp.toInt() * 1000,
-        );
+        final timestamp = timestampFromUnixSeconds(vehicle.timestamp.toInt());
         if (entry.latestRealtime == null ||
-            timestamp.isAfter(entry.latestRealtime!)) {
+            (timestamp != null && timestamp.isAfter(entry.latestRealtime!))) {
           entry.latestRealtime = timestamp;
         }
       }
@@ -212,11 +212,9 @@ class DebugEntityListLoader {
       entry.sources.add(DebugDataSource.realtime);
       entry.activeTrips += 1;
       if (update.hasTimestamp()) {
-        final timestamp = DateTime.fromMillisecondsSinceEpoch(
-          update.timestamp.toInt() * 1000,
-        );
+        final timestamp = timestampFromUnixSeconds(update.timestamp.toInt());
         if (entry.latestRealtime == null ||
-            timestamp.isAfter(entry.latestRealtime!)) {
+            (timestamp != null && timestamp.isAfter(entry.latestRealtime!))) {
           entry.latestRealtime = timestamp;
         }
       }
@@ -239,18 +237,29 @@ class DebugEntityListLoader {
           if (agencyName != null && agencyName.isNotEmpty) {
             filterValues['agency'] = [agencyName];
           }
-          filterValues['activity'] = [_routeActivity(entry)];
+          filterValues['activity'] = [
+            routeActivity(
+              hasGtfs: entry.sources.contains(DebugDataSource.gtfs),
+              hasRealtime: entry.sources.contains(DebugDataSource.realtime),
+              activeTrips: entry.activeTrips,
+              activeVehicles: entry.activeVehicles,
+            ),
+          ];
           filterValues['source'] =
               entry.sources.map((source) => source.label).toList()..sort();
 
           return DebugEntityListItem(
             entityType: DebugEntityType.route,
             entityId: entry.routeId,
-            title: _bestRouteTitle(route, entry.routeId),
-            subtitle: _bestRouteSubtitle(route, endpoints),
-            description: _routeDescription(entry),
-            sources: entry.sources.toList()
-              ..sort((left, right) => left.label.compareTo(right.label)),
+            title: bestRouteTitle(route, entry.routeId),
+            subtitle: bestRouteSubtitle(route, endpoints),
+            description: routeDescription(
+              agency: entry.agency,
+              route: route,
+              activeTrips: entry.activeTrips,
+              activeVehicles: entry.activeVehicles,
+            ),
+            sources: sortedSources(entry.sources),
             filterValues: filterValues,
             searchTerms: [
               entry.routeId,
@@ -336,18 +345,19 @@ class DebugEntityListLoader {
           ? update.trip.routeId
           : 'unknown';
       final timestamp = update.hasTimestamp()
-          ? DateTime.fromMillisecondsSinceEpoch(update.timestamp.toInt() * 1000)
+          ? timestampFromUnixSeconds(update.timestamp.toInt())
           : null;
       final matchedVehicle = vehiclesByTripId[tripId];
-      final stopIds = update.stopTimeUpdate
-          .where(
-            (stopUpdate) =>
-                stopUpdate.hasStopId() && stopUpdate.stopId.isNotEmpty,
-          )
-          .map((stopUpdate) => stopUpdate.stopId)
-          .toSet()
-          .toList()
-        ..sort();
+      final stopIds =
+          update.stopTimeUpdate
+              .where(
+                (stopUpdate) =>
+                    stopUpdate.hasStopId() && stopUpdate.stopId.isNotEmpty,
+              )
+              .map((stopUpdate) => stopUpdate.stopId)
+              .toSet()
+              .toList()
+            ..sort();
       final filterValues = <String, List<String>>{
         'route': [routeId],
         'source': [
@@ -371,10 +381,14 @@ class DebugEntityListLoader {
           entityId: tripId,
           title: tripId,
           subtitle: 'Route: $routeId',
-          description: _tripDescription(
-            update,
-            matchedVehicle: matchedVehicle,
+          description: tripDescription(
+            serviceDate: update.trip.hasStartDate()
+                ? update.trip.startDate
+                : null,
             stopCount: stopIds.length,
+            matchedVehicleId: matchedVehicle == null
+                ? null
+                : DebugExtractors.vehicleDisplayId(matchedVehicle),
           ),
           sources: const [DebugDataSource.realtime, DebugDataSource.derived],
           filterValues: filterValues,
@@ -446,9 +460,7 @@ class DebugEntityListLoader {
               ? vehicle.occupancyStatus.name
               : 'unknown';
           final timestamp = vehicle.hasTimestamp()
-              ? DateTime.fromMillisecondsSinceEpoch(
-                  vehicle.timestamp.toInt() * 1000,
-                )
+              ? timestampFromUnixSeconds(vehicle.timestamp.toInt())
               : null;
 
           final filterValues = <String, List<String>>{
@@ -560,7 +572,7 @@ class DebugEntityListLoader {
               .map(
                 (option) => DebugEntityListFilterOption(
                   id: option.key,
-                  label: _filterLabel(option.key),
+                  label: filterLabel(option.key),
                   count: option.value,
                 ),
               )
@@ -577,119 +589,8 @@ class DebugEntityListLoader {
     return groups;
   }
 
-  String _bestRouteTitle(gtfs_route.Route? route, String routeId) {
-    if (route == null) {
-      return routeId;
-    }
-    final longName = route.routeLongName;
-    if (longName.isNotEmpty) {
-      return longName;
-    }
-    final shortName = route.routeShortName;
-    if (shortName.isNotEmpty) {
-      return shortName;
-    }
-    return routeId;
-  }
-
-  String _bestRouteSubtitle(gtfs_route.Route? route, List<String> endpoints) {
-    final parts = <String>[];
-    final shortName = route?.routeShortName;
-    if (shortName != null && shortName.isNotEmpty) {
-      parts.add(shortName);
-    }
-    if (endpoints.isNotEmpty) {
-      parts.add(endpoints.join(', '));
-    }
-    return parts.isEmpty ? 'No GTFS metadata' : parts.join(' • ');
-  }
-
-  String _routeDescription(_RouteListEntry entry) {
-    final parts = <String>[];
-    if (entry.agency?.agencyName case final agencyName?) {
-      parts.add(agencyName);
-    }
-    if (entry.activeTrips > 0) {
-      parts.add(
-        '${entry.activeTrips} active trip${entry.activeTrips == 1 ? '' : 's'}',
-      );
-    }
-    if (entry.activeVehicles > 0) {
-      parts.add(
-        '${entry.activeVehicles} active vehicle${entry.activeVehicles == 1 ? '' : 's'}',
-      );
-    }
-    if (entry.route?.routeDesc case final routeDesc?) {
-      parts.add(routeDesc);
-    }
-    return parts.join(' • ');
-  }
-
-  String _routeActivity(_RouteListEntry entry) {
-    final hasGtfs = entry.sources.contains(DebugDataSource.gtfs);
-    final hasRealtime = entry.sources.contains(DebugDataSource.realtime);
-    if (!hasGtfs && hasRealtime) {
-      return 'realtime_only';
-    }
-    if (entry.activeTrips > 0 && entry.activeVehicles > 0) {
-      return 'active_trips_and_vehicles';
-    }
-    if (entry.activeTrips > 0) {
-      return 'active_trips';
-    }
-    if (entry.activeVehicles > 0) {
-      return 'active_vehicles';
-    }
-    return 'catalog_only';
-  }
-
-  String _tripDescription(
-    TripUpdate update, {
-    required VehiclePosition? matchedVehicle,
-    required int stopCount,
-  }) {
-    final parts = <String>[];
-    if (update.trip.hasStartDate()) {
-      parts.add('Service date: ${update.trip.startDate}');
-    }
-    parts.add(
-      '$stopCount stop update${stopCount == 1 ? '' : 's'}',
-    );
-    if (matchedVehicle != null) {
-      parts.add('Vehicle: ${DebugExtractors.vehicleDisplayId(matchedVehicle)}');
-    }
-    return parts.join(' • ');
-  }
-
   String _modeNameForEndpoint(StopsEndpoint endpoint) {
     return StopsService.modeForEndpointKey(endpoint.key)?.name ?? 'unknown';
-  }
-
-  List<String> _sortedStrings(Iterable<String?> values) {
-    final result = values
-        .whereType<String>()
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList(growable: false)
-      ..sort();
-    return result;
-  }
-
-  String _filterLabel(String value) {
-    final normalized = value.replaceAll('_', ' ');
-    if (normalized.isEmpty) {
-      return value;
-    }
-    return normalized
-        .split(' ')
-        .map((segment) {
-          if (segment.isEmpty) {
-            return segment;
-          }
-          return '${segment[0].toUpperCase()}${segment.substring(1)}';
-        })
-        .join(' ');
   }
 }
 

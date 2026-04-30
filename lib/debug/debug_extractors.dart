@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' as api;
@@ -41,7 +39,7 @@ class DebugExtractors {
   }
 
   static Set<String> collectTripIdsForTrip(api.TripJourney? trip) {
-    final ids = LinkedHashSet<String>();
+    final ids = <String>{};
     if (trip == null) {
       return ids;
     }
@@ -65,14 +63,14 @@ class DebugExtractors {
     api.Leg? leg, {
     api.TripJourney? trip,
   }) {
-    final ids = LinkedHashSet<String>();
+    final ids = <String>{};
     collectTripIdsFromRawJsonInto(trip?.rawJson, ids);
     collectTripIdsFromRawJsonInto(leg?.rawJson, ids);
     return ids;
   }
 
   static Set<String> collectRouteIdsForTrip(api.TripJourney? trip) {
-    final ids = LinkedHashSet<String>();
+    final ids = <String>{};
     if (trip == null) {
       return ids;
     }
@@ -241,7 +239,7 @@ class DebugExtractors {
     Iterable<String?> values, {
     String? exclude,
   }) {
-    final unique = LinkedHashSet<String>();
+    final unique = <String>{};
     for (final value in values) {
       final trimmed = value?.trim();
       if (trimmed == null || trimmed.isEmpty || trimmed == exclude) {

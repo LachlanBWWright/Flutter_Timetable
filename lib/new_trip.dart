@@ -8,6 +8,7 @@ import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/trip_line_service.dart';
+import 'package:lbww_flutter/utils/new_trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
@@ -134,23 +135,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   void _onTabChanged() {
     final oldMode = _currentMode;
-    switch (_tabController.index) {
-      case 0:
-        _currentMode = TransportMode.train;
-        break;
-      case 1:
-        _currentMode = TransportMode.lightrail;
-        break;
-      case 2:
-        _currentMode = TransportMode.metro;
-        break;
-      case 3:
-        _currentMode = TransportMode.bus;
-        break;
-      case 4:
-        _currentMode = TransportMode.ferry;
-        break;
-    }
+    _currentMode = transportModeFromTabIndex(_tabController.index);
 
     if (oldMode != _currentMode) {
       setState(() {});
@@ -627,13 +612,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _setTabForMode(TransportMode mode) {
-    final index = switch (mode) {
-      TransportMode.train => 0,
-      TransportMode.lightrail => 1,
-      TransportMode.metro => 2,
-      TransportMode.bus => 3,
-      TransportMode.ferry => 4,
-    };
+    final index = tabIndexForTransportMode(mode);
 
     if (_tabController.index != index) {
       _tabController.animateTo(index);
@@ -654,21 +633,15 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   bool get _canSaveDirect {
-    final origin = _originStation;
-    final destination = _destinationStation;
-    return origin != null &&
-        destination != null &&
-        origin.id.isNotEmpty &&
-        destination.id.isNotEmpty &&
-        origin.id != destination.id;
+    return canSaveDirectTrip(
+      origin: _originStation,
+      destination: _destinationStation,
+    );
   }
 
   String? get _manualValidationMessage {
-    if (!_manualBuilderEnabled) {
-      return null;
-    }
-
-    return NewTripService.validateManualTrip(
+    return manualTripValidationMessage(
+      manualBuilderEnabled: _manualBuilderEnabled,
       origin: _originStation,
       destination: _destinationStation,
       interchanges: _interchanges,
@@ -680,49 +653,20 @@ class _NewTripScreenState extends State<NewTripScreen>
       _manualBuilderEnabled && _manualValidationMessage == null;
 
   String? get _statusMessage {
-    final origin = _originStation;
-    final destination = _destinationStation;
-    if (origin == null && destination == null) {
-      return null;
-    }
-
-    if (_isResolvingSharedLines) {
-      return 'Checking for shared lines...';
-    }
-
-    if (_manualBuilderEnabled && _pendingInterchangeInsertIndex != null) {
-      final orderedStops = _orderedStops;
-      final insertIndex = _pendingInterchangeInsertIndex!;
-      if (insertIndex > 0 && insertIndex < orderedStops.length) {
-        final previous = orderedStops[insertIndex - 1];
-        final next = orderedStops[insertIndex];
-        return 'Choose an interchange between ${previous.name} and ${next.name}. Stops on the selected line within 5 km are listed first.';
-      }
-    }
-
-    if (_manualBuilderEnabled) {
-      return _manualValidationMessage ??
-          'Add interchanges on ${_selectedLine?.lineName ?? 'the selected line'} to split this trip into multiple legs.';
-    }
-
-    if (_canSaveDirect && _sharedLines.isEmpty) {
-      if (_originMode != null &&
-          _destinationMode != null &&
-          _originMode != _destinationMode) {
-        return 'These stops do not share a mode. You can still save them as a direct trip.';
-      }
-      return 'No shared line found. You can still save this as a direct trip.';
-    }
-
-    if (_sharedLines.length == 1) {
-      return 'A shared line is available. Save directly or build a manual multi-leg trip.';
-    }
-
-    if (_sharedLines.length > 1) {
-      return 'Multiple shared lines are available. Pick one before building a manual multi-leg trip.';
-    }
-
-    return null;
+    return buildNewTripStatusMessage(
+      origin: _originStation,
+      destination: _destinationStation,
+      isResolvingSharedLines: _isResolvingSharedLines,
+      manualBuilderEnabled: _manualBuilderEnabled,
+      pendingInterchangeInsertIndex: _pendingInterchangeInsertIndex,
+      orderedStops: _orderedStops,
+      manualValidationMessage: _manualValidationMessage,
+      selectedLine: _selectedLine,
+      canSaveDirect: _canSaveDirect,
+      sharedLines: _sharedLines,
+      originMode: _originMode,
+      destinationMode: _destinationMode,
+    );
   }
 
   List<Station> _getCurrentStationList() {
@@ -906,12 +850,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         ? _manualCandidateStations
         : _getStationListForMode(mode);
 
-    final query = keyController.text.trim().toLowerCase();
-    final displayList = query.isEmpty
-        ? baseList
-        : baseList
-              .where((station) => station.name.toLowerCase().contains(query))
-              .toList();
+    final displayList = filterStationsByQuery(baseList, keyController.text);
 
     if (displayList.isEmpty) {
       final emptyMessage =
@@ -919,7 +858,7 @@ class _NewTripScreenState extends State<NewTripScreen>
               _pendingInterchangeInsertIndex != null &&
               _selectedLine != null &&
               mode == _selectedLine!.mode
-          ? 'No stops found on ${_selectedLine!.lineName} for this interchange.'
+          ? buildInterchangeEmptyMessage(_selectedLine!)
           : 'No stops found.';
       return Center(child: Text(emptyMessage));
     }

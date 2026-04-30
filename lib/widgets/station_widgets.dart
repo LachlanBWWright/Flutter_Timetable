@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import '../constants/transport_colors.dart';
 import '../services/debug_service.dart';
+import '../utils/station_subtitle_utils.dart';
 
 /// A model class for station data
 class Station {
@@ -141,68 +142,41 @@ class StationView extends StatelessWidget {
         final items = <Widget>[];
         final dist = station.distance;
 
-        // Always show distance when available
-        if (dist != null && !showDebug) {
+        final standardDistanceLine = formatStationDistanceLine(
+          dist,
+          debugFormat: false,
+        );
+        if (standardDistanceLine != null && !showDebug) {
           items.add(
             Text(
-              '${dist.toStringAsFixed(1)} km away',
+              standardDistanceLine,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           );
         }
 
         if (showDebug) {
-          items.addAll([
-            Text(
-              'ID: ${station.id}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Code: ${station.stopCode ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Parent: ${station.parentStation ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Desc: ${station.stopDesc ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Zone: ${station.zoneId ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'URL: ${station.stopUrl ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'TZ: ${station.stopTimezone ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Level: ${station.levelId ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Wheelchair: ${station.wheelchairBoarding ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Platform: ${station.platformCode ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            Text(
-              'Lat/Lon: ${station.latitude?.toStringAsFixed(5) ?? '-'}, ${station.longitude?.toStringAsFixed(5) ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            if (dist != null)
-              Text(
-                'Distance: ${dist.toStringAsFixed(2)} km',
+          items.addAll(
+            buildStationDebugLines(station).map(
+              (line) => Text(
+                line,
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
-          ]);
+            ),
+          );
+
+          final debugDistanceLine = formatStationDistanceLine(
+            dist,
+            debugFormat: true,
+          );
+          if (debugDistanceLine != null) {
+            items.add(
+              Text(
+                debugDistanceLine,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            );
+          }
         }
 
         if (items.isEmpty) return const SizedBox.shrink();
