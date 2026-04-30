@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'package:lbww_flutter/models/manual_trip_models.dart';
+
 part 'tables/journeys.dart';
 part 'tables/stops.dart';
 
@@ -27,12 +29,36 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (Migrator m) {
-      return m.createAll();
+    onCreate: (Migrator m) async {
+      await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      // Add new stop columns introduced in schemaVersion 4. Drift will
+      // skip columns that already exist when upgrading.
+      if (from < 4) {
+        await m.addColumn(stops, stops.stopCode);
+        await m.addColumn(stops, stops.ttsStopName);
+        await m.addColumn(stops, stops.stopDesc);
+        await m.addColumn(stops, stops.zoneId);
+        await m.addColumn(stops, stops.stopUrl);
+        await m.addColumn(stops, stops.stopTimezone);
+        await m.addColumn(stops, stops.levelId);
+      }
+
+      if (from < 5) {
+        await m.addColumn(journeys, journeys.tripType);
+        await m.addColumn(journeys, journeys.mode);
+        await m.addColumn(journeys, journeys.lineId);
+        await m.addColumn(journeys, journeys.lineName);
+        await m.addColumn(journeys, journeys.legsJson);
+        await customStatement(
+          "UPDATE journeys SET trip_type = '${SavedTripType.direct.storageValue}' WHERE trip_type IS NULL OR trip_type = ''",
+        );
+      }
     },
   );
 
@@ -65,6 +91,15 @@ class AppDatabase extends _$AppDatabase {
             ..where((tbl) => tbl.endpoint.equals(endpoint))
             ..orderBy([(t) => OrderingTerm(expression: t.stopName)]))
           .get();
+
+  Future<List<Stop>> getAllStops({int? limit}) {
+    final query = select(stops)
+      ..orderBy([(t) => OrderingTerm(expression: t.stopName)]);
+    if (limit != null) {
+      query.limit(limit);
+    }
+    return query.get();
+  }
 
   Future<List<Stop>> searchStops(String query, {int limit = 50}) =>
       (select(stops)

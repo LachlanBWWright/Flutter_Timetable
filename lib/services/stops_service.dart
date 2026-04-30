@@ -133,6 +133,26 @@ class StopsUpdateProgress {
 class StopsService {
   static AppDatabase? _database;
 
+  static TransportMode? modeForEndpointKey(String endpoint) {
+    if (endpoint.startsWith('buses') || endpoint.startsWith('regionbuses')) {
+      return TransportMode.bus;
+    }
+    if (endpoint.startsWith('ferries')) {
+      return TransportMode.ferry;
+    }
+    if (endpoint.startsWith('lightrail')) {
+      return TransportMode.lightrail;
+    }
+    if (endpoint.contains('trains')) {
+      return TransportMode.train;
+    }
+    if (endpoint == 'metro') {
+      return TransportMode.metro;
+    }
+
+    return null;
+  }
+
   /// Get or create database instance
   static AppDatabase get database {
     final db = _database ??= AppDatabase();
@@ -205,6 +225,13 @@ class StopsService {
         StopsCompanion.insert(
           stopId: trimmedId,
           stopName: stop.stopName,
+          stopCode: Value(stop.stopCode),
+          ttsStopName: Value(stop.ttsStopName),
+          stopDesc: Value(stop.stopDesc),
+          zoneId: Value(stop.zoneId),
+          stopUrl: Value(stop.stopUrl),
+          stopTimezone: Value(stop.stopTimezone),
+          levelId: Value(stop.levelId),
           stopLat: Value(stop.stopLat),
           stopLon: Value(stop.stopLon),
           locationType: Value(stop.locationType),
@@ -230,12 +257,19 @@ class StopsService {
         .map(
           (dbStop) => Stop(
             stopId: dbStop.stopId,
+            stopCode: dbStop.stopCode,
+            ttsStopName: dbStop.ttsStopName,
             stopName: dbStop.stopName,
+            stopDesc: dbStop.stopDesc,
             stopLat: dbStop.stopLat ?? 0.0,
             stopLon: dbStop.stopLon ?? 0.0,
+            zoneId: dbStop.zoneId,
+            stopUrl: dbStop.stopUrl,
+            stopTimezone: dbStop.stopTimezone,
             locationType: dbStop.locationType ?? 0,
             parentStation: dbStop.parentStation,
             wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+            levelId: dbStop.levelId,
             platformCode: dbStop.platformCode,
           ),
         )
@@ -252,12 +286,19 @@ class StopsService {
         .map(
           (dbStop) => Stop(
             stopId: dbStop.stopId,
+            stopCode: dbStop.stopCode,
+            ttsStopName: dbStop.ttsStopName,
             stopName: dbStop.stopName,
+            stopDesc: dbStop.stopDesc,
             stopLat: dbStop.stopLat ?? 0.0,
             stopLon: dbStop.stopLon ?? 0.0,
+            zoneId: dbStop.zoneId,
+            stopUrl: dbStop.stopUrl,
+            stopTimezone: dbStop.stopTimezone,
             locationType: dbStop.locationType ?? 0,
             parentStation: dbStop.parentStation,
             wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+            levelId: dbStop.levelId,
             platformCode: dbStop.platformCode,
           ),
         )
@@ -412,22 +453,7 @@ class StopsService {
       final count = entry.value;
 
       // Try to map common endpoint prefixes to TransportMode
-      TransportMode? modeKey;
-      if (endpoint.startsWith('buses')) {
-        modeKey = TransportMode.bus;
-      } else if (endpoint.startsWith('regionbuses')) {
-        modeKey = TransportMode.bus;
-      } else if (endpoint.startsWith('ferries')) {
-        modeKey = TransportMode.ferry;
-      } else if (endpoint.startsWith('lightrail')) {
-        modeKey = TransportMode.lightrail;
-      } else if (endpoint.contains('trains')) {
-        modeKey = TransportMode.train;
-      } else if (endpoint == 'metro') {
-        modeKey = TransportMode.metro;
-      } else {
-        modeKey = null;
-      }
+      final modeKey = modeForEndpointKey(endpoint);
 
       grouped.putIfAbsent(modeKey, () => {});
       grouped[modeKey]?[endpoint] = count;
@@ -448,23 +474,7 @@ class StopsService {
       // Use the first matching row's endpoint to infer mode
       final endpoint = rows.first.endpoint;
 
-      if (endpoint.startsWith('buses') || endpoint.startsWith('regionbuses')) {
-        return TransportMode.bus;
-      }
-      if (endpoint.startsWith('ferries')) {
-        return TransportMode.ferry;
-      }
-      if (endpoint.startsWith('lightrail')) {
-        return TransportMode.lightrail;
-      }
-      if (endpoint.contains('trains')) {
-        return TransportMode.train;
-      }
-      if (endpoint == 'metro') {
-        return TransportMode.metro;
-      }
-
-      return null;
+      return modeForEndpointKey(endpoint);
     } catch (_) {
       return null;
     }

@@ -68,15 +68,24 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
   bool _expanded = false;
 
   String _formatTimeDifference(String? planned, String? estimated) {
-    if (planned == null || estimated == null) {
-      return DateTimeUtils.parseTimeOnly(estimated ?? '');
+    final hasPlanned = planned != null && planned.isNotEmpty;
+    final hasEstimated = estimated != null && estimated.isNotEmpty;
+    final fallbackTime = estimated ?? planned;
+    if (!hasPlanned && !hasEstimated) {
+      return 'TBD';
+    }
+    if (!hasEstimated) {
+      return DateTimeUtils.parseTimeOnly(fallbackTime!);
+    }
+    if (!hasPlanned) {
+      return DateTimeUtils.parseTimeOnly(fallbackTime!);
     }
     try {
       final plannedTime = DateTimeUtils.parseTimeToDateTime(planned);
       final estimatedTime = DateTimeUtils.parseTimeToDateTime(estimated);
 
       if (plannedTime == null || estimatedTime == null) {
-        return DateTimeUtils.parseTimeOnly(estimated);
+        return DateTimeUtils.parseTimeOnly(fallbackTime!);
       }
 
       final difference = estimatedTime.difference(plannedTime).inMinutes;
@@ -89,8 +98,20 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
         return '${DateTimeUtils.parseTimeOnly(estimated)} (${difference.abs()}m early)';
       }
     } catch (e) {
-      return DateTimeUtils.parseTimeOnly(estimated);
+      return DateTimeUtils.parseTimeOnly(fallbackTime!);
     }
+  }
+
+  String _formatTimeRange(Leg leg) {
+    final departure = _formatTimeDifference(
+      leg.origin.departureTimePlanned,
+      leg.origin.departureTimeEstimated,
+    );
+    final arrival = _formatTimeDifference(
+      leg.destination.arrivalTimePlanned,
+      leg.destination.arrivalTimeEstimated,
+    );
+    return '$departure - $arrival';
   }
 
   @override
@@ -229,8 +250,20 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                title: Text(
-                  '${leg.origin.disassembledName} → ${leg.destination.disassembledName}',
+                title: Row(
+                  children: [
+                    // Timestamp left of the leg description
+                    Text(
+                      _formatTimeRange(leg),
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${leg.origin.disassembledName} → ${leg.destination.disassembledName}',
+                      ),
+                    ),
+                  ],
                 ),
                 dense: true,
                 trailing: const Padding(

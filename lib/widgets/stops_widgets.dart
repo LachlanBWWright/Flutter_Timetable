@@ -1,17 +1,36 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
+import 'package:lbww_flutter/debug/debug_entity_type.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
+import 'package:lbww_flutter/debug/debug_page_loader.dart';
 
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 import '../services/stops_service.dart';
 import '../utils/button_styles.dart';
-import '../utils/transport_display.dart';
+import '../utils/stops_widget_utils.dart';
 
 /// Widget for managing and displaying GTFS stops data
 class StopsManagementWidget extends StatefulWidget {
-  const StopsManagementWidget({super.key});
+  final Future<int> Function()? getTotalStopsCount;
+  final Future<Map<TransportMode?, Map<String, int>>> Function()?
+  getStopsCountByEndpoint;
+  final DebugEntityPageLoader? debugPageLoader;
+  final DebugEntityListPageLoader? debugListLoader;
+
+  const StopsManagementWidget({
+    super.key,
+    this.getTotalStopsCount,
+    this.getStopsCountByEndpoint,
+    this.debugPageLoader,
+    this.debugListLoader,
+  });
 
   @override
   State<StopsManagementWidget> createState() => _StopsManagementWidgetState();
@@ -23,6 +42,13 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   int _totalStops = 0;
   bool _isLoading = false;
   String? _error;
+  late final DebugEntityResolver _debugResolver = DebugEntityResolver();
+  late final DebugEntityPageLoader _debugPageLoader =
+      widget.debugPageLoader ??
+      DebugPageLoaderCoordinator(resolver: _debugResolver).load;
+  late final DebugEntityListPageLoader _debugListLoader =
+      widget.debugListLoader ??
+      DebugEntityListLoader(resolver: _debugResolver).load;
 
   @override
   void initState() {
@@ -37,18 +63,16 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     });
 
     try {
-      final count = await StopsService.getTotalStopsCount();
-      final grouped = await StopsService.getStopsCountByEndpoint();
+      final count =
+          await (widget.getTotalStopsCount ??
+              StopsService.getTotalStopsCount)();
+      final grouped =
+          await (widget.getStopsCountByEndpoint ??
+              StopsService.getStopsCountByEndpoint)();
 
       if (!mounted) return;
 
-      // Flatten grouped map for any places that still expect endpoint->count
-      final flattened = <String, int>{};
-      for (final grp in grouped.values) {
-        for (final e in grp.entries) {
-          flattened[e.key] = e.value;
-        }
-      }
+      final flattened = flattenStopsCountByEndpoint(grouped);
 
       setState(() {
         _totalStops = count;
@@ -335,21 +359,31 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // refresh button moved to title row above
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => DebugNavigation.pushBrowser(
+                      context,
+                      entityType: DebugEntityType.stop,
+                      listLoader: _debugListLoader,
+                      pageLoader: _debugPageLoader,
+                    ),
+                    icon: const Icon(Icons.bug_report),
+                    label: const Text('Browse stop debug pages'),
+                    style: ButtonStyles.elevated(Colors.blueGrey),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _wipeStopsData,
+                    icon: const Icon(Icons.delete_sweep),
+                    label: const Text('Wipe All Stops Data'),
+                    style: ButtonStyles.elevated(Colors.red),
+                  ),
+                ),
               ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Wipe data button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _wipeStopsData,
-                icon: const Icon(Icons.delete_sweep),
-                label: const Text('Wipe All Stops Data'),
-                style: ButtonStyles.elevated(Colors.red),
-              ),
             ),
 
             const SizedBox(height: 16),
@@ -408,24 +442,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             (sum, count) => sum + count,
           );
 
-          final displayName = (() {
-            if (modeKey != null) {
-              // For buses we preserve the distinction between city and regional
-              // when the endpoints are exclusively one or the other.
-              if (modeKey == TransportMode.bus) {
-                final hasRegion = endpoints.keys.any(
-                  (k) => k.startsWith('regionbuses'),
-                );
-                final hasCity = endpoints.keys.any(
-                  (k) => k.startsWith('buses'),
-                );
-                if (hasRegion && !hasCity) return 'Regional Buses';
-                if (hasCity && !hasRegion) return 'City Buses';
-              }
-              return getDisplayNameForTransportMode(modeKey);
-            }
-            return 'Other';
-          })();
+          final displayName = displayNameForStopsModeGroup(modeKey, endpoints);
 
           return ExpansionTile(
             leading: Container(
@@ -449,15 +466,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               return ListTile(
                 contentPadding: const EdgeInsets.only(left: 32, right: 16),
                 title: Text(
-                  endpoint.key
-                      .replaceAll('_', ' ')
-                      .split(' ')
-                      .map(
-                        (word) => word.isNotEmpty
-                            ? word[0].toUpperCase() + word.substring(1)
-                            : word,
-                      )
-                      .join(' '),
+                  formatEndpointDisplayName(endpoint.key),
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Container(

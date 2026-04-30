@@ -1,11 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import '../constants/transport_colors.dart';
+import '../services/debug_service.dart';
+import '../utils/station_subtitle_utils.dart';
 
 /// A model class for station data
 class Station {
   final String name;
   final String id;
+  final String? lineId;
+  final String? lineName;
+  final bool isWithinLinePriorityRadius;
+  final int? lineStopOrder;
+
+  // Optional metadata from GTFS/stop endpoints
+  final String? stopCode;
+  final String? stopDesc;
+  final String? zoneId;
+  final String? stopUrl;
+  final String? stopTimezone;
+  final String? levelId;
+  final String? parentStation;
+  final int? wheelchairBoarding;
+  final String? platformCode;
+
   final double? latitude;
   final double? longitude;
   final double? distance; // Distance from user location in km
@@ -13,6 +31,19 @@ class Station {
   Station({
     required this.name,
     required this.id,
+    this.lineId,
+    this.lineName,
+    this.isWithinLinePriorityRadius = false,
+    this.lineStopOrder,
+    this.stopCode,
+    this.stopDesc,
+    this.zoneId,
+    this.stopUrl,
+    this.stopTimezone,
+    this.levelId,
+    this.parentStation,
+    this.wheelchairBoarding,
+    this.platformCode,
     this.latitude,
     this.longitude,
     this.distance,
@@ -22,6 +53,19 @@ class Station {
   Station copyWith({
     String? name,
     String? id,
+    String? lineId,
+    String? lineName,
+    bool? isWithinLinePriorityRadius,
+    int? lineStopOrder,
+    String? stopCode,
+    String? stopDesc,
+    String? zoneId,
+    String? stopUrl,
+    String? stopTimezone,
+    String? levelId,
+    String? parentStation,
+    int? wheelchairBoarding,
+    String? platformCode,
     double? latitude,
     double? longitude,
     double? distance,
@@ -29,6 +73,20 @@ class Station {
     return Station(
       name: name ?? this.name,
       id: id ?? this.id,
+      lineId: lineId ?? this.lineId,
+      lineName: lineName ?? this.lineName,
+      isWithinLinePriorityRadius:
+          isWithinLinePriorityRadius ?? this.isWithinLinePriorityRadius,
+      lineStopOrder: lineStopOrder ?? this.lineStopOrder,
+      stopCode: stopCode ?? this.stopCode,
+      stopDesc: stopDesc ?? this.stopDesc,
+      zoneId: zoneId ?? this.zoneId,
+      stopUrl: stopUrl ?? this.stopUrl,
+      stopTimezone: stopTimezone ?? this.stopTimezone,
+      levelId: levelId ?? this.levelId,
+      parentStation: parentStation ?? this.parentStation,
+      wheelchairBoarding: wheelchairBoarding ?? this.wheelchairBoarding,
+      platformCode: platformCode ?? this.platformCode,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       distance: distance ?? this.distance,
@@ -78,17 +136,56 @@ class StationView extends StatelessWidget {
   }
 
   Widget _buildSubtitle() {
-    // Only show distance if available
-    final dist = station.distance;
-    if (dist != null) {
-      return Text(
-        '${dist.toStringAsFixed(1)} km away',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-      );
-    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: DebugService.showDebugData,
+      builder: (context, showDebug, _) {
+        final items = <Widget>[];
+        final dist = station.distance;
 
-    // Don't show anything if distance is not available
-    return const SizedBox.shrink();
+        final standardDistanceLine = formatStationDistanceLine(
+          dist,
+          debugFormat: false,
+        );
+        if (standardDistanceLine != null && !showDebug) {
+          items.add(
+            Text(
+              standardDistanceLine,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          );
+        }
+
+        if (showDebug) {
+          items.addAll(
+            buildStationDebugLines(station).map(
+              (line) => Text(
+                line,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+          );
+
+          final debugDistanceLine = formatStationDistanceLine(
+            dist,
+            debugFormat: true,
+          );
+          if (debugDistanceLine != null) {
+            items.add(
+              Text(
+                debugDistanceLine,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            );
+          }
+        }
+
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items,
+        );
+      },
+    );
   }
 }
 
@@ -195,6 +292,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onOpenMap;
   final VoidCallback onToggleSort;
   final SortMode sortMode;
+  final bool showMapView;
   final TabController? tabController;
 
   const NewTripAppBar({
@@ -209,6 +307,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onOpenMap,
     required this.onToggleSort,
     required this.sortMode,
+    this.showMapView = false,
     this.tabController,
   });
 
@@ -229,8 +328,8 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           : const Text('Add New Trip'),
       actions: [
         if (!canSave) ...[
-          // Sort button (only show when not searching and not ready to save)
-          if (!isSearching)
+          // Sort button (only show when not searching, not in map view, and not ready to save)
+          if (!isSearching && !showMapView)
             IconButton(
               onPressed: onToggleSort,
               icon: Icon(
@@ -242,24 +341,26 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ? 'Sort by distance'
                   : 'Sort alphabetically',
             ),
-          // Map button (only show when not searching)
+          // Map/list toggle button (only show when not searching)
           if (!isSearching)
             IconButton(
               onPressed: onOpenMap,
-              icon: const Icon(Icons.map),
-              tooltip: 'Open stops map',
+              icon: Icon(showMapView ? Icons.list : Icons.map),
+              tooltip: showMapView ? 'Show list' : 'Open stops map',
             ),
-          // Search/cancel button
-          if (isSearching)
-            IconButton(
-              onPressed: onToggleSearch,
-              icon: const Icon(Icons.cancel),
-            )
-          else
-            IconButton(
-              onPressed: onToggleSearch,
-              icon: const Icon(Icons.search),
-            ),
+          // Search/cancel button (only visible when not in map view)
+          if (!showMapView) ...[
+            if (isSearching)
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.cancel),
+              )
+            else
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.search),
+              ),
+          ],
         ],
       ],
       bottom: TabBar(

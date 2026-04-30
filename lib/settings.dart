@@ -1,20 +1,44 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:url_launcher/url_launcher.dart';
 
+import 'debug/debug_entity_resolver.dart';
+import 'debug/debug_entity_type.dart';
+import 'debug/debug_navigation.dart';
+import 'debug/debug_page_loader.dart';
 import 'services/api_key_service.dart';
 import 'services/debug_service.dart';
-import 'services/location_service.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
+import 'utils/settings_screen_utils.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final DebugEntityPageLoader? debugPageLoader;
+  final DebugEntityListPageLoader? debugListLoader;
+  final bool Function()? hasUserApiKey;
+  final bool Function()? hasBuiltInApiKey;
+  final Widget? stopsManagementWidget;
+  final Widget? stopsSearchWidget;
+  final Widget? realtimeInfoWidget;
+
+  const SettingsScreen({
+    super.key,
+    this.debugPageLoader,
+    this.debugListLoader,
+    this.hasUserApiKey,
+    this.hasBuiltInApiKey,
+    this.stopsManagementWidget,
+    this.stopsSearchWidget,
+    this.realtimeInfoWidget,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -24,11 +48,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const String _devGuideUrl =
       'https://opendata.transport.nsw.gov.au/developers/userguide';
 
-  bool _isAlphabeticalSorting = false;
   bool _isUpdating = false;
   String? _updateStatus;
   int _stopsUpdated = 0;
   int _realtimeFeedsUpdated = 0;
+
+  late final DebugEntityResolver _debugResolver = DebugEntityResolver();
+  late final DebugEntityPageLoader _debugPageLoader =
+      widget.debugPageLoader ??
+      DebugPageLoaderCoordinator(resolver: _debugResolver).load;
+  late final DebugEntityListPageLoader _debugListLoader =
+      widget.debugListLoader ??
+      DebugEntityListLoader(resolver: _debugResolver).load;
 
   // API key card state
   final TextEditingController _apiKeyController = TextEditingController();
@@ -40,7 +71,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSortingPreference();
     _loadApiKeyState();
   }
 
@@ -52,7 +82,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _loadApiKeyState() {
     setState(() {
-      _hasUserApiKey = ApiKeyService.hasUserApiKey();
+      _hasUserApiKey =
+          widget.hasUserApiKey?.call() ?? ApiKeyService.hasUserApiKey();
     });
   }
 
@@ -89,7 +120,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _hasUserApiKey = false;
         _apiKeyController.clear();
-        _apiKeyStatus = ApiKeyService.hasBuiltInApiKey()
+        _apiKeyStatus =
+            (widget.hasBuiltInApiKey?.call() ??
+                ApiKeyService.hasBuiltInApiKey())
             ? 'Custom key removed - using built-in API key.'
             : 'Custom key removed - no API key is configured.';
         _isSavingApiKey = false;
@@ -164,20 +197,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _loadSortingPreference() async {
-    final isAlphabetical = await LocationService.isAlphabeticalSorting();
+  Future<void> _toggleDebugData(bool value) async {
+    await DebugService.setShowDebugData(value);
     if (!mounted) return;
-    setState(() {
-      _isAlphabeticalSorting = isAlphabetical;
-    });
+    setState(() {});
   }
 
-  Future<void> _updateSortingPreference(bool value) async {
-    await LocationService.setSortingPreference(value);
-    if (!mounted) return;
+  Color _apiKeyStatusColor(String status) {
+    return isPositiveApiKeyStatus(status) ? Colors.green : Colors.orange;
+  }
+
+  void _clearUpdateStatus() {
+    setState(() => _updateStatus = null);
+  }
+
+  Future<void> _resetDatabase() async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() {
-      _isAlphabeticalSorting = value;
+      _isUpdating = true;
+      _updateStatus = 'Resetting database...';
     });
+
+    try {
+      await db.AppDatabase.resetDatabase();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Database reset successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Database reset failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+          _updateStatus = null;
+        });
+      }
+    }
+  }
+
+  void _openDebugBrowser(DebugEntityType entityType) {
+    DebugNavigation.pushBrowser(
+      context,
+      entityType: entityType,
+      listLoader: _debugListLoader,
+      pageLoader: _debugPageLoader,
+    );
   }
 
   void _navigateToRealtimeMap(BuildContext context) {
@@ -196,6 +270,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasBuiltInApiKey =
+        widget.hasBuiltInApiKey?.call() ?? ApiKeyService.hasBuiltInApiKey();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings & Management'),
@@ -273,17 +350,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _hasUserApiKey
-                          ? 'Using your custom API key.'
-                          : ApiKeyService.hasBuiltInApiKey()
-                          ? 'Using the built-in API key.'
-                          : 'No API key configured.',
+                      apiKeyUsageText(
+                        hasUserApiKey: _hasUserApiKey,
+                        hasBuiltInApiKey: hasBuiltInApiKey,
+                      ),
                       style: TextStyle(
-                        color: _hasUserApiKey
-                            ? Colors.green
-                            : ApiKeyService.hasBuiltInApiKey()
-                            ? Colors.grey
-                            : Colors.orange,
+                        color: apiKeyUsageColor(
+                          hasUserApiKey: _hasUserApiKey,
+                          hasBuiltInApiKey: hasBuiltInApiKey,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -314,12 +389,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Text(
                           apiKeyStatus,
                           style: TextStyle(
-                            color:
-                                apiKeyStatus.contains('success') ||
-                                    apiKeyStatus.contains('saved') ||
-                                    apiKeyStatus.contains('removed')
-                                ? Colors.green
-                                : Colors.orange,
+                            color: _apiKeyStatusColor(apiKeyStatus),
                             fontSize: 13,
                           ),
                         ),
@@ -346,41 +416,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ],
                       ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Trip sorting preference card
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Trip Sorting',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Choose how trips are sorted on the main page',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Sort alphabetically'),
-                      subtitle: Text(
-                        _isAlphabeticalSorting
-                            ? 'Trips sorted by origin station name'
-                            : 'Trips sorted by closest station to your location',
-                      ),
-                      value: _isAlphabeticalSorting,
-                      onChanged: _updateSortingPreference,
                     ),
                   ],
                 ),
@@ -447,20 +482,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return SwitchListTile(
                           title: const Text('Show debug data'),
                           value: showDebug,
-                          onChanged: (val) async {
-                            await DebugService.setShowDebugData(val);
-                            if (!mounted) return;
-                            setState(() {});
-                          },
+                          onChanged: _toggleDebugData,
                         );
                       },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Standalone Debug Pages',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.stop),
+                          icon: const Icon(Icons.place),
+                          label: const Text('Browse stop debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.route),
+                          icon: const Icon(Icons.alt_route),
+                          label: const Text('Browse route debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.trip),
+                          icon: const Icon(Icons.route),
+                          label: const Text('Browse trip debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _openDebugBrowser(DebugEntityType.vehicle),
+                          icon: const Icon(Icons.directions_bus),
+                          label: const Text('Browse vehicle debug pages'),
+                          style: ButtonStyles.elevated(Colors.blueGrey),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            const StopsManagementWidget(),
-            const StopsSearchWidget(),
+            widget.stopsManagementWidget ??
+                StopsManagementWidget(
+                  debugPageLoader: _debugPageLoader,
+                  debugListLoader: _debugListLoader,
+                ),
+            widget.stopsSearchWidget ?? const StopsSearchWidget(),
             // Data update / management card
             Card(
               margin: const EdgeInsets.all(8.0),
@@ -524,13 +604,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 8),
                     if (_stopsUpdated > 0 || _realtimeFeedsUpdated > 0)
                       Text(
-                        'Stops updated: $_stopsUpdated • Realtime feeds updated: $_realtimeFeedsUpdated',
+                        formatUpdateSummary(
+                          stopsUpdated: _stopsUpdated,
+                          realtimeFeedsUpdated: _realtimeFeedsUpdated,
+                        ),
                       ),
                     if (_updateStatus?.isNotEmpty == true && !_isUpdating)
                       SizedBox(
                         width: double.infinity,
                         child: TextButton(
-                          onPressed: () => setState(() => _updateStatus = null),
+                          onPressed: _clearUpdateStatus,
                           child: const Text('Clear status'),
                         ),
                       ),
@@ -542,40 +625,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              setState(() {
-                                _isUpdating = true;
-                                _updateStatus = 'Resetting database...';
-                              });
-                              try {
-                                await db.AppDatabase.resetDatabase();
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Database reset successfully',
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text('Database reset failed: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              } finally {
-                                if (mounted) {
-                                  setState(() {
-                                    _isUpdating = false;
-                                    _updateStatus = null;
-                                  });
-                                }
-                              }
-                            },
+                            onPressed: _resetDatabase,
                             icon: const Icon(Icons.restore),
                             label: const Text('Reset DB (dev)'),
                             style: ButtonStyles.elevated(Colors.redAccent),
@@ -586,7 +636,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            const RealtimeInfoWidget(),
+            widget.realtimeInfoWidget ?? const RealtimeInfoWidget(),
           ],
         ),
       ),

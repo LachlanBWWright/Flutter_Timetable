@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/services/saved_trip_render_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
-import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
 import 'package:option_result/option_result.dart';
 
@@ -21,13 +26,33 @@ class _TripScreenState extends State<TripScreen> {
   bool _isLoading = false;
   String? _error;
 
+  String? _rawTripJson;
+
   Future<void> getTripData() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
-    final result = await TransportApiService.getTrips(
+    if (widget.trip.isManualMultiLeg) {
+      final manualJourney = await SavedTripRenderService.buildManualTripJourney(
+        widget.trip,
+      );
+
+      if (!context.mounted) return;
+
+      setState(() {
+        trips = manualJourney == null ? [] : [manualJourney];
+        _rawTripJson = prettyPrintRawJson(manualJourney?.rawJson);
+        _error = manualJourney == null
+            ? 'Unable to load the saved manual trip.'
+            : null;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final result = await TripCacheService.getCachedOrFetch(
       originId: widget.trip.originId,
       destinationId: widget.trip.destinationId,
     );
@@ -37,56 +62,15 @@ class _TripScreenState extends State<TripScreen> {
     switch (result) {
       case Ok(:final v):
         setState(() {
-          // Reorder trips so upcoming trips (departing now or in future) appear
-          // first, followed by past trips. This ensures the UI shows both future
-          // and past trips (previously only past trips were prominent).
-          final now = DateTime.now();
-
-          DateTime? getDeparture(TripJourney t) {
-            if (t.legs.isEmpty) return null;
-            final firstLeg = t.legs.first;
-            final dep =
-                firstLeg.origin.departureTimeEstimated ??
-                firstLeg.origin.departureTimePlanned;
-            return dep != null ? DateTimeUtils.parseTimeToDateTime(dep) : null;
-          }
-
-          final allTrips = v.tripJourneys;
-          final upcoming = <TripJourney>[];
-          final past = <TripJourney>[];
-
-          for (final t in allTrips) {
-            final dt = getDeparture(t);
-            if (dt != null && !dt.isBefore(now)) {
-              upcoming.add(t);
-            } else {
-              past.add(t);
-            }
-          }
-
-          // Upcoming: earliest-first
-          upcoming.sort((a, b) {
-            final da = getDeparture(a);
-            final db = getDeparture(b);
-            if (da == null && db == null) return 0;
-            if (da == null) return 1;
-            if (db == null) return -1;
-            return da.compareTo(db);
-          });
-
-          // Past: most-recent-first
-          past.sort((a, b) {
-            final da = getDeparture(a), db = getDeparture(b);
-            if (da == null && db == null) return 0;
-            if (da == null) return 1;
-            if (db == null) return -1;
-            return db.compareTo(da);
-          });
-
-          trips = [...upcoming, ...past];
+          trips = sortTripJourneysForDisplay(v.tripJourneys);
           testText = v.toString();
+          _rawTripJson = prettyPrintRawJson(v.rawJson);
           _isLoading = false;
         });
+
+        // Preemptively load realtime vehicle positions in the background so
+        // the trip leg detail map loads faster when the user taps a leg.
+        RealtimeService.getAllVehiclePositionsAggregated().ignore();
       case Err(:final e):
         setState(() {
           _error = e;
@@ -101,16 +85,20 @@ class _TripScreenState extends State<TripScreen> {
     getTripData();
   }
 
-  String parseTime(String time) {
-    return DateTimeUtils.parseTime(time);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Trip')),
       body: RefreshIndicator(
-        onRefresh: getTripData,
+        onRefresh: () async {
+          if (!widget.trip.isManualMultiLeg) {
+            TripCacheService.invalidate(
+              widget.trip.originId,
+              widget.trip.destinationId,
+            );
+          }
+          await getTripData();
+        },
         child: trips.isEmpty
             ? ListView(
                 children: [
@@ -130,9 +118,7 @@ class _TripScreenState extends State<TripScreen> {
                             ),
                           const SizedBox(height: 12),
                           if (_isLoading)
-                            Text(
-                              'Loading trips from ${widget.trip.origin} to ${widget.trip.destination}...',
-                            )
+                            Text(loadingTripMessage(widget.trip))
                           else if (_error != null)
                             Column(
                               children: [
@@ -150,13 +136,47 @@ class _TripScreenState extends State<TripScreen> {
                           else
                             Column(
                               children: [
-                                Text(
-                                  'No trips found from ${widget.trip.origin} to ${widget.trip.destination}.',
-                                ),
+                                Text(emptyTripMessage(widget.trip)),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
                                   onPressed: getTripData,
-                                  child: const Text('Search again'),
+                                  child: Text(retryButtonLabel(widget.trip)),
+                                ),
+                                ValueListenableBuilder<bool>(
+                                  valueListenable: DebugService.showDebugData,
+                                  builder: (context, showDebug, _) {
+                                    if (!showDebug || _rawTripJson == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 12),
+                                      child: Container(
+                                        width: double.infinity,
+                                        constraints: const BoxConstraints(
+                                          maxHeight: 240,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black12,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        child: SingleChildScrollView(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Text(
+                                            _rawTripJson!,
+                                            style: const TextStyle(
+                                              fontFamily: 'monospace',
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),

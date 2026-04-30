@@ -2,9 +2,11 @@ import '../constants/transport_modes.dart';
 import '../fetch_data/timetable_data.dart';
 import '../gtfs/gtfs_data.dart';
 import '../gtfs/stop.dart';
+import '../models/manual_trip_models.dart';
 // logger removed
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
+import '../services/trip_line_service.dart';
 import '../widgets/station_widgets.dart';
 
 /// Service for managing stops data in the New Trip screen
@@ -45,6 +47,15 @@ class NewTripService {
       return Station(
         name: displayName,
         id: stop.stopId,
+        stopCode: stop.stopCode,
+        stopDesc: stop.stopDesc,
+        zoneId: stop.zoneId,
+        stopUrl: stop.stopUrl,
+        stopTimezone: stop.stopTimezone,
+        levelId: stop.levelId,
+        parentStation: stop.parentStation,
+        wheelchairBoarding: stop.wheelchairBoarding,
+        platformCode: stop.platformCode,
         latitude: stop.stopLat != 0.0 ? stop.stopLat : null,
         longitude: stop.stopLon != 0.0 ? stop.stopLon : null,
       );
@@ -52,6 +63,10 @@ class NewTripService {
   }
 
   /// Get the list of API endpoints for a transport mode
+  static List<StopsEndpoint> getEndpointsForMode(TransportMode mode) {
+    return _getEndpointsForMode(mode);
+  }
+
   static List<StopsEndpoint> _getEndpointsForMode(TransportMode mode) {
     switch (mode) {
       case TransportMode.train:
@@ -138,6 +153,9 @@ class NewTripService {
         return await fetchNswTrainsGtfsData();
       case StopsEndpoint.sydneytrains:
         return await fetchSydneyTrainsGtfsData();
+
+      case StopsEndpoint.metro:
+        return await fetchMetroGtfsData();
 
       // Light Rail
       case StopsEndpoint.lightrailInnerwest:
@@ -241,7 +259,11 @@ class NewTripService {
         final lon = station.longitude;
         final double distance = lat != null && lon != null
             ? LocationService.calculateDistance(
-                position.latitude, position.longitude, lat, lon)
+                position.latitude,
+                position.longitude,
+                lat,
+                lon,
+              )
             : 0.0;
         return station.copyWith(distance: distance);
       }).toList();
@@ -273,5 +295,98 @@ class NewTripService {
   /// Get display name for transport mode
   static String getModeDisplayName(TransportMode mode) {
     return mode.displayName;
+  }
+
+  static List<Station> buildOrderedTripStops({
+    required Station origin,
+    required Station destination,
+    List<Station> interchanges = const [],
+  }) {
+    return [origin, ...interchanges, destination];
+  }
+
+  static List<ManualTripLeg> buildManualTripLegs({
+    required Station origin,
+    required Station destination,
+    required List<Station> interchanges,
+    required StopLineMatch selectedLine,
+  }) {
+    final orderedStops = buildOrderedTripStops(
+      origin: origin,
+      destination: destination,
+      interchanges: interchanges,
+    );
+
+    return List<ManualTripLeg>.generate(orderedStops.length - 1, (index) {
+      final legOrigin = orderedStops[index];
+      final legDestination = orderedStops[index + 1];
+      return ManualTripLeg(
+        index: index,
+        originName: legOrigin.name,
+        originId: legOrigin.id,
+        destinationName: legDestination.name,
+        destinationId: legDestination.id,
+        mode: selectedLine.mode,
+        lineId: selectedLine.lineId,
+        lineName: selectedLine.lineName,
+      );
+    });
+  }
+
+  static String? validateManualTrip({
+    required Station? origin,
+    required Station? destination,
+    required List<Station> interchanges,
+    required StopLineMatch? selectedLine,
+  }) {
+    if (origin == null || destination == null) {
+      return 'Select an origin and destination first.';
+    }
+    if (selectedLine == null) {
+      return 'Select a shared line before building a manual trip.';
+    }
+
+    final orderedStops = buildOrderedTripStops(
+      origin: origin,
+      destination: destination,
+      interchanges: interchanges,
+    );
+
+    if (orderedStops.length < 3) {
+      return 'A manual multi-leg trip needs at least one interchange.';
+    }
+
+    for (var index = 0; index < orderedStops.length - 1; index++) {
+      final currentStop = orderedStops[index];
+      final nextStop = orderedStops[index + 1];
+      if (currentStop.id == nextStop.id) {
+        return 'Adjacent stops cannot be the same.';
+      }
+    }
+
+    for (final interchange in interchanges) {
+      if (interchange.lineId != null &&
+          interchange.lineId != selectedLine.lineId) {
+        return 'Each interchange must stay on the selected line.';
+      }
+    }
+
+    final definition = ManualTripDefinition(
+      mode: selectedLine.mode,
+      lineId: selectedLine.lineId,
+      lineName: selectedLine.lineName,
+      legs: buildManualTripLegs(
+        origin: origin,
+        destination: destination,
+        interchanges: interchanges,
+        selectedLine: selectedLine,
+      ),
+    );
+
+    if (!definition.isValid) {
+      return 'Manual trip legs must remain continuous on the selected line.';
+    }
+
+    return null;
   }
 }

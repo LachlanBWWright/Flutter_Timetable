@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/logs/logger.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/api_key_service.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
+import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
+import 'package:lbww_flutter/utils/journey_filter_utils.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
 
 Future<void> main() async {
@@ -49,6 +54,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
       ),
       themeMode: ThemeMode.dark, // Use dark mode throughout the application
+      onGenerateRoute: DebugNavigation.onGenerateRoute,
       home: const MyHomePage(title: AppConstants.appTitle),
     );
   }
@@ -68,6 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _hasApiKey = false;
   bool _isEditingMode = false;
   bool _isSearching = false;
+  bool _isAlphabeticalSorting = true;
   final TextEditingController _searchController = TextEditingController();
   // Single database instance for this stateful widget
   final db.AppDatabase _database = db.AppDatabase();
@@ -77,7 +84,24 @@ class _MyHomePageState extends State<MyHomePage> {
       final pinnedJourneys = await _database.getPinnedJourneys();
       final unpinnedJourneys = await _database.getUnpinnedJourneys();
 
-      // Show a snackbar while fetching location for distance-based sorting
+      // Show the saved trips immediately even if we still need to fetch the
+      // user location for distance-based sorting. This avoids "empty" screens
+      // when the location permission dialog is still open.
+      final initialJourneys = [...pinnedJourneys, ...unpinnedJourneys];
+      if (!mounted) return;
+      setState(() {
+        _journeys = initialJourneys;
+        _filteredJourneys = _applySearchFilter(initialJourneys);
+      });
+
+      // Preemptively fetch trip data for the top 10 journeys in the background.
+      TripCacheService.prefetch(initialJourneys);
+
+      // Preemptively load stations for all modes so the 'Add New Trip' screen
+      // opens without a loading delay.
+      prefetchAllStations();
+
+      // Now sort journeys according to user preference (distance vs alphabetical).
       ScaffoldMessengerState? messenger;
       final isAlphabetical = await LocationService.isAlphabeticalSorting();
       if (!isAlphabetical && mounted) {
@@ -90,35 +114,30 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }
 
-      // Sort unpinned journeys based on user preference
       final sortedUnpinned = await LocationService.sortJourneys(
         unpinnedJourneys,
       );
 
       messenger?.hideCurrentSnackBar();
 
-      final allJourneys = [...pinnedJourneys, ...sortedUnpinned];
-
+      final sortedJourneys = [...pinnedJourneys, ...sortedUnpinned];
       if (!mounted) return;
       setState(() {
-        _journeys = allJourneys;
-        _filteredJourneys = allJourneys;
+        _journeys = sortedJourneys;
+        _filteredJourneys = _applySearchFilter(sortedJourneys);
       });
     } catch (e) {
       logger.e('Error loading trips: $e');
     }
   }
 
+  List<db.Journey> _applySearchFilter(List<db.Journey> journeys) {
+    return filterJourneysByQuery(journeys, _searchController.text);
+  }
+
   void _filterJourneys(String query) {
     setState(() {
-      if (query.isEmpty) {
-        _filteredJourneys = _journeys;
-      } else {
-        _filteredJourneys = _journeys.where((journey) {
-          return journey.origin.toLowerCase().contains(query.toLowerCase()) ||
-              journey.destination.toLowerCase().contains(query.toLowerCase());
-        }).toList();
-      }
+      _filteredJourneys = filterJourneysByQuery(_journeys, query);
     });
   }
 
@@ -158,8 +177,28 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _loadInitialSorting();
     getTrips();
     checkApiKey();
+  }
+
+  Future<void> _loadInitialSorting() async {
+    final isAlphabetical = await LocationService.isAlphabeticalSorting();
+    if (!mounted) return;
+    setState(() {
+      _isAlphabeticalSorting = isAlphabetical;
+    });
+  }
+
+  Future<void> _toggleSortMode() async {
+    final newValue = !_isAlphabeticalSorting;
+    await LocationService.setSortingPreference(newValue);
+    if (!mounted) return;
+    setState(() {
+      _isAlphabeticalSorting = newValue;
+    });
+    // Re-sort with the new preference
+    await getTrips();
   }
 
   void _toggleSearchMode() {
@@ -210,15 +249,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _navigateToReverseTrip(db.Journey journey) {
-    // Create a reversed journey
-    final reversedJourney = db.Journey(
-      id: journey.id,
-      origin: journey.destination,
-      originId: journey.destinationId,
-      destination: journey.origin,
-      destinationId: journey.originId,
-      isPinned: journey.isPinned,
-    );
+    final reversedJourney = journey.reversedPreviewJourney();
 
     Navigator.push(
       context,
@@ -230,10 +261,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final pinnedJourneys = _filteredJourneys.where((j) => j.isPinned).toList();
-    final unpinnedJourneys = _filteredJourneys
-        .where((j) => !j.isPinned)
-        .toList();
+    final sections = splitJourneySections(_filteredJourneys);
+    final pinnedJourneys = sections.pinnedJourneys;
+    final unpinnedJourneys = sections.unpinnedJourneys;
 
     return Scaffold(
       appBar: HomeAppBar(
@@ -242,10 +272,12 @@ class _MyHomePageState extends State<MyHomePage> {
         isSearching: _isSearching,
         isEditingMode: _isEditingMode,
         hasTrips: _journeys.isNotEmpty,
+        isAlphabeticalSorting: _isAlphabeticalSorting,
         onAddTrip: _navigateToNewTrip,
         onSettings: _navigateToSettings,
         onToggleSearch: _toggleSearchMode,
         onToggleEdit: _toggleEditingMode,
+        onToggleSort: _toggleSortMode,
         onSearchChanged: _filterJourneys,
         searchController: _searchController,
       ),

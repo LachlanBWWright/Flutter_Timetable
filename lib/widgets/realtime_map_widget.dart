@@ -5,9 +5,12 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../logs/logger.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import '../services/debug_service.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart';
+import '../utils/realtime_map_widget_utils.dart';
 import 'realtime_map_helpers.dart';
+import 'trip_widgets.dart' show TransportModeUtils;
 
 /// Widget for displaying GTFS realtime vehicle positions on a map
 class RealtimeMapWidget extends StatefulWidget {
@@ -39,7 +42,8 @@ class RealtimeMapWidget extends StatefulWidget {
   /// Optional override to fetch aggregated vehicle positions + breakdown.
   /// Use this to include all partitioned feeds (region buses, ferries, lightrail)
   /// and facilitate tests.
-  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+  final Future<VehiclePositionAggregationResult> Function()?
+  getAllVehiclesAggregated;
 
   /// Whether to show the small vehicle count overlay in the top-right.
   /// Defaults to true; set false for embedded maps where it is redundant.
@@ -99,19 +103,60 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   late LatLng _mapCenter;
 
   @override
-  @override
   void initState() {
     super.initState();
-    // If a leg is provided, use its origin as the map center
-    final legOriginCoord = widget.leg?.origin.coord;
-    if (legOriginCoord != null && legOriginCoord.length == 2) {
-      _mapCenter = LatLng(legOriginCoord[0], legOriginCoord[1]);
+    // Enable all modes by default (initialize before loading)
+    _modeEnabled = {for (var m in _allModes) m: true};
+
+    final leg = widget.leg;
+    if (leg != null) {
+      // Prefer fitting camera to show all leg stops; fall back to leg origin.
+      final points = legPointsForMap(leg);
+      if (points.length >= 2) {
+        _pendingFit = CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(points),
+          padding: const EdgeInsets.all(50.0),
+        );
+        // Use the midpoint as the default center in case the fit is delayed.
+        _mapCenter = points[points.length ~/ 2];
+      } else {
+        final legOriginCoord = leg.origin.coord;
+        if (legOriginCoord != null && legOriginCoord.length == 2) {
+          _mapCenter = LatLng(legOriginCoord[0], legOriginCoord[1]);
+        } else {
+          _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
+        }
+      }
     } else {
       _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
     }
-    // Enable all modes by default (initialize before loading)
-    _modeEnabled = {for (var m in _allModes) m: true};
+
     _loadVehiclePositions();
+  }
+
+  @override
+  void didUpdateWidget(RealtimeMapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When the active leg changes, fit the camera to the new leg's stops
+    // without recreating the whole widget (avoids visible flash/reload).
+    if (oldWidget.leg != widget.leg && widget.leg != null) {
+      final newLeg = widget.leg!;
+      final points = legPointsForMap(newLeg);
+      if (points.length >= 2) {
+        final fit = CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(points),
+          padding: const EdgeInsets.all(50.0),
+        );
+        try {
+          _mapController.fitCamera(fit);
+        } catch (_) {
+          // Map controller not yet ready — store as pending
+          _pendingFit = fit;
+        }
+      }
+      // Also reload vehicle positions for the new leg
+      _loadVehiclePositions();
+    }
   }
 
   // Build polyline(s) for leg stops if provided (in order)
@@ -119,8 +164,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     final polylines = <Polyline>[];
 
     // Draw additional (other) legs first so they appear below the active leg.
-    for (final otherLeg in widget.additionalLegs ?? []) {
-      final points = _legPoints(otherLeg);
+    for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
+      final points = legPointsForMap(otherLeg);
       if (points.length >= 2) {
         polylines.add(
           Polyline(
@@ -135,7 +180,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     final leg = widget.leg;
     if (leg == null) return polylines;
 
-    final points = _legPoints(leg);
+    final points = legPointsForMap(leg);
     if (points.length < 2) return polylines;
 
     final mode = widget.transportMode;
@@ -161,28 +206,6 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     return polylines;
   }
 
-  /// Extract an ordered list of [LatLng] points from a leg's stop sequence or
-  /// coords polyline.
-  List<LatLng> _legPoints(Leg leg) {
-    final points = <LatLng>[];
-    final stopSequence = leg.stopSequence;
-    if (stopSequence != null && stopSequence.isNotEmpty) {
-      for (final s in stopSequence) {
-        final coord = s.coord;
-        if (coord != null && coord.length >= 2) {
-          points.add(LatLng(coord[0], coord[1]));
-        }
-      }
-    }
-    final legCoords = leg.coords;
-    if (points.length < 2 && legCoords != null && legCoords.length >= 2) {
-      for (final c in legCoords) {
-        if (c.length >= 2) points.add(LatLng(c[0], c[1]));
-      }
-    }
-    return points;
-  }
-
   Future<void> _loadVehiclePositions() async {
     setState(() {
       _isLoading = true;
@@ -196,7 +219,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
       final getPositions = widget.getPositions;
       if (getAllVehiclesAggregated != null) {
         final agg = await getAllVehiclesAggregated();
-        aggregatedVehicles = agg['vehicles'] as List<VehiclePosition>?;
+        aggregatedVehicles = agg.vehicles;
       } else if (getPositions != null) {
         mapPositions = await getPositions();
       } else {
@@ -297,7 +320,12 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         _vehicles = vehicles;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      logger.e(
+        'RealtimeMapWidget: failed to load vehicle positions',
+        error: e,
+        stackTrace: st,
+      );
       if (!mounted) return;
       setState(() {
         _error = e.toString();
@@ -363,71 +391,115 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
   /// Build stop markers from a provided `leg` stopSequence
   List<Marker> _buildStopMarkers() {
+    final markers = <Marker>[];
+
+    // Markers for other-leg stops: same size as before but fully opaque and
+    // coloured according to that leg's transport mode (no icons).
+    for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
+      final stops = otherLeg.stopSequence;
+      if (stops == null) continue;
+
+      // Derive the colour from the other leg's transport class if available.
+      final otherClass = otherLeg.transportation?.product?.classField;
+      final Color otherColor = otherClass != null
+          ? TransportModeUtils.getModeColor(otherClass)
+          : Colors.blueGrey;
+
+      for (final s in stops) {
+        final coord = s.coord;
+        if (coord == null || coord.length < 2) continue;
+        markers.add(
+          Marker(
+            point: LatLng(coord[0], coord[1]),
+            width: 10.0,
+            height: 10.0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: otherColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    // Active leg stop markers
     final leg = widget.leg;
-    if (leg == null) return [];
+    if (leg == null) return markers;
     final stops = leg.stopSequence;
-    if (stops == null || stops.isEmpty) return [];
+    if (stops == null || stops.isEmpty) return markers;
     // Determine color/icon from the provided transportMode (or fallback)
     final mode = widget.transportMode;
     final markerColor = mode != null
         ? TransportColors.getColorByTransportMode(mode)
         : Colors.grey;
 
-    return stops
-        .where((s) => (s.coord?.length ?? 0) >= 2)
-        .map(
-          (s) => Marker(
-            point: LatLng(s.coord?[0] ?? 0, s.coord?[1] ?? 0),
-            width: 22,
-            height: 22,
-            child: GestureDetector(
-              onTap: () => _showStopDetails(s),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: markerColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Center(
-                  child: Icon(
-                    mode != null
-                        ? getVehicleIconByTransportMode(mode)
-                        : Icons.place,
-                    color: Colors.white,
-                    size: 12,
-                  ),
+    for (final s in stops.where((s) => (s.coord?.length ?? 0) >= 2)) {
+      markers.add(
+        Marker(
+          point: LatLng(s.coord?[0] ?? 0, s.coord?[1] ?? 0),
+          width: 22,
+          height: 22,
+          child: GestureDetector(
+            onTap: () => _showStopDetails(s),
+            child: Container(
+              decoration: BoxDecoration(
+                color: markerColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Center(
+                child: Icon(
+                  mode != null
+                      ? getVehicleIconByTransportMode(mode)
+                      : Icons.place,
+                  color: Colors.white,
+                  size: 12,
                 ),
               ),
             ),
           ),
-        )
-        .toList();
+        ),
+      );
+    }
+
+    return markers;
   }
 
   void _showStopDetails(Stop stop) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(stop.name, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            _buildInfoRow('Stop ID', stop.id),
-            if (stop.disassembledName case final name?)
-              _buildInfoRow('Name', name),
-            if (stop.arrivalTimePlanned case final arrive?)
-              _buildInfoRow('Arrive (planned)', arrive),
-            if (stop.departureTimePlanned case final depart?)
-              _buildInfoRow('Depart (planned)', depart),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
+      builder: (context) => ValueListenableBuilder<bool>(
+        valueListenable: DebugService.showDebugData,
+        builder: (context, showDebug, _) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(stop.name, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              if (showDebug) _buildInfoRow('Stop ID', stop.id),
+              if (stop.disassembledName case final name?)
+                _buildInfoRow('Name', name),
+              if (stop.arrivalTimePlanned case final arrive?)
+                _buildInfoRow('Arrive (planned)', arrive),
+              if (stop.departureTimePlanned case final depart?)
+                _buildInfoRow('Depart (planned)', depart),
+              if (showDebug && (stop.coord?.length ?? 0) >= 2)
+                _buildInfoRow(
+                  'Coords',
+                  '${stop.coord![0].toStringAsFixed(6)}, ${stop.coord![1].toStringAsFixed(6)}',
+                ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -600,7 +672,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'No vehicle found for id ${widget.vehicleId}',
+                vehicleNotFoundMessage(widget.vehicleId!),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -625,7 +697,8 @@ class RealtimeMapPage extends StatelessWidget {
   final Leg? leg;
   final String? vehicleId;
   final Future<Map<TransportMode, FeedMessage?>> Function()? getPositions;
-  final Future<Map<String, dynamic>> Function()? getAllVehiclesAggregated;
+  final Future<VehiclePositionAggregationResult> Function()?
+  getAllVehiclesAggregated;
   final bool filterByLegTrip;
   final Set<String>? tripIds;
 
@@ -647,13 +720,7 @@ class RealtimeMapPage extends StatelessWidget {
     final GlobalKey<_RealtimeMapWidgetState> mapKey = GlobalKey();
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          mode != null
-              ? '$mode Map'
-              : leg != null
-              ? 'Trip Leg Map'
-              : 'Realtime Map',
-        ),
+        title: Text(realtimeMapPageTitle(mode: mode, leg: leg)),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

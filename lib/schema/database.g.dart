@@ -63,6 +63,58 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _tripTypeMeta = const VerificationMeta(
+    'tripType',
+  );
+  @override
+  late final GeneratedColumn<String> tripType = GeneratedColumn<String>(
+    'trip_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('direct'),
+  );
+  static const VerificationMeta _modeMeta = const VerificationMeta('mode');
+  @override
+  late final GeneratedColumn<String> mode = GeneratedColumn<String>(
+    'mode',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lineIdMeta = const VerificationMeta('lineId');
+  @override
+  late final GeneratedColumn<String> lineId = GeneratedColumn<String>(
+    'line_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lineNameMeta = const VerificationMeta(
+    'lineName',
+  );
+  @override
+  late final GeneratedColumn<String> lineName = GeneratedColumn<String>(
+    'line_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _legsJsonMeta = const VerificationMeta(
+    'legsJson',
+  );
+  @override
+  late final GeneratedColumn<String> legsJson = GeneratedColumn<String>(
+    'legs_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isPinnedMeta = const VerificationMeta(
     'isPinned',
   );
@@ -85,6 +137,11 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
     originId,
     destination,
     destinationId,
+    tripType,
+    mode,
+    lineId,
+    lineName,
+    legsJson,
     isPinned,
   ];
   @override
@@ -140,6 +197,36 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
     } else if (isInserting) {
       context.missing(_destinationIdMeta);
     }
+    if (data.containsKey('trip_type')) {
+      context.handle(
+        _tripTypeMeta,
+        tripType.isAcceptableOrUnknown(data['trip_type']!, _tripTypeMeta),
+      );
+    }
+    if (data.containsKey('mode')) {
+      context.handle(
+        _modeMeta,
+        mode.isAcceptableOrUnknown(data['mode']!, _modeMeta),
+      );
+    }
+    if (data.containsKey('line_id')) {
+      context.handle(
+        _lineIdMeta,
+        lineId.isAcceptableOrUnknown(data['line_id']!, _lineIdMeta),
+      );
+    }
+    if (data.containsKey('line_name')) {
+      context.handle(
+        _lineNameMeta,
+        lineName.isAcceptableOrUnknown(data['line_name']!, _lineNameMeta),
+      );
+    }
+    if (data.containsKey('legs_json')) {
+      context.handle(
+        _legsJsonMeta,
+        legsJson.isAcceptableOrUnknown(data['legs_json']!, _legsJsonMeta),
+      );
+    }
     if (data.containsKey('is_pinned')) {
       context.handle(
         _isPinnedMeta,
@@ -175,6 +262,26 @@ class $JourneysTable extends Journeys with TableInfo<$JourneysTable, Journey> {
         DriftSqlType.string,
         data['${effectivePrefix}destination_id'],
       )!,
+      tripType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trip_type'],
+      )!,
+      mode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mode'],
+      ),
+      lineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_id'],
+      ),
+      lineName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_name'],
+      ),
+      legsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}legs_json'],
+      ),
       isPinned: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_pinned'],
@@ -194,6 +301,11 @@ class Journey extends DataClass implements Insertable<Journey> {
   final String originId;
   final String destination;
   final String destinationId;
+  final String tripType;
+  final String? mode;
+  final String? lineId;
+  final String? lineName;
+  final String? legsJson;
   final bool isPinned;
   const Journey({
     required this.id,
@@ -201,6 +313,11 @@ class Journey extends DataClass implements Insertable<Journey> {
     required this.originId,
     required this.destination,
     required this.destinationId,
+    required this.tripType,
+    this.mode,
+    this.lineId,
+    this.lineName,
+    this.legsJson,
     required this.isPinned,
   });
   @override
@@ -211,6 +328,19 @@ class Journey extends DataClass implements Insertable<Journey> {
     map['origin_id'] = Variable<String>(originId);
     map['destination'] = Variable<String>(destination);
     map['destination_id'] = Variable<String>(destinationId);
+    map['trip_type'] = Variable<String>(tripType);
+    if (!nullToAbsent || mode != null) {
+      map['mode'] = Variable<String>(mode);
+    }
+    if (!nullToAbsent || lineId != null) {
+      map['line_id'] = Variable<String>(lineId);
+    }
+    if (!nullToAbsent || lineName != null) {
+      map['line_name'] = Variable<String>(lineName);
+    }
+    if (!nullToAbsent || legsJson != null) {
+      map['legs_json'] = Variable<String>(legsJson);
+    }
     map['is_pinned'] = Variable<bool>(isPinned);
     return map;
   }
@@ -222,6 +352,17 @@ class Journey extends DataClass implements Insertable<Journey> {
       originId: Value(originId),
       destination: Value(destination),
       destinationId: Value(destinationId),
+      tripType: Value(tripType),
+      mode: mode == null && nullToAbsent ? const Value.absent() : Value(mode),
+      lineId: lineId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineId),
+      lineName: lineName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineName),
+      legsJson: legsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(legsJson),
       isPinned: Value(isPinned),
     );
   }
@@ -237,6 +378,11 @@ class Journey extends DataClass implements Insertable<Journey> {
       originId: serializer.fromJson<String>(json['originId']),
       destination: serializer.fromJson<String>(json['destination']),
       destinationId: serializer.fromJson<String>(json['destinationId']),
+      tripType: serializer.fromJson<String>(json['tripType']),
+      mode: serializer.fromJson<String?>(json['mode']),
+      lineId: serializer.fromJson<String?>(json['lineId']),
+      lineName: serializer.fromJson<String?>(json['lineName']),
+      legsJson: serializer.fromJson<String?>(json['legsJson']),
       isPinned: serializer.fromJson<bool>(json['isPinned']),
     );
   }
@@ -249,6 +395,11 @@ class Journey extends DataClass implements Insertable<Journey> {
       'originId': serializer.toJson<String>(originId),
       'destination': serializer.toJson<String>(destination),
       'destinationId': serializer.toJson<String>(destinationId),
+      'tripType': serializer.toJson<String>(tripType),
+      'mode': serializer.toJson<String?>(mode),
+      'lineId': serializer.toJson<String?>(lineId),
+      'lineName': serializer.toJson<String?>(lineName),
+      'legsJson': serializer.toJson<String?>(legsJson),
       'isPinned': serializer.toJson<bool>(isPinned),
     };
   }
@@ -259,6 +410,11 @@ class Journey extends DataClass implements Insertable<Journey> {
     String? originId,
     String? destination,
     String? destinationId,
+    String? tripType,
+    Value<String?> mode = const Value.absent(),
+    Value<String?> lineId = const Value.absent(),
+    Value<String?> lineName = const Value.absent(),
+    Value<String?> legsJson = const Value.absent(),
     bool? isPinned,
   }) => Journey(
     id: id ?? this.id,
@@ -266,6 +422,11 @@ class Journey extends DataClass implements Insertable<Journey> {
     originId: originId ?? this.originId,
     destination: destination ?? this.destination,
     destinationId: destinationId ?? this.destinationId,
+    tripType: tripType ?? this.tripType,
+    mode: mode.present ? mode.value : this.mode,
+    lineId: lineId.present ? lineId.value : this.lineId,
+    lineName: lineName.present ? lineName.value : this.lineName,
+    legsJson: legsJson.present ? legsJson.value : this.legsJson,
     isPinned: isPinned ?? this.isPinned,
   );
   Journey copyWithCompanion(JourneysCompanion data) {
@@ -279,6 +440,11 @@ class Journey extends DataClass implements Insertable<Journey> {
       destinationId: data.destinationId.present
           ? data.destinationId.value
           : this.destinationId,
+      tripType: data.tripType.present ? data.tripType.value : this.tripType,
+      mode: data.mode.present ? data.mode.value : this.mode,
+      lineId: data.lineId.present ? data.lineId.value : this.lineId,
+      lineName: data.lineName.present ? data.lineName.value : this.lineName,
+      legsJson: data.legsJson.present ? data.legsJson.value : this.legsJson,
       isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
     );
   }
@@ -291,14 +457,30 @@ class Journey extends DataClass implements Insertable<Journey> {
           ..write('originId: $originId, ')
           ..write('destination: $destination, ')
           ..write('destinationId: $destinationId, ')
+          ..write('tripType: $tripType, ')
+          ..write('mode: $mode, ')
+          ..write('lineId: $lineId, ')
+          ..write('lineName: $lineName, ')
+          ..write('legsJson: $legsJson, ')
           ..write('isPinned: $isPinned')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, origin, originId, destination, destinationId, isPinned);
+  int get hashCode => Object.hash(
+    id,
+    origin,
+    originId,
+    destination,
+    destinationId,
+    tripType,
+    mode,
+    lineId,
+    lineName,
+    legsJson,
+    isPinned,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -308,6 +490,11 @@ class Journey extends DataClass implements Insertable<Journey> {
           other.originId == this.originId &&
           other.destination == this.destination &&
           other.destinationId == this.destinationId &&
+          other.tripType == this.tripType &&
+          other.mode == this.mode &&
+          other.lineId == this.lineId &&
+          other.lineName == this.lineName &&
+          other.legsJson == this.legsJson &&
           other.isPinned == this.isPinned);
 }
 
@@ -317,6 +504,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
   final Value<String> originId;
   final Value<String> destination;
   final Value<String> destinationId;
+  final Value<String> tripType;
+  final Value<String?> mode;
+  final Value<String?> lineId;
+  final Value<String?> lineName;
+  final Value<String?> legsJson;
   final Value<bool> isPinned;
   const JourneysCompanion({
     this.id = const Value.absent(),
@@ -324,6 +516,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     this.originId = const Value.absent(),
     this.destination = const Value.absent(),
     this.destinationId = const Value.absent(),
+    this.tripType = const Value.absent(),
+    this.mode = const Value.absent(),
+    this.lineId = const Value.absent(),
+    this.lineName = const Value.absent(),
+    this.legsJson = const Value.absent(),
     this.isPinned = const Value.absent(),
   });
   JourneysCompanion.insert({
@@ -332,6 +529,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     required String originId,
     required String destination,
     required String destinationId,
+    this.tripType = const Value.absent(),
+    this.mode = const Value.absent(),
+    this.lineId = const Value.absent(),
+    this.lineName = const Value.absent(),
+    this.legsJson = const Value.absent(),
     this.isPinned = const Value.absent(),
   }) : origin = Value(origin),
        originId = Value(originId),
@@ -343,6 +545,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     Expression<String>? originId,
     Expression<String>? destination,
     Expression<String>? destinationId,
+    Expression<String>? tripType,
+    Expression<String>? mode,
+    Expression<String>? lineId,
+    Expression<String>? lineName,
+    Expression<String>? legsJson,
     Expression<bool>? isPinned,
   }) {
     return RawValuesInsertable({
@@ -351,6 +558,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
       if (originId != null) 'origin_id': originId,
       if (destination != null) 'destination': destination,
       if (destinationId != null) 'destination_id': destinationId,
+      if (tripType != null) 'trip_type': tripType,
+      if (mode != null) 'mode': mode,
+      if (lineId != null) 'line_id': lineId,
+      if (lineName != null) 'line_name': lineName,
+      if (legsJson != null) 'legs_json': legsJson,
       if (isPinned != null) 'is_pinned': isPinned,
     });
   }
@@ -361,6 +573,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     Value<String>? originId,
     Value<String>? destination,
     Value<String>? destinationId,
+    Value<String>? tripType,
+    Value<String?>? mode,
+    Value<String?>? lineId,
+    Value<String?>? lineName,
+    Value<String?>? legsJson,
     Value<bool>? isPinned,
   }) {
     return JourneysCompanion(
@@ -369,6 +586,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
       originId: originId ?? this.originId,
       destination: destination ?? this.destination,
       destinationId: destinationId ?? this.destinationId,
+      tripType: tripType ?? this.tripType,
+      mode: mode ?? this.mode,
+      lineId: lineId ?? this.lineId,
+      lineName: lineName ?? this.lineName,
+      legsJson: legsJson ?? this.legsJson,
       isPinned: isPinned ?? this.isPinned,
     );
   }
@@ -391,6 +613,21 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
     if (destinationId.present) {
       map['destination_id'] = Variable<String>(destinationId.value);
     }
+    if (tripType.present) {
+      map['trip_type'] = Variable<String>(tripType.value);
+    }
+    if (mode.present) {
+      map['mode'] = Variable<String>(mode.value);
+    }
+    if (lineId.present) {
+      map['line_id'] = Variable<String>(lineId.value);
+    }
+    if (lineName.present) {
+      map['line_name'] = Variable<String>(lineName.value);
+    }
+    if (legsJson.present) {
+      map['legs_json'] = Variable<String>(legsJson.value);
+    }
     if (isPinned.present) {
       map['is_pinned'] = Variable<bool>(isPinned.value);
     }
@@ -405,6 +642,11 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
           ..write('originId: $originId, ')
           ..write('destination: $destination, ')
           ..write('destinationId: $destinationId, ')
+          ..write('tripType: $tripType, ')
+          ..write('mode: $mode, ')
+          ..write('lineId: $lineId, ')
+          ..write('lineName: $lineName, ')
+          ..write('legsJson: $legsJson, ')
           ..write('isPinned: $isPinned')
           ..write(')'))
         .toString();
@@ -435,6 +677,81 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopCodeMeta = const VerificationMeta(
+    'stopCode',
+  );
+  @override
+  late final GeneratedColumn<String> stopCode = GeneratedColumn<String>(
+    'stop_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ttsStopNameMeta = const VerificationMeta(
+    'ttsStopName',
+  );
+  @override
+  late final GeneratedColumn<String> ttsStopName = GeneratedColumn<String>(
+    'tts_stop_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopDescMeta = const VerificationMeta(
+    'stopDesc',
+  );
+  @override
+  late final GeneratedColumn<String> stopDesc = GeneratedColumn<String>(
+    'stop_desc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _zoneIdMeta = const VerificationMeta('zoneId');
+  @override
+  late final GeneratedColumn<String> zoneId = GeneratedColumn<String>(
+    'zone_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopUrlMeta = const VerificationMeta(
+    'stopUrl',
+  );
+  @override
+  late final GeneratedColumn<String> stopUrl = GeneratedColumn<String>(
+    'stop_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopTimezoneMeta = const VerificationMeta(
+    'stopTimezone',
+  );
+  @override
+  late final GeneratedColumn<String> stopTimezone = GeneratedColumn<String>(
+    'stop_timezone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _levelIdMeta = const VerificationMeta(
+    'levelId',
+  );
+  @override
+  late final GeneratedColumn<String> levelId = GeneratedColumn<String>(
+    'level_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _stopLatMeta = const VerificationMeta(
     'stopLat',
@@ -516,6 +833,13 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
   List<GeneratedColumn> get $columns => [
     stopId,
     stopName,
+    stopCode,
+    ttsStopName,
+    stopDesc,
+    zoneId,
+    stopUrl,
+    stopTimezone,
+    levelId,
     stopLat,
     stopLon,
     locationType,
@@ -551,6 +875,54 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
       );
     } else if (isInserting) {
       context.missing(_stopNameMeta);
+    }
+    if (data.containsKey('stop_code')) {
+      context.handle(
+        _stopCodeMeta,
+        stopCode.isAcceptableOrUnknown(data['stop_code']!, _stopCodeMeta),
+      );
+    }
+    if (data.containsKey('tts_stop_name')) {
+      context.handle(
+        _ttsStopNameMeta,
+        ttsStopName.isAcceptableOrUnknown(
+          data['tts_stop_name']!,
+          _ttsStopNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('stop_desc')) {
+      context.handle(
+        _stopDescMeta,
+        stopDesc.isAcceptableOrUnknown(data['stop_desc']!, _stopDescMeta),
+      );
+    }
+    if (data.containsKey('zone_id')) {
+      context.handle(
+        _zoneIdMeta,
+        zoneId.isAcceptableOrUnknown(data['zone_id']!, _zoneIdMeta),
+      );
+    }
+    if (data.containsKey('stop_url')) {
+      context.handle(
+        _stopUrlMeta,
+        stopUrl.isAcceptableOrUnknown(data['stop_url']!, _stopUrlMeta),
+      );
+    }
+    if (data.containsKey('stop_timezone')) {
+      context.handle(
+        _stopTimezoneMeta,
+        stopTimezone.isAcceptableOrUnknown(
+          data['stop_timezone']!,
+          _stopTimezoneMeta,
+        ),
+      );
+    }
+    if (data.containsKey('level_id')) {
+      context.handle(
+        _levelIdMeta,
+        levelId.isAcceptableOrUnknown(data['level_id']!, _levelIdMeta),
+      );
     }
     if (data.containsKey('stop_lat')) {
       context.handle(
@@ -625,6 +997,34 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
         DriftSqlType.string,
         data['${effectivePrefix}stop_name'],
       )!,
+      stopCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_code'],
+      ),
+      ttsStopName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tts_stop_name'],
+      ),
+      stopDesc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_desc'],
+      ),
+      zoneId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}zone_id'],
+      ),
+      stopUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_url'],
+      ),
+      stopTimezone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_timezone'],
+      ),
+      levelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level_id'],
+      ),
       stopLat: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}stop_lat'],
@@ -665,6 +1065,13 @@ class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
 class Stop extends DataClass implements Insertable<Stop> {
   final String stopId;
   final String stopName;
+  final String? stopCode;
+  final String? ttsStopName;
+  final String? stopDesc;
+  final String? zoneId;
+  final String? stopUrl;
+  final String? stopTimezone;
+  final String? levelId;
   final double? stopLat;
   final double? stopLon;
   final int? locationType;
@@ -675,6 +1082,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   const Stop({
     required this.stopId,
     required this.stopName,
+    this.stopCode,
+    this.ttsStopName,
+    this.stopDesc,
+    this.zoneId,
+    this.stopUrl,
+    this.stopTimezone,
+    this.levelId,
     this.stopLat,
     this.stopLon,
     this.locationType,
@@ -688,6 +1102,27 @@ class Stop extends DataClass implements Insertable<Stop> {
     final map = <String, Expression>{};
     map['stop_id'] = Variable<String>(stopId);
     map['stop_name'] = Variable<String>(stopName);
+    if (!nullToAbsent || stopCode != null) {
+      map['stop_code'] = Variable<String>(stopCode);
+    }
+    if (!nullToAbsent || ttsStopName != null) {
+      map['tts_stop_name'] = Variable<String>(ttsStopName);
+    }
+    if (!nullToAbsent || stopDesc != null) {
+      map['stop_desc'] = Variable<String>(stopDesc);
+    }
+    if (!nullToAbsent || zoneId != null) {
+      map['zone_id'] = Variable<String>(zoneId);
+    }
+    if (!nullToAbsent || stopUrl != null) {
+      map['stop_url'] = Variable<String>(stopUrl);
+    }
+    if (!nullToAbsent || stopTimezone != null) {
+      map['stop_timezone'] = Variable<String>(stopTimezone);
+    }
+    if (!nullToAbsent || levelId != null) {
+      map['level_id'] = Variable<String>(levelId);
+    }
     if (!nullToAbsent || stopLat != null) {
       map['stop_lat'] = Variable<double>(stopLat);
     }
@@ -714,6 +1149,27 @@ class Stop extends DataClass implements Insertable<Stop> {
     return StopsCompanion(
       stopId: Value(stopId),
       stopName: Value(stopName),
+      stopCode: stopCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopCode),
+      ttsStopName: ttsStopName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ttsStopName),
+      stopDesc: stopDesc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopDesc),
+      zoneId: zoneId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(zoneId),
+      stopUrl: stopUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopUrl),
+      stopTimezone: stopTimezone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopTimezone),
+      levelId: levelId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(levelId),
       stopLat: stopLat == null && nullToAbsent
           ? const Value.absent()
           : Value(stopLat),
@@ -744,6 +1200,13 @@ class Stop extends DataClass implements Insertable<Stop> {
     return Stop(
       stopId: serializer.fromJson<String>(json['stopId']),
       stopName: serializer.fromJson<String>(json['stopName']),
+      stopCode: serializer.fromJson<String?>(json['stopCode']),
+      ttsStopName: serializer.fromJson<String?>(json['ttsStopName']),
+      stopDesc: serializer.fromJson<String?>(json['stopDesc']),
+      zoneId: serializer.fromJson<String?>(json['zoneId']),
+      stopUrl: serializer.fromJson<String?>(json['stopUrl']),
+      stopTimezone: serializer.fromJson<String?>(json['stopTimezone']),
+      levelId: serializer.fromJson<String?>(json['levelId']),
       stopLat: serializer.fromJson<double?>(json['stopLat']),
       stopLon: serializer.fromJson<double?>(json['stopLon']),
       locationType: serializer.fromJson<int?>(json['locationType']),
@@ -759,6 +1222,13 @@ class Stop extends DataClass implements Insertable<Stop> {
     return <String, dynamic>{
       'stopId': serializer.toJson<String>(stopId),
       'stopName': serializer.toJson<String>(stopName),
+      'stopCode': serializer.toJson<String?>(stopCode),
+      'ttsStopName': serializer.toJson<String?>(ttsStopName),
+      'stopDesc': serializer.toJson<String?>(stopDesc),
+      'zoneId': serializer.toJson<String?>(zoneId),
+      'stopUrl': serializer.toJson<String?>(stopUrl),
+      'stopTimezone': serializer.toJson<String?>(stopTimezone),
+      'levelId': serializer.toJson<String?>(levelId),
       'stopLat': serializer.toJson<double?>(stopLat),
       'stopLon': serializer.toJson<double?>(stopLon),
       'locationType': serializer.toJson<int?>(locationType),
@@ -772,6 +1242,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   Stop copyWith({
     String? stopId,
     String? stopName,
+    Value<String?> stopCode = const Value.absent(),
+    Value<String?> ttsStopName = const Value.absent(),
+    Value<String?> stopDesc = const Value.absent(),
+    Value<String?> zoneId = const Value.absent(),
+    Value<String?> stopUrl = const Value.absent(),
+    Value<String?> stopTimezone = const Value.absent(),
+    Value<String?> levelId = const Value.absent(),
     Value<double?> stopLat = const Value.absent(),
     Value<double?> stopLon = const Value.absent(),
     Value<int?> locationType = const Value.absent(),
@@ -782,6 +1259,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   }) => Stop(
     stopId: stopId ?? this.stopId,
     stopName: stopName ?? this.stopName,
+    stopCode: stopCode.present ? stopCode.value : this.stopCode,
+    ttsStopName: ttsStopName.present ? ttsStopName.value : this.ttsStopName,
+    stopDesc: stopDesc.present ? stopDesc.value : this.stopDesc,
+    zoneId: zoneId.present ? zoneId.value : this.zoneId,
+    stopUrl: stopUrl.present ? stopUrl.value : this.stopUrl,
+    stopTimezone: stopTimezone.present ? stopTimezone.value : this.stopTimezone,
+    levelId: levelId.present ? levelId.value : this.levelId,
     stopLat: stopLat.present ? stopLat.value : this.stopLat,
     stopLon: stopLon.present ? stopLon.value : this.stopLon,
     locationType: locationType.present ? locationType.value : this.locationType,
@@ -798,6 +1282,17 @@ class Stop extends DataClass implements Insertable<Stop> {
     return Stop(
       stopId: data.stopId.present ? data.stopId.value : this.stopId,
       stopName: data.stopName.present ? data.stopName.value : this.stopName,
+      stopCode: data.stopCode.present ? data.stopCode.value : this.stopCode,
+      ttsStopName: data.ttsStopName.present
+          ? data.ttsStopName.value
+          : this.ttsStopName,
+      stopDesc: data.stopDesc.present ? data.stopDesc.value : this.stopDesc,
+      zoneId: data.zoneId.present ? data.zoneId.value : this.zoneId,
+      stopUrl: data.stopUrl.present ? data.stopUrl.value : this.stopUrl,
+      stopTimezone: data.stopTimezone.present
+          ? data.stopTimezone.value
+          : this.stopTimezone,
+      levelId: data.levelId.present ? data.levelId.value : this.levelId,
       stopLat: data.stopLat.present ? data.stopLat.value : this.stopLat,
       stopLon: data.stopLon.present ? data.stopLon.value : this.stopLon,
       locationType: data.locationType.present
@@ -821,6 +1316,13 @@ class Stop extends DataClass implements Insertable<Stop> {
     return (StringBuffer('Stop(')
           ..write('stopId: $stopId, ')
           ..write('stopName: $stopName, ')
+          ..write('stopCode: $stopCode, ')
+          ..write('ttsStopName: $ttsStopName, ')
+          ..write('stopDesc: $stopDesc, ')
+          ..write('zoneId: $zoneId, ')
+          ..write('stopUrl: $stopUrl, ')
+          ..write('stopTimezone: $stopTimezone, ')
+          ..write('levelId: $levelId, ')
           ..write('stopLat: $stopLat, ')
           ..write('stopLon: $stopLon, ')
           ..write('locationType: $locationType, ')
@@ -836,6 +1338,13 @@ class Stop extends DataClass implements Insertable<Stop> {
   int get hashCode => Object.hash(
     stopId,
     stopName,
+    stopCode,
+    ttsStopName,
+    stopDesc,
+    zoneId,
+    stopUrl,
+    stopTimezone,
+    levelId,
     stopLat,
     stopLon,
     locationType,
@@ -850,6 +1359,13 @@ class Stop extends DataClass implements Insertable<Stop> {
       (other is Stop &&
           other.stopId == this.stopId &&
           other.stopName == this.stopName &&
+          other.stopCode == this.stopCode &&
+          other.ttsStopName == this.ttsStopName &&
+          other.stopDesc == this.stopDesc &&
+          other.zoneId == this.zoneId &&
+          other.stopUrl == this.stopUrl &&
+          other.stopTimezone == this.stopTimezone &&
+          other.levelId == this.levelId &&
           other.stopLat == this.stopLat &&
           other.stopLon == this.stopLon &&
           other.locationType == this.locationType &&
@@ -862,6 +1378,13 @@ class Stop extends DataClass implements Insertable<Stop> {
 class StopsCompanion extends UpdateCompanion<Stop> {
   final Value<String> stopId;
   final Value<String> stopName;
+  final Value<String?> stopCode;
+  final Value<String?> ttsStopName;
+  final Value<String?> stopDesc;
+  final Value<String?> zoneId;
+  final Value<String?> stopUrl;
+  final Value<String?> stopTimezone;
+  final Value<String?> levelId;
   final Value<double?> stopLat;
   final Value<double?> stopLon;
   final Value<int?> locationType;
@@ -873,6 +1396,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   const StopsCompanion({
     this.stopId = const Value.absent(),
     this.stopName = const Value.absent(),
+    this.stopCode = const Value.absent(),
+    this.ttsStopName = const Value.absent(),
+    this.stopDesc = const Value.absent(),
+    this.zoneId = const Value.absent(),
+    this.stopUrl = const Value.absent(),
+    this.stopTimezone = const Value.absent(),
+    this.levelId = const Value.absent(),
     this.stopLat = const Value.absent(),
     this.stopLon = const Value.absent(),
     this.locationType = const Value.absent(),
@@ -885,6 +1415,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   StopsCompanion.insert({
     required String stopId,
     required String stopName,
+    this.stopCode = const Value.absent(),
+    this.ttsStopName = const Value.absent(),
+    this.stopDesc = const Value.absent(),
+    this.zoneId = const Value.absent(),
+    this.stopUrl = const Value.absent(),
+    this.stopTimezone = const Value.absent(),
+    this.levelId = const Value.absent(),
     this.stopLat = const Value.absent(),
     this.stopLon = const Value.absent(),
     this.locationType = const Value.absent(),
@@ -899,6 +1436,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   static Insertable<Stop> custom({
     Expression<String>? stopId,
     Expression<String>? stopName,
+    Expression<String>? stopCode,
+    Expression<String>? ttsStopName,
+    Expression<String>? stopDesc,
+    Expression<String>? zoneId,
+    Expression<String>? stopUrl,
+    Expression<String>? stopTimezone,
+    Expression<String>? levelId,
     Expression<double>? stopLat,
     Expression<double>? stopLon,
     Expression<int>? locationType,
@@ -911,6 +1455,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     return RawValuesInsertable({
       if (stopId != null) 'stop_id': stopId,
       if (stopName != null) 'stop_name': stopName,
+      if (stopCode != null) 'stop_code': stopCode,
+      if (ttsStopName != null) 'tts_stop_name': ttsStopName,
+      if (stopDesc != null) 'stop_desc': stopDesc,
+      if (zoneId != null) 'zone_id': zoneId,
+      if (stopUrl != null) 'stop_url': stopUrl,
+      if (stopTimezone != null) 'stop_timezone': stopTimezone,
+      if (levelId != null) 'level_id': levelId,
       if (stopLat != null) 'stop_lat': stopLat,
       if (stopLon != null) 'stop_lon': stopLon,
       if (locationType != null) 'location_type': locationType,
@@ -925,6 +1476,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   StopsCompanion copyWith({
     Value<String>? stopId,
     Value<String>? stopName,
+    Value<String?>? stopCode,
+    Value<String?>? ttsStopName,
+    Value<String?>? stopDesc,
+    Value<String?>? zoneId,
+    Value<String?>? stopUrl,
+    Value<String?>? stopTimezone,
+    Value<String?>? levelId,
     Value<double?>? stopLat,
     Value<double?>? stopLon,
     Value<int?>? locationType,
@@ -937,6 +1495,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     return StopsCompanion(
       stopId: stopId ?? this.stopId,
       stopName: stopName ?? this.stopName,
+      stopCode: stopCode ?? this.stopCode,
+      ttsStopName: ttsStopName ?? this.ttsStopName,
+      stopDesc: stopDesc ?? this.stopDesc,
+      zoneId: zoneId ?? this.zoneId,
+      stopUrl: stopUrl ?? this.stopUrl,
+      stopTimezone: stopTimezone ?? this.stopTimezone,
+      levelId: levelId ?? this.levelId,
       stopLat: stopLat ?? this.stopLat,
       stopLon: stopLon ?? this.stopLon,
       locationType: locationType ?? this.locationType,
@@ -956,6 +1521,27 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     }
     if (stopName.present) {
       map['stop_name'] = Variable<String>(stopName.value);
+    }
+    if (stopCode.present) {
+      map['stop_code'] = Variable<String>(stopCode.value);
+    }
+    if (ttsStopName.present) {
+      map['tts_stop_name'] = Variable<String>(ttsStopName.value);
+    }
+    if (stopDesc.present) {
+      map['stop_desc'] = Variable<String>(stopDesc.value);
+    }
+    if (zoneId.present) {
+      map['zone_id'] = Variable<String>(zoneId.value);
+    }
+    if (stopUrl.present) {
+      map['stop_url'] = Variable<String>(stopUrl.value);
+    }
+    if (stopTimezone.present) {
+      map['stop_timezone'] = Variable<String>(stopTimezone.value);
+    }
+    if (levelId.present) {
+      map['level_id'] = Variable<String>(levelId.value);
     }
     if (stopLat.present) {
       map['stop_lat'] = Variable<double>(stopLat.value);
@@ -989,6 +1575,13 @@ class StopsCompanion extends UpdateCompanion<Stop> {
     return (StringBuffer('StopsCompanion(')
           ..write('stopId: $stopId, ')
           ..write('stopName: $stopName, ')
+          ..write('stopCode: $stopCode, ')
+          ..write('ttsStopName: $ttsStopName, ')
+          ..write('stopDesc: $stopDesc, ')
+          ..write('zoneId: $zoneId, ')
+          ..write('stopUrl: $stopUrl, ')
+          ..write('stopTimezone: $stopTimezone, ')
+          ..write('levelId: $levelId, ')
           ..write('stopLat: $stopLat, ')
           ..write('stopLon: $stopLon, ')
           ..write('locationType: $locationType, ')
@@ -1021,6 +1614,11 @@ typedef $$JourneysTableCreateCompanionBuilder =
       required String originId,
       required String destination,
       required String destinationId,
+      Value<String> tripType,
+      Value<String?> mode,
+      Value<String?> lineId,
+      Value<String?> lineName,
+      Value<String?> legsJson,
       Value<bool> isPinned,
     });
 typedef $$JourneysTableUpdateCompanionBuilder =
@@ -1030,6 +1628,11 @@ typedef $$JourneysTableUpdateCompanionBuilder =
       Value<String> originId,
       Value<String> destination,
       Value<String> destinationId,
+      Value<String> tripType,
+      Value<String?> mode,
+      Value<String?> lineId,
+      Value<String?> lineName,
+      Value<String?> legsJson,
       Value<bool> isPinned,
     });
 
@@ -1064,6 +1667,31 @@ class $$JourneysTableFilterComposer
 
   ColumnFilters<String> get destinationId => $composableBuilder(
     column: $table.destinationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tripType => $composableBuilder(
+    column: $table.tripType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineName => $composableBuilder(
+    column: $table.lineName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get legsJson => $composableBuilder(
+    column: $table.legsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1107,6 +1735,31 @@ class $$JourneysTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get tripType => $composableBuilder(
+    column: $table.tripType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineName => $composableBuilder(
+    column: $table.lineName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get legsJson => $composableBuilder(
+    column: $table.legsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isPinned => $composableBuilder(
     column: $table.isPinned,
     builder: (column) => ColumnOrderings(column),
@@ -1140,6 +1793,21 @@ class $$JourneysTableAnnotationComposer
     column: $table.destinationId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get tripType =>
+      $composableBuilder(column: $table.tripType, builder: (column) => column);
+
+  GeneratedColumn<String> get mode =>
+      $composableBuilder(column: $table.mode, builder: (column) => column);
+
+  GeneratedColumn<String> get lineId =>
+      $composableBuilder(column: $table.lineId, builder: (column) => column);
+
+  GeneratedColumn<String> get lineName =>
+      $composableBuilder(column: $table.lineName, builder: (column) => column);
+
+  GeneratedColumn<String> get legsJson =>
+      $composableBuilder(column: $table.legsJson, builder: (column) => column);
 
   GeneratedColumn<bool> get isPinned =>
       $composableBuilder(column: $table.isPinned, builder: (column) => column);
@@ -1178,6 +1846,11 @@ class $$JourneysTableTableManager
                 Value<String> originId = const Value.absent(),
                 Value<String> destination = const Value.absent(),
                 Value<String> destinationId = const Value.absent(),
+                Value<String> tripType = const Value.absent(),
+                Value<String?> mode = const Value.absent(),
+                Value<String?> lineId = const Value.absent(),
+                Value<String?> lineName = const Value.absent(),
+                Value<String?> legsJson = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
               }) => JourneysCompanion(
                 id: id,
@@ -1185,6 +1858,11 @@ class $$JourneysTableTableManager
                 originId: originId,
                 destination: destination,
                 destinationId: destinationId,
+                tripType: tripType,
+                mode: mode,
+                lineId: lineId,
+                lineName: lineName,
+                legsJson: legsJson,
                 isPinned: isPinned,
               ),
           createCompanionCallback:
@@ -1194,6 +1872,11 @@ class $$JourneysTableTableManager
                 required String originId,
                 required String destination,
                 required String destinationId,
+                Value<String> tripType = const Value.absent(),
+                Value<String?> mode = const Value.absent(),
+                Value<String?> lineId = const Value.absent(),
+                Value<String?> lineName = const Value.absent(),
+                Value<String?> legsJson = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
               }) => JourneysCompanion.insert(
                 id: id,
@@ -1201,6 +1884,11 @@ class $$JourneysTableTableManager
                 originId: originId,
                 destination: destination,
                 destinationId: destinationId,
+                tripType: tripType,
+                mode: mode,
+                lineId: lineId,
+                lineName: lineName,
+                legsJson: legsJson,
                 isPinned: isPinned,
               ),
           withReferenceMapper: (p0) => p0
@@ -1229,6 +1917,13 @@ typedef $$StopsTableCreateCompanionBuilder =
     StopsCompanion Function({
       required String stopId,
       required String stopName,
+      Value<String?> stopCode,
+      Value<String?> ttsStopName,
+      Value<String?> stopDesc,
+      Value<String?> zoneId,
+      Value<String?> stopUrl,
+      Value<String?> stopTimezone,
+      Value<String?> levelId,
       Value<double?> stopLat,
       Value<double?> stopLon,
       Value<int?> locationType,
@@ -1242,6 +1937,13 @@ typedef $$StopsTableUpdateCompanionBuilder =
     StopsCompanion Function({
       Value<String> stopId,
       Value<String> stopName,
+      Value<String?> stopCode,
+      Value<String?> ttsStopName,
+      Value<String?> stopDesc,
+      Value<String?> zoneId,
+      Value<String?> stopUrl,
+      Value<String?> stopTimezone,
+      Value<String?> levelId,
       Value<double?> stopLat,
       Value<double?> stopLon,
       Value<int?> locationType,
@@ -1267,6 +1969,41 @@ class $$StopsTableFilterComposer extends Composer<_$AppDatabase, $StopsTable> {
 
   ColumnFilters<String> get stopName => $composableBuilder(
     column: $table.stopName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopCode => $composableBuilder(
+    column: $table.stopCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ttsStopName => $composableBuilder(
+    column: $table.ttsStopName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopDesc => $composableBuilder(
+    column: $table.stopDesc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get zoneId => $composableBuilder(
+    column: $table.zoneId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopUrl => $composableBuilder(
+    column: $table.stopUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopTimezone => $composableBuilder(
+    column: $table.stopTimezone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get levelId => $composableBuilder(
+    column: $table.levelId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1325,6 +2062,41 @@ class $$StopsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get stopCode => $composableBuilder(
+    column: $table.stopCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ttsStopName => $composableBuilder(
+    column: $table.ttsStopName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopDesc => $composableBuilder(
+    column: $table.stopDesc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get zoneId => $composableBuilder(
+    column: $table.zoneId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopUrl => $composableBuilder(
+    column: $table.stopUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopTimezone => $composableBuilder(
+    column: $table.stopTimezone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get levelId => $composableBuilder(
+    column: $table.levelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get stopLat => $composableBuilder(
     column: $table.stopLat,
     builder: (column) => ColumnOrderings(column),
@@ -1375,6 +2147,31 @@ class $$StopsTableAnnotationComposer
 
   GeneratedColumn<String> get stopName =>
       $composableBuilder(column: $table.stopName, builder: (column) => column);
+
+  GeneratedColumn<String> get stopCode =>
+      $composableBuilder(column: $table.stopCode, builder: (column) => column);
+
+  GeneratedColumn<String> get ttsStopName => $composableBuilder(
+    column: $table.ttsStopName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get stopDesc =>
+      $composableBuilder(column: $table.stopDesc, builder: (column) => column);
+
+  GeneratedColumn<String> get zoneId =>
+      $composableBuilder(column: $table.zoneId, builder: (column) => column);
+
+  GeneratedColumn<String> get stopUrl =>
+      $composableBuilder(column: $table.stopUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get stopTimezone => $composableBuilder(
+    column: $table.stopTimezone,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get levelId =>
+      $composableBuilder(column: $table.levelId, builder: (column) => column);
 
   GeneratedColumn<double> get stopLat =>
       $composableBuilder(column: $table.stopLat, builder: (column) => column);
@@ -1436,6 +2233,13 @@ class $$StopsTableTableManager
               ({
                 Value<String> stopId = const Value.absent(),
                 Value<String> stopName = const Value.absent(),
+                Value<String?> stopCode = const Value.absent(),
+                Value<String?> ttsStopName = const Value.absent(),
+                Value<String?> stopDesc = const Value.absent(),
+                Value<String?> zoneId = const Value.absent(),
+                Value<String?> stopUrl = const Value.absent(),
+                Value<String?> stopTimezone = const Value.absent(),
+                Value<String?> levelId = const Value.absent(),
                 Value<double?> stopLat = const Value.absent(),
                 Value<double?> stopLon = const Value.absent(),
                 Value<int?> locationType = const Value.absent(),
@@ -1447,6 +2251,13 @@ class $$StopsTableTableManager
               }) => StopsCompanion(
                 stopId: stopId,
                 stopName: stopName,
+                stopCode: stopCode,
+                ttsStopName: ttsStopName,
+                stopDesc: stopDesc,
+                zoneId: zoneId,
+                stopUrl: stopUrl,
+                stopTimezone: stopTimezone,
+                levelId: levelId,
                 stopLat: stopLat,
                 stopLon: stopLon,
                 locationType: locationType,
@@ -1460,6 +2271,13 @@ class $$StopsTableTableManager
               ({
                 required String stopId,
                 required String stopName,
+                Value<String?> stopCode = const Value.absent(),
+                Value<String?> ttsStopName = const Value.absent(),
+                Value<String?> stopDesc = const Value.absent(),
+                Value<String?> zoneId = const Value.absent(),
+                Value<String?> stopUrl = const Value.absent(),
+                Value<String?> stopTimezone = const Value.absent(),
+                Value<String?> levelId = const Value.absent(),
                 Value<double?> stopLat = const Value.absent(),
                 Value<double?> stopLon = const Value.absent(),
                 Value<int?> locationType = const Value.absent(),
@@ -1471,6 +2289,13 @@ class $$StopsTableTableManager
               }) => StopsCompanion.insert(
                 stopId: stopId,
                 stopName: stopName,
+                stopCode: stopCode,
+                ttsStopName: ttsStopName,
+                stopDesc: stopDesc,
+                zoneId: zoneId,
+                stopUrl: stopUrl,
+                stopTimezone: stopTimezone,
+                levelId: levelId,
                 stopLat: stopLat,
                 stopLon: stopLon,
                 locationType: locationType,
