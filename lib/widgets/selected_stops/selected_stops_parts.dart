@@ -198,7 +198,7 @@ class StopSequenceSection extends StatelessWidget {
               if (descriptor.isInterchange &&
                   descriptor.interchangeIndex != null)
                 _InterchangeActions(
-                  interchangeIndex: descriptor.interchangeIndex!,
+                  interchangeIndex: descriptor.interchangeIndex ?? 0,
                   canMoveUp: descriptor.canMoveUp,
                   canMoveDown: descriptor.canMoveDown,
                   onMoveInterchange: onMoveInterchange,

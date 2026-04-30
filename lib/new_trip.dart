@@ -820,14 +820,16 @@ class _NewTripScreenState extends State<NewTripScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
+    final selectedLine = _selectedLine;
+
     if (_manualBuilderEnabled &&
-        _selectedLine != null &&
-        mode != _selectedLine!.mode) {
+        selectedLine != null &&
+        mode != selectedLine.mode) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Text(
-            'Manual multi-leg editing is limited to ${_selectedLine!.mode.displayName} stops on ${_selectedLine!.lineName}.',
+            'Manual multi-leg editing is limited to ${selectedLine.mode.displayName} stops on ${selectedLine.lineName}.',
             textAlign: TextAlign.center,
           ),
         ),
@@ -837,16 +839,16 @@ class _NewTripScreenState extends State<NewTripScreen>
     if (_isLoadingInterchangeCandidates &&
         _manualBuilderEnabled &&
         _pendingInterchangeInsertIndex != null &&
-        _selectedLine != null &&
-        mode == _selectedLine!.mode) {
+        selectedLine != null &&
+        mode == selectedLine.mode) {
       return const Center(child: CircularProgressIndicator());
     }
 
     final baseList =
         _manualBuilderEnabled &&
             _pendingInterchangeInsertIndex != null &&
-            _selectedLine != null &&
-            mode == _selectedLine!.mode
+            selectedLine != null &&
+            mode == selectedLine.mode
         ? _manualCandidateStations
         : _getStationListForMode(mode);
 
@@ -856,9 +858,9 @@ class _NewTripScreenState extends State<NewTripScreen>
       final emptyMessage =
           _manualBuilderEnabled &&
               _pendingInterchangeInsertIndex != null &&
-              _selectedLine != null &&
-              mode == _selectedLine!.mode
-          ? buildInterchangeEmptyMessage(_selectedLine!)
+              selectedLine != null &&
+              mode == selectedLine.mode
+          ? buildInterchangeEmptyMessage(selectedLine)
           : 'No stops found.';
       return Center(child: Text(emptyMessage));
     }

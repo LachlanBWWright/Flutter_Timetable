@@ -435,8 +435,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln('\nTransportation raw JSON:');
     try {
       const enc = JsonEncoder.withIndent('  ');
-      if (transport?.rawJson != null) {
-        buffer.writeln(enc.convert(transport!.rawJson));
+      final transportRawJson = transport?.rawJson;
+      if (transportRawJson != null) {
+        buffer.writeln(enc.convert(transportRawJson));
       } else if (rawTransport != null) {
         buffer.writeln(enc.convert(rawTransport));
       } else {
@@ -507,7 +508,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return;
     }
 
-    final route = _gtfsRoute!;
+    final route = _gtfsRoute;
+    if (route == null) {
+      buffer.writeln('  status: not loaded');
+      return;
+    }
     final agency = _gtfsAgency;
     buffer.writeln('  status: loaded');
     buffer.writeln('  endpoint: ${_gtfsRouteEndpointKey ?? 'N/A'}');
@@ -741,12 +746,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final transport = leg.transportation;
     final transportId = transport?.id?.trim();
     final transportNumber = transport?.number?.trim();
+    final trimmedTransportName = transport?.name?.trim();
+    final trimmedDisassembledName = transport?.disassembledName?.trim();
     final transportNames = <String>{
-      if (transport?.name != null && transport!.name!.trim().isNotEmpty)
-        transport.name!.trim(),
-      if (transport?.disassembledName != null &&
-          transport!.disassembledName!.trim().isNotEmpty)
-        transport.disassembledName!.trim(),
+      if (trimmedTransportName != null && trimmedTransportName.isNotEmpty)
+        trimmedTransportName,
+      if (trimmedDisassembledName != null && trimmedDisassembledName.isNotEmpty)
+        trimmedDisassembledName,
     };
 
     for (final route in routes) {
@@ -786,9 +792,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     if (agencies.isEmpty) {
       return null;
     }
-    if (route.agencyId != null && route.agencyId!.isNotEmpty) {
+    final agencyId = route.agencyId;
+    if (agencyId != null && agencyId.isNotEmpty) {
       for (final agency in agencies) {
-        if (agency.agencyId == route.agencyId) {
+        if (agency.agencyId == agencyId) {
           return agency;
         }
       }
@@ -1688,9 +1695,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       valueListenable: DebugService.showDebugData,
       builder: (context, showDebug, child) {
         if (!showDebug) return const SizedBox.shrink();
-        final tripDebugPreviewText = widget.trip != null
-            ? _tripDebugPreviewString(widget.trip!)
-            : null;
+        final trip = widget.trip;
+        final tripDebugPreviewText = trip == null
+            ? null
+            : _tripDebugPreviewString(trip);
         final routeDebugPreviewText = _routeDebugPreviewString(leg);
         final legDebugPreviewText = _legDebugPreviewString(leg);
         return Column(
@@ -1724,7 +1732,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            if (widget.trip != null && tripDebugPreviewText != null) ...[
+            if (trip != null && tripDebugPreviewText != null) ...[
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
@@ -1763,7 +1771,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                                   try {
                                     await Clipboard.setData(
                                       ClipboardData(
-                                        text: _tripDebugString(widget.trip!),
+                                        text: _tripDebugString(trip),
                                       ),
                                     );
                                     if (!mounted) return;

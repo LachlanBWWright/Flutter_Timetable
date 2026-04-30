@@ -10,11 +10,13 @@ class DebugReferenceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = reference.subtitle;
+    final reason = reference.reason;
+    final request = reference.request;
     final subtitleParts = <String>[
       reference.entityId,
-      if (reference.subtitle != null && reference.subtitle!.isNotEmpty)
-        reference.subtitle!,
-      if (!reference.canOpen && reference.reason != null) reference.reason!,
+      if (subtitle != null && subtitle.isNotEmpty) subtitle,
+      if (!reference.canOpen && reason != null) reason,
     ];
 
     return ListTile(
@@ -38,12 +40,12 @@ class DebugReferenceTile extends StatelessWidget {
           ? const Icon(Icons.open_in_new)
           : const Icon(Icons.warning_amber_rounded),
       enabled: reference.canOpen,
-      onTap: !reference.canOpen || reference.request == null
+      onTap: !reference.canOpen || request == null
           ? null
           : () {
               DebugNavigation.pushEntity(
                 context,
-                request: reference.request!,
+                request: request,
                 loader: _inheritLoader(context),
               );
             },

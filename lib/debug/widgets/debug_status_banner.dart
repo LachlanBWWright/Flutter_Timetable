@@ -45,7 +45,7 @@ class DebugStatusBanner extends StatelessWidget {
               children: [
                 if (banner.title != null)
                   Text(
-                    banner.title!,
+                    banner.title ?? '',
                     style: TextStyle(
                       color: foreground,
                       fontWeight: FontWeight.bold,

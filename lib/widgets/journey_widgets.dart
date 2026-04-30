@@ -105,8 +105,9 @@ class JourneyCard extends StatelessWidget {
               child: Text(
                 [
                   'Manual multi-leg',
-                  if (journey.lineName != null && journey.lineName!.isNotEmpty)
-                    journey.lineName!,
+                  if (journey.lineName case final lineName?
+                      when lineName.isNotEmpty)
+                    lineName,
                   if (interchangeCount != null)
                     '$interchangeCount interchange${interchangeCount == 1 ? '' : 's'}',
                 ].join(' • '),

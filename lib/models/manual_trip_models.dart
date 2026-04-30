@@ -236,11 +236,19 @@ extension JourneySavedTripX on Journey {
     }
 
     try {
+      final resolvedLineId = lineId;
+      final resolvedLineName = lineName;
+      final resolvedLegsJson = legsJson;
+      if (resolvedLineId == null ||
+          resolvedLineName == null ||
+          resolvedLegsJson == null) {
+        return null;
+      }
       final definition = ManualTripDefinition.fromLegsJson(
         mode: tripMode,
-        lineId: lineId!,
-        lineName: lineName!,
-        legsJson: legsJson!,
+        lineId: resolvedLineId,
+        lineName: resolvedLineName,
+        legsJson: resolvedLegsJson,
       );
       return definition.isValid ? definition : null;
     } catch (_) {

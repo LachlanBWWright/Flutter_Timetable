@@ -14,6 +14,7 @@ class DebugEntityScreen extends StatelessWidget {
       future: args.loader(args.request),
       builder: (context, snapshot) {
         final title = args.request.entityType.label;
+        final pageData = snapshot.data;
         return Scaffold(
           appBar: AppBar(title: Text('$title Debug')),
           body: switch (snapshot.connectionState) {
@@ -26,8 +27,8 @@ class DebugEntityScreen extends StatelessWidget {
                 child: Text('Failed to load debug page: ${snapshot.error}'),
               ),
             ),
-            _ when snapshot.hasData => DebugEntityPage(
-              pageData: snapshot.data!,
+            _ when snapshot.hasData && pageData != null => DebugEntityPage(
+              pageData: pageData,
             ),
             _ => const Center(child: Text('No debug data available.')),
           },

@@ -24,6 +24,7 @@ class _DebugEntityListScreenState extends State<DebugEntityListScreen> {
     return FutureBuilder<DebugEntityListPageData>(
       future: _pageFuture,
       builder: (context, snapshot) {
+        final pageData = snapshot.data;
         return Scaffold(
           appBar: AppBar(title: Text(title)),
           body: switch (snapshot.connectionState) {
@@ -36,8 +37,8 @@ class _DebugEntityListScreenState extends State<DebugEntityListScreen> {
                 child: Text('Failed to load debug browser: ${snapshot.error}'),
               ),
             ),
-            _ when snapshot.hasData => _DebugEntityListView(
-              pageData: snapshot.data!,
+            _ when snapshot.hasData && pageData != null => _DebugEntityListView(
+              pageData: pageData,
               pageLoader: widget.args.pageLoader,
               initialSearchQuery: widget.args.initialSearchQuery,
               initialFilters: widget.args.initialFilters,
@@ -243,12 +244,10 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(item.entityId),
-                            if (item.subtitle != null &&
-                                item.subtitle!.isNotEmpty)
-                              Text(item.subtitle!),
-                            if (item.description != null &&
-                                item.description!.isNotEmpty)
-                              Text(item.description!),
+                            if ((item.subtitle?.isNotEmpty ?? false))
+                              Text(item.subtitle ?? ''),
+                            if ((item.description?.isNotEmpty ?? false))
+                              Text(item.description ?? ''),
                             if (item.sources.isNotEmpty) ...[
                               const SizedBox(height: 6),
                               Wrap(

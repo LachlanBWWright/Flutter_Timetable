@@ -100,7 +100,7 @@ void main() {
       expect(reversedJourney.destination, 'Central');
       expect(reversedJourney.isPinned, isTrue);
       expect(reversedDefinition, isNotNull);
-      expect(reversedDefinition!.orderedStops.map((stop) => stop.id), [
+      expect(reversedDefinition?.orderedStops.map((stop) => stop.id), [
         'strathfield',
         'redfern',
         'central',

@@ -201,7 +201,7 @@ class _FieldRow extends StatelessWidget {
             ),
             if (field.badge != null)
               Chip(
-                label: Text(field.badge!),
+                label: Text(field.badge ?? ''),
                 visualDensity: VisualDensity.compact,
               ),
           ],

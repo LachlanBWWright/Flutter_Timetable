@@ -74,18 +74,21 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
     if (!hasPlanned && !hasEstimated) {
       return 'TBD';
     }
+    if (fallbackTime == null) {
+      return 'TBD';
+    }
     if (!hasEstimated) {
-      return DateTimeUtils.parseTimeOnly(fallbackTime!);
+      return DateTimeUtils.parseTimeOnly(fallbackTime);
     }
     if (!hasPlanned) {
-      return DateTimeUtils.parseTimeOnly(fallbackTime!);
+      return DateTimeUtils.parseTimeOnly(fallbackTime);
     }
     try {
       final plannedTime = DateTimeUtils.parseTimeToDateTime(planned);
       final estimatedTime = DateTimeUtils.parseTimeToDateTime(estimated);
 
       if (plannedTime == null || estimatedTime == null) {
-        return DateTimeUtils.parseTimeOnly(fallbackTime!);
+        return DateTimeUtils.parseTimeOnly(fallbackTime);
       }
 
       final difference = estimatedTime.difference(plannedTime).inMinutes;
@@ -98,7 +101,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
         return '${DateTimeUtils.parseTimeOnly(estimated)} (${difference.abs()}m early)';
       }
     } catch (e) {
-      return DateTimeUtils.parseTimeOnly(fallbackTime!);
+      return DateTimeUtils.parseTimeOnly(fallbackTime);
     }
   }
 

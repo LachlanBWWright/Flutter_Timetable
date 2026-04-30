@@ -167,7 +167,7 @@ class _TripScreenState extends State<TripScreen> {
                                         child: SingleChildScrollView(
                                           padding: const EdgeInsets.all(12),
                                           child: Text(
-                                            _rawTripJson!,
+                                            _rawTripJson ?? '',
                                             style: const TextStyle(
                                               fontFamily: 'monospace',
                                               fontSize: 12,

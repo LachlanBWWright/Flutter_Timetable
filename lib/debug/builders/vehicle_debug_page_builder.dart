@@ -12,25 +12,27 @@ class VehicleDebugPageBuilder {
   Future<DebugPageData> build(DebugEntityRequest request) async {
     final requestedVehicleId = request.entityId;
     final preferredVehicle = request.context.vehiclePosition;
+    final contextTripUpdate = request.context.tripUpdate;
     final vehicle = await resolver.resolveVehicle(
       preferredVehicle: preferredVehicle,
       vehicleId: requestedVehicleId,
-      tripId: request.context.tripUpdate?.trip.hasTripId() == true
-          ? request.context.tripUpdate!.trip.tripId
+      tripId: contextTripUpdate?.trip.hasTripId() == true
+          ? contextTripUpdate?.trip.tripId
           : null,
-      routeId: request.context.tripUpdate?.trip.hasRouteId() == true
-          ? request.context.tripUpdate!.trip.routeId
+      routeId: contextTripUpdate?.trip.hasRouteId() == true
+          ? contextTripUpdate?.trip.routeId
           : null,
     );
     final vehicleId = vehicle == null
         ? requestedVehicleId
         : DebugExtractors.vehicleId(vehicle) ??
               DebugExtractors.vehicleDisplayId(vehicle);
-    final tripId = vehicle?.trip.hasTripId() == true
-        ? vehicle!.trip.tripId
+    final vehicleTrip = vehicle?.trip;
+    final tripId = vehicleTrip?.hasTripId() == true
+        ? vehicleTrip?.tripId
         : null;
-    final routeId = vehicle?.trip.hasRouteId() == true
-        ? vehicle!.trip.routeId
+    final routeId = vehicleTrip?.hasRouteId() == true
+        ? vehicleTrip?.routeId
         : null;
     final derivedStops = vehicle == null
         ? const DebugDerivedVehicleStops(
@@ -67,13 +69,13 @@ class VehicleDebugPageBuilder {
     return DebugPageData(
       entityType: DebugEntityType.vehicle,
       title: vehicle?.vehicle.hasLabel() == true
-          ? vehicle!.vehicle.label
+          ? vehicle?.vehicle.label ?? vehicleId
           : vehicleId,
       canonicalId: vehicleId,
       aliases: DebugExtractors.dedupeStrings([
-        vehicle?.vehicle.hasLabel() == true ? vehicle!.vehicle.label : null,
+        vehicle?.vehicle.hasLabel() == true ? vehicle?.vehicle.label : null,
         vehicle?.vehicle.hasLicensePlate() == true
-            ? vehicle!.vehicle.licensePlate
+            ? vehicle?.vehicle.licensePlate
             : null,
       ], exclude: vehicleId),
       sourceBadges: const [DebugDataSource.realtime, DebugDataSource.derived],
@@ -87,13 +89,13 @@ class VehicleDebugPageBuilder {
             DebugFieldRow(
               label: 'Vehicle label',
               value: vehicle?.vehicle.hasLabel() == true
-                  ? vehicle!.vehicle.label
+                  ? vehicle?.vehicle.label ?? 'N/A'
                   : 'N/A',
             ),
             DebugFieldRow(
               label: 'License plate',
               value: vehicle?.vehicle.hasLicensePlate() == true
-                  ? vehicle!.vehicle.licensePlate
+                  ? vehicle?.vehicle.licensePlate ?? 'N/A'
                   : 'N/A',
             ),
             DebugFieldRow(label: 'Trip ID', value: tripId ?? 'N/A'),
@@ -102,7 +104,7 @@ class VehicleDebugPageBuilder {
               label: 'Timestamp',
               value: vehicle?.hasTimestamp() == true
                   ? DateTime.fromMillisecondsSinceEpoch(
-                      vehicle!.timestamp.toInt() * 1000,
+                      (vehicle?.timestamp.toInt() ?? 0) * 1000,
                     ).toIso8601String()
                   : 'N/A',
             ),
@@ -116,42 +118,43 @@ class VehicleDebugPageBuilder {
               label: 'Position',
               value:
                   vehicle?.hasPosition() == true &&
-                      vehicle!.position.hasLatitude() &&
-                      vehicle.position.hasLongitude()
-                  ? '${vehicle.position.latitude.toStringAsFixed(6)}, ${vehicle.position.longitude.toStringAsFixed(6)}'
+                      vehicle?.position.hasLatitude() == true &&
+                      vehicle?.position.hasLongitude() == true
+                  ? '${vehicle?.position.latitude.toStringAsFixed(6)}, ${vehicle?.position.longitude.toStringAsFixed(6)}'
                   : 'N/A',
             ),
             DebugFieldRow(
               label: 'Bearing',
               value:
                   vehicle?.hasPosition() == true &&
-                      vehicle!.position.hasBearing()
-                  ? vehicle.position.bearing.toStringAsFixed(2)
+                      vehicle?.position.hasBearing() == true
+                  ? vehicle?.position.bearing.toStringAsFixed(2) ?? 'N/A'
                   : 'N/A',
             ),
             DebugFieldRow(
               label: 'Speed',
               value:
-                  vehicle?.hasPosition() == true && vehicle!.position.hasSpeed()
-                  ? vehicle.position.speed.toStringAsFixed(2)
+                  vehicle?.hasPosition() == true &&
+                      vehicle?.position.hasSpeed() == true
+                  ? vehicle?.position.speed.toStringAsFixed(2) ?? 'N/A'
                   : 'N/A',
             ),
             DebugFieldRow(
               label: 'Current stop sequence',
               value: vehicle?.hasCurrentStopSequence() == true
-                  ? vehicle!.currentStopSequence.toString()
+                  ? vehicle?.currentStopSequence.toString() ?? 'N/A'
                   : 'N/A',
             ),
             DebugFieldRow(
               label: 'Current status',
               value: vehicle?.hasCurrentStatus() == true
-                  ? vehicle!.currentStatus.name
+                  ? vehicle?.currentStatus.name ?? 'N/A'
                   : 'N/A',
             ),
             DebugFieldRow(
               label: 'Occupancy',
               value: vehicle?.hasOccupancyStatus() == true
-                  ? vehicle!.occupancyStatus.name
+                  ? vehicle?.occupancyStatus.name ?? 'N/A'
                   : 'N/A',
             ),
           ],
@@ -206,7 +209,7 @@ class VehicleDebugPageBuilder {
             DebugFieldRow(
               label: 'Matched trip update trip ID',
               value: derivedStops.matchedTripUpdate?.trip.hasTripId() == true
-                  ? derivedStops.matchedTripUpdate!.trip.tripId
+                  ? derivedStops.matchedTripUpdate?.trip.tripId ?? 'N/A'
                   : 'N/A',
             ),
           ],
@@ -236,17 +239,18 @@ class VehicleDebugPageBuilder {
     DebugDerivedVehicleStops derivedStops,
   ) {
     final refs = <DebugEntityRef>[];
-    if (derivedStops.currentStop?.hasStopId() == true) {
+    final currentStop = derivedStops.currentStop;
+    if (currentStop?.hasStopId() == true) {
       refs.add(
         DebugEntityRef(
           entityType: DebugEntityType.stop,
-          entityId: derivedStops.currentStop!.stopId,
+          entityId: currentStop?.stopId ?? '',
           title: 'Current stop',
-          subtitle: derivedStops.currentStop!.stopId,
+          subtitle: currentStop?.stopId ?? '',
           sources: const [DebugDataSource.realtime, DebugDataSource.derived],
           request: DebugEntityRequest(
             entityType: DebugEntityType.stop,
-            entityId: derivedStops.currentStop!.stopId,
+            entityId: currentStop?.stopId ?? '',
             context: request.context.copyWith(
               tripUpdate: derivedStops.matchedTripUpdate,
             ),
@@ -254,17 +258,18 @@ class VehicleDebugPageBuilder {
         ),
       );
     }
-    if (derivedStops.nextStop?.hasStopId() == true) {
+    final nextStop = derivedStops.nextStop;
+    if (nextStop?.hasStopId() == true) {
       refs.add(
         DebugEntityRef(
           entityType: DebugEntityType.stop,
-          entityId: derivedStops.nextStop!.stopId,
+          entityId: nextStop?.stopId ?? '',
           title: 'Next stop',
-          subtitle: derivedStops.nextStop!.stopId,
+          subtitle: nextStop?.stopId ?? '',
           sources: const [DebugDataSource.realtime, DebugDataSource.derived],
           request: DebugEntityRequest(
             entityType: DebugEntityType.stop,
-            entityId: derivedStops.nextStop!.stopId,
+            entityId: nextStop?.stopId ?? '',
             context: request.context.copyWith(
               tripUpdate: derivedStops.matchedTripUpdate,
             ),

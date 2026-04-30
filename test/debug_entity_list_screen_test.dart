@@ -110,7 +110,7 @@ void main() {
   List<String> visibleTitles(WidgetTester tester) {
     return tester
         .widgetList<ListTile>(find.byType(ListTile))
-        .map((tile) => (tile.title as Text).data!)
+        .map((tile) => (tile.title as Text).data ?? '')
         .toList(growable: false);
   }
 

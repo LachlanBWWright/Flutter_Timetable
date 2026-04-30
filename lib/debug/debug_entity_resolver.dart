@@ -451,13 +451,13 @@ class DebugEntityResolver {
   }) {
     final transportId = transportation?.id?.trim() ?? routeId.trim();
     final transportNumber = transportation?.number?.trim();
+    final trimmedTransportName = transportation?.name?.trim();
+    final trimmedDisassembledName = transportation?.disassembledName?.trim();
     final transportNames = <String>{
-      if (transportation?.name != null &&
-          transportation!.name!.trim().isNotEmpty)
-        transportation.name!.trim(),
-      if (transportation?.disassembledName != null &&
-          transportation!.disassembledName!.trim().isNotEmpty)
-        transportation.disassembledName!.trim(),
+      if (trimmedTransportName != null && trimmedTransportName.isNotEmpty)
+        trimmedTransportName,
+      if (trimmedDisassembledName != null && trimmedDisassembledName.isNotEmpty)
+        trimmedDisassembledName,
     };
 
     for (final route in routes) {
@@ -498,9 +498,10 @@ class DebugEntityResolver {
     if (agencies.isEmpty) {
       return null;
     }
-    if (route.agencyId != null && route.agencyId!.isNotEmpty) {
+    final agencyId = route.agencyId;
+    if (agencyId != null && agencyId.isNotEmpty) {
       for (final agency in agencies) {
-        if (agency.agencyId == route.agencyId) {
+        if (agency.agencyId == agencyId) {
           return agency;
         }
       }

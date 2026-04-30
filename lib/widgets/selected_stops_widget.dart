@@ -142,7 +142,7 @@ class SelectedStopsWidget extends StatelessWidget {
           ],
           if (statusMessage != null) ...[
             const SizedBox(height: 12.0),
-            _StatusCard(message: statusMessage!, accentColor: accentColor),
+            _StatusCard(message: statusMessage ?? '', accentColor: accentColor),
           ],
           if (!isManualBuilderEnabled) ...[
             const SizedBox(height: 12.0),
@@ -189,7 +189,7 @@ class SelectedStopsWidget extends StatelessWidget {
             if (manualValidationMessage != null) ...[
               const SizedBox(height: 12.0),
               Text(
-                manualValidationMessage!,
+                manualValidationMessage ?? '',
                 style: TextStyle(color: Colors.orange.shade300),
               ),
             ],

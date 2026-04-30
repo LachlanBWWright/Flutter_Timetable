@@ -27,12 +27,13 @@ class JourneyAccentStrip extends StatelessWidget {
         StopsService.getModeForStopId(journey.destinationId),
       ]),
       builder: (context, snapshot) {
+        final data = snapshot.data;
         final originColor = accentColorForModeOrFallback(
-          snapshot.hasData ? snapshot.data![0] : null,
+          data != null && data.isNotEmpty ? data[0] : null,
           journey,
         );
         final destinationColor = accentColorForModeOrFallback(
-          snapshot.hasData ? snapshot.data![1] : null,
+          data != null && data.length > 1 ? data[1] : null,
           journey,
         );
 

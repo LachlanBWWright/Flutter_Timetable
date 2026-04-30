@@ -17,8 +17,9 @@ final Map<TransportMode, List<Station>> _stationCache = {};
 ///
 /// This was extracted from `NewTripScreen` to keep DB loading logic reusable.
 Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
-  if (_stationCache.containsKey(mode)) {
-    return _stationCache[mode]!;
+  final cachedStations = _stationCache[mode];
+  if (cachedStations != null) {
+    return cachedStations;
   }
   // Map mode to endpoints (same mapping used elsewhere)
   List<StopsEndpoint> endpoints;

@@ -94,9 +94,7 @@ class StopDebugPageBuilder {
             DebugFieldRow(label: 'Type', value: apiStop?.type ?? 'N/A'),
             DebugFieldRow(
               label: 'Coordinates',
-              value: apiStop?.coord == null
-                  ? 'N/A'
-                  : apiStop!.coord!.join(', '),
+              value: apiStop?.coord?.join(', ') ?? 'N/A',
             ),
             DebugFieldRow(
               label: 'Arrival planned / estimated',
@@ -198,8 +196,9 @@ class StopDebugPageBuilder {
       parentIds.add(id);
     }
     for (final row in dbStops) {
-      if (row.parentStation != null && row.parentStation!.isNotEmpty) {
-        parentIds.add(row.parentStation!);
+      final parentStation = row.parentStation;
+      if (parentStation != null && parentStation.isNotEmpty) {
+        parentIds.add(parentStation);
       }
     }
     if (gtfsParentStation != null && gtfsParentStation.isNotEmpty) {

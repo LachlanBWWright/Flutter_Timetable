@@ -163,7 +163,7 @@ class DebugEntityListLoader {
       }
       final agenciesById = {
         for (final agency in data.agencies)
-          if (agency.agencyId != null) agency.agencyId!: agency,
+          if (agency.agencyId != null) agency.agencyId ?? '': agency,
       };
       for (final route in data.routes) {
         final entry = catalog.putIfAbsent(
@@ -173,7 +173,7 @@ class DebugEntityListLoader {
         entry.route ??= route;
         entry.agency ??= route.agencyId == null
             ? null
-            : agenciesById[route.agencyId!];
+            : agenciesById[route.agencyId ?? ''];
         entry.endpoints.add(endpoint);
         entry.modes.add(_modeNameForEndpoint(endpoint));
         entry.sources.add(DebugDataSource.gtfs);
@@ -193,8 +193,9 @@ class DebugEntityListLoader {
       entry.activeVehicles += 1;
       if (vehicle.hasTimestamp()) {
         final timestamp = timestampFromUnixSeconds(vehicle.timestamp.toInt());
-        if (entry.latestRealtime == null ||
-            (timestamp != null && timestamp.isAfter(entry.latestRealtime!))) {
+        final latestRealtime = entry.latestRealtime;
+        if (latestRealtime == null ||
+            (timestamp != null && timestamp.isAfter(latestRealtime))) {
           entry.latestRealtime = timestamp;
         }
       }
@@ -213,8 +214,9 @@ class DebugEntityListLoader {
       entry.activeTrips += 1;
       if (update.hasTimestamp()) {
         final timestamp = timestampFromUnixSeconds(update.timestamp.toInt());
-        if (entry.latestRealtime == null ||
-            (timestamp != null && timestamp.isAfter(entry.latestRealtime!))) {
+        final latestRealtime = entry.latestRealtime;
+        if (latestRealtime == null ||
+            (timestamp != null && timestamp.isAfter(latestRealtime))) {
           entry.latestRealtime = timestamp;
         }
       }

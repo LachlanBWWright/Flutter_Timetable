@@ -20,7 +20,11 @@ void main() {
       final GtfsData? data = await fetchBusesGtfsData();
       expect(data, isNotNull);
       // The feed should contain at least stops or routes
-      expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
+      expect(
+        ((data?.stops.isNotEmpty ?? false) ||
+            (data?.routes.isNotEmpty ?? false)),
+        isTrue,
+      );
     },
     timeout: const Timeout(Duration(seconds: 60)),
     skip: 'Requires live API key',

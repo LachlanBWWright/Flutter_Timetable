@@ -57,7 +57,7 @@ Map<String, String> getHeaders() {
   final apiKey = ApiKeyService.getEffectiveApiKey();
   return {
     'Authorization': 'apikey $apiKey',
-    //'Accept': 'application/x-protobuf', WRONG!
+    //'Accept': 'application/x-protobuf', wrong
   };
 }
 

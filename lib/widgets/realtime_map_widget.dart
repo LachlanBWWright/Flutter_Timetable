@@ -140,7 +140,10 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     // When the active leg changes, fit the camera to the new leg's stops
     // without recreating the whole widget (avoids visible flash/reload).
     if (oldWidget.leg != widget.leg && widget.leg != null) {
-      final newLeg = widget.leg!;
+      final newLeg = widget.leg;
+      if (newLeg == null) {
+        return;
+      }
       final points = legPointsForMap(newLeg);
       if (points.length >= 2) {
         final fit = CameraFit.bounds(
@@ -491,7 +494,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               if (showDebug && (stop.coord?.length ?? 0) >= 2)
                 _buildInfoRow(
                   'Coords',
-                  '${stop.coord![0].toStringAsFixed(6)}, ${stop.coord![1].toStringAsFixed(6)}',
+                  '${stop.coord?[0].toStringAsFixed(6)}, ${stop.coord?[1].toStringAsFixed(6)}',
                 ),
               const SizedBox(height: 8),
               ElevatedButton(
@@ -672,7 +675,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                vehicleNotFoundMessage(widget.vehicleId!),
+                vehicleNotFoundMessage(widget.vehicleId ?? ''),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,

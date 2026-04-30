@@ -104,11 +104,17 @@ void main() {
         // Cross-match Updates and Positions directly
         int mismatchCount = 0;
         for (var tripId in updateMap.keys) {
-          final update = updateMap[tripId]!;
+          final update = updateMap[tripId];
+          if (update == null) {
+            continue;
+          }
 
           if (positionMap.containsKey(tripId)) {
             matchesFound++;
-            final position = positionMap[tripId]!;
+            final position = positionMap[tripId];
+            if (position == null) {
+              continue;
+            }
 
             final updateVehicleId = update.tripUpdate.hasVehicle()
                 ? update.tripUpdate.vehicle.id
