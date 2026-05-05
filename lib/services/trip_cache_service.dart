@@ -19,6 +19,8 @@ class TripCacheService {
   static const Duration _ttl = Duration(minutes: 10);
 
   static final Map<String, _CachedTrip> _cache = {};
+  static final Map<String, Future<Result<GetTripsResponse, String>>> _inflight =
+      {};
 
   /// Returns a cache key for the given origin/destination pair.
   static String _key(String originId, String destinationId) =>
@@ -56,15 +58,55 @@ class TripCacheService {
       return Ok(entry.response);
     }
 
-    logger.d('TripCacheService: cache miss for $key — fetching from API');
-    final result = await TransportApiService.getTrips(
-      originId: originId,
-      destinationId: destinationId,
-    );
-    if (result case Ok(:final v)) {
-      _store(originId, destinationId, v);
+    final inflight = _inflight[key];
+    if (inflight != null) {
+      return inflight;
     }
-    return result;
+
+    logger.d('TripCacheService: cache miss for $key — fetching from API');
+    final request = () async {
+      try {
+        final result = await TransportApiService.getTrips(
+          originId: originId,
+          destinationId: destinationId,
+        );
+        if (result case Ok(:final v)) {
+          _store(originId, destinationId, v);
+        }
+        return result;
+      } finally {
+        _inflight.remove(key);
+      }
+    }();
+
+    _inflight[key] = request;
+    return request;
+  }
+
+  static void prefetchJourney(db.Journey journey) {
+    if (journey.isManualMultiLeg) {
+      return;
+    }
+    if (isCached(journey.originId, journey.destinationId)) {
+      return;
+    }
+    getCachedOrFetch(
+      originId: journey.originId,
+      destinationId: journey.destinationId,
+    ).ignore();
+  }
+
+  static void prefetchReverseJourney(db.Journey journey) {
+    if (journey.isManualMultiLeg) {
+      return;
+    }
+    if (isCached(journey.destinationId, journey.originId)) {
+      return;
+    }
+    getCachedOrFetch(
+      originId: journey.destinationId,
+      destinationId: journey.originId,
+    ).ignore();
   }
 
   /// Prefetch trips for the first [limit] journeys in [journeys] without
@@ -72,26 +114,22 @@ class TripCacheService {
   static void prefetch(List<db.Journey> journeys, {int limit = 10}) {
     final toFetch = journeys.take(limit).toList();
     for (final j in toFetch) {
-      if (j.isManualMultiLeg) {
-        continue;
-      }
-      if (!isCached(j.originId, j.destinationId)) {
-        // Fire and forget — errors are logged inside getCachedOrFetch
-        getCachedOrFetch(
-          originId: j.originId,
-          destinationId: j.destinationId,
-        ).ignore();
-      }
+      prefetchJourney(j);
     }
   }
 
   /// Invalidate a single cache entry (e.g. on manual refresh).
   static void invalidate(String originId, String destinationId) {
-    _cache.remove(_key(originId, destinationId));
+    final key = _key(originId, destinationId);
+    _cache.remove(key);
+    _inflight.remove(key);
   }
 
   /// Invalidate all cache entries.
-  static void invalidateAll() => _cache.clear();
+  static void invalidateAll() {
+    _cache.clear();
+    _inflight.clear();
+  }
 }
 
 class _CachedTrip {

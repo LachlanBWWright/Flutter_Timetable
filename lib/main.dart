@@ -3,13 +3,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/logs/logger.dart';
-import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/api_key_service.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
+import 'package:lbww_flutter/services/transport_preferences_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
@@ -25,6 +25,11 @@ Future<void> main() async {
     await DebugService.init();
   } catch (_) {
     // If debug service can't initialize, it's not fatal for the app.
+  }
+  try {
+    await TransportPreferencesService.init();
+  } catch (_) {
+    // If transport preferences can't initialize, use defaults.
   }
   // Load any user-supplied API key override from SharedPreferences.
   try {
@@ -242,20 +247,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _navigateToTrip(db.Journey journey) {
+    TripCacheService.prefetchJourney(journey);
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => TripScreen(trip: journey)),
-    );
-  }
-
-  void _navigateToReverseTrip(db.Journey journey) {
-    final reversedJourney = journey.reversedPreviewJourney();
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TripScreen(trip: reversedJourney),
-      ),
     );
   }
 
@@ -329,7 +324,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     JourneyList(
                       journeys: pinnedJourneys,
                       onJourneyTap: _navigateToTrip,
-                      onReverseJourneyTap: _navigateToReverseTrip,
+                      onJourneyVisible: TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,
                       isEditingMode: _isEditingMode,
@@ -348,7 +343,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     JourneyList(
                       journeys: unpinnedJourneys,
                       onJourneyTap: _navigateToTrip,
-                      onReverseJourneyTap: _navigateToReverseTrip,
+                      onJourneyVisible: TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,
                       isEditingMode: _isEditingMode,

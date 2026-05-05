@@ -14,6 +14,32 @@ class TripLegCard extends StatelessWidget {
 
   const TripLegCard({super.key, required this.leg, this.trip});
 
+  bool _isTruthy(String? value) {
+    if (value == null) return false;
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'yes' || normalized == 'true' || normalized == '1';
+  }
+
+  List<String> _notices() {
+    final messages = <String>{};
+    for (final info in leg.infos ?? const <Info>[]) {
+      final text =
+          info.subtitle?.trim().isNotEmpty == true
+          ? info.subtitle!.trim()
+          : info.content?.trim();
+      if (text != null && text.isNotEmpty) {
+        messages.add(text);
+      }
+    }
+    for (final hint in leg.hints ?? const <Hint>[]) {
+      final text = hint.infoText?.trim();
+      if (text != null && text.isNotEmpty) {
+        messages.add(text);
+      }
+    }
+    return messages.toList(growable: false);
+  }
+
   String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
     if (estimatedTime == null) {
       return plannedTime != null
@@ -101,6 +127,15 @@ class TripLegCard extends StatelessWidget {
     final destinationName = destination.disassembledName ?? destination.name;
     final transportName =
         transportation?.name ?? transportation?.disassembledName ?? '';
+    final routeNumber = transportation?.number;
+    final headsign = transportation?.destination?.name;
+    final operator = transportation?.operator?.name;
+    final notices = _notices();
+    final accessibilityNotes = <String>[
+      if (_isTruthy(leg.properties?.planWheelChairAccess)) 'Wheelchair access',
+      if (_isTruthy(leg.properties?.planLowFloorVehicle)) 'Low-floor vehicle',
+      ...?(leg.properties?.vehicleAccess),
+    ];
 
     if (transportClass == null) {
       // Missing transport class
@@ -147,6 +182,68 @@ class TripLegCard extends StatelessWidget {
                     style: TextStyle(
                       color: modeColor,
                       fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (routeNumber != null && routeNumber.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Route $routeNumber',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (headsign != null && headsign.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Towards $headsign',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (operator != null && operator.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Operator: $operator',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (accessibilityNotes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: accessibilityNotes.take(3).map((note) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            note,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                if (notices.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Alert: ${notices.first}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.deepOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 4),

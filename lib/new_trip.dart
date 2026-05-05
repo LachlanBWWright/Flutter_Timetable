@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
@@ -7,6 +8,7 @@ import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
+import 'package:lbww_flutter/services/transport_preferences_service.dart';
 import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/utils/new_trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
@@ -23,6 +25,7 @@ class NewTripScreen extends StatefulWidget {
 class _NewTripScreenState extends State<NewTripScreen>
     with TickerProviderStateMixin {
   List<Station> _trainStationList = [];
+  List<Station> _nswTrainLinkStationList = [];
   List<Station> _busStationList = [];
   List<Station> _ferryStationList = [];
   List<Station> _lightRailStationList = [];
@@ -45,7 +48,10 @@ class _NewTripScreenState extends State<NewTripScreen>
   final AppDatabase _db = AppDatabase();
   final TripLineService _tripLineService = TripLineService.instance;
   late TabController _tabController;
-  TransportMode _currentMode = TransportMode.train;
+  late List<_TripCreatorTab> _tabs;
+  _TripCreatorTabKind _currentTabKind = _TripCreatorTabKind.sydneyTrains;
+  TransportMode get _currentMode => _currentTab.mode;
+  _TripCreatorTab get _currentTab => _tabs[_tabController.index];
 
   List<StopLineMatch> _sharedLines = [];
   StopLineMatch? _selectedLine;
@@ -57,8 +63,12 @@ class _NewTripScreenState extends State<NewTripScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabs = _buildTabs();
+    _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(_onTabChanged);
+    TransportPreferencesService.showNswTrainLink.addListener(
+      _onTransportPreferencesChanged,
+    );
     keyController.addListener(_applySearchFilter);
     _searchFocusNode = FocusNode();
     _loadAllModes();
@@ -73,7 +83,11 @@ class _NewTripScreenState extends State<NewTripScreen>
 
     try {
       final results = await Future.wait([
-        loadStationsFromDbForMode(TransportMode.train),
+        loadStationsFromDbForEndpoints([StopsEndpoint.sydneytrains]),
+        if (TransportPreferencesService.showNswTrainLink.value)
+          loadStationsFromDbForEndpoints([StopsEndpoint.nswtrains])
+        else
+          Future.value(<Station>[]),
         loadStationsFromDbForMode(TransportMode.lightrail),
         loadStationsFromDbForMode(TransportMode.metro),
         loadStationsFromDbForMode(TransportMode.bus),
@@ -84,10 +98,11 @@ class _NewTripScreenState extends State<NewTripScreen>
 
       setState(() {
         _trainStationList = results[0];
-        _lightRailStationList = results[1];
-        _metroStationList = results[2];
-        _busStationList = results[3];
-        _ferryStationList = results[4];
+        _nswTrainLinkStationList = results[1];
+        _lightRailStationList = results[2];
+        _metroStationList = results[3];
+        _busStationList = results[4];
+        _ferryStationList = results[5];
         _isLoading = false;
       });
 
@@ -95,6 +110,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
       final hasAnyStops =
           _trainStationList.isNotEmpty ||
+          _nswTrainLinkStationList.isNotEmpty ||
           _busStationList.isNotEmpty ||
           _ferryStationList.isNotEmpty ||
           _lightRailStationList.isNotEmpty ||
@@ -125,6 +141,9 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   @override
   void dispose() {
+    TransportPreferencesService.showNswTrainLink.removeListener(
+      _onTransportPreferencesChanged,
+    );
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     keyController.removeListener(_applySearchFilter);
@@ -134,10 +153,36 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _onTabChanged() {
-    final oldMode = _currentMode;
-    _currentMode = transportModeFromTabIndex(_tabController.index);
+    final oldTabKind = _currentTabKind;
+    _currentTabKind = _currentTab.kind;
 
-    if (oldMode != _currentMode) {
+    if (oldTabKind != _currentTabKind) {
+      setState(() {});
+    }
+  }
+
+  void _onTransportPreferencesChanged() {
+    final previousKind = _currentTabKind;
+    final nextTabs = _buildTabs();
+    final nextIndex = nextTabs.indexWhere((tab) => tab.kind == previousKind);
+
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    _tabs = nextTabs;
+    _tabController = TabController(
+      length: _tabs.length,
+      vsync: this,
+      initialIndex: nextIndex == -1 ? 0 : nextIndex,
+    );
+    _currentTabKind = _tabs[_tabController.index].kind;
+    _tabController.addListener(_onTabChanged);
+
+    if (TransportPreferencesService.showNswTrainLink.value &&
+        _nswTrainLinkStationList.isEmpty) {
+      _loadAllModes();
+    }
+
+    if (mounted) {
       setState(() {});
     }
   }
@@ -612,9 +657,9 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _setTabForMode(TransportMode mode) {
-    final index = tabIndexForTransportMode(mode);
+    final index = _tabs.indexWhere((tab) => tab.mode == mode);
 
-    if (_tabController.index != index) {
+    if (index != -1 && _tabController.index != index) {
       _tabController.animateTo(index);
     }
   }
@@ -670,16 +715,22 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   List<Station> _getCurrentStationList() {
-    switch (_currentMode) {
-      case TransportMode.train:
+    return _getStationListForTab(_currentTab);
+  }
+
+  List<Station> _getStationListForTab(_TripCreatorTab tab) {
+    switch (tab.kind) {
+      case _TripCreatorTabKind.sydneyTrains:
         return _trainStationList;
-      case TransportMode.lightrail:
+      case _TripCreatorTabKind.nswTrainLink:
+        return _nswTrainLinkStationList;
+      case _TripCreatorTabKind.lightRail:
         return _lightRailStationList;
-      case TransportMode.metro:
+      case _TripCreatorTabKind.metro:
         return _metroStationList;
-      case TransportMode.bus:
+      case _TripCreatorTabKind.bus:
         return _busStationList;
-      case TransportMode.ferry:
+      case _TripCreatorTabKind.ferry:
         return _ferryStationList;
     }
   }
@@ -687,7 +738,11 @@ class _NewTripScreenState extends State<NewTripScreen>
   List<Station> _getStationListForMode(TransportMode mode) {
     switch (mode) {
       case TransportMode.train:
-        return _trainStationList;
+        return [
+          ..._trainStationList,
+          if (TransportPreferencesService.showNswTrainLink.value)
+            ..._nswTrainLinkStationList,
+        ];
       case TransportMode.lightrail:
         return _lightRailStationList;
       case TransportMode.metro:
@@ -706,20 +761,23 @@ class _NewTripScreenState extends State<NewTripScreen>
         : await NewTripService.sortByDistance(stations);
 
     setState(() {
-      switch (_currentMode) {
-        case TransportMode.train:
+      switch (_currentTab.kind) {
+        case _TripCreatorTabKind.sydneyTrains:
           _trainStationList = sortedStations;
           break;
-        case TransportMode.lightrail:
+        case _TripCreatorTabKind.nswTrainLink:
+          _nswTrainLinkStationList = sortedStations;
+          break;
+        case _TripCreatorTabKind.lightRail:
           _lightRailStationList = sortedStations;
           break;
-        case TransportMode.metro:
+        case _TripCreatorTabKind.metro:
           _metroStationList = sortedStations;
           break;
-        case TransportMode.bus:
+        case _TripCreatorTabKind.bus:
           _busStationList = sortedStations;
           break;
-        case TransportMode.ferry:
+        case _TripCreatorTabKind.ferry:
           _ferryStationList = sortedStations;
           break;
       }
@@ -748,19 +806,14 @@ class _NewTripScreenState extends State<NewTripScreen>
         sortMode: _sortMode,
         showMapView: _showMapView,
         tabController: _tabController,
+        tabs: _tabs.map((tab) => tab.tab).toList(),
       ),
       body: Column(
         children: [
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildStationTab(TransportMode.train),
-                _buildStationTab(TransportMode.lightrail),
-                _buildStationTab(TransportMode.metro),
-                _buildStationTab(TransportMode.bus),
-                _buildStationTab(TransportMode.ferry),
-              ],
+              children: _tabs.map(_buildStationTab).toList(),
             ),
           ),
           SelectedStopsWidget(
@@ -797,7 +850,8 @@ class _NewTripScreenState extends State<NewTripScreen>
     );
   }
 
-  Widget _buildStationTab(TransportMode mode) {
+  Widget _buildStationTab(_TripCreatorTab tab) {
+    final mode = tab.mode;
     if (_showMapView && !_manualBuilderEnabled) {
       final modeDisplayName = NewTripService.getModeDisplayName(mode);
       return StopsMapWidget(
@@ -850,7 +904,7 @@ class _NewTripScreenState extends State<NewTripScreen>
             selectedLine != null &&
             mode == selectedLine.mode
         ? _manualCandidateStations
-        : _getStationListForMode(mode);
+        : _getStationListForTab(tab);
 
     final displayList = filterStationsByQuery(baseList, keyController.text);
 
@@ -878,4 +932,80 @@ class _NewTripScreenState extends State<NewTripScreen>
       ],
     );
   }
+}
+
+enum _TripCreatorTabKind {
+  sydneyTrains,
+  nswTrainLink,
+  lightRail,
+  metro,
+  bus,
+  ferry,
+}
+
+class _TripCreatorTab {
+  const _TripCreatorTab({
+    required this.kind,
+    required this.mode,
+    required this.tab,
+  });
+
+  final _TripCreatorTabKind kind;
+  final TransportMode mode;
+  final Tab tab;
+}
+
+List<_TripCreatorTab> _buildTabs() {
+  return [
+    const _TripCreatorTab(
+      kind: _TripCreatorTabKind.sydneyTrains,
+      mode: TransportMode.train,
+      tab: Tab(
+        icon: Icon(
+          Icons.directions_train,
+          color: Color.fromARGB(255, 255, 97, 35),
+        ),
+        text: 'Sydney',
+      ),
+    ),
+    if (TransportPreferencesService.showNswTrainLink.value)
+      const _TripCreatorTab(
+        kind: _TripCreatorTabKind.nswTrainLink,
+        mode: TransportMode.train,
+        tab: Tab(
+          icon: Icon(Icons.confirmation_number, color: Colors.deepOrange),
+          text: 'NSW TrainLink',
+        ),
+      ),
+    const _TripCreatorTab(
+      kind: _TripCreatorTabKind.lightRail,
+      mode: TransportMode.lightrail,
+      tab: Tab(icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82))),
+    ),
+    const _TripCreatorTab(
+      kind: _TripCreatorTabKind.metro,
+      mode: TransportMode.metro,
+      tab: Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
+    ),
+    const _TripCreatorTab(
+      kind: _TripCreatorTabKind.bus,
+      mode: TransportMode.bus,
+      tab: Tab(
+        icon: Icon(
+          Icons.directions_bus,
+          color: Color.fromARGB(255, 82, 186, 255),
+        ),
+      ),
+    ),
+    const _TripCreatorTab(
+      kind: _TripCreatorTabKind.ferry,
+      mode: TransportMode.ferry,
+      tab: Tab(
+        icon: Icon(
+          Icons.directions_ferry,
+          color: Color.fromARGB(255, 68, 240, 91),
+        ),
+      ),
+    ),
+  ];
 }

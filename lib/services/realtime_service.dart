@@ -25,6 +25,49 @@ class VehiclePositionAggregationResult {
 
 /// Service for managing realtime transport data
 class RealtimeService {
+  static const Duration _aggregatePrefetchCooldown = Duration(seconds: 30);
+  static DateTime? _lastAggregatePrefetchAt;
+  static Future<void>? _inflightAggregatePrefetch;
+
+  /// Warm critical realtime datasets before the user opens detail actions.
+  ///
+  /// This is intentionally throttled because feeds are network-heavy.
+  static Future<void> prefetchAggregates({
+    bool includeVehicles = true,
+    bool includeTripUpdates = true,
+  }) async {
+    final now = DateTime.now();
+    if (_lastAggregatePrefetchAt != null &&
+        now.difference(_lastAggregatePrefetchAt!) <
+            _aggregatePrefetchCooldown) {
+      return;
+    }
+
+    final inflight = _inflightAggregatePrefetch;
+    if (inflight != null) {
+      return inflight;
+    }
+
+    final request = () async {
+      try {
+        final futures = <Future<dynamic>>[];
+        if (includeVehicles) {
+          futures.add(getAllVehiclePositionsAggregated());
+        }
+        if (includeTripUpdates) {
+          futures.add(getAllTripUpdatesAggregated());
+        }
+        await Future.wait(futures);
+        _lastAggregatePrefetchAt = DateTime.now();
+      } finally {
+        _inflightAggregatePrefetch = null;
+      }
+    }();
+
+    _inflightAggregatePrefetch = request;
+    return request;
+  }
+
   /// Get realtime positions for all broad transport modes.
   ///
   /// Returns a map keyed by [TransportMode] (the broad mode) with the

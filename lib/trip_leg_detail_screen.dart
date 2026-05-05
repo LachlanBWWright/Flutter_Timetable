@@ -24,6 +24,7 @@ import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/utils/realtime_trip_id_utils.dart';
 import 'package:lbww_flutter/utils/trip_leg_debug_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
+import 'package:lbww_flutter/widgets/travel_warning_card.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 import 'utils/color_utils.dart';
@@ -62,6 +63,8 @@ class TripLegDetailScreen extends StatefulWidget {
 class _VehicleStopRow {
   final String label;
   final String? stopId;
+  final String? platform;
+  final String? wheelchairAccess;
   final String? arrivalTimePlanned;
   final String? arrivalTimeEstimated;
   final String? departureTimePlanned;
@@ -71,6 +74,8 @@ class _VehicleStopRow {
   const _VehicleStopRow({
     required this.label,
     this.stopId,
+    this.platform,
+    this.wheelchairAccess,
     this.arrivalTimePlanned,
     this.arrivalTimeEstimated,
     this.departureTimePlanned,
@@ -94,6 +99,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   bool _isLoadingVehicleStops = false;
   String? _vehicleStopsError;
   List<_VehicleStopRow> _vehicleStops = [];
+  TripUpdate? _activeTripUpdate;
+  VehiclePosition? _activeVehicle;
   bool _isLoadingRouteDebug = false;
   String? _routeDebugError;
   gtfs_route.Route? _gtfsRoute;
@@ -141,6 +148,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     setState(() {
       _currentLegIndex = index;
       _updatedLeg = legs[index];
+      _activeTripUpdate = null;
+      _activeVehicle = null;
       _vehicleStops = [];
       _vehicleStopsError = null;
       _resetRouteDebugState();
@@ -595,6 +604,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       final activeLeg = _updatedLeg ?? widget.leg;
       if (_supportsRealtimeForLeg(activeLeg)) {
         await _loadVehiclesForLeg();
+        await _loadRealtimeTripStatusForLeg();
         if (_showAllVehicleStops) {
           await _loadVehicleStopsForLeg();
         }
@@ -604,6 +614,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       } else if (mounted) {
         setState(() {
           _vehicles = [];
+          _activeVehicle = null;
+          _activeTripUpdate = null;
           _vehicleBreakdown = {};
           _vehicleStops = [];
           _vehicleStopsError = null;
@@ -971,18 +983,81 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       );
 
       if (!mounted) return;
+      final selectedVehicle = _matchVehicleForLeg(dedupedVehicles);
       setState(() {
         _vehicles = dedupedVehicles;
         _vehicleBreakdown = breakdown;
+        _activeVehicle = selectedVehicle;
         _isLoadingVehicles = false;
       });
     } catch (e) {
       logger.i('Failed to load vehicles for leg: $e');
       if (!mounted) return;
       setState(() {
+        _activeVehicle = null;
         _isLoadingVehicles = false;
       });
     }
+  }
+
+  Future<void> _loadRealtimeTripStatusForLeg() async {
+    try {
+      final aggregate =
+          await (widget.getAllTripUpdatesAggregated?.call() ??
+              RealtimeService.getAllTripUpdatesAggregated());
+      final match = _matchTripUpdateForLeg(aggregate.tripUpdates);
+      if (!mounted) return;
+      setState(() {
+        _activeTripUpdate = match;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _activeTripUpdate = null;
+      });
+    }
+  }
+
+  VehiclePosition? _matchVehicleForLeg(List<VehiclePosition> vehicles) {
+    final tripIds = _collectTripIdsForActiveLeg();
+    if (tripIds.isNotEmpty) {
+      for (final vehicle in vehicles) {
+        if (vehicle.trip.hasTripId() && tripIds.contains(vehicle.trip.tripId)) {
+          return vehicle;
+        }
+      }
+    }
+
+    final routeId = _legRouteId();
+    if (routeId != null && routeId.isNotEmpty) {
+      for (final vehicle in vehicles) {
+        if (vehicle.trip.hasRouteId() && vehicle.trip.routeId == routeId) {
+          return vehicle;
+        }
+      }
+    }
+    return null;
+  }
+
+  TripUpdate? _matchTripUpdateForLeg(List<TripUpdate> tripUpdates) {
+    final tripIds = _collectTripIdsForActiveLeg();
+    if (tripIds.isNotEmpty) {
+      for (final update in tripUpdates) {
+        if (update.trip.hasTripId() && tripIds.contains(update.trip.tripId)) {
+          return update;
+        }
+      }
+    }
+
+    final routeId = _legRouteId();
+    if (routeId != null && routeId.isNotEmpty) {
+      for (final update in tripUpdates) {
+        if (update.trip.hasRouteId() && update.trip.routeId == routeId) {
+          return update;
+        }
+      }
+    }
+    return null;
   }
 
   String? _isoFromUnixSeconds(int? unixSeconds) {
@@ -1022,6 +1097,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return _VehicleStopRow(
         label: row.label,
         stopId: row.stopId,
+        platform: row.platform,
+        wheelchairAccess: row.wheelchairAccess,
         arrivalTimePlanned: arrival != null
             ? _plannedFromEvent(arrival)
             : row.arrivalTimePlanned,
@@ -1153,6 +1230,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
       if (!mounted) return;
       setState(() {
+        _activeTripUpdate = match;
         _vehicleStops = rows;
         _isLoadingVehicleStops = false;
       });
@@ -1312,7 +1390,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     Color modeColor,
     Stop origin,
     Stop destination,
+    Leg leg,
   ) {
+    final routeNumber = leg.transportation?.number;
+    final headsign = leg.transportation?.destination?.name;
+    final operator = leg.transportation?.operator?.name;
+    final serviceStatus = _serviceStatusLabel();
+    final vehicleState = _vehicleStateLabel(_activeVehicle);
+    final occupancyLabel = _vehicleOccupancyLabel(_activeVehicle);
+    final accessibilityHighlights = _accessibilityHighlights(leg);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1366,6 +1453,59 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   const Icon(Icons.check_circle, color: Colors.green, size: 18),
               ],
             ),
+            if (routeNumber != null && routeNumber.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Route $routeNumber',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            if (headsign != null && headsign.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Towards $headsign',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            if (operator != null && operator.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Operated by $operator',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _statusChip(serviceStatus.label, serviceStatus.color),
+                if (vehicleState != null)
+                  _statusChip(vehicleState.label, vehicleState.color),
+                if (occupancyLabel != null)
+                  _statusChip('Occupancy: $occupancyLabel', Colors.blueGrey),
+                if (leg.isRealtimeControlled == true)
+                  _statusChip('Realtime tracked', Colors.green.shade700),
+                if (leg.properties?.differentFares != null)
+                  _statusChip('Possible fare boundary', Colors.orange.shade800),
+              ],
+            ),
+            if (accessibilityHighlights.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: accessibilityHighlights
+                    .map((item) => _statusChip(item, Colors.indigo))
+                    .toList(),
+              ),
+            ],
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -1458,6 +1598,103 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               Text('Error: $_error', style: const TextStyle(color: Colors.red)),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  ({String label, Color color}) _serviceStatusLabel() {
+    final update = _activeTripUpdate;
+    if (update == null || !update.trip.hasScheduleRelationship()) {
+      return (label: 'Status unknown', color: Colors.grey.shade700);
+    }
+
+    switch (update.trip.scheduleRelationship) {
+      case TripDescriptor_ScheduleRelationship.CANCELED:
+        return (label: 'Cancelled', color: Colors.red.shade700);
+      case TripDescriptor_ScheduleRelationship.ADDED:
+        return (label: 'Extra service', color: Colors.green.shade700);
+      case TripDescriptor_ScheduleRelationship.UNSCHEDULED:
+        return (label: 'Unscheduled', color: Colors.orange.shade700);
+      case TripDescriptor_ScheduleRelationship.SCHEDULED:
+        return (label: 'Scheduled service', color: Colors.blue.shade700);
+    }
+    return (label: 'Status unknown', color: Colors.grey.shade700);
+  }
+
+  ({String label, Color color})? _vehicleStateLabel(VehiclePosition? vehicle) {
+    if (vehicle == null || !vehicle.hasCurrentStatus()) return null;
+    switch (vehicle.currentStatus) {
+      case VehiclePosition_VehicleStopStatus.IN_TRANSIT_TO:
+        return (label: 'In transit', color: Colors.blue.shade700);
+      case VehiclePosition_VehicleStopStatus.STOPPED_AT:
+        return (label: 'Stopped at stop', color: Colors.teal.shade700);
+      case VehiclePosition_VehicleStopStatus.INCOMING_AT:
+        return (label: 'Approaching stop', color: Colors.orange.shade700);
+    }
+    return null;
+  }
+
+  String? _vehicleOccupancyLabel(VehiclePosition? vehicle) {
+    if (vehicle == null || !vehicle.hasOccupancyStatus()) return null;
+    switch (vehicle.occupancyStatus) {
+      case VehiclePosition_OccupancyStatus.EMPTY:
+      case VehiclePosition_OccupancyStatus.MANY_SEATS_AVAILABLE:
+        return 'Many seats available';
+      case VehiclePosition_OccupancyStatus.FEW_SEATS_AVAILABLE:
+        return 'Few seats available';
+      case VehiclePosition_OccupancyStatus.STANDING_ROOM_ONLY:
+        return 'Standing room only';
+      case VehiclePosition_OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY:
+        return 'Very crowded';
+      case VehiclePosition_OccupancyStatus.FULL:
+        return 'Full';
+      case VehiclePosition_OccupancyStatus.NOT_ACCEPTING_PASSENGERS:
+        return 'Not accepting passengers';
+    }
+    return null;
+  }
+
+  bool _isTruthy(String? value) {
+    if (value == null) return false;
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'yes' || normalized == 'true' || normalized == '1';
+  }
+
+  List<String> _accessibilityHighlights(Leg leg) {
+    final highlights = <String>[];
+    if (_isTruthy(leg.properties?.planWheelChairAccess)) {
+      highlights.add('Wheelchair accessible route');
+    }
+    if (_isTruthy(leg.properties?.planLowFloorVehicle)) {
+      highlights.add('Low-floor vehicle planned');
+    }
+    final vehicleAccess = leg.properties?.vehicleAccess;
+    if (vehicleAccess != null) {
+      for (final feature in vehicleAccess.take(3)) {
+        final trimmed = feature.trim();
+        if (trimmed.isNotEmpty) {
+          highlights.add(trimmed);
+        }
+      }
+    }
+    return highlights;
+  }
+
+  Widget _statusChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );
@@ -1597,7 +1834,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                           'Skipped',
                           style: TextStyle(fontSize: 12, color: Colors.red),
                         )
-                      : null,
+                      : _buildStopMetaSubtitle(stop),
                   trailing: mainTimePlanned != null
                       ? _buildStopTimeWidget(
                           mainTimePlanned,
@@ -1620,12 +1857,118 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return _VehicleStopRow(
         label: stop.disassembledName ?? stop.name,
         stopId: stop.id,
+        platform: _extractPlatformLabel(stop),
+        wheelchairAccess: stop.properties?.wheelchairAccess,
         arrivalTimePlanned: stop.arrivalTimePlanned,
         arrivalTimeEstimated: stop.arrivalTimeEstimated,
         departureTimePlanned: stop.departureTimePlanned,
         departureTimeEstimated: stop.departureTimeEstimated,
       );
     }).toList();
+  }
+
+  Widget? _buildStopMetaSubtitle(_VehicleStopRow stop) {
+    final metadata = <String>[];
+    if (stop.platform != null && stop.platform!.isNotEmpty) {
+      metadata.add('Platform ${stop.platform}');
+    }
+    if (stop.wheelchairAccess != null && stop.wheelchairAccess!.isNotEmpty) {
+      metadata.add('Wheelchair: ${stop.wheelchairAccess}');
+    }
+    if (metadata.isEmpty) return null;
+    return Text(
+      metadata.join(' • '),
+      style: const TextStyle(fontSize: 12),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  String? _extractPlatformLabel(Stop stop) {
+    final raw = stop.rawJson;
+    if (raw == null) return null;
+    final candidates = [
+      raw['platform'],
+      raw['platformCode'],
+      raw['platformName'],
+      (raw['properties'] is Map ? (raw['properties'] as Map)['platform'] : null),
+      (raw['properties'] is Map
+          ? (raw['properties'] as Map)['platformCode']
+          : null),
+    ];
+    for (final candidate in candidates) {
+      final text = candidate?.toString().trim();
+      if (text != null && text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  List<String> _collectLegNotices(Leg leg) {
+    final notices = <String>{};
+    for (final info in leg.infos ?? const <Info>[]) {
+      final text =
+          info.subtitle?.trim().isNotEmpty == true
+          ? info.subtitle!.trim()
+          : info.content?.trim();
+      if (text != null && text.isNotEmpty) {
+        notices.add(text);
+      }
+    }
+    for (final hint in leg.hints ?? const <Hint>[]) {
+      final text = hint.infoText?.trim();
+      if (text != null && text.isNotEmpty) {
+        notices.add(text);
+      }
+    }
+    if (leg.interchange?.desc case final desc? when desc.trim().isNotEmpty) {
+      notices.add(desc.trim());
+    }
+    return notices.toList(growable: false);
+  }
+
+  Widget _buildAlertsCard(Leg leg) {
+    final notices = _collectLegNotices(leg);
+    final pathSteps = (leg.pathDescriptions ?? const <PathDescription>[])
+        .map((step) => step.name?.trim() ?? step.manoeuvre?.trim() ?? '')
+        .where((step) => step.isNotEmpty)
+        .take(4)
+        .toList(growable: false);
+
+    if (notices.isEmpty && pathSteps.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return TravelWarningCard(
+      title: 'Travel Notes',
+      margin: const EdgeInsets.only(bottom: 16),
+      children: [
+        if (notices.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          ...notices.take(4).map(
+            (notice) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('• $notice', style: const TextStyle(fontSize: 13)),
+            ),
+          ),
+        ],
+        if (pathSteps.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Walking guidance',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          ...pathSteps.map(
+            (step) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text('• $step', style: const TextStyle(fontSize: 13)),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
   /// Formats a single stop time with optional delay indication.
@@ -2325,8 +2668,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     modeColor,
                     origin,
                     destination,
+                    leg,
                   ),
                   const SizedBox(height: 8),
+                  _buildAlertsCard(leg),
                   _buildStopList(leg, modeColor),
                   _buildDebugCards(leg, transportId, modeColor),
                 ],

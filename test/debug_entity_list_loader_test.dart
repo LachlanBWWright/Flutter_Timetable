@@ -68,6 +68,7 @@ void main() {
     required String stopName,
     required String endpoint,
     String? stopDesc,
+    String? parentStation,
   }) {
     return db.Stop(
       stopId: stopId,
@@ -76,7 +77,7 @@ void main() {
       stopDesc: stopDesc,
       stopLat: 0.0,
       stopLon: 0.0,
-      parentStation: null,
+      parentStation: parentStation,
       endpoint: endpoint,
     );
   }
@@ -156,6 +157,7 @@ void main() {
             stopName: 'Town Hall',
             endpoint: StopsEndpoint.buses.key,
             stopDesc: 'Sydney',
+            parentStation: 'PARENT-1',
           ),
         ],
       );
@@ -178,9 +180,23 @@ void main() {
       expect(central.filterValues['mode'], contains(TransportMode.metro.name));
       expect(page.filterGroups.any((group) => group.key == 'endpoint'), isTrue);
       expect(page.filterGroups.any((group) => group.key == 'coverage'), isTrue);
+      final parentStatusGroup = page.filterGroups.singleWhere(
+        (group) => group.key == 'parent_status',
+      );
+      expect(
+        parentStatusGroup.options.map((option) => option.label),
+        containsAll(['Has Parent', 'No Parent']),
+      );
       expect(central.filterValues['coverage'], ['multi_endpoint']);
+      expect(central.filterValues['parent_status'], ['no_parent']);
       expect(central.filterValues['locality'], ['Sydney']);
       expect(central.request.context.dbStops?.length, 2);
+
+      final townHall = page.items.firstWhere(
+        (item) => item.entityId == 'STOP-2',
+      );
+      expect(townHall.filterValues['parent_status'], ['has_parent']);
+      expect(townHall.filterValues['parent'], ['PARENT-1']);
     },
   );
 

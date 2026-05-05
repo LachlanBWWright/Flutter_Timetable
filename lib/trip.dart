@@ -8,6 +8,7 @@ import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/utils/trip_screen_utils.dart';
+import 'package:lbww_flutter/widgets/travel_warning_card.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
 import 'package:option_result/option_result.dart';
 
@@ -23,6 +24,8 @@ class TripScreen extends StatefulWidget {
 class _TripScreenState extends State<TripScreen> {
   String testText = '';
   List<TripJourney> trips = [];
+  List<ResponseMessage> _systemMessages = const [];
+  final Set<int> _prefetchedVisibleTripIndexes = <int>{};
   bool _isLoading = false;
   String? _error;
 
@@ -43,6 +46,7 @@ class _TripScreenState extends State<TripScreen> {
 
       setState(() {
         trips = manualJourney == null ? [] : [manualJourney];
+        _systemMessages = const [];
         _rawTripJson = prettyPrintRawJson(manualJourney?.rawJson);
         _error = manualJourney == null
             ? 'Unable to load the saved manual trip.'
@@ -63,6 +67,11 @@ class _TripScreenState extends State<TripScreen> {
       case Ok(:final v):
         setState(() {
           trips = sortTripJourneysForDisplay(v.tripJourneys);
+          _systemMessages =
+            v.systemMessages.responseMessages
+              ?.where((m) => (m.error ?? m.text)?.trim().isNotEmpty == true)
+              .toList() ??
+            const [];
           testText = v.toString();
           _rawTripJson = prettyPrintRawJson(v.rawJson);
           _isLoading = false;
@@ -70,10 +79,11 @@ class _TripScreenState extends State<TripScreen> {
 
         // Preemptively load realtime vehicle positions in the background so
         // the trip leg detail map loads faster when the user taps a leg.
-        RealtimeService.getAllVehiclePositionsAggregated().ignore();
+        RealtimeService.prefetchAggregates().ignore();
       case Err(:final e):
         setState(() {
           _error = e;
+          _systemMessages = const [];
           _isLoading = false;
         });
     }
@@ -82,7 +92,34 @@ class _TripScreenState extends State<TripScreen> {
   @override
   void initState() {
     super.initState();
+    RealtimeService.prefetchAggregates().ignore();
     getTripData();
+  }
+
+  void _prefetchVisibleTrip(TripJourney trip, int index) {
+    if (_prefetchedVisibleTripIndexes.contains(index)) {
+      return;
+    }
+
+    _prefetchedVisibleTripIndexes.add(index);
+
+    // Warm detail screens for the most likely taps first.
+    RealtimeService.prefetchAggregates().ignore();
+
+    final legs = trip.legs;
+    for (final leg in legs.take(2)) {
+      final origin = leg.origin;
+      final destination = leg.destination;
+      final hasOrigin = origin.id.isNotEmpty;
+      final hasDestination = destination.id.isNotEmpty;
+      if (!hasOrigin || !hasDestination) {
+        continue;
+      }
+      TripCacheService.getCachedOrFetch(
+        originId: origin.id,
+        destinationId: destination.id,
+      ).ignore();
+    }
   }
 
   @override
@@ -186,23 +223,52 @@ class _TripScreenState extends State<TripScreen> {
                   ),
                 ],
               )
-            : ListView.builder(
-                itemBuilder: (context, index) {
-                  return TripCard(
-                    trip: trips[index],
-                    onSelectLeg: (leg) {
-                      final tripJourney = trips[index];
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              TripLegDetailScreen(leg: leg, trip: tripJourney),
-                        ),
-                      );
-                    },
-                  );
-                },
-                itemCount: trips.length,
+            : ListView(
+                children: [
+                  if (_systemMessages.isNotEmpty)
+                    TravelWarningCard(
+                      title: 'Travel Alerts',
+                      margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                      children: [
+                        const SizedBox(height: 8),
+                        ..._systemMessages.take(4).map((message) {
+                          final text = (message.error ?? message.text ?? '')
+                              .trim();
+                          if (text.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          final prefix = [
+                            if ((message.type ?? '').isNotEmpty) message.type,
+                            if ((message.module ?? '').isNotEmpty)
+                              message.module,
+                          ].join(' • ');
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              prefix.isEmpty ? text : '$prefix: $text',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ...List.generate(trips.length, (index) {
+                    return TripCard(
+                      trip: trips[index],
+                      onVisible: (trip) => _prefetchVisibleTrip(trip, index),
+                      onSelectLeg: (leg) {
+                        final tripJourney = trips[index];
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TripLegDetailScreen(leg: leg, trip: tripJourney),
+                          ),
+                        );
+                      },
+                    );
+                  }),
+                ],
               ),
       ),
     );

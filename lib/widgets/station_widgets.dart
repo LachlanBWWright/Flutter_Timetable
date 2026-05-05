@@ -294,6 +294,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final SortMode sortMode;
   final bool showMapView;
   final TabController? tabController;
+  final List<Tab>? tabs;
 
   const NewTripAppBar({
     super.key,
@@ -309,6 +310,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.sortMode,
     this.showMapView = false,
     this.tabController,
+    this.tabs,
   });
 
   @override
@@ -365,28 +367,32 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
       ],
       bottom: TabBar(
         controller: tabController,
-        tabs: const [
-          Tab(
-            icon: Icon(
-              Icons.directions_train,
-              color: Color.fromARGB(255, 255, 97, 35),
-            ),
-          ),
-          Tab(icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82))),
-          Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
-          Tab(
-            icon: Icon(
-              Icons.directions_bus,
-              color: Color.fromARGB(255, 82, 186, 255),
-            ),
-          ),
-          Tab(
-            icon: Icon(
-              Icons.directions_ferry,
-              color: Color.fromARGB(255, 68, 240, 91),
-            ),
-          ),
-        ],
+        tabs:
+            tabs ??
+            const [
+              Tab(
+                icon: Icon(
+                  Icons.directions_train,
+                  color: Color.fromARGB(255, 255, 97, 35),
+                ),
+              ),
+              Tab(
+                icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82)),
+              ),
+              Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
+              Tab(
+                icon: Icon(
+                  Icons.directions_bus,
+                  color: Color.fromARGB(255, 82, 186, 255),
+                ),
+              ),
+              Tab(
+                icon: Icon(
+                  Icons.directions_ferry,
+                  color: Color.fromARGB(255, 68, 240, 91),
+                ),
+              ),
+            ],
       ),
     );
   }

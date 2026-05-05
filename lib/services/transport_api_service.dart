@@ -83,10 +83,20 @@ class TransportApiService {
       return Ok(
         locations.map((location) {
           final Map<String, dynamic>? loc = location as Map<String, dynamic>?;
+          final disassembledName = loc?['disassembledName']?.toString();
+          final fallbackName = loc?['name']?.toString() ?? '';
           final name =
-              (loc?['disassembledName'] ?? loc?['name'])?.toString() ?? '';
+              (disassembledName != null && disassembledName.isNotEmpty)
+              ? disassembledName
+              : fallbackName;
           final id = loc?['id']?.toString() ?? '';
-          return {'name': name, 'id': id};
+          final type = loc?['type']?.toString();
+          return {
+            'name': name,
+            'displayName': fallbackName,
+            'id': id,
+            'type': type,
+          };
         }).toList(),
       );
     } catch (e) {

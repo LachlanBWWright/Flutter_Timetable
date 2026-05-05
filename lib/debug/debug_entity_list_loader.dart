@@ -68,6 +68,9 @@ class DebugEntityListLoader {
           final parentStations = sortedStrings(
             stopRows.map((row) => row.parentStation),
           );
+          final parentStatus = parentStations.isEmpty
+              ? 'no_parent'
+              : 'has_parent';
           final coverage = endpoints.length > 1
               ? 'multi_endpoint'
               : 'single_endpoint';
@@ -85,6 +88,7 @@ class DebugEntityListLoader {
             'mode': modes,
             'endpoint': endpoints,
             'coverage': [coverage],
+            'parent_status': [parentStatus],
           };
           if (localities.isNotEmpty) {
             filterValues['locality'] = localities;
@@ -128,6 +132,7 @@ class DebugEntityListLoader {
         'mode': 'Mode',
         'endpoint': 'Endpoint',
         'coverage': 'Coverage',
+        'parent_status': 'Parent status',
         'locality': 'Locality',
         'parent': 'Parent stop',
       }),

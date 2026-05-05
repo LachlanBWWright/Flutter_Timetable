@@ -21,25 +21,30 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
   if (cachedStations != null) {
     return cachedStations;
   }
-  // Map mode to endpoints (same mapping used elsewhere)
-  List<StopsEndpoint> endpoints;
+  final endpoints = endpointsForMode(mode);
+
+  final stations = await loadStationsFromDbForEndpoints(endpoints);
+
+  // Store in memory cache for future calls
+  _stationCache[mode] = stations;
+  return stations;
+}
+
+List<StopsEndpoint> endpointsForMode(TransportMode mode) {
   switch (mode) {
     case TransportMode.train:
-      endpoints = [StopsEndpoint.nswtrains, StopsEndpoint.sydneytrains];
-      break;
+      return [StopsEndpoint.sydneytrains];
     case TransportMode.metro:
-      endpoints = [StopsEndpoint.metro];
-      break;
+      return [StopsEndpoint.metro];
     case TransportMode.lightrail:
-      endpoints = [
+      return [
         StopsEndpoint.lightrailInnerwest,
         StopsEndpoint.lightrailNewcastle,
         StopsEndpoint.lightrailCbdandsoutheast,
         StopsEndpoint.lightrailParramatta,
       ];
-      break;
     case TransportMode.bus:
-      endpoints = [
+      return [
         StopsEndpoint.buses,
         StopsEndpoint.busesSbsc006,
         StopsEndpoint.busesGbsc001,
@@ -65,15 +70,14 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
         StopsEndpoint.busesNisc001,
         StopsEndpoint.busesReplacementBus,
       ];
-      break;
     case TransportMode.ferry:
-      endpoints = [
-        StopsEndpoint.ferriesSydneyFerries,
-        StopsEndpoint.ferriesMff,
-      ];
-      break;
+      return [StopsEndpoint.ferriesSydneyFerries, StopsEndpoint.ferriesMff];
   }
+}
 
+Future<List<Station>> loadStationsFromDbForEndpoints(
+  List<StopsEndpoint> endpoints,
+) async {
   final List<gtfs_stop.Stop> allStops = [];
   for (final endpoint in endpoints) {
     try {
@@ -85,7 +89,7 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
     }
   }
 
-  final stations = allStops.map((stop) {
+  return allStops.map((stop) {
     final String displayName = stop.stopName;
 
     return Station(
@@ -104,10 +108,6 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
       longitude: stop.stopLon != 0.0 ? stop.stopLon : null,
     );
   }).toList();
-
-  // Store in memory cache for future calls
-  _stationCache[mode] = stations;
-  return stations;
 }
 
 /// Preemptively load stations for all transport modes in the background.

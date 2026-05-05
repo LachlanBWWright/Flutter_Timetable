@@ -12,6 +12,7 @@ import 'debug/debug_navigation.dart';
 import 'debug/debug_page_loader.dart';
 import 'services/api_key_service.dart';
 import 'services/debug_service.dart';
+import 'services/transport_preferences_service.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
@@ -199,6 +200,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleDebugData(bool value) async {
     await DebugService.setShowDebugData(value);
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _toggleNswTrainLink(bool value) async {
+    await TransportPreferencesService.setShowNswTrainLink(value);
     if (!mounted) return;
     setState(() {});
   }
@@ -450,6 +457,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: const Text('Set Home Stop'),
                         style: ButtonStyles.elevated(Colors.teal),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Transport options card
+            Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Transport Options',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('NSW TrainLink'),
+                      subtitle: const Text(
+                        'Show booked regional and interstate train services in the trip creator.',
+                      ),
+                      value: TransportPreferencesService.showNswTrainLink.value,
+                      onChanged: _toggleNswTrainLink,
                     ),
                   ],
                 ),

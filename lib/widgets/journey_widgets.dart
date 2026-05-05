@@ -4,118 +4,140 @@ import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/widgets/journey/journey_accent_strip.dart';
 
 /// A reusable card widget for displaying journey information with two-column layout
-class JourneyCard extends StatelessWidget {
+class JourneyCard extends StatefulWidget {
   final Journey journey;
   final VoidCallback onTap;
-  final VoidCallback onReverseTap;
   final VoidCallback onDelete;
   final VoidCallback onTogglePin;
   final bool isEditingMode;
+  final void Function(Journey)? onJourneyVisible;
 
   const JourneyCard({
     super.key,
     required this.journey,
     required this.onTap,
-    required this.onReverseTap,
     required this.onDelete,
     required this.onTogglePin,
     required this.isEditingMode,
+    this.onJourneyVisible,
   });
 
   @override
+  State<JourneyCard> createState() => _JourneyCardState();
+}
+
+class _JourneyCardState extends State<JourneyCard> {
+  bool _didNotifyVisible = false;
+
+  @override
+  void didUpdateWidget(covariant JourneyCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.journey.id != widget.journey.id) {
+      _didNotifyVisible = false;
+    }
+  }
+
+  void _notifyVisible() {
+    if (_didNotifyVisible) return;
+    _didNotifyVisible = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onJourneyVisible?.call(widget.journey);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    _notifyVisible();
+
+    final journey = widget.journey;
     final manualDefinition = journey.manualTripDefinition;
     final interchangeCount = manualDefinition == null
         ? null
         : manualDefinition.legs.length - 1;
 
     return Card(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      elevation: 1.5,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Origin column
-              Expanded(
-                child: InkWell(
-                  onTap: onTap,
+      child: InkWell(
+        onTap: widget.onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                // Origin column
+                Expanded(
                   child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          journey.origin,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    padding: const EdgeInsets.fromLTRB(16, 14, 10, 14),
+                    child: Text(
+                      journey.origin,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Vertical divider between origin and destination
-              VerticalDivider(
-                width: 12,
-                thickness: 1,
-                color: Colors.grey.shade400,
-                indent: 8,
-                endIndent: 8,
-              ),
-              // Destination column
-              Expanded(
-                child: InkWell(
-                  onTap: onReverseTap,
+                // Vertical divider between origin and destination
+                VerticalDivider(
+                  width: 10,
+                  thickness: 1,
+                  color: Colors.grey.shade400,
+                  indent: 12,
+                  endIndent: 12,
+                ),
+                // Destination column
+                Expanded(
                   child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          journey.destination,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    padding: const EdgeInsets.fromLTRB(10, 14, 16, 14),
+                    child: Text(
+                      journey.destination,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Action buttons (pin/delete)
-              if (isEditingMode) ...[
-                IconButton(
-                  icon: Icon(
-                    journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                    color: journey.isPinned ? Colors.blue : Colors.grey,
+                // Action buttons (pin/delete)
+                if (widget.isEditingMode) ...[
+                  IconButton(
+                    icon: Icon(
+                      journey.isPinned
+                          ? Icons.push_pin
+                          : Icons.push_pin_outlined,
+                      color: journey.isPinned ? Colors.blue : Colors.grey,
+                    ),
+                    onPressed: widget.onTogglePin,
                   ),
-                  onPressed: onTogglePin,
-                ),
-                IconButton(icon: const Icon(Icons.delete), onPressed: onDelete),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: widget.onDelete,
+                  ),
+                ],
               ],
-            ],
-          ),
-          if (journey.isManualMultiLeg)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Text(
-                [
-                  'Manual multi-leg',
-                  if (journey.lineName case final lineName?
-                      when lineName.isNotEmpty)
-                    lineName,
-                  if (interchangeCount != null)
-                    '$interchangeCount interchange${interchangeCount == 1 ? '' : 's'}',
-                ].join(' • '),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
             ),
-          JourneyAccentStrip(journey: journey),
-        ],
+            if (journey.isManualMultiLeg)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  [
+                    'Manual multi-leg',
+                    if (journey.lineName case final lineName?
+                        when lineName.isNotEmpty)
+                      lineName,
+                    if (interchangeCount != null)
+                      '$interchangeCount interchange${interchangeCount == 1 ? '' : 's'}',
+                  ].join(' • '),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            const SizedBox(height: 2),
+            JourneyAccentStrip(journey: journey),
+          ],
+        ),
       ),
     );
   }
@@ -125,7 +147,7 @@ class JourneyCard extends StatelessWidget {
 class JourneyList extends StatelessWidget {
   final List<Journey> journeys;
   final void Function(Journey) onJourneyTap;
-  final void Function(Journey) onReverseJourneyTap;
+  final void Function(Journey)? onJourneyVisible;
   final void Function(int) onDeleteJourney;
   final void Function(int, bool) onTogglePin;
   final bool isEditingMode;
@@ -135,7 +157,7 @@ class JourneyList extends StatelessWidget {
     super.key,
     required this.journeys,
     required this.onJourneyTap,
-    required this.onReverseJourneyTap,
+    this.onJourneyVisible,
     required this.onDeleteJourney,
     required this.onTogglePin,
     required this.isEditingMode,
@@ -152,7 +174,7 @@ class JourneyList extends StatelessWidget {
         return JourneyCard(
           journey: journeys[index],
           onTap: () => onJourneyTap(journeys[index]),
-          onReverseTap: () => onReverseJourneyTap(journeys[index]),
+          onJourneyVisible: onJourneyVisible,
           onDelete: () => onDeleteJourney(journeys[index].id),
           onTogglePin: () =>
               onTogglePin(journeys[index].id, journeys[index].isPinned),
