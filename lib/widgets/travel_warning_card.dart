@@ -50,3 +50,45 @@ class TravelWarningCard extends StatelessWidget {
     );
   }
 }
+
+class TravelWarningAction extends StatelessWidget {
+  const TravelWarningAction({
+    super.key,
+    required this.title,
+    required this.children,
+    this.tooltip = 'Show travel warnings',
+  });
+
+  final String title;
+  final List<Widget> children;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      icon: const Icon(Icons.warning_amber_rounded),
+      onPressed: () {
+        showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            contentPadding: const EdgeInsets.all(12),
+            content: SingleChildScrollView(
+              child: TravelWarningCard(
+                title: title,
+                margin: EdgeInsets.zero,
+                children: children,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

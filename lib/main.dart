@@ -3,15 +3,18 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/logs/logger.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/api_key_service.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
-import 'package:lbww_flutter/services/transport_preferences_service.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/transport_preferences_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
+import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/utils/journey_filter_utils.dart';
@@ -105,6 +108,9 @@ class _MyHomePageState extends State<MyHomePage> {
       // Preemptively load stations for all modes so the 'Add New Trip' screen
       // opens without a loading delay.
       prefetchAllStations();
+      TripLineService.instance
+          .prefetchIndexesForEndpoints(StopsEndpoint.values)
+          .ignore();
 
       // Now sort journeys according to user preference (distance vs alphabetical).
       ScaffoldMessengerState? messenger;
@@ -254,6 +260,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void _navigateToReverseTrip(db.Journey journey) {
+    final reversedJourney = journey.reversedPreviewJourney();
+    TripCacheService.prefetchJourney(reversedJourney);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TripScreen(trip: reversedJourney),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sections = splitJourneySections(_filteredJourneys);
@@ -324,6 +341,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     JourneyList(
                       journeys: pinnedJourneys,
                       onJourneyTap: _navigateToTrip,
+                      onReverseJourneyTap: _navigateToReverseTrip,
                       onJourneyVisible: TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,
@@ -343,6 +361,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     JourneyList(
                       journeys: unpinnedJourneys,
                       onJourneyTap: _navigateToTrip,
+                      onReverseJourneyTap: _navigateToReverseTrip,
                       onJourneyVisible: TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,

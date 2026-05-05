@@ -4,11 +4,12 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 
 part 'tables/journeys.dart';
+part 'tables/stop_line_memberships.dart';
 part 'tables/stops.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Journeys, Stops])
+@DriftDatabase(tables: [Journeys, Stops, StopLineMemberships])
 class AppDatabase extends _$AppDatabase {
   // Singleton instance
   static AppDatabase? _instance;
@@ -29,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -58,6 +59,10 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           "UPDATE journeys SET trip_type = '${SavedTripType.direct.storageValue}' WHERE trip_type IS NULL OR trip_type = ''",
         );
+      }
+
+      if (from < 6) {
+        await m.createTable(stopLineMemberships);
       }
     },
   );
@@ -137,6 +142,56 @@ class AppDatabase extends _$AppDatabase {
         return [MapEntry(endpoint, row.read(countExp) ?? 0)];
       }),
     );
+  }
+
+  Future<void> replaceStopLineMembershipsForEndpoint(
+    String endpoint,
+    List<StopLineMembershipsCompanion> memberships,
+  ) async {
+    await transaction(() async {
+      await (delete(
+        stopLineMemberships,
+      )..where((tbl) => tbl.endpoint.equals(endpoint))).go();
+      await batch((batch) {
+        for (final membership in memberships) {
+          batch.insert(
+            stopLineMemberships,
+            membership,
+            mode: InsertMode.replace,
+          );
+        }
+      });
+    });
+  }
+
+  Future<List<StopLineMembership>> getStopLineMembershipsForStop(
+    String stopId,
+  ) {
+    return (select(stopLineMemberships)
+          ..where((tbl) => tbl.stopId.equals(stopId))
+          ..orderBy([(tbl) => OrderingTerm(expression: tbl.lineName)]))
+        .get();
+  }
+
+  Future<List<StopLineMembership>> getStopLineMembershipsForLine(
+    String lineId,
+  ) {
+    return (select(stopLineMemberships)
+          ..where((tbl) => tbl.lineId.equals(lineId))
+          ..orderBy([
+            (tbl) => OrderingTerm(expression: tbl.stopOrder),
+            (tbl) => OrderingTerm(expression: tbl.stopName),
+          ]))
+        .get();
+  }
+
+  Future<int> getStopLineMembershipCountForEndpoint(String endpoint) async {
+    final countExp = stopLineMemberships.stopId.count();
+    final query = selectOnly(stopLineMemberships)
+      ..addColumns([countExp])
+      ..where(stopLineMemberships.endpoint.equals(endpoint));
+    final result = await query.getSingle();
+    return result.read(countExp) ?? 0;
   }
 
   // Batch insert stops with transaction

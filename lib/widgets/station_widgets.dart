@@ -398,6 +398,10 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize =>
-      const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
+  Size get preferredSize {
+    final tabBarHeight = tabs?.any((tab) => tab.text != null) ?? false
+        ? 72.0
+        : kTextTabBarHeight;
+    return Size.fromHeight(kToolbarHeight + tabBarHeight);
+  }
 }

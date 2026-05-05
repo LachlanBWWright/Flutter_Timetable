@@ -1891,7 +1891,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       raw['platform'],
       raw['platformCode'],
       raw['platformName'],
-      (raw['properties'] is Map ? (raw['properties'] as Map)['platform'] : null),
+      (raw['properties'] is Map
+          ? (raw['properties'] as Map)['platform']
+          : null),
       (raw['properties'] is Map
           ? (raw['properties'] as Map)['platformCode']
           : null),
@@ -1908,8 +1910,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   List<String> _collectLegNotices(Leg leg) {
     final notices = <String>{};
     for (final info in leg.infos ?? const <Info>[]) {
-      final text =
-          info.subtitle?.trim().isNotEmpty == true
+      final text = info.subtitle?.trim().isNotEmpty == true
           ? info.subtitle!.trim()
           : info.content?.trim();
       if (text != null && text.isNotEmpty) {
@@ -1928,7 +1929,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     return notices.toList(growable: false);
   }
 
-  Widget _buildAlertsCard(Leg leg) {
+  List<Widget> _buildAlertWarningChildren(Leg leg) {
     final notices = _collectLegNotices(leg);
     final pathSteps = (leg.pathDescriptions ?? const <PathDescription>[])
         .map((step) => step.name?.trim() ?? step.manoeuvre?.trim() ?? '')
@@ -1936,39 +1937,41 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         .take(4)
         .toList(growable: false);
 
-    if (notices.isEmpty && pathSteps.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return TravelWarningCard(
-      title: 'Travel Notes',
-      margin: const EdgeInsets.only(bottom: 16),
-      children: [
-        if (notices.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          ...notices.take(4).map(
-            (notice) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text('• $notice', style: const TextStyle(fontSize: 13)),
+    return [
+      if (notices.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        ...notices
+            .take(4)
+            .map(
+              (notice) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text('• $notice', style: const TextStyle(fontSize: 13)),
+              ),
             ),
-          ),
-        ],
-        if (pathSteps.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          const Text(
-            'Walking guidance',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          ),
-          const SizedBox(height: 4),
-          ...pathSteps.map(
-            (step) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text('• $step', style: const TextStyle(fontSize: 13)),
-            ),
-          ),
-        ],
       ],
-    );
+      if (pathSteps.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        const Text(
+          'Walking guidance',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        const SizedBox(height: 4),
+        ...pathSteps.map(
+          (step) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('• $step', style: const TextStyle(fontSize: 13)),
+          ),
+        ),
+      ],
+    ];
+  }
+
+  bool _hasAlertWarnings(Leg leg) {
+    return _collectLegNotices(leg).isNotEmpty ||
+        (leg.pathDescriptions ?? const <PathDescription>[]).any((step) {
+          final text = step.name?.trim() ?? step.manoeuvre?.trim() ?? '';
+          return text.isNotEmpty;
+        });
   }
 
   /// Formats a single stop time with optional delay indication.
@@ -2565,6 +2568,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final nextColor = hasNext
         ? _getAdjacentLegColor(_currentLegIndex + 1)
         : Colors.grey;
+    final hasAlertWarnings = _hasAlertWarnings(leg);
 
     final debugOnlyBody = ValueListenableBuilder<bool>(
       valueListenable: DebugService.showDebugData,
@@ -2586,6 +2590,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         backgroundColor: modeColor,
         foregroundColor: getContrastingForeground(modeColor),
         actions: [
+          if (hasAlertWarnings)
+            TravelWarningAction(
+              title: 'Travel Notes',
+              tooltip: 'Show travel notes',
+              children: _buildAlertWarningChildren(leg),
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _refreshLegData,
@@ -2671,7 +2681,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     leg,
                   ),
                   const SizedBox(height: 8),
-                  _buildAlertsCard(leg),
                   _buildStopList(leg, modeColor),
                   _buildDebugCards(leg, transportId, modeColor),
                 ],

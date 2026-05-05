@@ -107,22 +107,27 @@ class DirectTripActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 8.0,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (canSaveDirect)
-          ElevatedButton.icon(
-            onPressed: onSaveDirect,
-            icon: const Icon(Icons.save),
-            label: const Text('Save Direct Trip'),
-            style: ButtonStyles.elevated(accentColor),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onSaveDirect,
+              icon: const Icon(Icons.save),
+              label: const Text('Save Direct Trip'),
+              style: ButtonStyles.elevated(accentColor),
+            ),
           ),
         if (sharedLines.isNotEmpty && onStartManualBuilder != null)
-          OutlinedButton.icon(
-            onPressed: onStartManualBuilder,
-            icon: const Icon(Icons.alt_route),
-            label: const Text('Build Multi-Leg Trip'),
+          Padding(
+            padding: EdgeInsets.only(top: canSaveDirect ? 8.0 : 0.0),
+            child: OutlinedButton.icon(
+              onPressed: onStartManualBuilder,
+              icon: const Icon(Icons.alt_route),
+              label: const Text('Build Multi-Leg Trip'),
+            ),
           ),
       ],
     );
@@ -177,6 +182,7 @@ class StopSequenceSection extends StatelessWidget {
             color: accentColor.withValues(alpha: 0.04),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(_iconForKind(descriptor.kind), color: accentColor),
               const SizedBox(width: 8.0),
@@ -197,12 +203,15 @@ class StopSequenceSection extends StatelessWidget {
               ),
               if (descriptor.isInterchange &&
                   descriptor.interchangeIndex != null)
-                _InterchangeActions(
-                  interchangeIndex: descriptor.interchangeIndex ?? 0,
-                  canMoveUp: descriptor.canMoveUp,
-                  canMoveDown: descriptor.canMoveDown,
-                  onMoveInterchange: onMoveInterchange,
-                  onRemoveInterchange: onRemoveInterchange,
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: _InterchangeActions(
+                    interchangeIndex: descriptor.interchangeIndex ?? 0,
+                    canMoveUp: descriptor.canMoveUp,
+                    canMoveDown: descriptor.canMoveDown,
+                    onMoveInterchange: onMoveInterchange,
+                    onRemoveInterchange: onRemoveInterchange,
+                  ),
                 ),
             ],
           ),
@@ -257,22 +266,29 @@ class _InterchangeActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
+      spacing: 2.0,
+      runSpacing: 2.0,
       children: [
         IconButton(
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
           onPressed: canMoveUp
               ? () => onMoveInterchange(interchangeIndex, -1)
               : null,
           icon: const Icon(Icons.arrow_upward),
         ),
         IconButton(
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
           onPressed: canMoveDown
               ? () => onMoveInterchange(interchangeIndex, 1)
               : null,
           icon: const Icon(Icons.arrow_downward),
         ),
         IconButton(
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
           onPressed: () => onRemoveInterchange(interchangeIndex),
           icon: const Icon(Icons.delete_outline),
         ),
@@ -321,16 +337,47 @@ class DerivedLegsSection extends StatelessWidget {
     return Column(
       children: legs
           .map(
-            (leg) => Card(
+            (leg) => Container(
+              width: double.infinity,
               margin: const EdgeInsets.only(bottom: 8.0),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: accentColor,
-                  foregroundColor: Colors.white,
-                  child: Text('${leg.index + 1}'),
-                ),
-                title: Text('${leg.originName} to ${leg.destinationName}'),
-                subtitle: Text('${line.mode.displayName} • ${leg.lineName}'),
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(8.0),
+                color: accentColor.withValues(alpha: 0.04),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 14.0,
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    child: Text('${leg.index + 1}'),
+                  ),
+                  const SizedBox(width: 10.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${leg.originName} to ${leg.destinationName}',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2.0),
+                        Text(
+                          '${line.mode.displayName} - ${leg.lineName}',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           )

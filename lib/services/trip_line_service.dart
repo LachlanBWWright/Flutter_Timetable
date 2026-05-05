@@ -1,7 +1,9 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
 import 'package:lbww_flutter/gtfs/stop.dart' as gtfs_stop;
+import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
@@ -116,7 +118,13 @@ class TripLineService {
   Future<List<StopLineMatch>> getLinesForStop(
     String stopId, {
     TransportMode? mode,
+    bool allowBuild = true,
   }) async {
+    final persisted = await _getPersistedLinesForStop(stopId, mode: mode);
+    if (persisted.isNotEmpty || !allowBuild) {
+      return persisted;
+    }
+
     final lookupStops = await _stopLookup(stopId);
     final endpointKeys = lookupStops.map((stop) => stop.endpointKey).where((
       endpointKey,
@@ -163,8 +171,14 @@ class TripLineService {
 
   Future<List<LineScopedStop>> getStopsForLine(
     String lineId,
-    TransportMode mode,
-  ) async {
+    TransportMode mode, {
+    bool allowBuild = true,
+  }) async {
+    final persisted = await _getPersistedStopsForLine(lineId, mode);
+    if (persisted.isNotEmpty || !allowBuild) {
+      return persisted;
+    }
+
     final endpointKey = _endpointKeyFromLineId(lineId);
     final index = await _getIndexForEndpointKey(endpointKey);
     if (index == null || index.mode != mode) {
@@ -248,6 +262,37 @@ class TripLineService {
     _endpointIndexCache.clear();
   }
 
+  Future<void> prefetchIndexesForEndpoints(
+    Iterable<StopsEndpoint> endpoints,
+  ) async {
+    await Future.wait(
+      endpoints.map((endpoint) async {
+        final persistedCount = await StopsService.database
+            .getStopLineMembershipCountForEndpoint(endpoint.key);
+        if (persistedCount > 0) {
+          return;
+        }
+        await _getIndexForEndpointKey(endpoint.key);
+      }),
+    );
+  }
+
+  Future<void> cacheGtfsDataForEndpoint(
+    StopsEndpoint endpoint,
+    GtfsData data,
+  ) async {
+    final mode = StopsService.modeForEndpointKey(endpoint.key);
+    if (mode == null) {
+      return;
+    }
+    final index = _EndpointLineIndex.build(
+      endpointKey: endpoint.key,
+      mode: mode,
+      data: data,
+    );
+    await _storeIndexForEndpoint(endpoint.key, index);
+  }
+
   Future<List<_StopCoordinate>> _loadAnchorCoordinates(
     Iterable<String> anchorStopIds,
   ) async {
@@ -322,11 +367,99 @@ class TripLineService {
       return null;
     }
 
-    return _EndpointLineIndex.build(
+    final index = _EndpointLineIndex.build(
       endpointKey: endpointKey,
       mode: mode,
       data: data,
     );
+    await _storeIndexForEndpoint(endpointKey, index);
+    return index;
+  }
+
+  Future<List<StopLineMatch>> _getPersistedLinesForStop(
+    String stopId, {
+    TransportMode? mode,
+  }) async {
+    final rows = await StopsService.database.getStopLineMembershipsForStop(
+      stopId,
+    );
+    final matches = <String, StopLineMatch>{};
+    for (final row in rows) {
+      final rowMode = _modeFromStoredValue(row.mode);
+      if (rowMode == null || (mode != null && rowMode != mode)) {
+        continue;
+      }
+      matches[row.lineId] = StopLineMatch(
+        mode: rowMode,
+        lineId: row.lineId,
+        lineName: row.lineName,
+        endpointKey: row.endpoint,
+      );
+    }
+    return matches.values.toList()
+      ..sort((a, b) => a.lineName.compareTo(b.lineName));
+  }
+
+  Future<List<LineScopedStop>> _getPersistedStopsForLine(
+    String lineId,
+    TransportMode mode,
+  ) async {
+    final rows = await StopsService.database.getStopLineMembershipsForLine(
+      lineId,
+    );
+    return rows
+        .where((row) => _modeFromStoredValue(row.mode) == mode)
+        .map(
+          (row) => LineScopedStop(
+            stopId: row.stopId,
+            stopName: row.stopName,
+            mode: mode,
+            lineId: row.lineId,
+            lineName: row.lineName,
+            endpointKey: row.endpoint,
+            stopOrder: row.stopOrder,
+            latitude: row.stopLat,
+            longitude: row.stopLon,
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> _storeIndexForEndpoint(
+    String endpointKey,
+    _EndpointLineIndex index,
+  ) async {
+    final memberships = <db.StopLineMembershipsCompanion>[];
+    for (final stops in index.lineStops.values) {
+      for (final stop in stops) {
+        memberships.add(
+          db.StopLineMembershipsCompanion.insert(
+            endpoint: endpointKey,
+            stopId: stop.stopId,
+            stopName: stop.stopName,
+            lineId: stop.lineId,
+            lineName: stop.lineName,
+            mode: stop.mode.id,
+            stopOrder: stop.stopOrder,
+            stopLat: drift.Value(stop.latitude),
+            stopLon: drift.Value(stop.longitude),
+          ),
+        );
+      }
+    }
+    await StopsService.database.replaceStopLineMembershipsForEndpoint(
+      endpointKey,
+      memberships,
+    );
+  }
+
+  TransportMode? _modeFromStoredValue(String value) {
+    for (final mode in TransportMode.values) {
+      if (mode.id == value) {
+        return mode;
+      }
+    }
+    return null;
   }
 
   static Future<List<TripLineLookupStop>> _lookupStopsFromDatabase(

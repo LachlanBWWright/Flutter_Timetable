@@ -129,6 +129,10 @@ class NewTripService {
         if (gtfsData != null && gtfsData.stops.isNotEmpty) {
           // Store the stops to database
           await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
+          await TripLineService.instance.cacheGtfsDataForEndpoint(
+            endpoint,
+            gtfsData,
+          );
           onProgress?.call(
             'Loaded ${gtfsData.stops.length} stops from ${endpoint.key}',
             i + 1,

@@ -1595,16 +1595,584 @@ class StopsCompanion extends UpdateCompanion<Stop> {
   }
 }
 
+class $StopLineMembershipsTable extends StopLineMemberships
+    with TableInfo<$StopLineMembershipsTable, StopLineMembership> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StopLineMembershipsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _endpointMeta = const VerificationMeta(
+    'endpoint',
+  );
+  @override
+  late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
+    'endpoint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopIdMeta = const VerificationMeta('stopId');
+  @override
+  late final GeneratedColumn<String> stopId = GeneratedColumn<String>(
+    'stop_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopNameMeta = const VerificationMeta(
+    'stopName',
+  );
+  @override
+  late final GeneratedColumn<String> stopName = GeneratedColumn<String>(
+    'stop_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lineIdMeta = const VerificationMeta('lineId');
+  @override
+  late final GeneratedColumn<String> lineId = GeneratedColumn<String>(
+    'line_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lineNameMeta = const VerificationMeta(
+    'lineName',
+  );
+  @override
+  late final GeneratedColumn<String> lineName = GeneratedColumn<String>(
+    'line_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modeMeta = const VerificationMeta('mode');
+  @override
+  late final GeneratedColumn<String> mode = GeneratedColumn<String>(
+    'mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopOrderMeta = const VerificationMeta(
+    'stopOrder',
+  );
+  @override
+  late final GeneratedColumn<int> stopOrder = GeneratedColumn<int>(
+    'stop_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopLatMeta = const VerificationMeta(
+    'stopLat',
+  );
+  @override
+  late final GeneratedColumn<double> stopLat = GeneratedColumn<double>(
+    'stop_lat',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stopLonMeta = const VerificationMeta(
+    'stopLon',
+  );
+  @override
+  late final GeneratedColumn<double> stopLon = GeneratedColumn<double>(
+    'stop_lon',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    endpoint,
+    stopId,
+    stopName,
+    lineId,
+    lineName,
+    mode,
+    stopOrder,
+    stopLat,
+    stopLon,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stop_line_memberships';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StopLineMembership> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('endpoint')) {
+      context.handle(
+        _endpointMeta,
+        endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endpointMeta);
+    }
+    if (data.containsKey('stop_id')) {
+      context.handle(
+        _stopIdMeta,
+        stopId.isAcceptableOrUnknown(data['stop_id']!, _stopIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stopIdMeta);
+    }
+    if (data.containsKey('stop_name')) {
+      context.handle(
+        _stopNameMeta,
+        stopName.isAcceptableOrUnknown(data['stop_name']!, _stopNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stopNameMeta);
+    }
+    if (data.containsKey('line_id')) {
+      context.handle(
+        _lineIdMeta,
+        lineId.isAcceptableOrUnknown(data['line_id']!, _lineIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lineIdMeta);
+    }
+    if (data.containsKey('line_name')) {
+      context.handle(
+        _lineNameMeta,
+        lineName.isAcceptableOrUnknown(data['line_name']!, _lineNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lineNameMeta);
+    }
+    if (data.containsKey('mode')) {
+      context.handle(
+        _modeMeta,
+        mode.isAcceptableOrUnknown(data['mode']!, _modeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modeMeta);
+    }
+    if (data.containsKey('stop_order')) {
+      context.handle(
+        _stopOrderMeta,
+        stopOrder.isAcceptableOrUnknown(data['stop_order']!, _stopOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stopOrderMeta);
+    }
+    if (data.containsKey('stop_lat')) {
+      context.handle(
+        _stopLatMeta,
+        stopLat.isAcceptableOrUnknown(data['stop_lat']!, _stopLatMeta),
+      );
+    }
+    if (data.containsKey('stop_lon')) {
+      context.handle(
+        _stopLonMeta,
+        stopLon.isAcceptableOrUnknown(data['stop_lon']!, _stopLonMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {endpoint, stopId, lineId};
+  @override
+  StopLineMembership map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StopLineMembership(
+      endpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endpoint'],
+      )!,
+      stopId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_id'],
+      )!,
+      stopName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_name'],
+      )!,
+      lineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_id'],
+      )!,
+      lineName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_name'],
+      )!,
+      mode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mode'],
+      )!,
+      stopOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stop_order'],
+      )!,
+      stopLat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}stop_lat'],
+      ),
+      stopLon: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}stop_lon'],
+      ),
+    );
+  }
+
+  @override
+  $StopLineMembershipsTable createAlias(String alias) {
+    return $StopLineMembershipsTable(attachedDatabase, alias);
+  }
+}
+
+class StopLineMembership extends DataClass
+    implements Insertable<StopLineMembership> {
+  final String endpoint;
+  final String stopId;
+  final String stopName;
+  final String lineId;
+  final String lineName;
+  final String mode;
+  final int stopOrder;
+  final double? stopLat;
+  final double? stopLon;
+  const StopLineMembership({
+    required this.endpoint,
+    required this.stopId,
+    required this.stopName,
+    required this.lineId,
+    required this.lineName,
+    required this.mode,
+    required this.stopOrder,
+    this.stopLat,
+    this.stopLon,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['endpoint'] = Variable<String>(endpoint);
+    map['stop_id'] = Variable<String>(stopId);
+    map['stop_name'] = Variable<String>(stopName);
+    map['line_id'] = Variable<String>(lineId);
+    map['line_name'] = Variable<String>(lineName);
+    map['mode'] = Variable<String>(mode);
+    map['stop_order'] = Variable<int>(stopOrder);
+    if (!nullToAbsent || stopLat != null) {
+      map['stop_lat'] = Variable<double>(stopLat);
+    }
+    if (!nullToAbsent || stopLon != null) {
+      map['stop_lon'] = Variable<double>(stopLon);
+    }
+    return map;
+  }
+
+  StopLineMembershipsCompanion toCompanion(bool nullToAbsent) {
+    return StopLineMembershipsCompanion(
+      endpoint: Value(endpoint),
+      stopId: Value(stopId),
+      stopName: Value(stopName),
+      lineId: Value(lineId),
+      lineName: Value(lineName),
+      mode: Value(mode),
+      stopOrder: Value(stopOrder),
+      stopLat: stopLat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopLat),
+      stopLon: stopLon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopLon),
+    );
+  }
+
+  factory StopLineMembership.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StopLineMembership(
+      endpoint: serializer.fromJson<String>(json['endpoint']),
+      stopId: serializer.fromJson<String>(json['stopId']),
+      stopName: serializer.fromJson<String>(json['stopName']),
+      lineId: serializer.fromJson<String>(json['lineId']),
+      lineName: serializer.fromJson<String>(json['lineName']),
+      mode: serializer.fromJson<String>(json['mode']),
+      stopOrder: serializer.fromJson<int>(json['stopOrder']),
+      stopLat: serializer.fromJson<double?>(json['stopLat']),
+      stopLon: serializer.fromJson<double?>(json['stopLon']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'endpoint': serializer.toJson<String>(endpoint),
+      'stopId': serializer.toJson<String>(stopId),
+      'stopName': serializer.toJson<String>(stopName),
+      'lineId': serializer.toJson<String>(lineId),
+      'lineName': serializer.toJson<String>(lineName),
+      'mode': serializer.toJson<String>(mode),
+      'stopOrder': serializer.toJson<int>(stopOrder),
+      'stopLat': serializer.toJson<double?>(stopLat),
+      'stopLon': serializer.toJson<double?>(stopLon),
+    };
+  }
+
+  StopLineMembership copyWith({
+    String? endpoint,
+    String? stopId,
+    String? stopName,
+    String? lineId,
+    String? lineName,
+    String? mode,
+    int? stopOrder,
+    Value<double?> stopLat = const Value.absent(),
+    Value<double?> stopLon = const Value.absent(),
+  }) => StopLineMembership(
+    endpoint: endpoint ?? this.endpoint,
+    stopId: stopId ?? this.stopId,
+    stopName: stopName ?? this.stopName,
+    lineId: lineId ?? this.lineId,
+    lineName: lineName ?? this.lineName,
+    mode: mode ?? this.mode,
+    stopOrder: stopOrder ?? this.stopOrder,
+    stopLat: stopLat.present ? stopLat.value : this.stopLat,
+    stopLon: stopLon.present ? stopLon.value : this.stopLon,
+  );
+  StopLineMembership copyWithCompanion(StopLineMembershipsCompanion data) {
+    return StopLineMembership(
+      endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
+      stopId: data.stopId.present ? data.stopId.value : this.stopId,
+      stopName: data.stopName.present ? data.stopName.value : this.stopName,
+      lineId: data.lineId.present ? data.lineId.value : this.lineId,
+      lineName: data.lineName.present ? data.lineName.value : this.lineName,
+      mode: data.mode.present ? data.mode.value : this.mode,
+      stopOrder: data.stopOrder.present ? data.stopOrder.value : this.stopOrder,
+      stopLat: data.stopLat.present ? data.stopLat.value : this.stopLat,
+      stopLon: data.stopLon.present ? data.stopLon.value : this.stopLon,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StopLineMembership(')
+          ..write('endpoint: $endpoint, ')
+          ..write('stopId: $stopId, ')
+          ..write('stopName: $stopName, ')
+          ..write('lineId: $lineId, ')
+          ..write('lineName: $lineName, ')
+          ..write('mode: $mode, ')
+          ..write('stopOrder: $stopOrder, ')
+          ..write('stopLat: $stopLat, ')
+          ..write('stopLon: $stopLon')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    endpoint,
+    stopId,
+    stopName,
+    lineId,
+    lineName,
+    mode,
+    stopOrder,
+    stopLat,
+    stopLon,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StopLineMembership &&
+          other.endpoint == this.endpoint &&
+          other.stopId == this.stopId &&
+          other.stopName == this.stopName &&
+          other.lineId == this.lineId &&
+          other.lineName == this.lineName &&
+          other.mode == this.mode &&
+          other.stopOrder == this.stopOrder &&
+          other.stopLat == this.stopLat &&
+          other.stopLon == this.stopLon);
+}
+
+class StopLineMembershipsCompanion extends UpdateCompanion<StopLineMembership> {
+  final Value<String> endpoint;
+  final Value<String> stopId;
+  final Value<String> stopName;
+  final Value<String> lineId;
+  final Value<String> lineName;
+  final Value<String> mode;
+  final Value<int> stopOrder;
+  final Value<double?> stopLat;
+  final Value<double?> stopLon;
+  final Value<int> rowid;
+  const StopLineMembershipsCompanion({
+    this.endpoint = const Value.absent(),
+    this.stopId = const Value.absent(),
+    this.stopName = const Value.absent(),
+    this.lineId = const Value.absent(),
+    this.lineName = const Value.absent(),
+    this.mode = const Value.absent(),
+    this.stopOrder = const Value.absent(),
+    this.stopLat = const Value.absent(),
+    this.stopLon = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StopLineMembershipsCompanion.insert({
+    required String endpoint,
+    required String stopId,
+    required String stopName,
+    required String lineId,
+    required String lineName,
+    required String mode,
+    required int stopOrder,
+    this.stopLat = const Value.absent(),
+    this.stopLon = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : endpoint = Value(endpoint),
+       stopId = Value(stopId),
+       stopName = Value(stopName),
+       lineId = Value(lineId),
+       lineName = Value(lineName),
+       mode = Value(mode),
+       stopOrder = Value(stopOrder);
+  static Insertable<StopLineMembership> custom({
+    Expression<String>? endpoint,
+    Expression<String>? stopId,
+    Expression<String>? stopName,
+    Expression<String>? lineId,
+    Expression<String>? lineName,
+    Expression<String>? mode,
+    Expression<int>? stopOrder,
+    Expression<double>? stopLat,
+    Expression<double>? stopLon,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (endpoint != null) 'endpoint': endpoint,
+      if (stopId != null) 'stop_id': stopId,
+      if (stopName != null) 'stop_name': stopName,
+      if (lineId != null) 'line_id': lineId,
+      if (lineName != null) 'line_name': lineName,
+      if (mode != null) 'mode': mode,
+      if (stopOrder != null) 'stop_order': stopOrder,
+      if (stopLat != null) 'stop_lat': stopLat,
+      if (stopLon != null) 'stop_lon': stopLon,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StopLineMembershipsCompanion copyWith({
+    Value<String>? endpoint,
+    Value<String>? stopId,
+    Value<String>? stopName,
+    Value<String>? lineId,
+    Value<String>? lineName,
+    Value<String>? mode,
+    Value<int>? stopOrder,
+    Value<double?>? stopLat,
+    Value<double?>? stopLon,
+    Value<int>? rowid,
+  }) {
+    return StopLineMembershipsCompanion(
+      endpoint: endpoint ?? this.endpoint,
+      stopId: stopId ?? this.stopId,
+      stopName: stopName ?? this.stopName,
+      lineId: lineId ?? this.lineId,
+      lineName: lineName ?? this.lineName,
+      mode: mode ?? this.mode,
+      stopOrder: stopOrder ?? this.stopOrder,
+      stopLat: stopLat ?? this.stopLat,
+      stopLon: stopLon ?? this.stopLon,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (endpoint.present) {
+      map['endpoint'] = Variable<String>(endpoint.value);
+    }
+    if (stopId.present) {
+      map['stop_id'] = Variable<String>(stopId.value);
+    }
+    if (stopName.present) {
+      map['stop_name'] = Variable<String>(stopName.value);
+    }
+    if (lineId.present) {
+      map['line_id'] = Variable<String>(lineId.value);
+    }
+    if (lineName.present) {
+      map['line_name'] = Variable<String>(lineName.value);
+    }
+    if (mode.present) {
+      map['mode'] = Variable<String>(mode.value);
+    }
+    if (stopOrder.present) {
+      map['stop_order'] = Variable<int>(stopOrder.value);
+    }
+    if (stopLat.present) {
+      map['stop_lat'] = Variable<double>(stopLat.value);
+    }
+    if (stopLon.present) {
+      map['stop_lon'] = Variable<double>(stopLon.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StopLineMembershipsCompanion(')
+          ..write('endpoint: $endpoint, ')
+          ..write('stopId: $stopId, ')
+          ..write('stopName: $stopName, ')
+          ..write('lineId: $lineId, ')
+          ..write('lineName: $lineName, ')
+          ..write('mode: $mode, ')
+          ..write('stopOrder: $stopOrder, ')
+          ..write('stopLat: $stopLat, ')
+          ..write('stopLon: $stopLon, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $JourneysTable journeys = $JourneysTable(this);
   late final $StopsTable stops = $StopsTable(this);
+  late final $StopLineMembershipsTable stopLineMemberships =
+      $StopLineMembershipsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [journeys, stops];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    journeys,
+    stops,
+    stopLineMemberships,
+  ];
 }
 
 typedef $$JourneysTableCreateCompanionBuilder =
@@ -2327,6 +2895,298 @@ typedef $$StopsTableProcessedTableManager =
       Stop,
       PrefetchHooks Function()
     >;
+typedef $$StopLineMembershipsTableCreateCompanionBuilder =
+    StopLineMembershipsCompanion Function({
+      required String endpoint,
+      required String stopId,
+      required String stopName,
+      required String lineId,
+      required String lineName,
+      required String mode,
+      required int stopOrder,
+      Value<double?> stopLat,
+      Value<double?> stopLon,
+      Value<int> rowid,
+    });
+typedef $$StopLineMembershipsTableUpdateCompanionBuilder =
+    StopLineMembershipsCompanion Function({
+      Value<String> endpoint,
+      Value<String> stopId,
+      Value<String> stopName,
+      Value<String> lineId,
+      Value<String> lineName,
+      Value<String> mode,
+      Value<int> stopOrder,
+      Value<double?> stopLat,
+      Value<double?> stopLon,
+      Value<int> rowid,
+    });
+
+class $$StopLineMembershipsTableFilterComposer
+    extends Composer<_$AppDatabase, $StopLineMembershipsTable> {
+  $$StopLineMembershipsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get endpoint => $composableBuilder(
+    column: $table.endpoint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopId => $composableBuilder(
+    column: $table.stopId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopName => $composableBuilder(
+    column: $table.stopName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineName => $composableBuilder(
+    column: $table.lineName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stopOrder => $composableBuilder(
+    column: $table.stopOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get stopLat => $composableBuilder(
+    column: $table.stopLat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get stopLon => $composableBuilder(
+    column: $table.stopLon,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StopLineMembershipsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StopLineMembershipsTable> {
+  $$StopLineMembershipsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get endpoint => $composableBuilder(
+    column: $table.endpoint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopId => $composableBuilder(
+    column: $table.stopId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopName => $composableBuilder(
+    column: $table.stopName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineName => $composableBuilder(
+    column: $table.lineName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stopOrder => $composableBuilder(
+    column: $table.stopOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get stopLat => $composableBuilder(
+    column: $table.stopLat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get stopLon => $composableBuilder(
+    column: $table.stopLon,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StopLineMembershipsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StopLineMembershipsTable> {
+  $$StopLineMembershipsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get endpoint =>
+      $composableBuilder(column: $table.endpoint, builder: (column) => column);
+
+  GeneratedColumn<String> get stopId =>
+      $composableBuilder(column: $table.stopId, builder: (column) => column);
+
+  GeneratedColumn<String> get stopName =>
+      $composableBuilder(column: $table.stopName, builder: (column) => column);
+
+  GeneratedColumn<String> get lineId =>
+      $composableBuilder(column: $table.lineId, builder: (column) => column);
+
+  GeneratedColumn<String> get lineName =>
+      $composableBuilder(column: $table.lineName, builder: (column) => column);
+
+  GeneratedColumn<String> get mode =>
+      $composableBuilder(column: $table.mode, builder: (column) => column);
+
+  GeneratedColumn<int> get stopOrder =>
+      $composableBuilder(column: $table.stopOrder, builder: (column) => column);
+
+  GeneratedColumn<double> get stopLat =>
+      $composableBuilder(column: $table.stopLat, builder: (column) => column);
+
+  GeneratedColumn<double> get stopLon =>
+      $composableBuilder(column: $table.stopLon, builder: (column) => column);
+}
+
+class $$StopLineMembershipsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StopLineMembershipsTable,
+          StopLineMembership,
+          $$StopLineMembershipsTableFilterComposer,
+          $$StopLineMembershipsTableOrderingComposer,
+          $$StopLineMembershipsTableAnnotationComposer,
+          $$StopLineMembershipsTableCreateCompanionBuilder,
+          $$StopLineMembershipsTableUpdateCompanionBuilder,
+          (
+            StopLineMembership,
+            BaseReferences<
+              _$AppDatabase,
+              $StopLineMembershipsTable,
+              StopLineMembership
+            >,
+          ),
+          StopLineMembership,
+          PrefetchHooks Function()
+        > {
+  $$StopLineMembershipsTableTableManager(
+    _$AppDatabase db,
+    $StopLineMembershipsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StopLineMembershipsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StopLineMembershipsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$StopLineMembershipsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> endpoint = const Value.absent(),
+                Value<String> stopId = const Value.absent(),
+                Value<String> stopName = const Value.absent(),
+                Value<String> lineId = const Value.absent(),
+                Value<String> lineName = const Value.absent(),
+                Value<String> mode = const Value.absent(),
+                Value<int> stopOrder = const Value.absent(),
+                Value<double?> stopLat = const Value.absent(),
+                Value<double?> stopLon = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StopLineMembershipsCompanion(
+                endpoint: endpoint,
+                stopId: stopId,
+                stopName: stopName,
+                lineId: lineId,
+                lineName: lineName,
+                mode: mode,
+                stopOrder: stopOrder,
+                stopLat: stopLat,
+                stopLon: stopLon,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String endpoint,
+                required String stopId,
+                required String stopName,
+                required String lineId,
+                required String lineName,
+                required String mode,
+                required int stopOrder,
+                Value<double?> stopLat = const Value.absent(),
+                Value<double?> stopLon = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StopLineMembershipsCompanion.insert(
+                endpoint: endpoint,
+                stopId: stopId,
+                stopName: stopName,
+                lineId: lineId,
+                lineName: lineName,
+                mode: mode,
+                stopOrder: stopOrder,
+                stopLat: stopLat,
+                stopLon: stopLon,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StopLineMembershipsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StopLineMembershipsTable,
+      StopLineMembership,
+      $$StopLineMembershipsTableFilterComposer,
+      $$StopLineMembershipsTableOrderingComposer,
+      $$StopLineMembershipsTableAnnotationComposer,
+      $$StopLineMembershipsTableCreateCompanionBuilder,
+      $$StopLineMembershipsTableUpdateCompanionBuilder,
+      (
+        StopLineMembership,
+        BaseReferences<
+          _$AppDatabase,
+          $StopLineMembershipsTable,
+          StopLineMembership
+        >,
+      ),
+      StopLineMembership,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2335,4 +3195,6 @@ class $AppDatabaseManager {
       $$JourneysTableTableManager(_db, _db.journeys);
   $$StopsTableTableManager get stops =>
       $$StopsTableTableManager(_db, _db.stops);
+  $$StopLineMembershipsTableTableManager get stopLineMemberships =>
+      $$StopLineMembershipsTableTableManager(_db, _db.stopLineMemberships);
 }

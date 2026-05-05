@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
@@ -40,7 +42,9 @@ class _NewTripScreenState extends State<NewTripScreen>
   bool _isLoading = false;
   bool _showMapView = false;
   bool _isResolvingSharedLines = false;
+  bool _isLoadingLineCandidates = false;
   bool _isLoadingInterchangeCandidates = false;
+  bool _directTripMode = false;
   SortMode _sortMode = SortMode.alphabetical;
 
   final keyController = TextEditingController();
@@ -54,11 +58,14 @@ class _NewTripScreenState extends State<NewTripScreen>
   _TripCreatorTab get _currentTab => _tabs[_tabController.index];
 
   List<StopLineMatch> _sharedLines = [];
+  List<StopLineMatch> _originLineCandidates = [];
   StopLineMatch? _selectedLine;
   bool _manualBuilderEnabled = false;
+  List<Station> _sameLineCandidateStations = [];
   List<Station> _interchanges = [];
   int? _pendingInterchangeInsertIndex;
   List<Station> _manualCandidateStations = [];
+  final Map<String, Future<_SameLineCandidates>> _sameLineCandidateCache = {};
 
   @override
   void initState() {
@@ -106,6 +113,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         _isLoading = false;
       });
 
+      _prefetchLineIndexesForTabs();
       await _applySorting();
 
       final hasAnyStops =
@@ -176,6 +184,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     );
     _currentTabKind = _tabs[_tabController.index].kind;
     _tabController.addListener(_onTabChanged);
+    _prefetchLineIndexesForTabs();
 
     if (TransportPreferencesService.showNswTrainLink.value &&
         _nswTrainLinkStationList.isEmpty) {
@@ -207,9 +216,11 @@ class _NewTripScreenState extends State<NewTripScreen>
       setState(() {
         _originStation = station;
         _originMode = mode;
+        _directTripMode = false;
         keyController.clear();
       });
       _resetManualDraft(clearSharedLines: true, keepDestination: false);
+      unawaited(_loadSameLineCandidatesForOrigin());
       return;
     }
 
@@ -256,6 +267,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       _destinationMode = null;
     });
     _resetManualDraft(clearSharedLines: true);
+    _loadSameLineCandidatesForOrigin();
   }
 
   void _resetManualDraft({
@@ -269,13 +281,129 @@ class _NewTripScreenState extends State<NewTripScreen>
 
     setState(() {
       _manualBuilderEnabled = false;
+      _directTripMode = false;
       _interchanges = [];
       _pendingInterchangeInsertIndex = null;
+      _sameLineCandidateStations = [];
       _manualCandidateStations = [];
       if (clearSharedLines) {
         _sharedLines = [];
+        _originLineCandidates = [];
         _selectedLine = null;
       }
+    });
+  }
+
+  Future<void> _loadSameLineCandidatesForOrigin() async {
+    final origin = _originStation;
+    final originMode = _originMode;
+    if (origin == null || originMode == null) {
+      return;
+    }
+
+    final requestOriginId = origin.id;
+    final requestOriginMode = originMode;
+
+    setState(() {
+      _isLoadingLineCandidates = true;
+      _originLineCandidates = [];
+      _sameLineCandidateStations = [];
+    });
+
+    try {
+      final candidates = await _sameLineCandidatesForOrigin(
+        originId: requestOriginId,
+        mode: requestOriginMode,
+      );
+
+      if (!mounted) return;
+      if (_originStation?.id != requestOriginId || _originMode != originMode) {
+        return;
+      }
+      setState(() {
+        _originLineCandidates = candidates.lines;
+        _sameLineCandidateStations = candidates.stations;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to load stops on the same line: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingLineCandidates = false;
+        });
+      }
+    }
+  }
+
+  Future<_SameLineCandidates> _sameLineCandidatesForOrigin({
+    required String originId,
+    required TransportMode mode,
+  }) {
+    final cacheKey = '$originId|${mode.id}';
+    return _sameLineCandidateCache.putIfAbsent(cacheKey, () async {
+      final lines = await _tripLineService.getLinesForStop(
+        originId,
+        mode: mode,
+        allowBuild: false,
+      );
+      final lineStops = await Future.wait(
+        lines.map((line) {
+          return _tripLineService.getStopsForLine(
+            line.lineId,
+            line.mode,
+            allowBuild: false,
+          );
+        }),
+      );
+      final stationsById = <String, Station>{};
+
+      for (final stops in lineStops) {
+        for (final lineStop in stops) {
+          if (lineStop.stopId == originId) {
+            continue;
+          }
+          stationsById.putIfAbsent(lineStop.stopId, () => lineStop.toStation());
+        }
+      }
+
+      final stations = stationsById.values.toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+      return _SameLineCandidates(lines: lines, stations: stations);
+    });
+  }
+
+  void _prefetchLineIndexesForTabs() {
+    final request = _tripLineService.prefetchIndexesForEndpoints(
+      _tabs.expand((tab) => tab.endpoints),
+    );
+    unawaited(
+      request.then((_) async {
+        if (!mounted ||
+            _originStation == null ||
+            _destinationStation != null ||
+            _directTripMode) {
+          return;
+        }
+        await _loadSameLineCandidatesForOrigin();
+      }),
+    );
+  }
+
+  void _toggleDirectTripMode(bool value) {
+    setState(() {
+      _directTripMode = value;
+      if (!value && _destinationStation != null) {
+        _destinationStation = null;
+        _destinationMode = null;
+        _sharedLines = [];
+        _selectedLine = null;
+      }
+      keyController.clear();
+      _showMapView = false;
     });
   }
 
@@ -518,8 +646,11 @@ class _NewTripScreenState extends State<NewTripScreen>
       _destinationStation = null;
       _destinationMode = null;
       _sharedLines = [];
+      _originLineCandidates = [];
       _selectedLine = null;
       _manualBuilderEnabled = false;
+      _directTripMode = false;
+      _sameLineCandidateStations = [];
       _interchanges = [];
       _pendingInterchangeInsertIndex = null;
       _manualCandidateStations = [];
@@ -678,10 +809,11 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   bool get _canSaveDirect {
-    return canSaveDirectTrip(
-      origin: _originStation,
-      destination: _destinationStation,
-    );
+    return _directTripMode &&
+        canSaveDirectTrip(
+          origin: _originStation,
+          destination: _destinationStation,
+        );
   }
 
   String? get _manualValidationMessage {
@@ -820,6 +952,14 @@ class _NewTripScreenState extends State<NewTripScreen>
             origin: _originStation,
             destination: _destinationStation,
             currentMode: _currentMode,
+            originMode: _originMode,
+            destinationMode: _destinationMode,
+            isDirectTripMode: _directTripMode,
+            isLoadingLineCandidates: _isLoadingLineCandidates,
+            originLineCandidates: _originLineCandidates,
+            onDirectTripModeChanged: _originStation == null
+                ? null
+                : _toggleDirectTripMode,
             sharedLines: _sharedLines,
             selectedLine: _selectedLine,
             interchanges: _interchanges,
@@ -855,9 +995,15 @@ class _NewTripScreenState extends State<NewTripScreen>
     if (_showMapView && !_manualBuilderEnabled) {
       final modeDisplayName = NewTripService.getModeDisplayName(mode);
       return StopsMapWidget(
-        key: ValueKey('map_$mode'),
+        key: ValueKey('map_${tab.kind}'),
         transportMode: mode,
         modeDisplayName: modeDisplayName,
+        endpoints: tab.endpoints,
+        allowedStopIds: _shouldUseSameLineCandidatesForTab(tab)
+            ? _sameLineCandidatesForTab(
+                tab,
+              ).map((station) => station.id).toSet()
+            : null,
         embedded: true,
         onStopSelected: (name, id) {
           setStation(name, id);
@@ -871,6 +1017,14 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
 
     if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_isLoadingLineCandidates &&
+        _originStation != null &&
+        _destinationStation == null &&
+        !_directTripMode &&
+        mode == _originMode) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -904,6 +1058,8 @@ class _NewTripScreenState extends State<NewTripScreen>
             selectedLine != null &&
             mode == selectedLine.mode
         ? _manualCandidateStations
+        : _shouldUseSameLineCandidatesForTab(tab)
+        ? _sameLineCandidatesForTab(tab)
         : _getStationListForTab(tab);
 
     final displayList = filterStationsByQuery(baseList, keyController.text);
@@ -915,6 +1071,8 @@ class _NewTripScreenState extends State<NewTripScreen>
               selectedLine != null &&
               mode == selectedLine.mode
           ? buildInterchangeEmptyMessage(selectedLine)
+          : _shouldUseSameLineCandidatesForTab(tab)
+          ? 'No stops found on the same line. Enable direct trip to pick any stop.'
           : 'No stops found.';
       return Center(child: Text(emptyMessage));
     }
@@ -932,6 +1090,23 @@ class _NewTripScreenState extends State<NewTripScreen>
       ],
     );
   }
+
+  bool _shouldUseSameLineCandidatesForTab(_TripCreatorTab tab) {
+    return _originStation != null &&
+        _destinationStation == null &&
+        !_directTripMode;
+  }
+
+  List<Station> _sameLineCandidatesForTab(_TripCreatorTab tab) {
+    final endpointKeys = tab.endpoints.map((endpoint) => endpoint.key).toSet();
+    return _sameLineCandidateStations.where((station) {
+      final lineId = station.lineId;
+      if (lineId == null) {
+        return false;
+      }
+      return endpointKeys.contains(lineId.split('|').first);
+    }).toList();
+  }
 }
 
 enum _TripCreatorTabKind {
@@ -943,16 +1118,25 @@ enum _TripCreatorTabKind {
   ferry,
 }
 
+class _SameLineCandidates {
+  const _SameLineCandidates({required this.lines, required this.stations});
+
+  final List<StopLineMatch> lines;
+  final List<Station> stations;
+}
+
 class _TripCreatorTab {
   const _TripCreatorTab({
     required this.kind,
     required this.mode,
     required this.tab,
+    required this.endpoints,
   });
 
   final _TripCreatorTabKind kind;
   final TransportMode mode;
   final Tab tab;
+  final List<StopsEndpoint> endpoints;
 }
 
 List<_TripCreatorTab> _buildTabs() {
@@ -960,36 +1144,69 @@ List<_TripCreatorTab> _buildTabs() {
     const _TripCreatorTab(
       kind: _TripCreatorTabKind.sydneyTrains,
       mode: TransportMode.train,
+      endpoints: [StopsEndpoint.sydneytrains],
       tab: Tab(
         icon: Icon(
           Icons.directions_train,
           color: Color.fromARGB(255, 255, 97, 35),
         ),
-        text: 'Sydney',
       ),
     ),
     if (TransportPreferencesService.showNswTrainLink.value)
       const _TripCreatorTab(
         kind: _TripCreatorTabKind.nswTrainLink,
         mode: TransportMode.train,
+        endpoints: [StopsEndpoint.nswtrains],
         tab: Tab(
           icon: Icon(Icons.confirmation_number, color: Colors.deepOrange),
-          text: 'NSW TrainLink',
         ),
       ),
     const _TripCreatorTab(
       kind: _TripCreatorTabKind.lightRail,
       mode: TransportMode.lightrail,
+      endpoints: [
+        StopsEndpoint.lightrailInnerwest,
+        StopsEndpoint.lightrailNewcastle,
+        StopsEndpoint.lightrailCbdandsoutheast,
+        StopsEndpoint.lightrailParramatta,
+      ],
       tab: Tab(icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82))),
     ),
     const _TripCreatorTab(
       kind: _TripCreatorTabKind.metro,
       mode: TransportMode.metro,
+      endpoints: [StopsEndpoint.metro],
       tab: Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
     ),
     const _TripCreatorTab(
       kind: _TripCreatorTabKind.bus,
       mode: TransportMode.bus,
+      endpoints: [
+        StopsEndpoint.buses,
+        StopsEndpoint.busesSbsc006,
+        StopsEndpoint.busesGbsc001,
+        StopsEndpoint.busesGsbc002,
+        StopsEndpoint.busesGsbc003,
+        StopsEndpoint.busesGsbc004,
+        StopsEndpoint.busesGsbc007,
+        StopsEndpoint.busesGsbc008,
+        StopsEndpoint.busesGsbc009,
+        StopsEndpoint.busesGsbc010,
+        StopsEndpoint.busesGsbc014,
+        StopsEndpoint.busesOsmbsc001,
+        StopsEndpoint.busesOsmbsc002,
+        StopsEndpoint.busesOsmbsc003,
+        StopsEndpoint.busesOsmbsc004,
+        StopsEndpoint.busesOmbsc006,
+        StopsEndpoint.busesOmbsc007,
+        StopsEndpoint.busesOsmbsc008,
+        StopsEndpoint.busesOsmbsc009,
+        StopsEndpoint.busesOsmbsc010,
+        StopsEndpoint.busesOsmbsc011,
+        StopsEndpoint.busesOsmbsc012,
+        StopsEndpoint.busesNisc001,
+        StopsEndpoint.busesReplacementBus,
+      ],
       tab: Tab(
         icon: Icon(
           Icons.directions_bus,
@@ -1000,6 +1217,7 @@ List<_TripCreatorTab> _buildTabs() {
     const _TripCreatorTab(
       kind: _TripCreatorTabKind.ferry,
       mode: TransportMode.ferry,
+      endpoints: [StopsEndpoint.ferriesSydneyFerries, StopsEndpoint.ferriesMff],
       tab: Tab(
         icon: Icon(
           Icons.directions_ferry,

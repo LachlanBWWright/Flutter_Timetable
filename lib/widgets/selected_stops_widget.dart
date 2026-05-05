@@ -14,6 +14,12 @@ class SelectedStopsWidget extends StatelessWidget {
     required this.origin,
     required this.destination,
     required this.currentMode,
+    required this.originMode,
+    required this.destinationMode,
+    required this.isDirectTripMode,
+    required this.isLoadingLineCandidates,
+    required this.originLineCandidates,
+    required this.onDirectTripModeChanged,
     required this.sharedLines,
     required this.selectedLine,
     required this.interchanges,
@@ -39,6 +45,12 @@ class SelectedStopsWidget extends StatelessWidget {
   final Station? origin;
   final Station? destination;
   final TransportMode currentMode;
+  final TransportMode? originMode;
+  final TransportMode? destinationMode;
+  final bool isDirectTripMode;
+  final bool isLoadingLineCandidates;
+  final List<StopLineMatch> originLineCandidates;
+  final ValueChanged<bool>? onDirectTripModeChanged;
   final List<StopLineMatch> sharedLines;
   final StopLineMatch? selectedLine;
   final List<Station> interchanges;
@@ -71,6 +83,12 @@ class SelectedStopsWidget extends StatelessWidget {
       selectedLine: selectedLine,
     );
     final accentColor = TransportColors.getColorByTransportMode(accentMode);
+    final originColor = TransportColors.getColorByTransportMode(
+      originMode ?? accentMode,
+    );
+    final destinationColor = TransportColors.getColorByTransportMode(
+      destinationMode ?? accentMode,
+    );
 
     final orderedStops = buildOrderedStops(
       origin: origin,
@@ -105,29 +123,51 @@ class SelectedStopsWidget extends StatelessWidget {
             accentMode: accentMode,
           ),
           const SizedBox(height: 12.0),
-          Row(
-            children: [
-              Expanded(
-                child: StopCard(
-                  label: 'From',
-                  station: origin,
-                  onClear: onClearOrigin,
-                  isOrigin: true,
-                  modeColor: accentColor,
-                ),
-              ),
-              const SizedBox(width: 12.0),
-              Expanded(
-                child: StopCard(
-                  label: 'To',
-                  station: destination,
-                  onClear: onClearDestination,
-                  isOrigin: false,
-                  modeColor: accentColor,
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final useColumns = constraints.maxWidth < 520;
+              final fromCard = StopCard(
+                label: 'From',
+                station: origin,
+                onClear: onClearOrigin,
+                isOrigin: true,
+                modeColor: originColor,
+              );
+              final toCard = StopCard(
+                label: 'To',
+                station: destination,
+                onClear: onClearDestination,
+                isOrigin: false,
+                modeColor: destinationColor,
+              );
+
+              if (useColumns) {
+                return Column(
+                  children: [fromCard, const SizedBox(height: 8.0), toCard],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: fromCard),
+                  const SizedBox(width: 12.0),
+                  Expanded(child: toCard),
+                ],
+              );
+            },
           ),
+          if (!isManualBuilderEnabled &&
+              origin != null &&
+              destination == null) ...[
+            const SizedBox(height: 12.0),
+            _DestinationModeSelector(
+              isDirectTripMode: isDirectTripMode,
+              isLoadingLineCandidates: isLoadingLineCandidates,
+              lineCount: originLineCandidates.length,
+              onChanged: onDirectTripModeChanged,
+              accentColor: accentColor,
+            ),
+          ],
           if (isResolvingSharedLines) ...[
             const SizedBox(height: 12.0),
             const LinearProgressIndicator(),
@@ -291,6 +331,52 @@ class _SharedLineChips extends StatelessWidget {
               .toList(),
         ),
       ],
+    );
+  }
+}
+
+class _DestinationModeSelector extends StatelessWidget {
+  const _DestinationModeSelector({
+    required this.isDirectTripMode,
+    required this.isLoadingLineCandidates,
+    required this.lineCount,
+    required this.onChanged,
+    required this.accentColor,
+  });
+
+  final bool isDirectTripMode;
+  final bool isLoadingLineCandidates;
+  final int lineCount;
+  final ValueChanged<bool>? onChanged;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = isDirectTripMode
+        ? 'Direct trip: choose any stop.'
+        : isLoadingLineCandidates
+        ? 'Finding stops on the same line...'
+        : lineCount == 0
+        ? 'No line match is available. Enable direct trip to choose any stop.'
+        : 'Showing stops on $lineCount matching line${lineCount == 1 ? '' : 's'}.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.alt_route, color: accentColor, size: 20.0),
+          const SizedBox(width: 8.0),
+          Expanded(child: Text(message)),
+          const SizedBox(width: 8.0),
+          Switch(value: isDirectTripMode, onChanged: onChanged),
+        ],
+      ),
     );
   }
 }

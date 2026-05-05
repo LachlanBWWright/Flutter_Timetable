@@ -68,10 +68,10 @@ class _TripScreenState extends State<TripScreen> {
         setState(() {
           trips = sortTripJourneysForDisplay(v.tripJourneys);
           _systemMessages =
-            v.systemMessages.responseMessages
-              ?.where((m) => (m.error ?? m.text)?.trim().isNotEmpty == true)
-              .toList() ??
-            const [];
+              v.systemMessages.responseMessages
+                  ?.where((m) => (m.error ?? m.text)?.trim().isNotEmpty == true)
+                  .toList() ??
+              const [];
           testText = v.toString();
           _rawTripJson = prettyPrintRawJson(v.rawJson);
           _isLoading = false;
@@ -122,10 +122,43 @@ class _TripScreenState extends State<TripScreen> {
     }
   }
 
+  List<Widget> _buildSystemMessageWarningChildren() {
+    return [
+      const SizedBox(height: 8),
+      ..._systemMessages.take(4).map((message) {
+        final text = (message.error ?? message.text ?? '').trim();
+        if (text.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final prefix = [
+          if ((message.type ?? '').isNotEmpty) message.type,
+          if ((message.module ?? '').isNotEmpty) message.module,
+        ].join(' • ');
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            prefix.isEmpty ? text : '$prefix: $text',
+            style: const TextStyle(fontSize: 13),
+          ),
+        );
+      }),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Trip')),
+      appBar: AppBar(
+        title: const Text('Trip'),
+        actions: [
+          if (_systemMessages.isNotEmpty)
+            TravelWarningAction(
+              title: 'Travel Alerts',
+              tooltip: 'Show travel alerts',
+              children: _buildSystemMessageWarningChildren(),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           if (!widget.trip.isManualMultiLeg) {
@@ -225,33 +258,6 @@ class _TripScreenState extends State<TripScreen> {
               )
             : ListView(
                 children: [
-                  if (_systemMessages.isNotEmpty)
-                    TravelWarningCard(
-                      title: 'Travel Alerts',
-                      margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                      children: [
-                        const SizedBox(height: 8),
-                        ..._systemMessages.take(4).map((message) {
-                          final text = (message.error ?? message.text ?? '')
-                              .trim();
-                          if (text.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-                          final prefix = [
-                            if ((message.type ?? '').isNotEmpty) message.type,
-                            if ((message.module ?? '').isNotEmpty)
-                              message.module,
-                          ].join(' • ');
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Text(
-                              prefix.isEmpty ? text : '$prefix: $text',
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
                   ...List.generate(trips.length, (index) {
                     return TripCard(
                       trip: trips[index],
@@ -261,8 +267,10 @@ class _TripScreenState extends State<TripScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                TripLegDetailScreen(leg: leg, trip: tripJourney),
+                            builder: (context) => TripLegDetailScreen(
+                              leg: leg,
+                              trip: tripJourney,
+                            ),
                           ),
                         );
                       },

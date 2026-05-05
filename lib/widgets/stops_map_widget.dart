@@ -27,6 +27,8 @@ class StopsMapWidget extends StatefulWidget {
   final TransportMode transportMode;
   final String modeDisplayName;
   final Function(String, String) onStopSelected;
+  final List<StopsEndpoint>? endpoints;
+  final Set<String>? allowedStopIds;
 
   /// When true, renders the map content without its own Scaffold/AppBar.
   final bool embedded;
@@ -40,6 +42,8 @@ class StopsMapWidget extends StatefulWidget {
     required this.transportMode,
     required this.modeDisplayName,
     required this.onStopSelected,
+    this.endpoints,
+    this.allowedStopIds,
     this.embedded = false,
     this.onClose,
   });
@@ -114,9 +118,12 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
       if (!mounted) return;
 
       // Pre-filter stops with invalid coordinates once on load
-      _stops = allStops
-          .where((s) => s.stopLat != 0.0 && s.stopLon != 0.0)
-          .toList();
+      _stops = allStops.where((s) {
+        final allowedStopIds = widget.allowedStopIds;
+        return s.stopLat != 0.0 &&
+            s.stopLon != 0.0 &&
+            (allowedStopIds == null || allowedStopIds.contains(s.stopId));
+      }).toList();
       _buildMarkerCache();
 
       setState(() {
@@ -152,7 +159,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   }
 
   Future<List<Stop>> _getStopsForTransportMode(TransportMode mode) async {
-    final endpoints = endpointsForTransportMode(mode);
+    final endpoints = widget.endpoints ?? endpointsForTransportMode(mode);
     final List<Stop> allStops = [];
 
     for (final endpoint in endpoints) {

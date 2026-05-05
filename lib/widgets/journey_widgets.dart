@@ -7,6 +7,7 @@ import 'package:lbww_flutter/widgets/journey/journey_accent_strip.dart';
 class JourneyCard extends StatefulWidget {
   final Journey journey;
   final VoidCallback onTap;
+  final VoidCallback onReverseTap;
   final VoidCallback onDelete;
   final VoidCallback onTogglePin;
   final bool isEditingMode;
@@ -16,6 +17,7 @@ class JourneyCard extends StatefulWidget {
     super.key,
     required this.journey,
     required this.onTap,
+    required this.onReverseTap,
     required this.onDelete,
     required this.onTogglePin,
     required this.isEditingMode,
@@ -57,19 +59,20 @@ class _JourneyCardState extends State<JourneyCard> {
         : manualDefinition.legs.length - 1;
 
     return Card(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      margin: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       elevation: 1.5,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      child: InkWell(
-        onTap: widget.onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // Origin column
-                Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Origin column
+              Expanded(
+                child: InkWell(
+                  onTap: widget.onTap,
                   child: Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(16, 14, 10, 14),
                     child: Text(
                       journey.origin,
@@ -80,17 +83,21 @@ class _JourneyCardState extends State<JourneyCard> {
                     ),
                   ),
                 ),
-                // Vertical divider between origin and destination
-                VerticalDivider(
-                  width: 10,
-                  thickness: 1,
-                  color: Colors.grey.shade400,
-                  indent: 12,
-                  endIndent: 12,
-                ),
-                // Destination column
-                Expanded(
+              ),
+              // Vertical divider between origin and destination
+              VerticalDivider(
+                width: 10,
+                thickness: 1,
+                color: Colors.grey.shade400,
+                indent: 12,
+                endIndent: 12,
+              ),
+              // Destination column
+              Expanded(
+                child: InkWell(
+                  onTap: widget.onReverseTap,
                   child: Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(10, 14, 16, 14),
                     child: Text(
                       journey.destination,
@@ -101,43 +108,41 @@ class _JourneyCardState extends State<JourneyCard> {
                     ),
                   ),
                 ),
-                // Action buttons (pin/delete)
-                if (widget.isEditingMode) ...[
-                  IconButton(
-                    icon: Icon(
-                      journey.isPinned
-                          ? Icons.push_pin
-                          : Icons.push_pin_outlined,
-                      color: journey.isPinned ? Colors.blue : Colors.grey,
-                    ),
-                    onPressed: widget.onTogglePin,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: widget.onDelete,
-                  ),
-                ],
-              ],
-            ),
-            if (journey.isManualMultiLeg)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(
-                  [
-                    'Manual multi-leg',
-                    if (journey.lineName case final lineName?
-                        when lineName.isNotEmpty)
-                      lineName,
-                    if (interchangeCount != null)
-                      '$interchangeCount interchange${interchangeCount == 1 ? '' : 's'}',
-                  ].join(' • '),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
               ),
-            const SizedBox(height: 2),
-            JourneyAccentStrip(journey: journey),
-          ],
-        ),
+              // Action buttons (pin/delete)
+              if (widget.isEditingMode) ...[
+                IconButton(
+                  icon: Icon(
+                    journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    color: journey.isPinned ? Colors.blue : Colors.grey,
+                  ),
+                  onPressed: widget.onTogglePin,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: widget.onDelete,
+                ),
+              ],
+            ],
+          ),
+          if (journey.isManualMultiLeg)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                [
+                  'Manual multi-leg',
+                  if (journey.lineName case final lineName?
+                      when lineName.isNotEmpty)
+                    lineName,
+                  if (interchangeCount != null)
+                    '$interchangeCount interchange${interchangeCount == 1 ? '' : 's'}',
+                ].join(' • '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          const SizedBox(height: 2),
+          JourneyAccentStrip(journey: journey),
+        ],
       ),
     );
   }
@@ -147,6 +152,7 @@ class _JourneyCardState extends State<JourneyCard> {
 class JourneyList extends StatelessWidget {
   final List<Journey> journeys;
   final void Function(Journey) onJourneyTap;
+  final void Function(Journey) onReverseJourneyTap;
   final void Function(Journey)? onJourneyVisible;
   final void Function(int) onDeleteJourney;
   final void Function(int, bool) onTogglePin;
@@ -157,6 +163,7 @@ class JourneyList extends StatelessWidget {
     super.key,
     required this.journeys,
     required this.onJourneyTap,
+    required this.onReverseJourneyTap,
     this.onJourneyVisible,
     required this.onDeleteJourney,
     required this.onTogglePin,
@@ -174,6 +181,7 @@ class JourneyList extends StatelessWidget {
         return JourneyCard(
           journey: journeys[index],
           onTap: () => onJourneyTap(journeys[index]),
+          onReverseTap: () => onReverseJourneyTap(journeys[index]),
           onJourneyVisible: onJourneyVisible,
           onDelete: () => onDeleteJourney(journeys[index].id),
           onTogglePin: () =>

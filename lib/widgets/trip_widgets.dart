@@ -91,61 +91,33 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
     });
   }
 
-  bool _isTruthy(String? value) {
-    if (value == null) return false;
-    final normalized = value.trim().toLowerCase();
-    return normalized == 'yes' || normalized == 'true' || normalized == '1';
-  }
-
   String _displayStopName(Stop stop) {
     return stop.disassembledName ?? stop.name;
   }
 
-  String _formatDurationMinutes(int minutes) {
-    if (minutes < 60) return '${minutes}m';
-    final hours = minutes ~/ 60;
-    final rem = minutes % 60;
-    return rem == 0 ? '${hours}h' : '${hours}h ${rem}m';
-  }
-
-  int _journeyDurationMinutes(List<Leg> legs) {
-    final first = legs.first;
-    final last = legs.last;
-    final departure =
-        first.origin.departureTimeEstimated ?? first.origin.departureTimePlanned;
-    final arrival =
-        last.destination.arrivalTimeEstimated ?? last.destination.arrivalTimePlanned;
-    final start = departure != null
-        ? DateTimeUtils.parseTimeToDateTime(departure)
-        : null;
-    final end = arrival != null ? DateTimeUtils.parseTimeToDateTime(arrival) : null;
-    if (start != null && end != null) {
-      final diff = end.difference(start).inMinutes;
-      if (diff > 0) return diff;
-    }
-
-    final summedSeconds = legs.fold<int>(
-      0,
-      (sum, leg) => sum + (leg.duration ?? 0),
-    );
-    return summedSeconds > 0 ? (summedSeconds / 60).ceil() : 0;
+  bool _isAccessibilityNotice(String text) {
+    final normalized = text.toLowerCase();
+    return normalized.contains('wheelchair') ||
+        normalized.contains('accessible') ||
+        normalized.contains('accessibility') ||
+        normalized.contains('low-floor') ||
+        normalized.contains('low floor');
   }
 
   List<String> _journeyNotices(List<Leg> legs) {
     final notices = <String>{};
     for (final leg in legs) {
       for (final info in leg.infos ?? const <Info>[]) {
-        final text =
-            info.subtitle?.trim().isNotEmpty == true
+        final text = info.subtitle?.trim().isNotEmpty == true
             ? info.subtitle!.trim()
             : info.content?.trim();
-        if (text != null && text.isNotEmpty) {
+        if (text != null && text.isNotEmpty && !_isAccessibilityNotice(text)) {
           notices.add(text);
         }
       }
       for (final hint in leg.hints ?? const <Hint>[]) {
         final text = hint.infoText?.trim();
-        if (text != null && text.isNotEmpty) {
+        if (text != null && text.isNotEmpty && !_isAccessibilityNotice(text)) {
           notices.add(text);
         }
       }
@@ -219,21 +191,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
 
     final firstLeg = legs.first;
     final lastLeg = legs.last;
-    final firstTransport = firstLeg.transportation;
-    final firstRouteNumber = firstTransport?.number;
-    final firstHeadsign = firstTransport?.destination?.name;
-    final firstOperator = firstTransport?.operator?.name;
-    final journeyMinutes = _journeyDurationMinutes(legs);
     final notices = _journeyNotices(legs);
-    final lowFloor = legs.any(
-      (leg) => _isTruthy(leg.properties?.planLowFloorVehicle),
-    );
-    final wheelchair = legs.any(
-      (leg) =>
-          _isTruthy(leg.properties?.planWheelChairAccess) ||
-          _isTruthy(leg.origin.properties?.wheelchairAccess) ||
-          _isTruthy(leg.destination.properties?.wheelchairAccess),
-    );
 
     // Build sequential segments per-leg, inserting grey waiting segments between legs where applicable
     final segments = <Widget>[];
@@ -327,41 +285,6 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      if (journeyMinutes > 0)
-                        _summaryChip(_formatDurationMinutes(journeyMinutes)),
-                      if (legs.length > 1)
-                        _summaryChip('${legs.length - 1} transfer${legs.length == 2 ? '' : 's'}'),
-                      if (firstRouteNumber != null && firstRouteNumber.isNotEmpty)
-                        _summaryChip('Route $firstRouteNumber'),
-                      if (wheelchair) _summaryChip('Wheelchair friendly'),
-                      if (lowFloor) _summaryChip('Low-floor vehicles'),
-                      if (widget.trip.isAdditional == true)
-                        _summaryChip('Extra service'),
-                      if (widget.trip.rating != null)
-                        _summaryChip('Rating ${widget.trip.rating}'),
-                    ],
-                  ),
-                  if (firstHeadsign != null && firstHeadsign.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Destination sign: $firstHeadsign',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  if (firstOperator != null && firstOperator.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        'Operator: $firstOperator',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
                   if (notices.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -448,34 +371,12 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
     );
   }
 
-  Widget _summaryChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 11)),
-    );
-  }
-
   Widget? _buildLegSubtitle(Leg leg) {
     final details = <String>[];
     final routeNumber = leg.transportation?.number;
-    final headsign = leg.transportation?.destination?.name;
-    final operator = leg.transportation?.operator?.name;
 
     if (routeNumber != null && routeNumber.isNotEmpty) {
       details.add('Route $routeNumber');
-    }
-    if (headsign != null && headsign.isNotEmpty) {
-      details.add('towards $headsign');
-    }
-    if (operator != null && operator.isNotEmpty) {
-      details.add(operator);
-    }
-    if (_isTruthy(leg.properties?.planWheelChairAccess)) {
-      details.add('wheelchair access');
     }
 
     if (details.isEmpty) return null;
