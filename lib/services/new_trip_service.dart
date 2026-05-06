@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../constants/transport_modes.dart';
 import '../fetch_data/timetable_data.dart';
 import '../gtfs/gtfs_data.dart';
@@ -8,6 +10,35 @@ import '../services/location_service.dart';
 import '../services/stops_service.dart';
 import '../services/trip_line_service.dart';
 import '../widgets/station_widgets.dart';
+
+enum StaticTransportUpdateStage {
+  fetching,
+  parsing,
+  storingStops,
+  storingLineMemberships,
+  complete,
+  failed,
+}
+
+class StaticTransportUpdateProgress {
+  const StaticTransportUpdateProgress({
+    required this.endpoint,
+    required this.stage,
+    required this.completed,
+    required this.total,
+    this.message,
+    this.error,
+  });
+
+  final StopsEndpoint? endpoint;
+  final StaticTransportUpdateStage stage;
+  final int completed;
+  final int total;
+  final String? message;
+  final String? error;
+
+  bool get success => error == null;
+}
 
 /// Service for managing stops data in the New Trip screen
 class NewTripService {
@@ -145,6 +176,148 @@ class NewTripService {
         onProgress?.call('Error loading ${endpoint.key}: $e', i + 1, total);
       }
     }
+  }
+
+  static Stream<StaticTransportUpdateProgress> updateStaticTransportData({
+    bool force = false,
+    List<StopsEndpoint>? endpoints,
+  }) {
+    final selectedEndpoints = endpoints ?? StopsEndpoint.values;
+    final total = selectedEndpoints.length;
+    final controller = StreamController<StaticTransportUpdateProgress>();
+
+    () async {
+      var completed = 0;
+      for (final endpoint in selectedEndpoints) {
+        final cached = await _hasValidStaticCache(endpoint);
+        if (cached && !force) {
+          completed += 1;
+          controller.add(
+            StaticTransportUpdateProgress(
+              endpoint: endpoint,
+              stage: StaticTransportUpdateStage.complete,
+              completed: completed,
+              total: total,
+              message: 'Using cached ${endpoint.key}',
+            ),
+          );
+          continue;
+        }
+
+        await StopsService.database.markStaticCacheBuildStarted(endpoint.key);
+        controller.add(
+          StaticTransportUpdateProgress(
+            endpoint: endpoint,
+            stage: StaticTransportUpdateStage.fetching,
+            completed: completed,
+            total: total,
+            message: 'Fetching ${endpoint.key}',
+          ),
+        );
+
+        try {
+          final gtfsData = await fetchGtfsDataForEndpoint(endpoint);
+          if (gtfsData == null) {
+            throw StateError('No GTFS data returned for ${endpoint.key}');
+          }
+
+          controller.add(
+            StaticTransportUpdateProgress(
+              endpoint: endpoint,
+              stage: StaticTransportUpdateStage.parsing,
+              completed: completed,
+              total: total,
+              message: 'Parsed ${endpoint.key}',
+            ),
+          );
+
+          controller.add(
+            StaticTransportUpdateProgress(
+              endpoint: endpoint,
+              stage: StaticTransportUpdateStage.storingStops,
+              completed: completed,
+              total: total,
+              message: 'Storing stops for ${endpoint.key}',
+            ),
+          );
+          await StopsService.storeStopsToDatabase(gtfsData.stops, endpoint);
+
+          controller.add(
+            StaticTransportUpdateProgress(
+              endpoint: endpoint,
+              stage: StaticTransportUpdateStage.storingLineMemberships,
+              completed: completed,
+              total: total,
+              message: 'Storing line memberships for ${endpoint.key}',
+            ),
+          );
+          await TripLineService.instance.cacheGtfsDataForEndpoint(
+            endpoint,
+            gtfsData,
+          );
+
+          completed += 1;
+          await StopsService.database.markStaticCacheBuildFinished(
+            endpoint.key,
+            stopsUpdated: true,
+            lineMembershipsUpdated: true,
+          );
+          controller.add(
+            StaticTransportUpdateProgress(
+              endpoint: endpoint,
+              stage: StaticTransportUpdateStage.complete,
+              completed: completed,
+              total: total,
+              message: 'Completed ${endpoint.key}',
+            ),
+          );
+        } catch (e) {
+          await StopsService.database.markStaticCacheBuildFinished(
+            endpoint.key,
+            stopsUpdated: false,
+            lineMembershipsUpdated: false,
+            error: e.toString(),
+          );
+          controller.add(
+            StaticTransportUpdateProgress(
+              endpoint: endpoint,
+              stage: StaticTransportUpdateStage.failed,
+              completed: completed,
+              total: total,
+              message: 'Failed ${endpoint.key}',
+              error: e.toString(),
+            ),
+          );
+        }
+      }
+
+      controller.add(
+        StaticTransportUpdateProgress(
+          endpoint: null,
+          stage: StaticTransportUpdateStage.complete,
+          completed: completed,
+          total: total,
+          message:
+              'Finished updating static transport data ($completed/$total)',
+        ),
+      );
+      await controller.close();
+    }();
+
+    return controller.stream;
+  }
+
+  static Future<bool> _hasValidStaticCache(StopsEndpoint endpoint) async {
+    final status = await StopsService.database.getStaticCacheStatus(
+      endpoint.key,
+    );
+    if (status?.stopsUpdatedAt == null ||
+        status?.lineMembershipsUpdatedAt == null) {
+      return false;
+    }
+    final stopCount = await StopsService.database
+        .getStopLineMembershipCountForEndpoint(endpoint.key);
+    return stopCount > 0;
   }
 
   /// Helper function to call the appropriate GTFS fetch function for an endpoint

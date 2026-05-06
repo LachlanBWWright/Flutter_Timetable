@@ -4,12 +4,24 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 
 part 'tables/journeys.dart';
+part 'tables/routes.dart';
+part 'tables/static_cache_statuses.dart';
 part 'tables/stop_line_memberships.dart';
 part 'tables/stops.dart';
+part 'tables/trip_planner_cache.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Journeys, Stops, StopLineMemberships])
+@DriftDatabase(
+  tables: [
+    Journeys,
+    Routes,
+    Stops,
+    StopLineMemberships,
+    StaticCacheStatuses,
+    TripPlannerCache,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   // Singleton instance
   static AppDatabase? _instance;
@@ -30,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -63,6 +75,15 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 6) {
         await m.createTable(stopLineMemberships);
+      }
+
+      if (from < 7) {
+        await m.createTable(staticCacheStatuses);
+        await m.createTable(tripPlannerCache);
+      }
+
+      if (from < 8) {
+        await m.createTable(routes);
       }
     },
   );
@@ -162,6 +183,175 @@ class AppDatabase extends _$AppDatabase {
         }
       });
     });
+  }
+
+  Future<void> markStaticCacheBuildStarted(String endpoint) {
+    final now = DateTime.now();
+    return into(staticCacheStatuses).insert(
+      StaticCacheStatusesCompanion.insert(
+        endpoint: endpoint,
+        lastBuildStartedAt: Value(now),
+        lastError: const Value(null),
+        isBuilding: const Value(true),
+      ),
+      onConflict: DoUpdate(
+        (_) => StaticCacheStatusesCompanion(
+          lastBuildStartedAt: Value(now),
+          lastError: const Value(null),
+          isBuilding: const Value(true),
+        ),
+      ),
+    );
+  }
+
+  Future<void> markStaticCacheBuildFinished(
+    String endpoint, {
+    required bool stopsUpdated,
+    required bool lineMembershipsUpdated,
+    String? error,
+  }) {
+    final now = DateTime.now();
+    return into(staticCacheStatuses).insert(
+      StaticCacheStatusesCompanion.insert(
+        endpoint: endpoint,
+        stopsUpdatedAt: stopsUpdated ? Value(now) : const Value.absent(),
+        lineMembershipsUpdatedAt: lineMembershipsUpdated
+            ? Value(now)
+            : const Value.absent(),
+        lastBuildFinishedAt: Value(now),
+        lastError: Value(error),
+        isBuilding: const Value(false),
+      ),
+      onConflict: DoUpdate(
+        (_) => StaticCacheStatusesCompanion(
+          stopsUpdatedAt: stopsUpdated ? Value(now) : const Value.absent(),
+          lineMembershipsUpdatedAt: lineMembershipsUpdated
+              ? Value(now)
+              : const Value.absent(),
+          lastBuildFinishedAt: Value(now),
+          lastError: Value(error),
+          isBuilding: const Value(false),
+        ),
+      ),
+    );
+  }
+
+  Future<StaticCacheStatuse?> getStaticCacheStatus(String endpoint) {
+    return (select(
+      staticCacheStatuses,
+    )..where((tbl) => tbl.endpoint.equals(endpoint))).getSingleOrNull();
+  }
+
+  Future<List<StaticCacheStatuse>> getAllStaticCacheStatuses() {
+    return (select(
+      staticCacheStatuses,
+    )..orderBy([(tbl) => OrderingTerm(expression: tbl.endpoint)])).get();
+  }
+
+  Future<void> upsertTripPlannerCache({
+    required String originId,
+    required String destinationId,
+    required DateTime fetchedAt,
+    String? responseJson,
+    String? error,
+  }) {
+    return into(tripPlannerCache).insertOnConflictUpdate(
+      TripPlannerCacheCompanion.insert(
+        originId: originId,
+        destinationId: destinationId,
+        fetchedAt: fetchedAt,
+        responseJson: Value(responseJson),
+        error: Value(error),
+      ),
+    );
+  }
+
+  Future<void> markTripPlannerCacheError({
+    required String originId,
+    required String destinationId,
+    required DateTime fetchedAt,
+    required String error,
+  }) async {
+    final existing = await getTripPlannerCache(originId, destinationId);
+    if (existing == null) {
+      await into(tripPlannerCache).insert(
+        TripPlannerCacheCompanion.insert(
+          originId: originId,
+          destinationId: destinationId,
+          fetchedAt: fetchedAt,
+          error: Value(error),
+        ),
+      );
+      return;
+    }
+    await (update(tripPlannerCache)
+          ..where((tbl) => tbl.originId.equals(originId))
+          ..where((tbl) => tbl.destinationId.equals(destinationId)))
+        .write(
+          TripPlannerCacheCompanion(
+            fetchedAt: Value(fetchedAt),
+            error: Value(error),
+          ),
+        );
+  }
+
+  Future<TripPlannerCacheData?> getTripPlannerCache(
+    String originId,
+    String destinationId,
+  ) {
+    return (select(tripPlannerCache)
+          ..where((tbl) => tbl.originId.equals(originId))
+          ..where((tbl) => tbl.destinationId.equals(destinationId)))
+        .getSingleOrNull();
+  }
+
+  Future<int> deleteTripPlannerCache(String originId, String destinationId) {
+    return (delete(tripPlannerCache)
+          ..where((tbl) => tbl.originId.equals(originId))
+          ..where((tbl) => tbl.destinationId.equals(destinationId)))
+        .go();
+  }
+
+  Future<void> replaceRoutesForEndpoint(
+    String endpoint,
+    List<RoutesCompanion> routeRows,
+  ) async {
+    await transaction(() async {
+      await (delete(
+        routes,
+      )..where((tbl) => tbl.endpoint.equals(endpoint))).go();
+      await batch((batch) {
+        for (final route in routeRows) {
+          batch.insert(routes, route, mode: InsertMode.replace);
+        }
+      });
+    });
+  }
+
+  Future<List<Route>> getAllRoutes() {
+    return (select(routes)..orderBy([
+          (tbl) => OrderingTerm(expression: tbl.routeShortName),
+          (tbl) => OrderingTerm(expression: tbl.routeLongName),
+          (tbl) => OrderingTerm(expression: tbl.routeId),
+        ]))
+        .get();
+  }
+
+  Future<List<Route>> getRoutesForEndpoint(String endpoint) {
+    return (select(routes)
+          ..where((tbl) => tbl.endpoint.equals(endpoint))
+          ..orderBy([
+            (tbl) => OrderingTerm(expression: tbl.routeShortName),
+            (tbl) => OrderingTerm(expression: tbl.routeLongName),
+            (tbl) => OrderingTerm(expression: tbl.routeId),
+          ]))
+        .get();
+  }
+
+  Future<Route?> getRouteByLineId(String lineId) {
+    return (select(
+      routes,
+    )..where((tbl) => tbl.lineId.equals(lineId))).getSingleOrNull();
   }
 
   Future<List<StopLineMembership>> getStopLineMembershipsForStop(

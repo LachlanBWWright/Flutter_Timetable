@@ -5,7 +5,6 @@ import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/debug/debug_extractors.dart';
-import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
 import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
@@ -14,18 +13,18 @@ import 'package:lbww_flutter/services/stops_service.dart';
 class DebugEntityListLoader {
   final DebugEntityResolver resolver;
   final Future<List<db.Stop>> Function() _getAllDbStops;
-  final Future<Map<TransportMode?, Map<String, int>>> Function()
-  _getStopsCountByEndpoint;
+  final Future<List<db.Route>> Function() _getAllDbRoutes;
 
   DebugEntityListLoader({
     required this.resolver,
     Future<List<db.Stop>> Function()? getAllDbStops,
+    Future<List<db.Route>> Function()? getAllDbRoutes,
     Future<Map<TransportMode?, Map<String, int>>> Function()?
     getStopsCountByEndpoint,
   }) : _getAllDbStops =
            getAllDbStops ?? (() => StopsService.database.getAllStops()),
-       _getStopsCountByEndpoint =
-           getStopsCountByEndpoint ?? StopsService.getStopsCountByEndpoint;
+       _getAllDbRoutes =
+           getAllDbRoutes ?? (() => StopsService.database.getAllRoutes());
 
   Future<DebugEntityListPageData> load(DebugEntityType entityType) {
     switch (entityType) {
@@ -159,30 +158,29 @@ class DebugEntityListLoader {
 
   Future<DebugEntityListPageData> _loadRouteList() async {
     final catalog = <String, _RouteListEntry>{};
-    final managedEndpoints = await _managedEndpoints();
+    final persistedRoutes = await _getAllDbRoutes();
 
-    for (final endpoint in managedEndpoints) {
-      final data = await resolver.loadGtfsForEndpoint(endpoint);
-      if (data == null) {
-        continue;
-      }
-      final agenciesById = {
-        for (final agency in data.agencies)
-          if (agency.agencyId != null) agency.agencyId ?? '': agency,
-      };
-      for (final route in data.routes) {
-        final entry = catalog.putIfAbsent(
-          route.routeId,
-          () => _RouteListEntry(routeId: route.routeId),
-        );
-        entry.route ??= route;
-        entry.agency ??= route.agencyId == null
-            ? null
-            : agenciesById[route.agencyId ?? ''];
+    for (final persistedRoute in persistedRoutes) {
+      final entry = catalog.putIfAbsent(
+        persistedRoute.lineId,
+        () => _RouteListEntry(routeId: persistedRoute.routeId),
+      );
+      entry.route ??= gtfs_route.Route(
+        routeId: persistedRoute.routeId,
+        routeShortName: persistedRoute.routeShortName ?? '',
+        routeLongName: persistedRoute.routeLongName ?? '',
+        routeDesc: persistedRoute.routeDesc,
+        routeType: persistedRoute.routeType ?? '',
+        routeColor: persistedRoute.routeColor,
+        routeTextColor: persistedRoute.routeTextColor,
+        routeSortOrder: persistedRoute.routeSortOrder,
+      );
+      final endpoint = _endpointForKey(persistedRoute.endpoint);
+      if (endpoint != null) {
         entry.endpoints.add(endpoint);
-        entry.modes.add(_modeNameForEndpoint(endpoint));
-        entry.sources.add(DebugDataSource.gtfs);
       }
+      entry.modes.add(_modeNameForEndpointKey(persistedRoute.endpoint));
+      entry.sources.add(DebugDataSource.localDb);
     }
 
     final vehicleAggregation = await resolver.vehicleAggregation();
@@ -190,10 +188,7 @@ class DebugEntityListLoader {
       if (!vehicle.trip.hasRouteId() || vehicle.trip.routeId.isEmpty) {
         continue;
       }
-      final entry = catalog.putIfAbsent(
-        vehicle.trip.routeId,
-        () => _RouteListEntry(routeId: vehicle.trip.routeId),
-      );
+      final entry = _routeEntryForRealtime(catalog, vehicle.trip.routeId);
       entry.sources.add(DebugDataSource.realtime);
       entry.activeVehicles += 1;
       if (vehicle.hasTimestamp()) {
@@ -211,10 +206,7 @@ class DebugEntityListLoader {
       if (!update.trip.hasRouteId() || update.trip.routeId.isEmpty) {
         continue;
       }
-      final entry = catalog.putIfAbsent(
-        update.trip.routeId,
-        () => _RouteListEntry(routeId: update.trip.routeId),
-      );
+      final entry = _routeEntryForRealtime(catalog, update.trip.routeId);
       entry.sources.add(DebugDataSource.realtime);
       entry.activeTrips += 1;
       if (update.hasTimestamp()) {
@@ -240,13 +232,11 @@ class DebugEntityListLoader {
           if (endpoints.isNotEmpty) {
             filterValues['endpoint'] = endpoints;
           }
-          final agencyName = entry.agency?.agencyName;
-          if (agencyName != null && agencyName.isNotEmpty) {
-            filterValues['agency'] = [agencyName];
-          }
           filterValues['activity'] = [
             routeActivity(
-              hasGtfs: entry.sources.contains(DebugDataSource.gtfs),
+              hasGtfs:
+                  entry.sources.contains(DebugDataSource.gtfs) ||
+                  entry.sources.contains(DebugDataSource.localDb),
               hasRealtime: entry.sources.contains(DebugDataSource.realtime),
               activeTrips: entry.activeTrips,
               activeVehicles: entry.activeVehicles,
@@ -261,7 +251,7 @@ class DebugEntityListLoader {
             title: bestRouteTitle(route, entry.routeId),
             subtitle: bestRouteSubtitle(route, endpoints),
             description: routeDescription(
-              agency: entry.agency,
+              agency: null,
               route: route,
               activeTrips: entry.activeTrips,
               activeVehicles: entry.activeVehicles,
@@ -273,7 +263,6 @@ class DebugEntityListLoader {
               if (route?.routeShortName case final shortName?) shortName,
               if (route?.routeLongName case final longName?) longName,
               if (route?.routeDesc case final routeDesc?) routeDesc,
-              if (entry.agency?.agencyName case final agencyName?) agencyName,
               ...endpoints,
               ...modes,
             ],
@@ -295,16 +284,15 @@ class DebugEntityListLoader {
       entityType: DebugEntityType.route,
       title: 'Route Debug Browser',
       description:
-          'Browse scheduled GTFS routes for managed endpoints, enriched with any active realtime route activity.',
+          'Browse cached scheduled GTFS routes, enriched with any active realtime route activity.',
       emptyMessage:
-          'No route data could be loaded. Ensure you have a valid API key and managed stops data for at least one endpoint.',
+          'No cached route data is available. Update static transport data from Settings before browsing scheduled routes.',
       items: items,
-      sourceBadges: const [DebugDataSource.gtfs, DebugDataSource.realtime],
+      sourceBadges: const [DebugDataSource.localDb, DebugDataSource.realtime],
       filterGroups: _buildFilterGroups(items, const {
         'source': 'Source',
         'mode': 'Mode',
         'endpoint': 'Endpoint',
-        'agency': 'Agency',
         'activity': 'Activity',
       }),
       sortOptions: const [
@@ -320,8 +308,8 @@ class DebugEntityListLoader {
                 tone: DebugStatusTone.warning,
                 title: 'No route catalog available',
                 message:
-                    'The route browser loads GTFS routes for locally managed endpoints and merges active realtime route IDs when available.',
-                sources: [DebugDataSource.gtfs, DebugDataSource.realtime],
+                    'The route browser loads cached route metadata and merges active realtime route IDs when available.',
+                sources: [DebugDataSource.localDb, DebugDataSource.realtime],
               ),
             ]
           : const [],
@@ -536,25 +524,6 @@ class DebugEntityListLoader {
     );
   }
 
-  Future<List<StopsEndpoint>> _managedEndpoints() async {
-    final grouped = await _getStopsCountByEndpoint();
-    final endpointByKey = {
-      for (final endpoint in StopsEndpoint.values) endpoint.key: endpoint,
-    };
-    final endpoints = <StopsEndpoint>{};
-    for (final entry in grouped.values) {
-      for (final endpointKey in entry.keys) {
-        final endpoint = endpointByKey[endpointKey];
-        if (endpoint != null) {
-          endpoints.add(endpoint);
-        }
-      }
-    }
-    final result = endpoints.toList(growable: false)
-      ..sort((left, right) => left.key.compareTo(right.key));
-    return result;
-  }
-
   List<DebugEntityListFilterGroup> _buildFilterGroups(
     List<DebugEntityListItem> items,
     Map<String, String> labels,
@@ -596,15 +565,38 @@ class DebugEntityListLoader {
     return groups;
   }
 
-  String _modeNameForEndpoint(StopsEndpoint endpoint) {
-    return StopsService.modeForEndpointKey(endpoint.key)?.name ?? 'unknown';
+  String _modeNameForEndpointKey(String endpoint) {
+    return StopsService.modeForEndpointKey(endpoint)?.name ?? 'unknown';
+  }
+
+  StopsEndpoint? _endpointForKey(String endpointKey) {
+    for (final endpoint in StopsEndpoint.values) {
+      if (endpoint.key == endpointKey) {
+        return endpoint;
+      }
+    }
+    return null;
+  }
+
+  _RouteListEntry _routeEntryForRealtime(
+    Map<String, _RouteListEntry> catalog,
+    String routeId,
+  ) {
+    for (final entry in catalog.values) {
+      if (entry.routeId == routeId) {
+        return entry;
+      }
+    }
+    return catalog.putIfAbsent(
+      routeId,
+      () => _RouteListEntry(routeId: routeId),
+    );
   }
 }
 
 class _RouteListEntry {
   final String routeId;
   gtfs_route.Route? route;
-  gtfs_agency.Agency? agency;
   final Set<StopsEndpoint> endpoints = <StopsEndpoint>{};
   final Set<String> modes = <String>{};
   final Set<DebugDataSource> sources = <DebugDataSource>{};

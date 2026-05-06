@@ -106,23 +106,30 @@ class TripLineService {
   TripLineService({
     TripLineGtfsLoader? gtfsLoader,
     TripLineStopLookup? stopLookup,
+    bool readPersistedCache = true,
   }) : _gtfsLoader = gtfsLoader ?? NewTripService.fetchGtfsDataForEndpoint,
-       _stopLookup = stopLookup ?? _lookupStopsFromDatabase;
+       _stopLookup = stopLookup ?? _lookupStopsFromDatabase,
+       _readPersistedCache = readPersistedCache;
 
   static final TripLineService instance = TripLineService();
 
   final TripLineGtfsLoader _gtfsLoader;
   final TripLineStopLookup _stopLookup;
+  final bool _readPersistedCache;
   final Map<String, Future<_EndpointLineIndex?>> _endpointIndexCache = {};
 
   Future<List<StopLineMatch>> getLinesForStop(
     String stopId, {
     TransportMode? mode,
-    bool allowBuild = true,
+    bool allowBuild = false,
   }) async {
-    final persisted = await _getPersistedLinesForStop(stopId, mode: mode);
-    if (persisted.isNotEmpty || !allowBuild) {
-      return persisted;
+    if (_readPersistedCache) {
+      final persisted = await _getPersistedLinesForStop(stopId, mode: mode);
+      if (persisted.isNotEmpty || !allowBuild) {
+        return persisted;
+      }
+    } else if (!allowBuild) {
+      return const [];
     }
 
     final lookupStops = await _stopLookup(stopId);
@@ -154,8 +161,13 @@ class TripLineService {
     String stopA,
     String stopB, {
     required TransportMode mode,
+    bool allowBuild = false,
   }) async {
-    final linesForA = await getLinesForStop(stopA, mode: mode);
+    final linesForA = await getLinesForStop(
+      stopA,
+      mode: mode,
+      allowBuild: allowBuild,
+    );
     if (linesForA.isEmpty) {
       return const [];
     }
@@ -163,6 +175,7 @@ class TripLineService {
     final lineIdsForB = (await getLinesForStop(
       stopB,
       mode: mode,
+      allowBuild: allowBuild,
     )).map((line) => line.lineId).toSet();
 
     return linesForA.where((line) => lineIdsForB.contains(line.lineId)).toList()
@@ -172,11 +185,15 @@ class TripLineService {
   Future<List<LineScopedStop>> getStopsForLine(
     String lineId,
     TransportMode mode, {
-    bool allowBuild = true,
+    bool allowBuild = false,
   }) async {
-    final persisted = await _getPersistedStopsForLine(lineId, mode);
-    if (persisted.isNotEmpty || !allowBuild) {
-      return persisted;
+    if (_readPersistedCache) {
+      final persisted = await _getPersistedStopsForLine(lineId, mode);
+      if (persisted.isNotEmpty || !allowBuild) {
+        return persisted;
+      }
+    } else if (!allowBuild) {
+      return const [];
     }
 
     final endpointKey = _endpointKeyFromLineId(lineId);
@@ -198,6 +215,7 @@ class TripLineService {
       mode: mode,
       anchorStopIds: [anchorStopId],
       radiusKm: radiusKm,
+      allowBuild: false,
     ).then(
       (stops) => stops.where((stop) => stop.isWithinAnchorRadius).toList(),
     );
@@ -209,8 +227,9 @@ class TripLineService {
     Iterable<String> anchorStopIds = const [],
     Iterable<String> excludedStopIds = const [],
     double radiusKm = 5,
+    bool allowBuild = false,
   }) async {
-    final stops = await getStopsForLine(lineId, mode);
+    final stops = await getStopsForLine(lineId, mode, allowBuild: allowBuild);
     if (stops.isEmpty) {
       return const [];
     }
@@ -291,6 +310,34 @@ class TripLineService {
       data: data,
     );
     await _storeIndexForEndpoint(endpoint.key, index);
+    await cacheRoutesForEndpoint(endpoint, data);
+  }
+
+  Future<void> cacheRoutesForEndpoint(
+    StopsEndpoint endpoint,
+    GtfsData data,
+  ) async {
+    final routeRows = data.routes
+        .where((route) => route.routeId.trim().isNotEmpty)
+        .map(
+          (route) => db.RoutesCompanion.insert(
+            endpoint: endpoint.key,
+            routeId: route.routeId.trim(),
+            lineId: '${endpoint.key}|${route.routeId.trim()}',
+            routeShortName: drift.Value(route.routeShortName),
+            routeLongName: drift.Value(route.routeLongName),
+            routeDesc: drift.Value(route.routeDesc),
+            routeType: drift.Value(route.routeType),
+            routeColor: drift.Value(route.routeColor),
+            routeTextColor: drift.Value(route.routeTextColor),
+            routeSortOrder: drift.Value(route.routeSortOrder),
+          ),
+        )
+        .toList(growable: false);
+    await StopsService.database.replaceRoutesForEndpoint(
+      endpoint.key,
+      routeRows,
+    );
   }
 
   Future<List<_StopCoordinate>> _loadAnchorCoordinates(
@@ -372,7 +419,10 @@ class TripLineService {
       mode: mode,
       data: data,
     );
-    await _storeIndexForEndpoint(endpointKey, index);
+    if (_readPersistedCache) {
+      await _storeIndexForEndpoint(endpointKey, index);
+      await cacheRoutesForEndpoint(endpoint.first, data);
+    }
     return index;
   }
 

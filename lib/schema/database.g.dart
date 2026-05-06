@@ -653,6 +653,653 @@ class JourneysCompanion extends UpdateCompanion<Journey> {
   }
 }
 
+class $RoutesTable extends Routes with TableInfo<$RoutesTable, Route> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RoutesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _endpointMeta = const VerificationMeta(
+    'endpoint',
+  );
+  @override
+  late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
+    'endpoint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _routeIdMeta = const VerificationMeta(
+    'routeId',
+  );
+  @override
+  late final GeneratedColumn<String> routeId = GeneratedColumn<String>(
+    'route_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lineIdMeta = const VerificationMeta('lineId');
+  @override
+  late final GeneratedColumn<String> lineId = GeneratedColumn<String>(
+    'line_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _routeShortNameMeta = const VerificationMeta(
+    'routeShortName',
+  );
+  @override
+  late final GeneratedColumn<String> routeShortName = GeneratedColumn<String>(
+    'route_short_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routeLongNameMeta = const VerificationMeta(
+    'routeLongName',
+  );
+  @override
+  late final GeneratedColumn<String> routeLongName = GeneratedColumn<String>(
+    'route_long_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routeDescMeta = const VerificationMeta(
+    'routeDesc',
+  );
+  @override
+  late final GeneratedColumn<String> routeDesc = GeneratedColumn<String>(
+    'route_desc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routeTypeMeta = const VerificationMeta(
+    'routeType',
+  );
+  @override
+  late final GeneratedColumn<String> routeType = GeneratedColumn<String>(
+    'route_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routeColorMeta = const VerificationMeta(
+    'routeColor',
+  );
+  @override
+  late final GeneratedColumn<String> routeColor = GeneratedColumn<String>(
+    'route_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routeTextColorMeta = const VerificationMeta(
+    'routeTextColor',
+  );
+  @override
+  late final GeneratedColumn<String> routeTextColor = GeneratedColumn<String>(
+    'route_text_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routeSortOrderMeta = const VerificationMeta(
+    'routeSortOrder',
+  );
+  @override
+  late final GeneratedColumn<String> routeSortOrder = GeneratedColumn<String>(
+    'route_sort_order',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    endpoint,
+    routeId,
+    lineId,
+    routeShortName,
+    routeLongName,
+    routeDesc,
+    routeType,
+    routeColor,
+    routeTextColor,
+    routeSortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'routes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Route> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('endpoint')) {
+      context.handle(
+        _endpointMeta,
+        endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endpointMeta);
+    }
+    if (data.containsKey('route_id')) {
+      context.handle(
+        _routeIdMeta,
+        routeId.isAcceptableOrUnknown(data['route_id']!, _routeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_routeIdMeta);
+    }
+    if (data.containsKey('line_id')) {
+      context.handle(
+        _lineIdMeta,
+        lineId.isAcceptableOrUnknown(data['line_id']!, _lineIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lineIdMeta);
+    }
+    if (data.containsKey('route_short_name')) {
+      context.handle(
+        _routeShortNameMeta,
+        routeShortName.isAcceptableOrUnknown(
+          data['route_short_name']!,
+          _routeShortNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('route_long_name')) {
+      context.handle(
+        _routeLongNameMeta,
+        routeLongName.isAcceptableOrUnknown(
+          data['route_long_name']!,
+          _routeLongNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('route_desc')) {
+      context.handle(
+        _routeDescMeta,
+        routeDesc.isAcceptableOrUnknown(data['route_desc']!, _routeDescMeta),
+      );
+    }
+    if (data.containsKey('route_type')) {
+      context.handle(
+        _routeTypeMeta,
+        routeType.isAcceptableOrUnknown(data['route_type']!, _routeTypeMeta),
+      );
+    }
+    if (data.containsKey('route_color')) {
+      context.handle(
+        _routeColorMeta,
+        routeColor.isAcceptableOrUnknown(data['route_color']!, _routeColorMeta),
+      );
+    }
+    if (data.containsKey('route_text_color')) {
+      context.handle(
+        _routeTextColorMeta,
+        routeTextColor.isAcceptableOrUnknown(
+          data['route_text_color']!,
+          _routeTextColorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('route_sort_order')) {
+      context.handle(
+        _routeSortOrderMeta,
+        routeSortOrder.isAcceptableOrUnknown(
+          data['route_sort_order']!,
+          _routeSortOrderMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {endpoint, routeId};
+  @override
+  Route map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Route(
+      endpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endpoint'],
+      )!,
+      routeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_id'],
+      )!,
+      lineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_id'],
+      )!,
+      routeShortName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_short_name'],
+      ),
+      routeLongName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_long_name'],
+      ),
+      routeDesc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_desc'],
+      ),
+      routeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_type'],
+      ),
+      routeColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_color'],
+      ),
+      routeTextColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_text_color'],
+      ),
+      routeSortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route_sort_order'],
+      ),
+    );
+  }
+
+  @override
+  $RoutesTable createAlias(String alias) {
+    return $RoutesTable(attachedDatabase, alias);
+  }
+}
+
+class Route extends DataClass implements Insertable<Route> {
+  final String endpoint;
+  final String routeId;
+  final String lineId;
+  final String? routeShortName;
+  final String? routeLongName;
+  final String? routeDesc;
+  final String? routeType;
+  final String? routeColor;
+  final String? routeTextColor;
+  final String? routeSortOrder;
+  const Route({
+    required this.endpoint,
+    required this.routeId,
+    required this.lineId,
+    this.routeShortName,
+    this.routeLongName,
+    this.routeDesc,
+    this.routeType,
+    this.routeColor,
+    this.routeTextColor,
+    this.routeSortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['endpoint'] = Variable<String>(endpoint);
+    map['route_id'] = Variable<String>(routeId);
+    map['line_id'] = Variable<String>(lineId);
+    if (!nullToAbsent || routeShortName != null) {
+      map['route_short_name'] = Variable<String>(routeShortName);
+    }
+    if (!nullToAbsent || routeLongName != null) {
+      map['route_long_name'] = Variable<String>(routeLongName);
+    }
+    if (!nullToAbsent || routeDesc != null) {
+      map['route_desc'] = Variable<String>(routeDesc);
+    }
+    if (!nullToAbsent || routeType != null) {
+      map['route_type'] = Variable<String>(routeType);
+    }
+    if (!nullToAbsent || routeColor != null) {
+      map['route_color'] = Variable<String>(routeColor);
+    }
+    if (!nullToAbsent || routeTextColor != null) {
+      map['route_text_color'] = Variable<String>(routeTextColor);
+    }
+    if (!nullToAbsent || routeSortOrder != null) {
+      map['route_sort_order'] = Variable<String>(routeSortOrder);
+    }
+    return map;
+  }
+
+  RoutesCompanion toCompanion(bool nullToAbsent) {
+    return RoutesCompanion(
+      endpoint: Value(endpoint),
+      routeId: Value(routeId),
+      lineId: Value(lineId),
+      routeShortName: routeShortName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routeShortName),
+      routeLongName: routeLongName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routeLongName),
+      routeDesc: routeDesc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routeDesc),
+      routeType: routeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routeType),
+      routeColor: routeColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routeColor),
+      routeTextColor: routeTextColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routeTextColor),
+      routeSortOrder: routeSortOrder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routeSortOrder),
+    );
+  }
+
+  factory Route.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Route(
+      endpoint: serializer.fromJson<String>(json['endpoint']),
+      routeId: serializer.fromJson<String>(json['routeId']),
+      lineId: serializer.fromJson<String>(json['lineId']),
+      routeShortName: serializer.fromJson<String?>(json['routeShortName']),
+      routeLongName: serializer.fromJson<String?>(json['routeLongName']),
+      routeDesc: serializer.fromJson<String?>(json['routeDesc']),
+      routeType: serializer.fromJson<String?>(json['routeType']),
+      routeColor: serializer.fromJson<String?>(json['routeColor']),
+      routeTextColor: serializer.fromJson<String?>(json['routeTextColor']),
+      routeSortOrder: serializer.fromJson<String?>(json['routeSortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'endpoint': serializer.toJson<String>(endpoint),
+      'routeId': serializer.toJson<String>(routeId),
+      'lineId': serializer.toJson<String>(lineId),
+      'routeShortName': serializer.toJson<String?>(routeShortName),
+      'routeLongName': serializer.toJson<String?>(routeLongName),
+      'routeDesc': serializer.toJson<String?>(routeDesc),
+      'routeType': serializer.toJson<String?>(routeType),
+      'routeColor': serializer.toJson<String?>(routeColor),
+      'routeTextColor': serializer.toJson<String?>(routeTextColor),
+      'routeSortOrder': serializer.toJson<String?>(routeSortOrder),
+    };
+  }
+
+  Route copyWith({
+    String? endpoint,
+    String? routeId,
+    String? lineId,
+    Value<String?> routeShortName = const Value.absent(),
+    Value<String?> routeLongName = const Value.absent(),
+    Value<String?> routeDesc = const Value.absent(),
+    Value<String?> routeType = const Value.absent(),
+    Value<String?> routeColor = const Value.absent(),
+    Value<String?> routeTextColor = const Value.absent(),
+    Value<String?> routeSortOrder = const Value.absent(),
+  }) => Route(
+    endpoint: endpoint ?? this.endpoint,
+    routeId: routeId ?? this.routeId,
+    lineId: lineId ?? this.lineId,
+    routeShortName: routeShortName.present
+        ? routeShortName.value
+        : this.routeShortName,
+    routeLongName: routeLongName.present
+        ? routeLongName.value
+        : this.routeLongName,
+    routeDesc: routeDesc.present ? routeDesc.value : this.routeDesc,
+    routeType: routeType.present ? routeType.value : this.routeType,
+    routeColor: routeColor.present ? routeColor.value : this.routeColor,
+    routeTextColor: routeTextColor.present
+        ? routeTextColor.value
+        : this.routeTextColor,
+    routeSortOrder: routeSortOrder.present
+        ? routeSortOrder.value
+        : this.routeSortOrder,
+  );
+  Route copyWithCompanion(RoutesCompanion data) {
+    return Route(
+      endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
+      routeId: data.routeId.present ? data.routeId.value : this.routeId,
+      lineId: data.lineId.present ? data.lineId.value : this.lineId,
+      routeShortName: data.routeShortName.present
+          ? data.routeShortName.value
+          : this.routeShortName,
+      routeLongName: data.routeLongName.present
+          ? data.routeLongName.value
+          : this.routeLongName,
+      routeDesc: data.routeDesc.present ? data.routeDesc.value : this.routeDesc,
+      routeType: data.routeType.present ? data.routeType.value : this.routeType,
+      routeColor: data.routeColor.present
+          ? data.routeColor.value
+          : this.routeColor,
+      routeTextColor: data.routeTextColor.present
+          ? data.routeTextColor.value
+          : this.routeTextColor,
+      routeSortOrder: data.routeSortOrder.present
+          ? data.routeSortOrder.value
+          : this.routeSortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Route(')
+          ..write('endpoint: $endpoint, ')
+          ..write('routeId: $routeId, ')
+          ..write('lineId: $lineId, ')
+          ..write('routeShortName: $routeShortName, ')
+          ..write('routeLongName: $routeLongName, ')
+          ..write('routeDesc: $routeDesc, ')
+          ..write('routeType: $routeType, ')
+          ..write('routeColor: $routeColor, ')
+          ..write('routeTextColor: $routeTextColor, ')
+          ..write('routeSortOrder: $routeSortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    endpoint,
+    routeId,
+    lineId,
+    routeShortName,
+    routeLongName,
+    routeDesc,
+    routeType,
+    routeColor,
+    routeTextColor,
+    routeSortOrder,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Route &&
+          other.endpoint == this.endpoint &&
+          other.routeId == this.routeId &&
+          other.lineId == this.lineId &&
+          other.routeShortName == this.routeShortName &&
+          other.routeLongName == this.routeLongName &&
+          other.routeDesc == this.routeDesc &&
+          other.routeType == this.routeType &&
+          other.routeColor == this.routeColor &&
+          other.routeTextColor == this.routeTextColor &&
+          other.routeSortOrder == this.routeSortOrder);
+}
+
+class RoutesCompanion extends UpdateCompanion<Route> {
+  final Value<String> endpoint;
+  final Value<String> routeId;
+  final Value<String> lineId;
+  final Value<String?> routeShortName;
+  final Value<String?> routeLongName;
+  final Value<String?> routeDesc;
+  final Value<String?> routeType;
+  final Value<String?> routeColor;
+  final Value<String?> routeTextColor;
+  final Value<String?> routeSortOrder;
+  final Value<int> rowid;
+  const RoutesCompanion({
+    this.endpoint = const Value.absent(),
+    this.routeId = const Value.absent(),
+    this.lineId = const Value.absent(),
+    this.routeShortName = const Value.absent(),
+    this.routeLongName = const Value.absent(),
+    this.routeDesc = const Value.absent(),
+    this.routeType = const Value.absent(),
+    this.routeColor = const Value.absent(),
+    this.routeTextColor = const Value.absent(),
+    this.routeSortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RoutesCompanion.insert({
+    required String endpoint,
+    required String routeId,
+    required String lineId,
+    this.routeShortName = const Value.absent(),
+    this.routeLongName = const Value.absent(),
+    this.routeDesc = const Value.absent(),
+    this.routeType = const Value.absent(),
+    this.routeColor = const Value.absent(),
+    this.routeTextColor = const Value.absent(),
+    this.routeSortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : endpoint = Value(endpoint),
+       routeId = Value(routeId),
+       lineId = Value(lineId);
+  static Insertable<Route> custom({
+    Expression<String>? endpoint,
+    Expression<String>? routeId,
+    Expression<String>? lineId,
+    Expression<String>? routeShortName,
+    Expression<String>? routeLongName,
+    Expression<String>? routeDesc,
+    Expression<String>? routeType,
+    Expression<String>? routeColor,
+    Expression<String>? routeTextColor,
+    Expression<String>? routeSortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (endpoint != null) 'endpoint': endpoint,
+      if (routeId != null) 'route_id': routeId,
+      if (lineId != null) 'line_id': lineId,
+      if (routeShortName != null) 'route_short_name': routeShortName,
+      if (routeLongName != null) 'route_long_name': routeLongName,
+      if (routeDesc != null) 'route_desc': routeDesc,
+      if (routeType != null) 'route_type': routeType,
+      if (routeColor != null) 'route_color': routeColor,
+      if (routeTextColor != null) 'route_text_color': routeTextColor,
+      if (routeSortOrder != null) 'route_sort_order': routeSortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RoutesCompanion copyWith({
+    Value<String>? endpoint,
+    Value<String>? routeId,
+    Value<String>? lineId,
+    Value<String?>? routeShortName,
+    Value<String?>? routeLongName,
+    Value<String?>? routeDesc,
+    Value<String?>? routeType,
+    Value<String?>? routeColor,
+    Value<String?>? routeTextColor,
+    Value<String?>? routeSortOrder,
+    Value<int>? rowid,
+  }) {
+    return RoutesCompanion(
+      endpoint: endpoint ?? this.endpoint,
+      routeId: routeId ?? this.routeId,
+      lineId: lineId ?? this.lineId,
+      routeShortName: routeShortName ?? this.routeShortName,
+      routeLongName: routeLongName ?? this.routeLongName,
+      routeDesc: routeDesc ?? this.routeDesc,
+      routeType: routeType ?? this.routeType,
+      routeColor: routeColor ?? this.routeColor,
+      routeTextColor: routeTextColor ?? this.routeTextColor,
+      routeSortOrder: routeSortOrder ?? this.routeSortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (endpoint.present) {
+      map['endpoint'] = Variable<String>(endpoint.value);
+    }
+    if (routeId.present) {
+      map['route_id'] = Variable<String>(routeId.value);
+    }
+    if (lineId.present) {
+      map['line_id'] = Variable<String>(lineId.value);
+    }
+    if (routeShortName.present) {
+      map['route_short_name'] = Variable<String>(routeShortName.value);
+    }
+    if (routeLongName.present) {
+      map['route_long_name'] = Variable<String>(routeLongName.value);
+    }
+    if (routeDesc.present) {
+      map['route_desc'] = Variable<String>(routeDesc.value);
+    }
+    if (routeType.present) {
+      map['route_type'] = Variable<String>(routeType.value);
+    }
+    if (routeColor.present) {
+      map['route_color'] = Variable<String>(routeColor.value);
+    }
+    if (routeTextColor.present) {
+      map['route_text_color'] = Variable<String>(routeTextColor.value);
+    }
+    if (routeSortOrder.present) {
+      map['route_sort_order'] = Variable<String>(routeSortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoutesCompanion(')
+          ..write('endpoint: $endpoint, ')
+          ..write('routeId: $routeId, ')
+          ..write('lineId: $lineId, ')
+          ..write('routeShortName: $routeShortName, ')
+          ..write('routeLongName: $routeLongName, ')
+          ..write('routeDesc: $routeDesc, ')
+          ..write('routeType: $routeType, ')
+          ..write('routeColor: $routeColor, ')
+          ..write('routeTextColor: $routeTextColor, ')
+          ..write('routeSortOrder: $routeSortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $StopsTable extends Stops with TableInfo<$StopsTable, Stop> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -2157,21 +2804,936 @@ class StopLineMembershipsCompanion extends UpdateCompanion<StopLineMembership> {
   }
 }
 
+class $StaticCacheStatusesTable extends StaticCacheStatuses
+    with TableInfo<$StaticCacheStatusesTable, StaticCacheStatuse> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StaticCacheStatusesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _endpointMeta = const VerificationMeta(
+    'endpoint',
+  );
+  @override
+  late final GeneratedColumn<String> endpoint = GeneratedColumn<String>(
+    'endpoint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopsUpdatedAtMeta = const VerificationMeta(
+    'stopsUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> stopsUpdatedAt =
+      GeneratedColumn<DateTime>(
+        'stops_updated_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lineMembershipsUpdatedAtMeta =
+      const VerificationMeta('lineMembershipsUpdatedAt');
+  @override
+  late final GeneratedColumn<DateTime> lineMembershipsUpdatedAt =
+      GeneratedColumn<DateTime>(
+        'line_memberships_updated_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastBuildStartedAtMeta =
+      const VerificationMeta('lastBuildStartedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastBuildStartedAt =
+      GeneratedColumn<DateTime>(
+        'last_build_started_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastBuildFinishedAtMeta =
+      const VerificationMeta('lastBuildFinishedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastBuildFinishedAt =
+      GeneratedColumn<DateTime>(
+        'last_build_finished_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isBuildingMeta = const VerificationMeta(
+    'isBuilding',
+  );
+  @override
+  late final GeneratedColumn<bool> isBuilding = GeneratedColumn<bool>(
+    'is_building',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_building" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    endpoint,
+    stopsUpdatedAt,
+    lineMembershipsUpdatedAt,
+    lastBuildStartedAt,
+    lastBuildFinishedAt,
+    lastError,
+    isBuilding,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'static_cache_statuses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StaticCacheStatuse> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('endpoint')) {
+      context.handle(
+        _endpointMeta,
+        endpoint.isAcceptableOrUnknown(data['endpoint']!, _endpointMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endpointMeta);
+    }
+    if (data.containsKey('stops_updated_at')) {
+      context.handle(
+        _stopsUpdatedAtMeta,
+        stopsUpdatedAt.isAcceptableOrUnknown(
+          data['stops_updated_at']!,
+          _stopsUpdatedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('line_memberships_updated_at')) {
+      context.handle(
+        _lineMembershipsUpdatedAtMeta,
+        lineMembershipsUpdatedAt.isAcceptableOrUnknown(
+          data['line_memberships_updated_at']!,
+          _lineMembershipsUpdatedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_build_started_at')) {
+      context.handle(
+        _lastBuildStartedAtMeta,
+        lastBuildStartedAt.isAcceptableOrUnknown(
+          data['last_build_started_at']!,
+          _lastBuildStartedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_build_finished_at')) {
+      context.handle(
+        _lastBuildFinishedAtMeta,
+        lastBuildFinishedAt.isAcceptableOrUnknown(
+          data['last_build_finished_at']!,
+          _lastBuildFinishedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('is_building')) {
+      context.handle(
+        _isBuildingMeta,
+        isBuilding.isAcceptableOrUnknown(data['is_building']!, _isBuildingMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {endpoint};
+  @override
+  StaticCacheStatuse map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StaticCacheStatuse(
+      endpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endpoint'],
+      )!,
+      stopsUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}stops_updated_at'],
+      ),
+      lineMembershipsUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}line_memberships_updated_at'],
+      ),
+      lastBuildStartedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_build_started_at'],
+      ),
+      lastBuildFinishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_build_finished_at'],
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      isBuilding: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_building'],
+      )!,
+    );
+  }
+
+  @override
+  $StaticCacheStatusesTable createAlias(String alias) {
+    return $StaticCacheStatusesTable(attachedDatabase, alias);
+  }
+}
+
+class StaticCacheStatuse extends DataClass
+    implements Insertable<StaticCacheStatuse> {
+  final String endpoint;
+  final DateTime? stopsUpdatedAt;
+  final DateTime? lineMembershipsUpdatedAt;
+  final DateTime? lastBuildStartedAt;
+  final DateTime? lastBuildFinishedAt;
+  final String? lastError;
+  final bool isBuilding;
+  const StaticCacheStatuse({
+    required this.endpoint,
+    this.stopsUpdatedAt,
+    this.lineMembershipsUpdatedAt,
+    this.lastBuildStartedAt,
+    this.lastBuildFinishedAt,
+    this.lastError,
+    required this.isBuilding,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['endpoint'] = Variable<String>(endpoint);
+    if (!nullToAbsent || stopsUpdatedAt != null) {
+      map['stops_updated_at'] = Variable<DateTime>(stopsUpdatedAt);
+    }
+    if (!nullToAbsent || lineMembershipsUpdatedAt != null) {
+      map['line_memberships_updated_at'] = Variable<DateTime>(
+        lineMembershipsUpdatedAt,
+      );
+    }
+    if (!nullToAbsent || lastBuildStartedAt != null) {
+      map['last_build_started_at'] = Variable<DateTime>(lastBuildStartedAt);
+    }
+    if (!nullToAbsent || lastBuildFinishedAt != null) {
+      map['last_build_finished_at'] = Variable<DateTime>(lastBuildFinishedAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['is_building'] = Variable<bool>(isBuilding);
+    return map;
+  }
+
+  StaticCacheStatusesCompanion toCompanion(bool nullToAbsent) {
+    return StaticCacheStatusesCompanion(
+      endpoint: Value(endpoint),
+      stopsUpdatedAt: stopsUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stopsUpdatedAt),
+      lineMembershipsUpdatedAt: lineMembershipsUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineMembershipsUpdatedAt),
+      lastBuildStartedAt: lastBuildStartedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastBuildStartedAt),
+      lastBuildFinishedAt: lastBuildFinishedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastBuildFinishedAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      isBuilding: Value(isBuilding),
+    );
+  }
+
+  factory StaticCacheStatuse.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StaticCacheStatuse(
+      endpoint: serializer.fromJson<String>(json['endpoint']),
+      stopsUpdatedAt: serializer.fromJson<DateTime?>(json['stopsUpdatedAt']),
+      lineMembershipsUpdatedAt: serializer.fromJson<DateTime?>(
+        json['lineMembershipsUpdatedAt'],
+      ),
+      lastBuildStartedAt: serializer.fromJson<DateTime?>(
+        json['lastBuildStartedAt'],
+      ),
+      lastBuildFinishedAt: serializer.fromJson<DateTime?>(
+        json['lastBuildFinishedAt'],
+      ),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      isBuilding: serializer.fromJson<bool>(json['isBuilding']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'endpoint': serializer.toJson<String>(endpoint),
+      'stopsUpdatedAt': serializer.toJson<DateTime?>(stopsUpdatedAt),
+      'lineMembershipsUpdatedAt': serializer.toJson<DateTime?>(
+        lineMembershipsUpdatedAt,
+      ),
+      'lastBuildStartedAt': serializer.toJson<DateTime?>(lastBuildStartedAt),
+      'lastBuildFinishedAt': serializer.toJson<DateTime?>(lastBuildFinishedAt),
+      'lastError': serializer.toJson<String?>(lastError),
+      'isBuilding': serializer.toJson<bool>(isBuilding),
+    };
+  }
+
+  StaticCacheStatuse copyWith({
+    String? endpoint,
+    Value<DateTime?> stopsUpdatedAt = const Value.absent(),
+    Value<DateTime?> lineMembershipsUpdatedAt = const Value.absent(),
+    Value<DateTime?> lastBuildStartedAt = const Value.absent(),
+    Value<DateTime?> lastBuildFinishedAt = const Value.absent(),
+    Value<String?> lastError = const Value.absent(),
+    bool? isBuilding,
+  }) => StaticCacheStatuse(
+    endpoint: endpoint ?? this.endpoint,
+    stopsUpdatedAt: stopsUpdatedAt.present
+        ? stopsUpdatedAt.value
+        : this.stopsUpdatedAt,
+    lineMembershipsUpdatedAt: lineMembershipsUpdatedAt.present
+        ? lineMembershipsUpdatedAt.value
+        : this.lineMembershipsUpdatedAt,
+    lastBuildStartedAt: lastBuildStartedAt.present
+        ? lastBuildStartedAt.value
+        : this.lastBuildStartedAt,
+    lastBuildFinishedAt: lastBuildFinishedAt.present
+        ? lastBuildFinishedAt.value
+        : this.lastBuildFinishedAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    isBuilding: isBuilding ?? this.isBuilding,
+  );
+  StaticCacheStatuse copyWithCompanion(StaticCacheStatusesCompanion data) {
+    return StaticCacheStatuse(
+      endpoint: data.endpoint.present ? data.endpoint.value : this.endpoint,
+      stopsUpdatedAt: data.stopsUpdatedAt.present
+          ? data.stopsUpdatedAt.value
+          : this.stopsUpdatedAt,
+      lineMembershipsUpdatedAt: data.lineMembershipsUpdatedAt.present
+          ? data.lineMembershipsUpdatedAt.value
+          : this.lineMembershipsUpdatedAt,
+      lastBuildStartedAt: data.lastBuildStartedAt.present
+          ? data.lastBuildStartedAt.value
+          : this.lastBuildStartedAt,
+      lastBuildFinishedAt: data.lastBuildFinishedAt.present
+          ? data.lastBuildFinishedAt.value
+          : this.lastBuildFinishedAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      isBuilding: data.isBuilding.present
+          ? data.isBuilding.value
+          : this.isBuilding,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StaticCacheStatuse(')
+          ..write('endpoint: $endpoint, ')
+          ..write('stopsUpdatedAt: $stopsUpdatedAt, ')
+          ..write('lineMembershipsUpdatedAt: $lineMembershipsUpdatedAt, ')
+          ..write('lastBuildStartedAt: $lastBuildStartedAt, ')
+          ..write('lastBuildFinishedAt: $lastBuildFinishedAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('isBuilding: $isBuilding')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    endpoint,
+    stopsUpdatedAt,
+    lineMembershipsUpdatedAt,
+    lastBuildStartedAt,
+    lastBuildFinishedAt,
+    lastError,
+    isBuilding,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StaticCacheStatuse &&
+          other.endpoint == this.endpoint &&
+          other.stopsUpdatedAt == this.stopsUpdatedAt &&
+          other.lineMembershipsUpdatedAt == this.lineMembershipsUpdatedAt &&
+          other.lastBuildStartedAt == this.lastBuildStartedAt &&
+          other.lastBuildFinishedAt == this.lastBuildFinishedAt &&
+          other.lastError == this.lastError &&
+          other.isBuilding == this.isBuilding);
+}
+
+class StaticCacheStatusesCompanion extends UpdateCompanion<StaticCacheStatuse> {
+  final Value<String> endpoint;
+  final Value<DateTime?> stopsUpdatedAt;
+  final Value<DateTime?> lineMembershipsUpdatedAt;
+  final Value<DateTime?> lastBuildStartedAt;
+  final Value<DateTime?> lastBuildFinishedAt;
+  final Value<String?> lastError;
+  final Value<bool> isBuilding;
+  final Value<int> rowid;
+  const StaticCacheStatusesCompanion({
+    this.endpoint = const Value.absent(),
+    this.stopsUpdatedAt = const Value.absent(),
+    this.lineMembershipsUpdatedAt = const Value.absent(),
+    this.lastBuildStartedAt = const Value.absent(),
+    this.lastBuildFinishedAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.isBuilding = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StaticCacheStatusesCompanion.insert({
+    required String endpoint,
+    this.stopsUpdatedAt = const Value.absent(),
+    this.lineMembershipsUpdatedAt = const Value.absent(),
+    this.lastBuildStartedAt = const Value.absent(),
+    this.lastBuildFinishedAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.isBuilding = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : endpoint = Value(endpoint);
+  static Insertable<StaticCacheStatuse> custom({
+    Expression<String>? endpoint,
+    Expression<DateTime>? stopsUpdatedAt,
+    Expression<DateTime>? lineMembershipsUpdatedAt,
+    Expression<DateTime>? lastBuildStartedAt,
+    Expression<DateTime>? lastBuildFinishedAt,
+    Expression<String>? lastError,
+    Expression<bool>? isBuilding,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (endpoint != null) 'endpoint': endpoint,
+      if (stopsUpdatedAt != null) 'stops_updated_at': stopsUpdatedAt,
+      if (lineMembershipsUpdatedAt != null)
+        'line_memberships_updated_at': lineMembershipsUpdatedAt,
+      if (lastBuildStartedAt != null)
+        'last_build_started_at': lastBuildStartedAt,
+      if (lastBuildFinishedAt != null)
+        'last_build_finished_at': lastBuildFinishedAt,
+      if (lastError != null) 'last_error': lastError,
+      if (isBuilding != null) 'is_building': isBuilding,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StaticCacheStatusesCompanion copyWith({
+    Value<String>? endpoint,
+    Value<DateTime?>? stopsUpdatedAt,
+    Value<DateTime?>? lineMembershipsUpdatedAt,
+    Value<DateTime?>? lastBuildStartedAt,
+    Value<DateTime?>? lastBuildFinishedAt,
+    Value<String?>? lastError,
+    Value<bool>? isBuilding,
+    Value<int>? rowid,
+  }) {
+    return StaticCacheStatusesCompanion(
+      endpoint: endpoint ?? this.endpoint,
+      stopsUpdatedAt: stopsUpdatedAt ?? this.stopsUpdatedAt,
+      lineMembershipsUpdatedAt:
+          lineMembershipsUpdatedAt ?? this.lineMembershipsUpdatedAt,
+      lastBuildStartedAt: lastBuildStartedAt ?? this.lastBuildStartedAt,
+      lastBuildFinishedAt: lastBuildFinishedAt ?? this.lastBuildFinishedAt,
+      lastError: lastError ?? this.lastError,
+      isBuilding: isBuilding ?? this.isBuilding,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (endpoint.present) {
+      map['endpoint'] = Variable<String>(endpoint.value);
+    }
+    if (stopsUpdatedAt.present) {
+      map['stops_updated_at'] = Variable<DateTime>(stopsUpdatedAt.value);
+    }
+    if (lineMembershipsUpdatedAt.present) {
+      map['line_memberships_updated_at'] = Variable<DateTime>(
+        lineMembershipsUpdatedAt.value,
+      );
+    }
+    if (lastBuildStartedAt.present) {
+      map['last_build_started_at'] = Variable<DateTime>(
+        lastBuildStartedAt.value,
+      );
+    }
+    if (lastBuildFinishedAt.present) {
+      map['last_build_finished_at'] = Variable<DateTime>(
+        lastBuildFinishedAt.value,
+      );
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (isBuilding.present) {
+      map['is_building'] = Variable<bool>(isBuilding.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StaticCacheStatusesCompanion(')
+          ..write('endpoint: $endpoint, ')
+          ..write('stopsUpdatedAt: $stopsUpdatedAt, ')
+          ..write('lineMembershipsUpdatedAt: $lineMembershipsUpdatedAt, ')
+          ..write('lastBuildStartedAt: $lastBuildStartedAt, ')
+          ..write('lastBuildFinishedAt: $lastBuildFinishedAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('isBuilding: $isBuilding, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TripPlannerCacheTable extends TripPlannerCache
+    with TableInfo<$TripPlannerCacheTable, TripPlannerCacheData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TripPlannerCacheTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _originIdMeta = const VerificationMeta(
+    'originId',
+  );
+  @override
+  late final GeneratedColumn<String> originId = GeneratedColumn<String>(
+    'origin_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _destinationIdMeta = const VerificationMeta(
+    'destinationId',
+  );
+  @override
+  late final GeneratedColumn<String> destinationId = GeneratedColumn<String>(
+    'destination_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _responseJsonMeta = const VerificationMeta(
+    'responseJson',
+  );
+  @override
+  late final GeneratedColumn<String> responseJson = GeneratedColumn<String>(
+    'response_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+    'error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    originId,
+    destinationId,
+    fetchedAt,
+    responseJson,
+    error,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'trip_planner_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TripPlannerCacheData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('origin_id')) {
+      context.handle(
+        _originIdMeta,
+        originId.isAcceptableOrUnknown(data['origin_id']!, _originIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_originIdMeta);
+    }
+    if (data.containsKey('destination_id')) {
+      context.handle(
+        _destinationIdMeta,
+        destinationId.isAcceptableOrUnknown(
+          data['destination_id']!,
+          _destinationIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_destinationIdMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    if (data.containsKey('response_json')) {
+      context.handle(
+        _responseJsonMeta,
+        responseJson.isAcceptableOrUnknown(
+          data['response_json']!,
+          _responseJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+        _errorMeta,
+        error.isAcceptableOrUnknown(data['error']!, _errorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {originId, destinationId};
+  @override
+  TripPlannerCacheData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TripPlannerCacheData(
+      originId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin_id'],
+      )!,
+      destinationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}destination_id'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+      responseJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}response_json'],
+      ),
+      error: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error'],
+      ),
+    );
+  }
+
+  @override
+  $TripPlannerCacheTable createAlias(String alias) {
+    return $TripPlannerCacheTable(attachedDatabase, alias);
+  }
+}
+
+class TripPlannerCacheData extends DataClass
+    implements Insertable<TripPlannerCacheData> {
+  final String originId;
+  final String destinationId;
+  final DateTime fetchedAt;
+  final String? responseJson;
+  final String? error;
+  const TripPlannerCacheData({
+    required this.originId,
+    required this.destinationId,
+    required this.fetchedAt,
+    this.responseJson,
+    this.error,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['origin_id'] = Variable<String>(originId);
+    map['destination_id'] = Variable<String>(destinationId);
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    if (!nullToAbsent || responseJson != null) {
+      map['response_json'] = Variable<String>(responseJson);
+    }
+    if (!nullToAbsent || error != null) {
+      map['error'] = Variable<String>(error);
+    }
+    return map;
+  }
+
+  TripPlannerCacheCompanion toCompanion(bool nullToAbsent) {
+    return TripPlannerCacheCompanion(
+      originId: Value(originId),
+      destinationId: Value(destinationId),
+      fetchedAt: Value(fetchedAt),
+      responseJson: responseJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(responseJson),
+      error: error == null && nullToAbsent
+          ? const Value.absent()
+          : Value(error),
+    );
+  }
+
+  factory TripPlannerCacheData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TripPlannerCacheData(
+      originId: serializer.fromJson<String>(json['originId']),
+      destinationId: serializer.fromJson<String>(json['destinationId']),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+      responseJson: serializer.fromJson<String?>(json['responseJson']),
+      error: serializer.fromJson<String?>(json['error']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'originId': serializer.toJson<String>(originId),
+      'destinationId': serializer.toJson<String>(destinationId),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+      'responseJson': serializer.toJson<String?>(responseJson),
+      'error': serializer.toJson<String?>(error),
+    };
+  }
+
+  TripPlannerCacheData copyWith({
+    String? originId,
+    String? destinationId,
+    DateTime? fetchedAt,
+    Value<String?> responseJson = const Value.absent(),
+    Value<String?> error = const Value.absent(),
+  }) => TripPlannerCacheData(
+    originId: originId ?? this.originId,
+    destinationId: destinationId ?? this.destinationId,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+    responseJson: responseJson.present ? responseJson.value : this.responseJson,
+    error: error.present ? error.value : this.error,
+  );
+  TripPlannerCacheData copyWithCompanion(TripPlannerCacheCompanion data) {
+    return TripPlannerCacheData(
+      originId: data.originId.present ? data.originId.value : this.originId,
+      destinationId: data.destinationId.present
+          ? data.destinationId.value
+          : this.destinationId,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+      responseJson: data.responseJson.present
+          ? data.responseJson.value
+          : this.responseJson,
+      error: data.error.present ? data.error.value : this.error,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TripPlannerCacheData(')
+          ..write('originId: $originId, ')
+          ..write('destinationId: $destinationId, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('responseJson: $responseJson, ')
+          ..write('error: $error')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(originId, destinationId, fetchedAt, responseJson, error);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TripPlannerCacheData &&
+          other.originId == this.originId &&
+          other.destinationId == this.destinationId &&
+          other.fetchedAt == this.fetchedAt &&
+          other.responseJson == this.responseJson &&
+          other.error == this.error);
+}
+
+class TripPlannerCacheCompanion extends UpdateCompanion<TripPlannerCacheData> {
+  final Value<String> originId;
+  final Value<String> destinationId;
+  final Value<DateTime> fetchedAt;
+  final Value<String?> responseJson;
+  final Value<String?> error;
+  final Value<int> rowid;
+  const TripPlannerCacheCompanion({
+    this.originId = const Value.absent(),
+    this.destinationId = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.responseJson = const Value.absent(),
+    this.error = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TripPlannerCacheCompanion.insert({
+    required String originId,
+    required String destinationId,
+    required DateTime fetchedAt,
+    this.responseJson = const Value.absent(),
+    this.error = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : originId = Value(originId),
+       destinationId = Value(destinationId),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<TripPlannerCacheData> custom({
+    Expression<String>? originId,
+    Expression<String>? destinationId,
+    Expression<DateTime>? fetchedAt,
+    Expression<String>? responseJson,
+    Expression<String>? error,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (originId != null) 'origin_id': originId,
+      if (destinationId != null) 'destination_id': destinationId,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (responseJson != null) 'response_json': responseJson,
+      if (error != null) 'error': error,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TripPlannerCacheCompanion copyWith({
+    Value<String>? originId,
+    Value<String>? destinationId,
+    Value<DateTime>? fetchedAt,
+    Value<String?>? responseJson,
+    Value<String?>? error,
+    Value<int>? rowid,
+  }) {
+    return TripPlannerCacheCompanion(
+      originId: originId ?? this.originId,
+      destinationId: destinationId ?? this.destinationId,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      responseJson: responseJson ?? this.responseJson,
+      error: error ?? this.error,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (originId.present) {
+      map['origin_id'] = Variable<String>(originId.value);
+    }
+    if (destinationId.present) {
+      map['destination_id'] = Variable<String>(destinationId.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    if (responseJson.present) {
+      map['response_json'] = Variable<String>(responseJson.value);
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TripPlannerCacheCompanion(')
+          ..write('originId: $originId, ')
+          ..write('destinationId: $destinationId, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('responseJson: $responseJson, ')
+          ..write('error: $error, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $JourneysTable journeys = $JourneysTable(this);
+  late final $RoutesTable routes = $RoutesTable(this);
   late final $StopsTable stops = $StopsTable(this);
   late final $StopLineMembershipsTable stopLineMemberships =
       $StopLineMembershipsTable(this);
+  late final $StaticCacheStatusesTable staticCacheStatuses =
+      $StaticCacheStatusesTable(this);
+  late final $TripPlannerCacheTable tripPlannerCache = $TripPlannerCacheTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     journeys,
+    routes,
     stops,
     stopLineMemberships,
+    staticCacheStatuses,
+    tripPlannerCache,
   ];
 }
 
@@ -2479,6 +4041,305 @@ typedef $$JourneysTableProcessedTableManager =
       $$JourneysTableUpdateCompanionBuilder,
       (Journey, BaseReferences<_$AppDatabase, $JourneysTable, Journey>),
       Journey,
+      PrefetchHooks Function()
+    >;
+typedef $$RoutesTableCreateCompanionBuilder =
+    RoutesCompanion Function({
+      required String endpoint,
+      required String routeId,
+      required String lineId,
+      Value<String?> routeShortName,
+      Value<String?> routeLongName,
+      Value<String?> routeDesc,
+      Value<String?> routeType,
+      Value<String?> routeColor,
+      Value<String?> routeTextColor,
+      Value<String?> routeSortOrder,
+      Value<int> rowid,
+    });
+typedef $$RoutesTableUpdateCompanionBuilder =
+    RoutesCompanion Function({
+      Value<String> endpoint,
+      Value<String> routeId,
+      Value<String> lineId,
+      Value<String?> routeShortName,
+      Value<String?> routeLongName,
+      Value<String?> routeDesc,
+      Value<String?> routeType,
+      Value<String?> routeColor,
+      Value<String?> routeTextColor,
+      Value<String?> routeSortOrder,
+      Value<int> rowid,
+    });
+
+class $$RoutesTableFilterComposer
+    extends Composer<_$AppDatabase, $RoutesTable> {
+  $$RoutesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get endpoint => $composableBuilder(
+    column: $table.endpoint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeId => $composableBuilder(
+    column: $table.routeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeShortName => $composableBuilder(
+    column: $table.routeShortName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeLongName => $composableBuilder(
+    column: $table.routeLongName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeDesc => $composableBuilder(
+    column: $table.routeDesc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeType => $composableBuilder(
+    column: $table.routeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeColor => $composableBuilder(
+    column: $table.routeColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeTextColor => $composableBuilder(
+    column: $table.routeTextColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routeSortOrder => $composableBuilder(
+    column: $table.routeSortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RoutesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RoutesTable> {
+  $$RoutesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get endpoint => $composableBuilder(
+    column: $table.endpoint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeId => $composableBuilder(
+    column: $table.routeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineId => $composableBuilder(
+    column: $table.lineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeShortName => $composableBuilder(
+    column: $table.routeShortName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeLongName => $composableBuilder(
+    column: $table.routeLongName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeDesc => $composableBuilder(
+    column: $table.routeDesc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeType => $composableBuilder(
+    column: $table.routeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeColor => $composableBuilder(
+    column: $table.routeColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeTextColor => $composableBuilder(
+    column: $table.routeTextColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routeSortOrder => $composableBuilder(
+    column: $table.routeSortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RoutesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RoutesTable> {
+  $$RoutesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get endpoint =>
+      $composableBuilder(column: $table.endpoint, builder: (column) => column);
+
+  GeneratedColumn<String> get routeId =>
+      $composableBuilder(column: $table.routeId, builder: (column) => column);
+
+  GeneratedColumn<String> get lineId =>
+      $composableBuilder(column: $table.lineId, builder: (column) => column);
+
+  GeneratedColumn<String> get routeShortName => $composableBuilder(
+    column: $table.routeShortName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get routeLongName => $composableBuilder(
+    column: $table.routeLongName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get routeDesc =>
+      $composableBuilder(column: $table.routeDesc, builder: (column) => column);
+
+  GeneratedColumn<String> get routeType =>
+      $composableBuilder(column: $table.routeType, builder: (column) => column);
+
+  GeneratedColumn<String> get routeColor => $composableBuilder(
+    column: $table.routeColor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get routeTextColor => $composableBuilder(
+    column: $table.routeTextColor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get routeSortOrder => $composableBuilder(
+    column: $table.routeSortOrder,
+    builder: (column) => column,
+  );
+}
+
+class $$RoutesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RoutesTable,
+          Route,
+          $$RoutesTableFilterComposer,
+          $$RoutesTableOrderingComposer,
+          $$RoutesTableAnnotationComposer,
+          $$RoutesTableCreateCompanionBuilder,
+          $$RoutesTableUpdateCompanionBuilder,
+          (Route, BaseReferences<_$AppDatabase, $RoutesTable, Route>),
+          Route,
+          PrefetchHooks Function()
+        > {
+  $$RoutesTableTableManager(_$AppDatabase db, $RoutesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RoutesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RoutesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RoutesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> endpoint = const Value.absent(),
+                Value<String> routeId = const Value.absent(),
+                Value<String> lineId = const Value.absent(),
+                Value<String?> routeShortName = const Value.absent(),
+                Value<String?> routeLongName = const Value.absent(),
+                Value<String?> routeDesc = const Value.absent(),
+                Value<String?> routeType = const Value.absent(),
+                Value<String?> routeColor = const Value.absent(),
+                Value<String?> routeTextColor = const Value.absent(),
+                Value<String?> routeSortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RoutesCompanion(
+                endpoint: endpoint,
+                routeId: routeId,
+                lineId: lineId,
+                routeShortName: routeShortName,
+                routeLongName: routeLongName,
+                routeDesc: routeDesc,
+                routeType: routeType,
+                routeColor: routeColor,
+                routeTextColor: routeTextColor,
+                routeSortOrder: routeSortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String endpoint,
+                required String routeId,
+                required String lineId,
+                Value<String?> routeShortName = const Value.absent(),
+                Value<String?> routeLongName = const Value.absent(),
+                Value<String?> routeDesc = const Value.absent(),
+                Value<String?> routeType = const Value.absent(),
+                Value<String?> routeColor = const Value.absent(),
+                Value<String?> routeTextColor = const Value.absent(),
+                Value<String?> routeSortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RoutesCompanion.insert(
+                endpoint: endpoint,
+                routeId: routeId,
+                lineId: lineId,
+                routeShortName: routeShortName,
+                routeLongName: routeLongName,
+                routeDesc: routeDesc,
+                routeType: routeType,
+                routeColor: routeColor,
+                routeTextColor: routeTextColor,
+                routeSortOrder: routeSortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RoutesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RoutesTable,
+      Route,
+      $$RoutesTableFilterComposer,
+      $$RoutesTableOrderingComposer,
+      $$RoutesTableAnnotationComposer,
+      $$RoutesTableCreateCompanionBuilder,
+      $$RoutesTableUpdateCompanionBuilder,
+      (Route, BaseReferences<_$AppDatabase, $RoutesTable, Route>),
+      Route,
       PrefetchHooks Function()
     >;
 typedef $$StopsTableCreateCompanionBuilder =
@@ -3187,14 +5048,500 @@ typedef $$StopLineMembershipsTableProcessedTableManager =
       StopLineMembership,
       PrefetchHooks Function()
     >;
+typedef $$StaticCacheStatusesTableCreateCompanionBuilder =
+    StaticCacheStatusesCompanion Function({
+      required String endpoint,
+      Value<DateTime?> stopsUpdatedAt,
+      Value<DateTime?> lineMembershipsUpdatedAt,
+      Value<DateTime?> lastBuildStartedAt,
+      Value<DateTime?> lastBuildFinishedAt,
+      Value<String?> lastError,
+      Value<bool> isBuilding,
+      Value<int> rowid,
+    });
+typedef $$StaticCacheStatusesTableUpdateCompanionBuilder =
+    StaticCacheStatusesCompanion Function({
+      Value<String> endpoint,
+      Value<DateTime?> stopsUpdatedAt,
+      Value<DateTime?> lineMembershipsUpdatedAt,
+      Value<DateTime?> lastBuildStartedAt,
+      Value<DateTime?> lastBuildFinishedAt,
+      Value<String?> lastError,
+      Value<bool> isBuilding,
+      Value<int> rowid,
+    });
+
+class $$StaticCacheStatusesTableFilterComposer
+    extends Composer<_$AppDatabase, $StaticCacheStatusesTable> {
+  $$StaticCacheStatusesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get endpoint => $composableBuilder(
+    column: $table.endpoint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get stopsUpdatedAt => $composableBuilder(
+    column: $table.stopsUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lineMembershipsUpdatedAt => $composableBuilder(
+    column: $table.lineMembershipsUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastBuildStartedAt => $composableBuilder(
+    column: $table.lastBuildStartedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastBuildFinishedAt => $composableBuilder(
+    column: $table.lastBuildFinishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isBuilding => $composableBuilder(
+    column: $table.isBuilding,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StaticCacheStatusesTableOrderingComposer
+    extends Composer<_$AppDatabase, $StaticCacheStatusesTable> {
+  $$StaticCacheStatusesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get endpoint => $composableBuilder(
+    column: $table.endpoint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get stopsUpdatedAt => $composableBuilder(
+    column: $table.stopsUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lineMembershipsUpdatedAt => $composableBuilder(
+    column: $table.lineMembershipsUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastBuildStartedAt => $composableBuilder(
+    column: $table.lastBuildStartedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastBuildFinishedAt => $composableBuilder(
+    column: $table.lastBuildFinishedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isBuilding => $composableBuilder(
+    column: $table.isBuilding,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StaticCacheStatusesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StaticCacheStatusesTable> {
+  $$StaticCacheStatusesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get endpoint =>
+      $composableBuilder(column: $table.endpoint, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get stopsUpdatedAt => $composableBuilder(
+    column: $table.stopsUpdatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lineMembershipsUpdatedAt => $composableBuilder(
+    column: $table.lineMembershipsUpdatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastBuildStartedAt => $composableBuilder(
+    column: $table.lastBuildStartedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastBuildFinishedAt => $composableBuilder(
+    column: $table.lastBuildFinishedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<bool> get isBuilding => $composableBuilder(
+    column: $table.isBuilding,
+    builder: (column) => column,
+  );
+}
+
+class $$StaticCacheStatusesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StaticCacheStatusesTable,
+          StaticCacheStatuse,
+          $$StaticCacheStatusesTableFilterComposer,
+          $$StaticCacheStatusesTableOrderingComposer,
+          $$StaticCacheStatusesTableAnnotationComposer,
+          $$StaticCacheStatusesTableCreateCompanionBuilder,
+          $$StaticCacheStatusesTableUpdateCompanionBuilder,
+          (
+            StaticCacheStatuse,
+            BaseReferences<
+              _$AppDatabase,
+              $StaticCacheStatusesTable,
+              StaticCacheStatuse
+            >,
+          ),
+          StaticCacheStatuse,
+          PrefetchHooks Function()
+        > {
+  $$StaticCacheStatusesTableTableManager(
+    _$AppDatabase db,
+    $StaticCacheStatusesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StaticCacheStatusesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StaticCacheStatusesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$StaticCacheStatusesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> endpoint = const Value.absent(),
+                Value<DateTime?> stopsUpdatedAt = const Value.absent(),
+                Value<DateTime?> lineMembershipsUpdatedAt =
+                    const Value.absent(),
+                Value<DateTime?> lastBuildStartedAt = const Value.absent(),
+                Value<DateTime?> lastBuildFinishedAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<bool> isBuilding = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StaticCacheStatusesCompanion(
+                endpoint: endpoint,
+                stopsUpdatedAt: stopsUpdatedAt,
+                lineMembershipsUpdatedAt: lineMembershipsUpdatedAt,
+                lastBuildStartedAt: lastBuildStartedAt,
+                lastBuildFinishedAt: lastBuildFinishedAt,
+                lastError: lastError,
+                isBuilding: isBuilding,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String endpoint,
+                Value<DateTime?> stopsUpdatedAt = const Value.absent(),
+                Value<DateTime?> lineMembershipsUpdatedAt =
+                    const Value.absent(),
+                Value<DateTime?> lastBuildStartedAt = const Value.absent(),
+                Value<DateTime?> lastBuildFinishedAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<bool> isBuilding = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StaticCacheStatusesCompanion.insert(
+                endpoint: endpoint,
+                stopsUpdatedAt: stopsUpdatedAt,
+                lineMembershipsUpdatedAt: lineMembershipsUpdatedAt,
+                lastBuildStartedAt: lastBuildStartedAt,
+                lastBuildFinishedAt: lastBuildFinishedAt,
+                lastError: lastError,
+                isBuilding: isBuilding,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StaticCacheStatusesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StaticCacheStatusesTable,
+      StaticCacheStatuse,
+      $$StaticCacheStatusesTableFilterComposer,
+      $$StaticCacheStatusesTableOrderingComposer,
+      $$StaticCacheStatusesTableAnnotationComposer,
+      $$StaticCacheStatusesTableCreateCompanionBuilder,
+      $$StaticCacheStatusesTableUpdateCompanionBuilder,
+      (
+        StaticCacheStatuse,
+        BaseReferences<
+          _$AppDatabase,
+          $StaticCacheStatusesTable,
+          StaticCacheStatuse
+        >,
+      ),
+      StaticCacheStatuse,
+      PrefetchHooks Function()
+    >;
+typedef $$TripPlannerCacheTableCreateCompanionBuilder =
+    TripPlannerCacheCompanion Function({
+      required String originId,
+      required String destinationId,
+      required DateTime fetchedAt,
+      Value<String?> responseJson,
+      Value<String?> error,
+      Value<int> rowid,
+    });
+typedef $$TripPlannerCacheTableUpdateCompanionBuilder =
+    TripPlannerCacheCompanion Function({
+      Value<String> originId,
+      Value<String> destinationId,
+      Value<DateTime> fetchedAt,
+      Value<String?> responseJson,
+      Value<String?> error,
+      Value<int> rowid,
+    });
+
+class $$TripPlannerCacheTableFilterComposer
+    extends Composer<_$AppDatabase, $TripPlannerCacheTable> {
+  $$TripPlannerCacheTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get originId => $composableBuilder(
+    column: $table.originId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get destinationId => $composableBuilder(
+    column: $table.destinationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get responseJson => $composableBuilder(
+    column: $table.responseJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TripPlannerCacheTableOrderingComposer
+    extends Composer<_$AppDatabase, $TripPlannerCacheTable> {
+  $$TripPlannerCacheTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get originId => $composableBuilder(
+    column: $table.originId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get destinationId => $composableBuilder(
+    column: $table.destinationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get responseJson => $composableBuilder(
+    column: $table.responseJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TripPlannerCacheTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TripPlannerCacheTable> {
+  $$TripPlannerCacheTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get originId =>
+      $composableBuilder(column: $table.originId, builder: (column) => column);
+
+  GeneratedColumn<String> get destinationId => $composableBuilder(
+    column: $table.destinationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get responseJson => $composableBuilder(
+    column: $table.responseJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+}
+
+class $$TripPlannerCacheTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TripPlannerCacheTable,
+          TripPlannerCacheData,
+          $$TripPlannerCacheTableFilterComposer,
+          $$TripPlannerCacheTableOrderingComposer,
+          $$TripPlannerCacheTableAnnotationComposer,
+          $$TripPlannerCacheTableCreateCompanionBuilder,
+          $$TripPlannerCacheTableUpdateCompanionBuilder,
+          (
+            TripPlannerCacheData,
+            BaseReferences<
+              _$AppDatabase,
+              $TripPlannerCacheTable,
+              TripPlannerCacheData
+            >,
+          ),
+          TripPlannerCacheData,
+          PrefetchHooks Function()
+        > {
+  $$TripPlannerCacheTableTableManager(
+    _$AppDatabase db,
+    $TripPlannerCacheTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TripPlannerCacheTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TripPlannerCacheTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TripPlannerCacheTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> originId = const Value.absent(),
+                Value<String> destinationId = const Value.absent(),
+                Value<DateTime> fetchedAt = const Value.absent(),
+                Value<String?> responseJson = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TripPlannerCacheCompanion(
+                originId: originId,
+                destinationId: destinationId,
+                fetchedAt: fetchedAt,
+                responseJson: responseJson,
+                error: error,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String originId,
+                required String destinationId,
+                required DateTime fetchedAt,
+                Value<String?> responseJson = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TripPlannerCacheCompanion.insert(
+                originId: originId,
+                destinationId: destinationId,
+                fetchedAt: fetchedAt,
+                responseJson: responseJson,
+                error: error,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TripPlannerCacheTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TripPlannerCacheTable,
+      TripPlannerCacheData,
+      $$TripPlannerCacheTableFilterComposer,
+      $$TripPlannerCacheTableOrderingComposer,
+      $$TripPlannerCacheTableAnnotationComposer,
+      $$TripPlannerCacheTableCreateCompanionBuilder,
+      $$TripPlannerCacheTableUpdateCompanionBuilder,
+      (
+        TripPlannerCacheData,
+        BaseReferences<
+          _$AppDatabase,
+          $TripPlannerCacheTable,
+          TripPlannerCacheData
+        >,
+      ),
+      TripPlannerCacheData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$JourneysTableTableManager get journeys =>
       $$JourneysTableTableManager(_db, _db.journeys);
+  $$RoutesTableTableManager get routes =>
+      $$RoutesTableTableManager(_db, _db.routes);
   $$StopsTableTableManager get stops =>
       $$StopsTableTableManager(_db, _db.stops);
   $$StopLineMembershipsTableTableManager get stopLineMemberships =>
       $$StopLineMembershipsTableTableManager(_db, _db.stopLineMemberships);
+  $$StaticCacheStatusesTableTableManager get staticCacheStatuses =>
+      $$StaticCacheStatusesTableTableManager(_db, _db.staticCacheStatuses);
+  $$TripPlannerCacheTableTableManager get tripPlannerCache =>
+      $$TripPlannerCacheTableTableManager(_db, _db.tripPlannerCache);
 }

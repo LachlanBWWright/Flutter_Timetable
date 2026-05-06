@@ -14,6 +14,7 @@ void main() {
 
     setUp(() {
       service = TripLineService(
+        readPersistedCache: false,
         gtfsLoader: (endpoint) async {
           if (endpoint == StopsEndpoint.nswtrains) {
             return _sampleTrainGtfsData();
@@ -32,6 +33,7 @@ void main() {
         'STA',
         'STC',
         mode: TransportMode.train,
+        allowBuild: true,
       );
 
       expect(shared.map((line) => line.lineId), ['nswtrains|R1']);
@@ -42,6 +44,7 @@ void main() {
       final lines = await service.getLinesForStop(
         'STA',
         mode: TransportMode.train,
+        allowBuild: true,
       );
 
       expect(lines.map((line) => line.lineId), [
@@ -54,6 +57,7 @@ void main() {
       final stops = await service.getStopsForLine(
         'nswtrains|R1',
         TransportMode.train,
+        allowBuild: true,
       );
 
       expect(stops.map((stop) => stop.stopId), ['STA', 'STB', 'STC']);
@@ -69,6 +73,7 @@ void main() {
         lineId: 'nswtrains|R1',
         mode: TransportMode.train,
         anchorStopIds: const ['STA'],
+        allowBuild: true,
       );
 
       expect(ranked.map((stop) => stop.stopId), ['STA', 'STB', 'STC']);

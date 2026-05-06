@@ -1,5 +1,4 @@
-// dart:convert not required now - CSV parsing uses package:csv
-
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -104,7 +103,7 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
     final Map<String, String> csvFiles = {};
     for (final file in archive) {
       if (file.isFile && file.name.endsWith('.txt')) {
-        csvFiles[file.name] = String.fromCharCodes(file.content as List<int>);
+        csvFiles[file.name] = utf8.decode(file.content as List<int>);
       }
     }
     final data = parseGtfsFiles(csvFiles);
@@ -258,14 +257,11 @@ List<Agency> parseAgencyCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      Agency.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      Agency.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -284,14 +280,11 @@ List<Calendar> parseCalendarCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      Calendar.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      Calendar.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -310,14 +303,11 @@ List<CalendarDate> parseCalendarDatesCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      CalendarDate.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      CalendarDate.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -336,14 +326,11 @@ List<Route> parseRoutesCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      Route.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      Route.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -362,14 +349,11 @@ List<Stop> parseStopsCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      Stop.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      Stop.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -388,14 +372,11 @@ List<StopTime> parseStopTimesCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      StopTime.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      StopTime.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -414,14 +395,11 @@ List<Trip> parseTripsCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      Trip.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      Trip.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -440,14 +418,11 @@ List<Shape> parseShapesCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      Shape.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      Shape.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -466,14 +441,11 @@ List<Note> parseNotesCsv(String csv) {
   }
 
   // Use header-based parsing for better compatibility
-  final header = rows[0].map((c) => c == null ? '' : c.toString()).toList();
+  final header = _rowToStrings(rows[0], stripLeadingBom: true);
 
   return [
     for (var i = 1; i < rows.length; i++)
-      Note.fromCsv(
-        header,
-        rows[i].map((c) => c == null ? '' : c.toString()).toList(),
-      ),
+      Note.fromCsv(header, _rowToStrings(rows[i])),
   ];
 }
 
@@ -539,6 +511,23 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
   }
 }
 
+List<String> _rowToStrings(List<dynamic> row, {bool stripLeadingBom = false}) {
+  return [
+    for (var i = 0; i < row.length; i++)
+      _cellToString(row[i], stripBom: stripLeadingBom && i == 0),
+  ];
+}
+
+String _cellToString(dynamic cell, {bool stripBom = false}) {
+  var value = cell == null ? '' : cell.toString();
+  if (stripBom) {
+    value = value
+        .replaceFirst('\uFEFF', '')
+        .replaceFirst(RegExp('^\u00EF\u00BB\u00BF'), '');
+  }
+  return value;
+}
+
 GtfsData parseGtfsFiles(Map<String, String> files) {
   if (files['stops.txt'] == null) {
     logger.e('Stops.txt is missing');
@@ -576,7 +565,7 @@ List<Stop> parseStopsOnlyFromZipBytes(Uint8List bytes) {
   final archive = ZipDecoder().decodeBytes(bytes);
   for (final file in archive) {
     if (file.isFile && file.name == 'stops.txt') {
-      final csv = String.fromCharCodes(file.content as List<int>);
+      final csv = utf8.decode(file.content as List<int>);
       return parseStopsCsv(csv);
     }
   }

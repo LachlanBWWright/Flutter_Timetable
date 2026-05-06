@@ -113,7 +113,6 @@ class _NewTripScreenState extends State<NewTripScreen>
         _isLoading = false;
       });
 
-      _prefetchLineIndexesForTabs();
       await _applySorting();
 
       final hasAnyStops =
@@ -128,7 +127,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'No stops found in database. Please update stops data from Settings.',
+              'No stops found in database. Please update static transport data from Settings.',
             ),
             duration: Duration(seconds: 5),
             backgroundColor: Colors.orange,
@@ -184,8 +183,6 @@ class _NewTripScreenState extends State<NewTripScreen>
     );
     _currentTabKind = _tabs[_tabController.index].kind;
     _tabController.addListener(_onTabChanged);
-    _prefetchLineIndexesForTabs();
-
     if (TransportPreferencesService.showNswTrainLink.value &&
         _nswTrainLinkStationList.isEmpty) {
       _loadAllModes();
@@ -348,14 +345,14 @@ class _NewTripScreenState extends State<NewTripScreen>
       final lines = await _tripLineService.getLinesForStop(
         originId,
         mode: mode,
-        allowBuild: false,
+        allowBuild: true,
       );
       final lineStops = await Future.wait(
         lines.map((line) {
           return _tripLineService.getStopsForLine(
             line.lineId,
             line.mode,
-            allowBuild: false,
+            allowBuild: true,
           );
         }),
       );
@@ -374,23 +371,6 @@ class _NewTripScreenState extends State<NewTripScreen>
         ..sort((a, b) => a.name.compareTo(b.name));
       return _SameLineCandidates(lines: lines, stations: stations);
     });
-  }
-
-  void _prefetchLineIndexesForTabs() {
-    final request = _tripLineService.prefetchIndexesForEndpoints(
-      _tabs.expand((tab) => tab.endpoints),
-    );
-    unawaited(
-      request.then((_) async {
-        if (!mounted ||
-            _originStation == null ||
-            _destinationStation != null ||
-            _directTripMode) {
-          return;
-        }
-        await _loadSameLineCandidatesForOrigin();
-      }),
-    );
   }
 
   void _toggleDirectTripMode(bool value) {
@@ -458,6 +438,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         origin.id,
         destination.id,
         mode: originMode,
+        allowBuild: true,
       );
       if (!mounted) return;
 
@@ -722,6 +703,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         mode: selectedLine.mode,
         anchorStopIds: [previousStop.id, nextStop.id],
         excludedStopIds: orderedStops.map((stop) => stop.id),
+        allowBuild: false,
       );
 
       if (!mounted) return;
@@ -1025,7 +1007,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         _destinationStation == null &&
         !_directTripMode &&
         mode == _originMode) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: Text('Checking static transport data...'));
     }
 
     final selectedLine = _selectedLine;
@@ -1072,7 +1054,7 @@ class _NewTripScreenState extends State<NewTripScreen>
               mode == selectedLine.mode
           ? buildInterchangeEmptyMessage(selectedLine)
           : _shouldUseSameLineCandidatesForTab(tab)
-          ? 'No stops found on the same line. Enable direct trip to pick any stop.'
+          ? 'Static transport data needs updating for same-line filtering.'
           : 'No stops found.';
       return Center(child: Text(emptyMessage));
     }

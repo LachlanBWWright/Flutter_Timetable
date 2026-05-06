@@ -305,6 +305,28 @@ R1,WD,T1,Downtown''';
         expect(trips[0].tripId, equals('T1'));
         expect(trips[0].shapeId, isNull);
       });
+
+      test('GTFS files can be parsed with UTF-8 BOM headers', () {
+        final data = parseGtfsFiles({
+          'routes.txt':
+              '\uFEFFroute_id,agency_id,route_short_name,route_long_name,route_type\n'
+              'SMNW_M1,SMNW,M1,Metro North West & Bankstown Line,401\n',
+          'trips.txt':
+              '\uFEFFroute_id,service_id,trip_id,trip_headsign,direction_id\n'
+              'SMNW_M1,weekday,trip-1,Sydenham,1\n',
+          'stops.txt':
+              '\uFEFFstop_id,stop_name,stop_lat,stop_lon,location_type,wheelchair_boarding\n'
+              '2155269,Tallawong,-33.6908,150.9067,0,1\n',
+          'stop_times.txt':
+              '\uFEFFtrip_id,arrival_time,departure_time,stop_id,stop_sequence\n'
+              'trip-1,04:08:00,04:08:00,2155269,1\n',
+        });
+
+        expect(data.routes.single.routeId, equals('SMNW_M1'));
+        expect(data.trips.single.tripId, equals('trip-1'));
+        expect(data.stops.single.stopId, equals('2155269'));
+        expect(data.stopTimes.single.tripId, equals('trip-1'));
+      });
     });
 
     group('Edge Cases', () {

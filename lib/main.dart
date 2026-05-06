@@ -9,12 +9,13 @@ import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/api_key_service.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
+import 'package:lbww_flutter/services/new_trip_service.dart';
+import 'package:lbww_flutter/services/prefetch_scheduler.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/transport_preferences_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
-import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/utils/journey_filter_utils.dart';
@@ -76,6 +77,23 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+List<StopsEndpoint> _staticPrefetchEndpoints() {
+  return StopsEndpoint.values.toList()..sort(
+    (left, right) =>
+        _staticEndpointPriority(left).compareTo(_staticEndpointPriority(right)),
+  );
+}
+
+int _staticEndpointPriority(StopsEndpoint endpoint) {
+  if (endpoint == StopsEndpoint.sydneytrains) return 0;
+  if (endpoint == StopsEndpoint.metro) return 1;
+  if (endpoint.key.startsWith('lightrail')) return 2;
+  if (endpoint.key.startsWith('ferries')) return 3;
+  if (endpoint.key.startsWith('buses')) return 4;
+  if (endpoint == StopsEndpoint.nswtrains) return 5;
+  return 6;
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   List<db.Journey> _journeys = [];
   List<db.Journey> _filteredJourneys = [];
@@ -108,9 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // Preemptively load stations for all modes so the 'Add New Trip' screen
       // opens without a loading delay.
       prefetchAllStations();
-      TripLineService.instance
-          .prefetchIndexesForEndpoints(StopsEndpoint.values)
-          .ignore();
+      _prefetchStaticTransportData();
 
       // Now sort journeys according to user preference (distance vs alphabetical).
       ScaffoldMessengerState? messenger;
@@ -139,6 +155,20 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     } catch (e) {
       logger.e('Error loading trips: $e');
+    }
+  }
+
+  void _prefetchStaticTransportData() {
+    for (final endpoint in _staticPrefetchEndpoints()) {
+      PrefetchScheduler.instance.enqueueStatic(
+        key: endpoint.key,
+        priority: _staticEndpointPriority(endpoint),
+        job: () async {
+          await for (final _ in NewTripService.updateStaticTransportData(
+            endpoints: [endpoint],
+          )) {}
+        },
+      );
     }
   }
 

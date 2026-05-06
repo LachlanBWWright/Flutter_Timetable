@@ -12,6 +12,7 @@ import 'package:lbww_flutter/debug/debug_page_loader.dart';
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
+import '../services/new_trip_service.dart';
 import '../services/stops_service.dart';
 import '../utils/button_styles.dart';
 import '../utils/stops_widget_utils.dart';
@@ -102,7 +103,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         builder: (context) => AlertDialog(
           title: const Text('Update from API'),
           content: const Text(
-            'This will fetch real stops data from all API endpoints and may take several minutes. '
+            'This will fetch static transport data from all API endpoints and may take several minutes. '
             'This operation requires a valid API key. Continue?',
           ),
           actions: [
@@ -124,7 +125,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         // are silently dropped while dialogSetState is still null.
         String dialogMessage = 'Preparing update...';
         void Function(void Function())? dialogSetState;
-        StreamSubscription<StopsUpdateProgress>? subscription;
+        StreamSubscription<StaticTransportUpdateProgress>? subscription;
 
         if (!mounted) return;
 
@@ -137,7 +138,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               builder: (context, setDialogState) {
                 dialogSetState = setDialogState;
                 return AlertDialog(
-                  title: const Text('Updating stops from API'),
+                  title: const Text('Updating static transport data'),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -157,7 +158,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         // before starting the stream.
         await Future.microtask(() {});
 
-        subscription = StopsService.updateAllStopsFromApi().listen(
+        subscription = NewTripService.updateStaticTransportData(force: true).listen(
           (progress) {
             final epLabel = progress.endpoint?.key ?? '';
             final text =
@@ -187,7 +188,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Stops data updated from API successfully'),
+              content: Text(
+                'Static transport data updated from API successfully',
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -354,7 +357,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _updateFromApi,
                     icon: const Icon(Icons.cloud_download),
-                    label: const Text('Update from API'),
+                    label: const Text('Update static transport data'),
                     style: ButtonStyles.elevated(Colors.orange),
                   ),
                 ),

@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
+import 'package:lbww_flutter/services/prefetch_scheduler.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:option_result/option_result.dart';
 
@@ -17,6 +20,7 @@ class TripCacheService {
   TripCacheService._();
 
   static const Duration _ttl = Duration(minutes: 10);
+  static const Duration _renderableTtl = Duration(hours: 24);
 
   static final Map<String, _CachedTrip> _cache = {};
   static final Map<String, Future<Result<GetTripsResponse, String>>> _inflight =
@@ -39,10 +43,19 @@ class TripCacheService {
     String destinationId,
     GetTripsResponse response,
   ) {
+    final fetchedAt = DateTime.now();
     _cache[_key(originId, destinationId)] = _CachedTrip(
       response: response,
-      fetchedAt: DateTime.now(),
+      fetchedAt: fetchedAt,
     );
+    db.AppDatabase()
+        .upsertTripPlannerCache(
+          originId: originId,
+          destinationId: destinationId,
+          fetchedAt: fetchedAt,
+          responseJson: jsonEncode(response.rawJson),
+        )
+        .ignore();
   }
 
   /// Returns the cached response if it exists and is still fresh,
@@ -56,6 +69,34 @@ class TripCacheService {
     if (entry != null && DateTime.now().difference(entry.fetchedAt) < _ttl) {
       logger.d('TripCacheService: cache hit for $key');
       return Ok(entry.response);
+    }
+
+    final persisted = await db.AppDatabase().getTripPlannerCache(
+      originId,
+      destinationId,
+    );
+    if (persisted?.responseJson case final responseJson?
+        when responseJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(responseJson);
+        if (decoded is Map<String, dynamic>) {
+          final response = GetTripsResponse.fromJson(decoded);
+          final fetchedAt = persisted!.fetchedAt;
+          _cache[key] = _CachedTrip(response: response, fetchedAt: fetchedAt);
+          final age = DateTime.now().difference(fetchedAt);
+          if (age >= _ttl) {
+            _refreshInBackground(originId, destinationId);
+          }
+          if (age <= _renderableTtl) {
+            logger.d('TripCacheService: drift cache hit for $key');
+          } else {
+            logger.w('TripCacheService: stale drift cache hit for $key');
+          }
+          return Ok(response);
+        }
+      } catch (e) {
+        logger.w('TripCacheService: failed to parse drift cache for $key: $e');
+      }
     }
 
     final inflight = _inflight[key];
@@ -72,6 +113,13 @@ class TripCacheService {
         );
         if (result case Ok(:final v)) {
           _store(originId, destinationId, v);
+        } else if (result case Err(:final e)) {
+          await db.AppDatabase().markTripPlannerCacheError(
+            originId: originId,
+            destinationId: destinationId,
+            fetchedAt: DateTime.now(),
+            error: e,
+          );
         }
         return result;
       } finally {
@@ -83,6 +131,36 @@ class TripCacheService {
     return request;
   }
 
+  static void _refreshInBackground(String originId, String destinationId) {
+    final key = _key(originId, destinationId);
+    if (_inflight.containsKey(key)) {
+      return;
+    }
+    final request = () async {
+      try {
+        final result = await TransportApiService.getTrips(
+          originId: originId,
+          destinationId: destinationId,
+        );
+        if (result case Ok(:final v)) {
+          _store(originId, destinationId, v);
+        } else if (result case Err(:final e)) {
+          await db.AppDatabase().markTripPlannerCacheError(
+            originId: originId,
+            destinationId: destinationId,
+            fetchedAt: DateTime.now(),
+            error: e,
+          );
+        }
+        return result;
+      } finally {
+        _inflight.remove(key);
+      }
+    }();
+    _inflight[key] = request;
+    request.ignore();
+  }
+
   static void prefetchJourney(db.Journey journey) {
     if (journey.isManualMultiLeg) {
       return;
@@ -90,10 +168,15 @@ class TripCacheService {
     if (isCached(journey.originId, journey.destinationId)) {
       return;
     }
-    getCachedOrFetch(
-      originId: journey.originId,
-      destinationId: journey.destinationId,
-    ).ignore();
+    PrefetchScheduler.instance.enqueueTripPlanner(
+      key: _key(journey.originId, journey.destinationId),
+      job: () async {
+        await getCachedOrFetch(
+          originId: journey.originId,
+          destinationId: journey.destinationId,
+        );
+      },
+    );
   }
 
   static void prefetchReverseJourney(db.Journey journey) {
@@ -103,10 +186,15 @@ class TripCacheService {
     if (isCached(journey.destinationId, journey.originId)) {
       return;
     }
-    getCachedOrFetch(
-      originId: journey.destinationId,
-      destinationId: journey.originId,
-    ).ignore();
+    PrefetchScheduler.instance.enqueueTripPlanner(
+      key: _key(journey.destinationId, journey.originId),
+      job: () async {
+        await getCachedOrFetch(
+          originId: journey.destinationId,
+          destinationId: journey.originId,
+        );
+      },
+    );
   }
 
   /// Prefetch trips for the first [limit] journeys in [journeys] without
@@ -123,6 +211,7 @@ class TripCacheService {
     final key = _key(originId, destinationId);
     _cache.remove(key);
     _inflight.remove(key);
+    db.AppDatabase().deleteTripPlannerCache(originId, destinationId).ignore();
   }
 
   /// Invalidate all cache entries.

@@ -5,64 +5,13 @@ import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
-import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
-import 'package:lbww_flutter/gtfs/note.dart';
-import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
-import 'package:lbww_flutter/gtfs/shape.dart';
-import 'package:lbww_flutter/gtfs/stop.dart' as gtfs_stop;
-import 'package:lbww_flutter/gtfs/stop_time.dart';
-import 'package:lbww_flutter/gtfs/trip.dart' as gtfs_trip;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 
 void main() {
-  GtfsData buildGtfsData() {
-    return GtfsData(
-      agencies: [
-        gtfs_agency.Agency(
-          agencyId: 'A1',
-          agencyName: 'Agency Name',
-          agencyUrl: 'https://agency.example',
-          agencyTimezone: 'Australia/Sydney',
-        ),
-      ],
-      calendars: const [],
-      calendarDates: const [],
-      routes: [
-        gtfs_route.Route(
-          routeId: 'ROUTE-1',
-          agencyId: 'A1',
-          routeShortName: 'R1',
-          routeLongName: 'Route 1 Long Name',
-          routeType: '3',
-        ),
-      ],
-      stops: [
-        gtfs_stop.Stop(
-          stopId: 'STOP-1',
-          stopName: 'Central',
-          stopLat: 0.0,
-          stopLon: 0.0,
-          locationType: 0,
-          wheelchairBoarding: 1,
-        ),
-      ],
-      stopTimes: const <StopTime>[],
-      trips: [
-        gtfs_trip.Trip(
-          routeId: 'ROUTE-1',
-          serviceId: 'SERVICE-1',
-          tripId: 'TRIP-1',
-        ),
-      ],
-      shapes: const <Shape>[],
-      notes: const <Note>[],
-    );
-  }
-
   db.Stop buildDbStop({
     required String stopId,
     required String stopName,
@@ -79,6 +28,21 @@ void main() {
       stopLon: 0.0,
       parentStation: parentStation,
       endpoint: endpoint,
+    );
+  }
+
+  db.Route buildDbRoute({
+    String endpoint = 'buses',
+    String routeId = 'ROUTE-1',
+    String lineId = 'buses|ROUTE-1',
+  }) {
+    return db.Route(
+      endpoint: endpoint,
+      routeId: routeId,
+      lineId: lineId,
+      routeShortName: 'R1',
+      routeLongName: 'Route 1 Long Name',
+      routeType: '3',
     );
   }
 
@@ -205,13 +169,10 @@ void main() {
     () async {
       final loader = DebugEntityListLoader(
         resolver: buildResolver(
-          gtfsData: buildGtfsData(),
           vehicles: [buildVehicle()],
           tripUpdates: [buildTripUpdate()],
         ),
-        getStopsCountByEndpoint: () async => {
-          TransportMode.bus: {StopsEndpoint.buses.key: 10},
-        },
+        getAllDbRoutes: () async => [buildDbRoute()],
       );
 
       final page = await loader.load(DebugEntityType.route);
@@ -220,11 +181,10 @@ void main() {
         (item) => item.entityId == 'ROUTE-1',
       );
       expect(route.title, 'Route 1 Long Name');
-      expect(route.sources, contains(DebugDataSource.gtfs));
+      expect(route.sources, contains(DebugDataSource.localDb));
       expect(route.sources, contains(DebugDataSource.realtime));
       expect(route.filterValues['endpoint'], contains(StopsEndpoint.buses.key));
       expect(route.filterValues['mode'], contains(TransportMode.bus.name));
-      expect(route.filterValues['agency'], ['Agency Name']);
       expect(route.filterValues['activity'], ['active_trips_and_vehicles']);
       expect(route.request.context.gtfsEndpoint, StopsEndpoint.buses);
     },

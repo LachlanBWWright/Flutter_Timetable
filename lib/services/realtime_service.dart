@@ -26,8 +26,15 @@ class VehiclePositionAggregationResult {
 /// Service for managing realtime transport data
 class RealtimeService {
   static const Duration _aggregatePrefetchCooldown = Duration(seconds: 30);
+  static const Duration _feedTtl = Duration(seconds: 30);
   static DateTime? _lastAggregatePrefetchAt;
   static Future<void>? _inflightAggregatePrefetch;
+  static final Map<String, _RealtimeFeedCacheEntry<FeedMessage?>> _feedCache =
+      {};
+  static final Map<String, Future<FeedMessage?>> _inflightFeeds = {};
+  static final Map<String, _RealtimeFeedCacheEntry<List<FeedMessage?>>>
+  _feedListCache = {};
+  static final Map<String, Future<List<FeedMessage?>>> _inflightFeedLists = {};
 
   /// Warm critical realtime datasets before the user opens detail actions.
   ///
@@ -132,66 +139,129 @@ class RealtimeService {
   static Future<FeedMessage?> getPositionsForTransportMode(
     TransportMode mode,
   ) async {
-    switch (mode) {
-      case TransportMode.train:
-        return await positions.fetchSydneyTrainsPositions();
-      case TransportMode.metro:
-        return await positions.fetchSydneyMetroPositions();
-      case TransportMode.bus:
-        return await positions.fetchBusesPositions();
-      case TransportMode.lightrail:
-        return await positions.fetchLightRailCbdAndSoutheastPositions();
-      case TransportMode.ferry:
-        return await positions.fetchFerriesSydneyFerriesPositions();
-    }
+    return _cachedFeed('positions:${mode.id}', () async {
+      switch (mode) {
+        case TransportMode.train:
+          return await positions.fetchSydneyTrainsPositions();
+        case TransportMode.metro:
+          return await positions.fetchSydneyMetroPositions();
+        case TransportMode.bus:
+          return await positions.fetchBusesPositions();
+        case TransportMode.lightrail:
+          return await positions.fetchLightRailCbdAndSoutheastPositions();
+        case TransportMode.ferry:
+          return await positions.fetchFerriesSydneyFerriesPositions();
+      }
+    });
   }
 
   /// Typed wrapper: get trip updates for a broad TransportMode.
   static Future<FeedMessage?> getUpdatesForTransportMode(
     TransportMode mode,
   ) async {
-    switch (mode) {
-      case TransportMode.train:
-        return await updates.fetchSydneyTrainsUpdates();
-      case TransportMode.metro:
-        return await updates.fetchSydneyMetroUpdates();
-      case TransportMode.bus:
-        return await updates.fetchBusesUpdates();
-      case TransportMode.lightrail:
-        return await updates.fetchLightRailCbdAndSoutheastUpdates();
-      case TransportMode.ferry:
-        return await updates.fetchFerriesSydneyFerriesUpdates();
-    }
+    return _cachedFeed('updates:${mode.id}', () async {
+      switch (mode) {
+        case TransportMode.train:
+          return await updates.fetchSydneyTrainsUpdates();
+        case TransportMode.metro:
+          return await updates.fetchSydneyMetroUpdates();
+        case TransportMode.bus:
+          return await updates.fetchBusesUpdates();
+        case TransportMode.lightrail:
+          return await updates.fetchLightRailCbdAndSoutheastUpdates();
+        case TransportMode.ferry:
+          return await updates.fetchFerriesSydneyFerriesUpdates();
+      }
+    });
   }
 
   /// Get region bus positions
   static Future<List<FeedMessage?>> getRegionBusPositions() async {
-    return await positions.getAllRegionBuses();
+    return _cachedFeedList(
+      'positions:region_buses',
+      positions.getAllRegionBuses,
+    );
   }
 
   /// Get region bus updates
   static Future<List<FeedMessage?>> getRegionBusUpdates() async {
-    return await updates.fetchAllRegionBuses();
+    return _cachedFeedList('updates:region_buses', updates.fetchAllRegionBuses);
   }
 
   /// Get all ferry positions
   static Future<List<FeedMessage?>> getAllFerryPositions() async {
-    return await positions.getAllFerries();
+    return _cachedFeedList('positions:ferries', positions.getAllFerries);
   }
 
   /// Get all ferry updates
   static Future<List<FeedMessage?>> getAllFerryUpdates() async {
-    return await updates.fetchAllFerries();
+    return _cachedFeedList('updates:ferries', updates.fetchAllFerries);
   }
 
   /// Get all light rail positions
   static Future<List<FeedMessage?>> getAllLightRailPositions() async {
-    return await positions.getAllLightRail();
+    return _cachedFeedList('positions:lightrail', positions.getAllLightRail);
   }
 
   /// Get all light rail updates
   static Future<List<FeedMessage?>> getAllLightRailUpdates() async {
-    return await updates.fetchAllLightRail();
+    return _cachedFeedList('updates:lightrail', updates.fetchAllLightRail);
+  }
+
+  static Future<FeedMessage?> _cachedFeed(
+    String key,
+    Future<FeedMessage?> Function() loader,
+  ) async {
+    final cached = _feedCache[key];
+    if (cached != null &&
+        DateTime.now().difference(cached.fetchedAt) < _feedTtl) {
+      return cached.value;
+    }
+
+    final inflight = _inflightFeeds[key];
+    if (inflight != null) {
+      return inflight;
+    }
+
+    final request = () async {
+      try {
+        final value = await loader();
+        _feedCache[key] = _RealtimeFeedCacheEntry(value, DateTime.now());
+        return value;
+      } finally {
+        _inflightFeeds.remove(key);
+      }
+    }();
+    _inflightFeeds[key] = request;
+    return request;
+  }
+
+  static Future<List<FeedMessage?>> _cachedFeedList(
+    String key,
+    Future<List<FeedMessage?>> Function() loader,
+  ) async {
+    final cached = _feedListCache[key];
+    if (cached != null &&
+        DateTime.now().difference(cached.fetchedAt) < _feedTtl) {
+      return cached.value;
+    }
+
+    final inflight = _inflightFeedLists[key];
+    if (inflight != null) {
+      return inflight;
+    }
+
+    final request = () async {
+      try {
+        final value = await loader();
+        _feedListCache[key] = _RealtimeFeedCacheEntry(value, DateTime.now());
+        return value;
+      } finally {
+        _inflightFeedLists.remove(key);
+      }
+    }();
+    _inflightFeedLists[key] = request;
+    return request;
   }
 
   /// Extract vehicle positions from feed message
@@ -216,7 +286,8 @@ class RealtimeService {
 
   /// Aggregate all vehicle positions across all feeds and return a deduplicated
   /// list along with a breakdown of counts per feed group to aid debugging.
-  static Future<VehiclePositionAggregationResult> getAllVehiclePositionsAggregated({
+  static Future<VehiclePositionAggregationResult>
+  getAllVehiclePositionsAggregated({
     Future<Map<TransportMode, FeedMessage?>> Function()?
     getAllPositionsOverride,
     Future<List<FeedMessage?>> Function()? getRegionBusesOverride,
@@ -271,8 +342,7 @@ class RealtimeService {
         key = 'vid:${v.vehicle.id}';
       } else if (v.trip.hasTripId()) {
         key = 'trip:${v.trip.tripId}';
-      }
-      else if (v.hasPosition() &&
+      } else if (v.hasPosition() &&
           v.position.hasLatitude() &&
           v.position.hasLongitude()) {
         final lat = v.position.latitude.toStringAsFixed(6);
@@ -292,8 +362,7 @@ class RealtimeService {
   /// Aggregate realtime trip updates across all feeds and return a
   /// deduplicated list plus a breakdown of counts per feed group.
   static Future<TripUpdateAggregationResult> getAllTripUpdatesAggregated({
-    Future<Map<TransportMode, FeedMessage?>> Function()?
-    getAllUpdatesOverride,
+    Future<Map<TransportMode, FeedMessage?>> Function()? getAllUpdatesOverride,
     Future<List<FeedMessage?>> Function()? getRegionBusesOverride,
     Future<List<FeedMessage?>> Function()? getAllFerriesOverride,
     Future<List<FeedMessage?>> Function()? getAllLightRailOverride,
@@ -305,11 +374,11 @@ class RealtimeService {
     for (final entry in all.entries) {
       final pack = extractTripUpdates(entry.value);
       tripUpdates.addAll(pack);
-      breakdown['${entry.key}'] = (breakdown['${entry.key}'] ?? 0) + pack.length;
+      breakdown['${entry.key}'] =
+          (breakdown['${entry.key}'] ?? 0) + pack.length;
     }
 
-    final regionBuses =
-        await (getRegionBusesOverride ?? getRegionBusUpdates)();
+    final regionBuses = await (getRegionBusesOverride ?? getRegionBusUpdates)();
     var regionCount = 0;
     for (final feed in regionBuses) {
       final pack = extractTripUpdates(feed);
@@ -406,4 +475,11 @@ class RealtimeService {
 
     return summary;
   }
+}
+
+class _RealtimeFeedCacheEntry<T> {
+  const _RealtimeFeedCacheEntry(this.value, this.fetchedAt);
+
+  final T value;
+  final DateTime fetchedAt;
 }

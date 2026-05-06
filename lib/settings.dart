@@ -12,6 +12,7 @@ import 'debug/debug_navigation.dart';
 import 'debug/debug_page_loader.dart';
 import 'services/api_key_service.dart';
 import 'services/debug_service.dart';
+import 'services/new_trip_service.dart';
 import 'services/transport_preferences_service.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
@@ -51,8 +52,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _isUpdating = false;
   String? _updateStatus;
-  int _stopsUpdated = 0;
-  int _realtimeFeedsUpdated = 0;
+  int _staticEndpointsUpdated = 0;
+  final Map<String, String> _staticEndpointErrors = {};
 
   late final DebugEntityResolver _debugResolver = DebugEntityResolver();
   late final DebugEntityPageLoader _debugPageLoader =
@@ -147,46 +148,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _performUpdate() async {
+  Future<void> _performUpdate({bool force = false}) async {
     setState(() {
       _isUpdating = true;
-      _updateStatus = 'Starting update...';
-      _stopsUpdated = 0;
-      _realtimeFeedsUpdated = 0;
+      _updateStatus = 'Starting static transport data update...';
+      _staticEndpointsUpdated = 0;
+      _staticEndpointErrors.clear();
     });
 
     try {
-      // Attempt to call expected update APIs. If they don't exist, fall back
-      // to a simple status message.
-      // progress placeholders
-
-      // stops service
-      try {
-        // If StopsService exists and has an updateAll method, this will run.
-        // We reference it dynamically to avoid hard dependency here.
-        final stopsService = await Future.value(null);
-        // ignore: unnecessary_statements
-        stopsService;
-      } catch (_) {
-        // no-op; keep going
+      await for (final progress in NewTripService.updateStaticTransportData(
+        force: force,
+      )) {
+        if (!mounted) return;
+        final endpoint = progress.endpoint?.key ?? 'all endpoints';
+        setState(() {
+          _staticEndpointsUpdated = progress.completed;
+          if (progress.error != null && progress.endpoint != null) {
+            _staticEndpointErrors[progress.endpoint!.key] = progress.error!;
+          }
+          _updateStatus =
+              '${progress.message ?? endpoint} '
+              '(${progress.completed}/${progress.total})';
+        });
       }
-
-      // Simulate partial progress updates for UI clarity
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) return;
-      setState(() => _updateStatus = 'Updating stops...');
-      await Future.delayed(const Duration(milliseconds: 400));
-      // pretend we updated some stops (the real implementation should set this)
-      _stopsUpdated = 42;
-
-      setState(() => _updateStatus = 'Updating realtime feeds...');
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-      _realtimeFeedsUpdated = 3;
-
       if (!mounted) return;
       setState(() {
-        _updateStatus = 'Update completed successfully';
+        _updateStatus = _staticEndpointErrors.isEmpty
+            ? 'Static transport data update completed successfully'
+            : 'Static transport data update completed with '
+                  '${_staticEndpointErrors.length} error(s)';
         _isUpdating = false;
       });
     } catch (e) {
@@ -215,7 +206,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _clearUpdateStatus() {
-    setState(() => _updateStatus = null);
+    setState(() {
+      _updateStatus = null;
+      _staticEndpointErrors.clear();
+    });
   }
 
   Future<void> _resetDatabase() async {
@@ -619,9 +613,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: _performUpdate,
+                              onPressed: () => _performUpdate(),
                               icon: const Icon(Icons.download),
-                              label: const Text('Update now'),
+                              label: const Text('Update static transport data'),
                               style: ButtonStyles.elevated(Colors.green),
                             ),
                           ),
@@ -629,7 +623,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: _performUpdate,
+                              onPressed: () => _performUpdate(force: true),
                               icon: const Icon(Icons.refresh),
                               label: const Text('Force refresh'),
                               style: ButtonStyles.elevated(Colors.orange),
@@ -638,13 +632,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                     const SizedBox(height: 8),
-                    if (_stopsUpdated > 0 || _realtimeFeedsUpdated > 0)
+                    if (_staticEndpointsUpdated > 0)
                       Text(
-                        formatUpdateSummary(
-                          stopsUpdated: _stopsUpdated,
-                          realtimeFeedsUpdated: _realtimeFeedsUpdated,
+                        'Updated $_staticEndpointsUpdated static endpoint(s).',
+                      ),
+                    if (_staticEndpointErrors.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ..._staticEndpointErrors.entries.map(
+                        (entry) => Text(
+                          '${entry.key}: ${entry.value}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                         ),
                       ),
+                    ],
                     if (_updateStatus?.isNotEmpty == true && !_isUpdating)
                       SizedBox(
                         width: double.infinity,
