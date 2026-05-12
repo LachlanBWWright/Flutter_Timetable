@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' as drift;
+import 'package:flutter/foundation.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
@@ -304,7 +305,7 @@ class TripLineService {
     if (mode == null) {
       return;
     }
-    final index = _EndpointLineIndex.build(
+    final index = await _buildEndpointLineIndexInBackground(
       endpointKey: endpoint.key,
       mode: mode,
       data: data,
@@ -414,7 +415,7 @@ class TripLineService {
       return null;
     }
 
-    final index = _EndpointLineIndex.build(
+    final index = await _buildEndpointLineIndexInBackground(
       endpointKey: endpointKey,
       mode: mode,
       data: data,
@@ -424,6 +425,21 @@ class TripLineService {
       await cacheRoutesForEndpoint(endpoint.first, data);
     }
     return index;
+  }
+
+  Future<_EndpointLineIndex> _buildEndpointLineIndexInBackground({
+    required String endpointKey,
+    required TransportMode mode,
+    required GtfsData data,
+  }) {
+    return compute(
+      _buildEndpointLineIndex,
+      _EndpointLineIndexBuildRequest(
+        endpointKey: endpointKey,
+        mode: mode,
+        data: data,
+      ),
+    );
   }
 
   Future<List<StopLineMatch>> _getPersistedLinesForStop(
@@ -669,6 +685,28 @@ class _EndpointLineIndex {
     }
     return route.routeId;
   }
+}
+
+class _EndpointLineIndexBuildRequest {
+  const _EndpointLineIndexBuildRequest({
+    required this.endpointKey,
+    required this.mode,
+    required this.data,
+  });
+
+  final String endpointKey;
+  final TransportMode mode;
+  final GtfsData data;
+}
+
+_EndpointLineIndex _buildEndpointLineIndex(
+  _EndpointLineIndexBuildRequest request,
+) {
+  return _EndpointLineIndex.build(
+    endpointKey: request.endpointKey,
+    mode: request.mode,
+    data: request.data,
+  );
 }
 
 class _LineStopAccumulator {

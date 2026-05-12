@@ -102,9 +102,12 @@ class _InlineRawJsonBlock extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.all(12),
-          child: SelectableText(
-            _format(block.data, block.emptyMessage),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: SelectableText(
+              _format(block.data, block.emptyMessage),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
           ),
         ),
       ],
@@ -151,7 +154,10 @@ class _HeaderCard extends StatelessWidget {
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            SelectableText(pageData.canonicalId),
+            SizedBox(
+              width: double.infinity,
+              child: SelectableText(pageData.canonicalId),
+            ),
             if (pageData.aliases.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
@@ -207,7 +213,7 @@ class _FieldRow extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        SelectableText(field.value),
+        SizedBox(width: double.infinity, child: SelectableText(field.value)),
         if (field.sources.isNotEmpty) ...[
           const SizedBox(height: 6),
           Wrap(

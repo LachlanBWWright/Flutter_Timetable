@@ -23,6 +23,16 @@ List<LatLng> legPointsForMap(Leg leg) {
     }
   }
 
+  if (points.length < 2) {
+    final originCoord = leg.origin.coord;
+    final destinationCoord = leg.destination.coord;
+    if ((originCoord?.length ?? 0) >= 2 &&
+        (destinationCoord?.length ?? 0) >= 2) {
+      points.add(LatLng(originCoord![0], originCoord[1]));
+      points.add(LatLng(destinationCoord![0], destinationCoord[1]));
+    }
+  }
+
   return points;
 }
 

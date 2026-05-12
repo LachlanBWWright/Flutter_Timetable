@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
@@ -78,9 +79,11 @@ class TripCacheService {
     if (persisted?.responseJson case final responseJson?
         when responseJson.isNotEmpty) {
       try {
-        final decoded = jsonDecode(responseJson);
-        if (decoded is Map<String, dynamic>) {
-          final response = GetTripsResponse.fromJson(decoded);
+        final response = await compute(
+          _parseTripPlannerCacheJson,
+          responseJson,
+        );
+        if (response != null) {
           final fetchedAt = persisted!.fetchedAt;
           _cache[key] = _CachedTrip(response: response, fetchedAt: fetchedAt);
           final age = DateTime.now().difference(fetchedAt);
@@ -226,4 +229,12 @@ class _CachedTrip {
   final DateTime fetchedAt;
 
   const _CachedTrip({required this.response, required this.fetchedAt});
+}
+
+GetTripsResponse? _parseTripPlannerCacheJson(String responseJson) {
+  final decoded = jsonDecode(responseJson);
+  if (decoded is! Map<String, dynamic>) {
+    return null;
+  }
+  return GetTripsResponse.fromJson(decoded);
 }

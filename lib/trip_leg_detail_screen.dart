@@ -15,6 +15,7 @@ import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
@@ -108,6 +109,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   String? _gtfsRouteEndpointKey;
   String? _gtfsRouteMatchReason;
   int _currentLegIndex = 0;
+  Future<VehiclePositionAggregationResult>? _vehicleAggregateFuture;
+  Future<TripUpdateAggregationResult>? _tripUpdateAggregateFuture;
 
   @override
   void initState() {
@@ -587,24 +590,24 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _refreshLegData() async {
+    _vehicleAggregateFuture = null;
+    _tripUpdateAggregateFuture = null;
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      if (!widget.skipInitialLoadDelay) {
-        await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-      }
-
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
       final activeLeg = _updatedLeg ?? widget.leg;
       if (_supportsRealtimeForLeg(activeLeg)) {
-        await _loadVehiclesForLeg();
-        await _loadRealtimeTripStatusForLeg();
+        await Future.wait([
+          _loadVehiclesForLeg(),
+          _loadRealtimeTripStatusForLeg(),
+        ]);
         if (_showAllVehicleStops) {
           await _loadVehicleStopsForLeg();
         }
@@ -631,6 +634,46 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<VehiclePositionAggregationResult> _getVehicleAggregate() {
+    final existing = _vehicleAggregateFuture;
+    if (existing != null) {
+      return existing;
+    }
+
+    late final Future<VehiclePositionAggregationResult> future;
+    future =
+        (widget.getAllVehiclesAggregated?.call() ??
+                RealtimeService.getAllVehiclePositionsAggregated())
+            .catchError((Object error, StackTrace stackTrace) {
+              if (identical(_vehicleAggregateFuture, future)) {
+                _vehicleAggregateFuture = null;
+              }
+              Error.throwWithStackTrace(error, stackTrace);
+            });
+    _vehicleAggregateFuture = future;
+    return future;
+  }
+
+  Future<TripUpdateAggregationResult> _getTripUpdateAggregate() {
+    final existing = _tripUpdateAggregateFuture;
+    if (existing != null) {
+      return existing;
+    }
+
+    late final Future<TripUpdateAggregationResult> future;
+    future =
+        (widget.getAllTripUpdatesAggregated?.call() ??
+                RealtimeService.getAllTripUpdatesAggregated())
+            .catchError((Object error, StackTrace stackTrace) {
+              if (identical(_tripUpdateAggregateFuture, future)) {
+                _tripUpdateAggregateFuture = null;
+              }
+              Error.throwWithStackTrace(error, stackTrace);
+            });
+    _tripUpdateAggregateFuture = future;
+    return future;
   }
 
   Future<void> _ensureRouteDebugLoaded() async {
@@ -670,31 +713,53 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         });
         return;
       }
-      final gtfsLoader =
-          widget.getGtfsDataForEndpoint ??
-          NewTripService.fetchGtfsDataForEndpoint;
 
-      for (final endpoint in endpoints) {
-        final data = await gtfsLoader(endpoint);
-        if (data == null) {
-          continue;
+      final injectedGtfsLoader = widget.getGtfsDataForEndpoint;
+      if (injectedGtfsLoader != null) {
+        for (final endpoint in endpoints) {
+          final data = await injectedGtfsLoader(endpoint);
+          if (data == null) {
+            continue;
+          }
+          final match = _matchGtfsRoute(leg, data.routes);
+          final route = match?.$1;
+          if (route == null) {
+            continue;
+          }
+          final agency = _matchAgencyForRoute(route, data.agencies);
+          if (!mounted) return;
+          setState(() {
+            _gtfsRoute = route;
+            _gtfsAgency = agency;
+            _gtfsRouteEndpointKey = endpoint.key;
+            _gtfsRouteMatchReason = match?.$2;
+            _isLoadingRouteDebug = false;
+            _routeDebugError = null;
+          });
+          return;
         }
-        final match = _matchGtfsRoute(leg, data.routes);
-        final route = match?.$1;
-        if (route == null) {
-          continue;
+      } else {
+        for (final endpoint in endpoints) {
+          final routes = await _loadPersistedRoutesForEndpoint(endpoint);
+          if (routes.isEmpty) {
+            continue;
+          }
+          final match = _matchGtfsRoute(leg, routes);
+          final route = match?.$1;
+          if (route == null) {
+            continue;
+          }
+          if (!mounted) return;
+          setState(() {
+            _gtfsRoute = route;
+            _gtfsAgency = null;
+            _gtfsRouteEndpointKey = endpoint.key;
+            _gtfsRouteMatchReason = '${match?.$2} (cached routes table)';
+            _isLoadingRouteDebug = false;
+            _routeDebugError = null;
+          });
+          return;
         }
-        final agency = _matchAgencyForRoute(route, data.agencies);
-        if (!mounted) return;
-        setState(() {
-          _gtfsRoute = route;
-          _gtfsAgency = agency;
-          _gtfsRouteEndpointKey = endpoint.key;
-          _gtfsRouteMatchReason = match?.$2;
-          _isLoadingRouteDebug = false;
-          _routeDebugError = null;
-        });
-        return;
       }
 
       if (!mounted) return;
@@ -711,6 +776,26 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         _routeDebugError = e.toString();
       });
     }
+  }
+
+  Future<List<gtfs_route.Route>> _loadPersistedRoutesForEndpoint(
+    StopsEndpoint endpoint,
+  ) async {
+    final rows = await StopsService.database.getRoutesForEndpoint(endpoint.key);
+    return rows.map(_dbRouteToGtfsRoute).toList(growable: false);
+  }
+
+  gtfs_route.Route _dbRouteToGtfsRoute(db.Route route) {
+    return gtfs_route.Route(
+      routeId: route.routeId,
+      routeShortName: route.routeShortName ?? '',
+      routeLongName: route.routeLongName ?? '',
+      routeDesc: route.routeDesc,
+      routeType: route.routeType ?? '',
+      routeColor: route.routeColor,
+      routeTextColor: route.routeTextColor,
+      routeSortOrder: route.routeSortOrder,
+    );
   }
 
   Future<List<StopsEndpoint>> _candidateRouteEndpoints(
@@ -970,9 +1055,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       _isLoadingVehicles = true;
     });
     try {
-      final aggregate =
-          await (widget.getAllVehiclesAggregated?.call() ??
-              RealtimeService.getAllVehiclePositionsAggregated());
+      final aggregate = await _getVehicleAggregate();
       final dedupedVehicles = aggregate.vehicles.toList();
       final breakdown = aggregate.breakdown;
 
@@ -1002,9 +1085,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   Future<void> _loadRealtimeTripStatusForLeg() async {
     try {
-      final aggregate =
-          await (widget.getAllTripUpdatesAggregated?.call() ??
-              RealtimeService.getAllTripUpdatesAggregated());
+      final aggregate = await _getTripUpdateAggregate();
       final match = _matchTripUpdateForLeg(aggregate.tripUpdates);
       if (!mounted) return;
       setState(() {
@@ -1196,9 +1277,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     });
 
     try {
-      final aggregate =
-          await (widget.getAllTripUpdatesAggregated?.call() ??
-              RealtimeService.getAllTripUpdatesAggregated());
+      final aggregate = await _getTripUpdateAggregate();
       final tripUpdates = aggregate.tripUpdates;
       final tripIds = _collectTripIdsForActiveLeg();
       final routeId = _legRouteId();
@@ -1308,8 +1387,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       tripIds: hasTransport ? _collectLegTripIds() : null,
       showVehicleCount: false,
       getAllVehiclesAggregated: hasTransport
-          ? (widget.getAllVehiclesAggregated ??
-                RealtimeService.getAllVehiclePositionsAggregated)
+          ? _getVehicleAggregate
           : () async => const VehiclePositionAggregationResult(
               vehicles: <VehiclePosition>[],
               breakdown: <String, int>{},
@@ -1358,12 +1436,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       MaterialPageRoute(
                         builder: (context) => RealtimeMapPage(
                           leg: leg,
+                          additionalLegs: additionalLegs,
                           transportMode: mode,
                           routeFilter: hasTransport ? transportId : null,
                           filterByLegTrip: hasTransport,
                           tripIds: hasTransport ? _collectLegTripIds() : null,
                           getAllVehiclesAggregated: hasTransport
-                              ? RealtimeService.getAllVehiclePositionsAggregated
+                              ? _getVehicleAggregate
                               : () async =>
                                     const VehiclePositionAggregationResult(
                                       vehicles: <VehiclePosition>[],
@@ -2156,11 +2235,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 320),
                         child: SingleChildScrollView(
-                          child: Text(
-                            tripDebugPreviewText,
-                            style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 12,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              tripDebugPreviewText,
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
@@ -2244,11 +2326,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 320),
                       child: SingleChildScrollView(
-                        child: Text(
-                          routeDebugPreviewText,
-                          style: const TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 12,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            routeDebugPreviewText,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -2314,11 +2399,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 320),
                       child: SingleChildScrollView(
-                        child: Text(
-                          legDebugPreviewText,
-                          style: const TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 12,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            legDebugPreviewText,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -2609,12 +2697,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   MaterialPageRoute(
                     builder: (context) => RealtimeMapPage(
                       leg: leg,
+                      additionalLegs: otherLegs,
                       transportMode: mode,
                       routeFilter: transportId,
                       filterByLegTrip: true,
                       tripIds: _collectLegTripIds(),
-                      getAllVehiclesAggregated:
-                          RealtimeService.getAllVehiclePositionsAggregated,
+                      getAllVehiclesAggregated: _getVehicleAggregate,
                     ),
                   ),
                 );

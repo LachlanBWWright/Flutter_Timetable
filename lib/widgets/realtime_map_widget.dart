@@ -102,6 +102,16 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   // Sydney CBD as default center
   late LatLng _mapCenter;
 
+  List<LatLng> _visibleTripPoints() {
+    final points = <LatLng>[
+      for (final otherLeg in widget.additionalLegs ?? const <Leg>[])
+        ...legPointsForMap(otherLeg),
+      if (widget.leg case final leg?) ...legPointsForMap(leg),
+    ];
+
+    return points;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -110,8 +120,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
 
     final leg = widget.leg;
     if (leg != null) {
-      // Prefer fitting camera to show all leg stops; fall back to leg origin.
-      final points = legPointsForMap(leg);
+      // Prefer fitting camera to show the whole trip; fall back to leg origin.
+      final points = _visibleTripPoints();
       if (points.length >= 2) {
         _pendingFit = CameraFit.bounds(
           bounds: LatLngBounds.fromPoints(points),
@@ -139,12 +149,14 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
     super.didUpdateWidget(oldWidget);
     // When the active leg changes, fit the camera to the new leg's stops
     // without recreating the whole widget (avoids visible flash/reload).
-    if (oldWidget.leg != widget.leg && widget.leg != null) {
+    if ((oldWidget.leg != widget.leg ||
+            oldWidget.additionalLegs != widget.additionalLegs) &&
+        widget.leg != null) {
       final newLeg = widget.leg;
       if (newLeg == null) {
         return;
       }
-      final points = legPointsForMap(newLeg);
+      final points = _visibleTripPoints();
       if (points.length >= 2) {
         final fit = CameraFit.bounds(
           bounds: LatLngBounds.fromPoints(points),
@@ -174,7 +186,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           Polyline(
             points: points,
             strokeWidth: 2.0,
-            color: Colors.grey.withValues(alpha: 0.45),
+            color: Colors.grey.withValues(alpha: 0.35),
           ),
         );
       }
@@ -396,8 +408,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   List<Marker> _buildStopMarkers() {
     final markers = <Marker>[];
 
-    // Markers for other-leg stops: same size as before but fully opaque and
-    // coloured according to that leg's transport mode (no icons).
+    // Markers for other-leg stops are deliberately quiet so the active leg
+    // remains the visual anchor while the rest of the trip stays visible.
     for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
       final stops = otherLeg.stopSequence;
       if (stops == null) continue;
@@ -418,9 +430,12 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             height: 10.0,
             child: Container(
               decoration: BoxDecoration(
-                color: otherColor,
+                color: otherColor.withValues(alpha: 0.45),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  width: 1,
+                ),
               ),
             ),
           ),
@@ -587,10 +602,6 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   @override
   Widget build(BuildContext context) {
     // Return embeddable map content without top-level scaffold/appbar
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     if (_error != null) {
       return Center(
         child: Column(
@@ -662,9 +673,28 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               ),
             ),
           ),
+        if (_isLoading)
+          const Positioned(
+            top: 16,
+            left: 16,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          ),
         // Show an overlay if a vehicleId was requested but no vehicle
         // (by vehicle id or fallback route id) was found in the latest feed.
-        if (widget.vehicleId != null && _vehicles.isEmpty)
+        if (!_isLoading && widget.vehicleId != null && _vehicles.isEmpty)
           Positioned(
             top: 16,
             left: 16,
@@ -698,6 +728,7 @@ class RealtimeMapPage extends StatelessWidget {
   final TransportMode? transportMode;
   final String? routeFilter;
   final Leg? leg;
+  final List<Leg>? additionalLegs;
   final String? vehicleId;
   final Future<Map<TransportMode, FeedMessage?>> Function()? getPositions;
   final Future<VehiclePositionAggregationResult> Function()?
@@ -711,6 +742,7 @@ class RealtimeMapPage extends StatelessWidget {
     this.transportMode,
     this.routeFilter,
     this.leg,
+    this.additionalLegs,
     this.vehicleId,
     this.getPositions,
     this.getAllVehiclesAggregated,
@@ -737,6 +769,7 @@ class RealtimeMapPage extends StatelessWidget {
         transportMode: transportMode,
         routeFilter: routeFilter,
         leg: leg,
+        additionalLegs: additionalLegs,
         filterByLegTrip: filterByLegTrip,
         tripIds: tripIds,
         vehicleId: vehicleId,
