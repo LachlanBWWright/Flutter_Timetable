@@ -78,6 +78,7 @@ class NewTripService {
       return Station(
         name: displayName,
         id: stop.stopId,
+        mode: mode,
         stopCode: stop.stopCode,
         stopDesc: stop.stopDesc,
         zoneId: stop.zoneId,
@@ -486,7 +487,7 @@ class NewTripService {
     required Station origin,
     required Station destination,
     required List<Station> interchanges,
-    required StopLineMatch selectedLine,
+    TransportMode fallbackMode = TransportMode.train,
   }) {
     final orderedStops = buildOrderedTripStops(
       origin: origin,
@@ -497,30 +498,119 @@ class NewTripService {
     return List<ManualTripLeg>.generate(orderedStops.length - 1, (index) {
       final legOrigin = orderedStops[index];
       final legDestination = orderedStops[index + 1];
+      final fallbackLineId = legOrigin.lineId ?? legDestination.lineId;
+      final fallbackEndpointKey = _endpointKeyFromLineId(fallbackLineId);
+      final fallbackLineMode = fallbackEndpointKey != null
+          ? StopsService.modeForEndpointKey(fallbackEndpointKey)
+          : null;
+
       return ManualTripLeg(
         index: index,
         originName: legOrigin.name,
         originId: legOrigin.id,
         destinationName: legDestination.name,
         destinationId: legDestination.id,
-        mode: selectedLine.mode,
-        lineId: selectedLine.lineId,
-        lineName: selectedLine.lineName,
+        mode:
+            legOrigin.mode ??
+            legDestination.mode ??
+            fallbackLineMode ??
+            fallbackMode,
+        lineId: fallbackLineId,
+        lineName: legOrigin.lineName ?? legDestination.lineName,
+        endpointKey: fallbackEndpointKey,
       );
     });
+  }
+
+  static Future<List<ManualTripLeg>> buildManualTripLegsWithResolvedMetadata({
+    required Station origin,
+    required Station destination,
+    required List<Station> interchanges,
+    required TransportMode fallbackMode,
+    TripLineService? tripLineService,
+  }) async {
+    final lineService = tripLineService ?? TripLineService.instance;
+    final orderedStops = buildOrderedTripStops(
+      origin: origin,
+      destination: destination,
+      interchanges: interchanges,
+    );
+    final legs = <ManualTripLeg>[];
+    TransportMode? previousMode;
+
+    for (var index = 0; index < orderedStops.length - 1; index++) {
+      final legOrigin = orderedStops[index];
+      final legDestination = orderedStops[index + 1];
+
+      final originLines = await lineService.getLinesForStop(
+        legOrigin.id,
+        allowBuild: true,
+      );
+      final destinationLines = await lineService.getLinesForStop(
+        legDestination.id,
+        allowBuild: true,
+      );
+      final destinationLineIds = destinationLines
+          .map((line) => line.lineId)
+          .toSet();
+      final sharedLines = originLines
+          .where((line) => destinationLineIds.contains(line.lineId))
+          .toList();
+
+      StopLineMatch? selectedSharedLine;
+      final preferredMode = legOrigin.mode ?? legDestination.mode;
+      if (preferredMode != null) {
+        selectedSharedLine = _firstWhereOrNull(
+          sharedLines,
+          (line) => line.mode == preferredMode,
+        );
+      }
+      selectedSharedLine ??= _firstWhereOrNull(
+        sharedLines,
+        (line) => line.mode == (previousMode ?? fallbackMode),
+      );
+      selectedSharedLine ??= sharedLines.isNotEmpty ? sharedLines.first : null;
+
+      final fallbackLineId = legOrigin.lineId ?? legDestination.lineId;
+      final fallbackEndpointKey = _endpointKeyFromLineId(fallbackLineId);
+      final fallbackLineMode = fallbackEndpointKey != null
+          ? StopsService.modeForEndpointKey(fallbackEndpointKey)
+          : null;
+
+      final resolvedMode =
+          selectedSharedLine?.mode ??
+          preferredMode ??
+          previousMode ??
+          fallbackLineMode ??
+          fallbackMode;
+
+      legs.add(
+        ManualTripLeg(
+          index: index,
+          originName: legOrigin.name,
+          originId: legOrigin.id,
+          destinationName: legDestination.name,
+          destinationId: legDestination.id,
+          mode: resolvedMode,
+          lineId: selectedSharedLine?.lineId,
+          lineName: selectedSharedLine?.lineName,
+          endpointKey: selectedSharedLine?.endpointKey,
+        ),
+      );
+      previousMode = resolvedMode;
+    }
+
+    return legs;
   }
 
   static String? validateManualTrip({
     required Station? origin,
     required Station? destination,
     required List<Station> interchanges,
-    required StopLineMatch? selectedLine,
+    TransportMode fallbackMode = TransportMode.train,
   }) {
     if (origin == null || destination == null) {
       return 'Select an origin and destination first.';
-    }
-    if (selectedLine == null) {
-      return 'Select a shared line before building a manual trip.';
     }
 
     final orderedStops = buildOrderedTripStops(
@@ -529,8 +619,8 @@ class NewTripService {
       interchanges: interchanges,
     );
 
-    if (orderedStops.length < 3) {
-      return 'A manual multi-leg trip needs at least one interchange.';
+    if (orderedStops.length < 2) {
+      return 'Choose at least one leg before saving.';
     }
 
     for (var index = 0; index < orderedStops.length - 1; index++) {
@@ -541,29 +631,42 @@ class NewTripService {
       }
     }
 
-    for (final interchange in interchanges) {
-      if (interchange.lineId != null &&
-          interchange.lineId != selectedLine.lineId) {
-        return 'Each interchange must stay on the selected line.';
-      }
-    }
-
     final definition = ManualTripDefinition(
-      mode: selectedLine.mode,
-      lineId: selectedLine.lineId,
-      lineName: selectedLine.lineName,
       legs: buildManualTripLegs(
         origin: origin,
         destination: destination,
         interchanges: interchanges,
-        selectedLine: selectedLine,
+        fallbackMode: fallbackMode,
       ),
     );
 
     if (!definition.isValid) {
-      return 'Manual trip legs must remain continuous on the selected line.';
+      return 'Manual trip legs must remain continuous.';
     }
 
+    return null;
+  }
+
+  static String? _endpointKeyFromLineId(String? lineId) {
+    if (lineId == null) {
+      return null;
+    }
+    final separatorIndex = lineId.indexOf('|');
+    if (separatorIndex <= 0) {
+      return null;
+    }
+    return lineId.substring(0, separatorIndex);
+  }
+
+  static StopLineMatch? _firstWhereOrNull(
+    List<StopLineMatch> matches,
+    bool Function(StopLineMatch) predicate,
+  ) {
+    for (final match in matches) {
+      if (predicate(match)) {
+        return match;
+      }
+    }
     return null;
   }
 }

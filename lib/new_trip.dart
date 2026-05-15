@@ -42,7 +42,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   bool _isLoading = false;
   bool _showMapView = false;
   bool _isResolvingSharedLines = false;
-  bool _isLoadingLineCandidates = false;
+  final bool _isLoadingLineCandidates = false;
   bool _isLoadingInterchangeCandidates = false;
   bool _directTripMode = false;
   SortMode _sortMode = SortMode.alphabetical;
@@ -61,11 +61,9 @@ class _NewTripScreenState extends State<NewTripScreen>
   List<StopLineMatch> _originLineCandidates = [];
   StopLineMatch? _selectedLine;
   bool _manualBuilderEnabled = false;
-  List<Station> _sameLineCandidateStations = [];
   List<Station> _interchanges = [];
   int? _pendingInterchangeInsertIndex;
   List<Station> _manualCandidateStations = [];
-  final Map<String, Future<_SameLineCandidates>> _sameLineCandidateCache = {};
 
   @override
   void initState() {
@@ -193,8 +191,12 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
   }
 
-  Future<void> setStation(String stationName, String id) async {
-    final mode = await StopsService.getModeForStopId(id);
+  Future<void> setStation(
+    String stationName,
+    String id,
+    TransportMode? selectedMode,
+  ) async {
+    final mode = selectedMode ?? await StopsService.getModeForStopId(id);
     if (!mounted || mode == null) {
       return;
     }
@@ -217,7 +219,6 @@ class _NewTripScreenState extends State<NewTripScreen>
         keyController.clear();
       });
       _resetManualDraft(clearSharedLines: true, keepDestination: false);
-      unawaited(_loadSameLineCandidatesForOrigin());
       return;
     }
 
@@ -264,7 +265,6 @@ class _NewTripScreenState extends State<NewTripScreen>
       _destinationMode = null;
     });
     _resetManualDraft(clearSharedLines: true);
-    _loadSameLineCandidatesForOrigin();
   }
 
   void _resetManualDraft({
@@ -281,95 +281,12 @@ class _NewTripScreenState extends State<NewTripScreen>
       _directTripMode = false;
       _interchanges = [];
       _pendingInterchangeInsertIndex = null;
-      _sameLineCandidateStations = [];
       _manualCandidateStations = [];
       if (clearSharedLines) {
         _sharedLines = [];
         _originLineCandidates = [];
         _selectedLine = null;
       }
-    });
-  }
-
-  Future<void> _loadSameLineCandidatesForOrigin() async {
-    final origin = _originStation;
-    final originMode = _originMode;
-    if (origin == null || originMode == null) {
-      return;
-    }
-
-    final requestOriginId = origin.id;
-    final requestOriginMode = originMode;
-
-    setState(() {
-      _isLoadingLineCandidates = true;
-      _originLineCandidates = [];
-      _sameLineCandidateStations = [];
-    });
-
-    try {
-      final candidates = await _sameLineCandidatesForOrigin(
-        originId: requestOriginId,
-        mode: requestOriginMode,
-      );
-
-      if (!mounted) return;
-      if (_originStation?.id != requestOriginId || _originMode != originMode) {
-        return;
-      }
-      setState(() {
-        _originLineCandidates = candidates.lines;
-        _sameLineCandidateStations = candidates.stations;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to load stops on the same line: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingLineCandidates = false;
-        });
-      }
-    }
-  }
-
-  Future<_SameLineCandidates> _sameLineCandidatesForOrigin({
-    required String originId,
-    required TransportMode mode,
-  }) {
-    final cacheKey = '$originId|${mode.id}';
-    return _sameLineCandidateCache.putIfAbsent(cacheKey, () async {
-      final lines = await _tripLineService.getLinesForStop(
-        originId,
-        mode: mode,
-        allowBuild: true,
-      );
-      final lineStops = await Future.wait(
-        lines.map((line) {
-          return _tripLineService.getStopsForLine(
-            line.lineId,
-            line.mode,
-            allowBuild: true,
-          );
-        }),
-      );
-      final stationsById = <String, Station>{};
-
-      for (final stops in lineStops) {
-        for (final lineStop in stops) {
-          if (lineStop.stopId == originId) {
-            continue;
-          }
-          stationsById.putIfAbsent(lineStop.stopId, () => lineStop.toStation());
-        }
-      }
-
-      final stations = stationsById.values.toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
-      return _SameLineCandidates(lines: lines, stations: stations);
     });
   }
 
@@ -571,16 +488,15 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
 
     final definition = ManualTripDefinition(
-      mode: selectedLine.mode,
-      lineId: selectedLine.lineId,
-      lineName: selectedLine.lineName,
-      legs: NewTripService.buildManualTripLegs(
+      legs: await NewTripService.buildManualTripLegsWithResolvedMetadata(
         origin: origin,
         destination: destination,
         interchanges: _interchanges,
-        selectedLine: selectedLine,
+        fallbackMode: _originMode ?? _currentMode,
       ),
     );
+
+    final firstLeg = definition.legs.isNotEmpty ? definition.legs.first : null;
 
     await _persistJourney(
       JourneysCompanion(
@@ -589,9 +505,13 @@ class _NewTripScreenState extends State<NewTripScreen>
         destination: drift.Value(destination.name),
         destinationId: drift.Value(destination.id),
         tripType: drift.Value(SavedTripType.manualMultiLeg.storageValue),
-        mode: drift.Value(selectedLine.mode.id),
-        lineId: drift.Value(selectedLine.lineId),
-        lineName: drift.Value(selectedLine.lineName),
+        mode: drift.Value(firstLeg?.mode.id ?? selectedLine.mode.id),
+        lineId: firstLeg?.lineId != null
+            ? drift.Value(firstLeg!.lineId!)
+            : drift.Value(selectedLine.lineId),
+        lineName: firstLeg?.lineName != null
+            ? drift.Value(firstLeg!.lineName!)
+            : drift.Value(selectedLine.lineName),
         legsJson: drift.Value(definition.toLegsJson()),
       ),
       successMessage: 'Manual trip saved.',
@@ -631,50 +551,11 @@ class _NewTripScreenState extends State<NewTripScreen>
       _selectedLine = null;
       _manualBuilderEnabled = false;
       _directTripMode = false;
-      _sameLineCandidateStations = [];
       _interchanges = [];
       _pendingInterchangeInsertIndex = null;
       _manualCandidateStations = [];
       keyController.clear();
       _showMapView = false;
-    });
-  }
-
-  void _startManualBuilder() {
-    final line = _selectedLine;
-    if (line == null) {
-      return;
-    }
-
-    _setTabForMode(line.mode);
-    setState(() {
-      _manualBuilderEnabled = true;
-      _interchanges = [];
-      _pendingInterchangeInsertIndex = null;
-      _manualCandidateStations = [];
-      _showMapView = false;
-    });
-  }
-
-  void _cancelManualBuilder() {
-    setState(() {
-      _manualBuilderEnabled = false;
-      _interchanges = [];
-      _pendingInterchangeInsertIndex = null;
-      _manualCandidateStations = [];
-      keyController.clear();
-    });
-  }
-
-  Future<void> _selectLine(StopLineMatch line) async {
-    _setTabForMode(line.mode);
-    setState(() {
-      _selectedLine = line;
-      _pendingInterchangeInsertIndex = null;
-      _manualCandidateStations = [];
-      if (_manualBuilderEnabled) {
-        _interchanges = [];
-      }
     });
   }
 
@@ -804,7 +685,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       origin: _originStation,
       destination: _destinationStation,
       interchanges: _interchanges,
-      selectedLine: _selectedLine,
+      fallbackMode: _originMode ?? _currentMode,
     );
   }
 
@@ -942,7 +823,6 @@ class _NewTripScreenState extends State<NewTripScreen>
             onDirectTripModeChanged: _originStation == null
                 ? null
                 : _toggleDirectTripMode,
-            sharedLines: _sharedLines,
             selectedLine: _selectedLine,
             interchanges: _interchanges,
             isResolvingSharedLines: _isResolvingSharedLines,
@@ -952,14 +832,7 @@ class _NewTripScreenState extends State<NewTripScreen>
             manualValidationMessage: _manualValidationMessage,
             onClearOrigin: _clearOrigin,
             onClearDestination: _clearDestination,
-            onLineSelected: _selectLine,
             onSaveDirect: _saveDirectTrip,
-            onStartManualBuilder: _sharedLines.isNotEmpty
-                ? _startManualBuilder
-                : null,
-            onCancelManualBuilder: _manualBuilderEnabled
-                ? _cancelManualBuilder
-                : null,
             onSaveManual: _canSaveManual ? _saveManualTrip : null,
             onAddInterchange: _startInterchangeSelection,
             onRemoveInterchange: _removeInterchange,
@@ -981,14 +854,9 @@ class _NewTripScreenState extends State<NewTripScreen>
         transportMode: mode,
         modeDisplayName: modeDisplayName,
         endpoints: tab.endpoints,
-        allowedStopIds: _shouldUseSameLineCandidatesForTab(tab)
-            ? _sameLineCandidatesForTab(
-                tab,
-              ).map((station) => station.id).toSet()
-            : null,
         embedded: true,
         onStopSelected: (name, id) {
-          setStation(name, id);
+          setStation(name, id, mode);
         },
         onClose: () {
           setState(() {
@@ -1002,29 +870,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_isLoadingLineCandidates &&
-        _originStation != null &&
-        _destinationStation == null &&
-        !_directTripMode &&
-        mode == _originMode) {
-      return const Center(child: Text('Checking static transport data...'));
-    }
-
     final selectedLine = _selectedLine;
-
-    if (_manualBuilderEnabled &&
-        selectedLine != null &&
-        mode != selectedLine.mode) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Text(
-            'Manual multi-leg editing is limited to ${selectedLine.mode.displayName} stops on ${selectedLine.lineName}.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
 
     if (_isLoadingInterchangeCandidates &&
         _manualBuilderEnabled &&
@@ -1040,8 +886,6 @@ class _NewTripScreenState extends State<NewTripScreen>
             selectedLine != null &&
             mode == selectedLine.mode
         ? _manualCandidateStations
-        : _shouldUseSameLineCandidatesForTab(tab)
-        ? _sameLineCandidatesForTab(tab)
         : _getStationListForTab(tab);
 
     final displayList = filterStationsByQuery(baseList, keyController.text);
@@ -1052,9 +896,7 @@ class _NewTripScreenState extends State<NewTripScreen>
               _pendingInterchangeInsertIndex != null &&
               selectedLine != null &&
               mode == selectedLine.mode
-          ? buildInterchangeEmptyMessage(selectedLine)
-          : _shouldUseSameLineCandidatesForTab(tab)
-          ? 'Static transport data needs updating for same-line filtering.'
+          ? buildInterchangeEmptyMessage()
           : 'No stops found.';
       return Center(child: Text(emptyMessage));
     }
@@ -1072,23 +914,6 @@ class _NewTripScreenState extends State<NewTripScreen>
       ],
     );
   }
-
-  bool _shouldUseSameLineCandidatesForTab(_TripCreatorTab tab) {
-    return _originStation != null &&
-        _destinationStation == null &&
-        !_directTripMode;
-  }
-
-  List<Station> _sameLineCandidatesForTab(_TripCreatorTab tab) {
-    final endpointKeys = tab.endpoints.map((endpoint) => endpoint.key).toSet();
-    return _sameLineCandidateStations.where((station) {
-      final lineId = station.lineId;
-      if (lineId == null) {
-        return false;
-      }
-      return endpointKeys.contains(lineId.split('|').first);
-    }).toList();
-  }
 }
 
 enum _TripCreatorTabKind {
@@ -1098,13 +923,6 @@ enum _TripCreatorTabKind {
   metro,
   bus,
   ferry,
-}
-
-class _SameLineCandidates {
-  const _SameLineCandidates({required this.lines, required this.stations});
-
-  final List<StopLineMatch> lines;
-  final List<Station> stations;
 }
 
 class _TripCreatorTab {

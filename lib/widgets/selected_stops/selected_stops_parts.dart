@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../constants/transport_modes.dart';
 import '../../services/new_trip_service.dart';
-import '../../services/trip_line_service.dart';
 import '../../utils/button_styles.dart';
 import '../station_widgets.dart';
 import 'selected_stops_helpers.dart';
@@ -93,43 +92,28 @@ class DirectTripActions extends StatelessWidget {
   const DirectTripActions({
     super.key,
     required this.canSaveDirect,
-    required this.sharedLines,
     required this.onSaveDirect,
-    this.onStartManualBuilder,
     required this.accentColor,
   });
 
   final bool canSaveDirect;
-  final List<StopLineMatch> sharedLines;
   final VoidCallback onSaveDirect;
-  final VoidCallback? onStartManualBuilder;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (canSaveDirect)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onSaveDirect,
-              icon: const Icon(Icons.save),
-              label: const Text('Save Direct Trip'),
-              style: ButtonStyles.elevated(accentColor),
-            ),
-          ),
-        if (sharedLines.isNotEmpty && onStartManualBuilder != null)
-          Padding(
-            padding: EdgeInsets.only(top: canSaveDirect ? 8.0 : 0.0),
-            child: OutlinedButton.icon(
-              onPressed: onStartManualBuilder,
-              icon: const Icon(Icons.alt_route),
-              label: const Text('Build Multi-Leg Trip'),
-            ),
-          ),
-      ],
+    if (!canSaveDirect) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onSaveDirect,
+        icon: const Icon(Icons.save),
+        label: const Text('Save Trip'),
+        style: ButtonStyles.elevated(accentColor),
+      ),
     );
   }
 }
@@ -170,6 +154,15 @@ class StopSequenceSection extends StatelessWidget {
     }
 
     final widgets = <Widget>[];
+    widgets.add(
+      _AddStopButton(
+        insertIndex: 0,
+        label: 'Add leg before',
+        isPending: pendingInterchangeInsertIndex == 0,
+        onAddInterchange: onAddInterchange,
+      ),
+    );
+
     for (var index = 0; index < descriptors.length; index++) {
       final descriptor = descriptors[index];
       widgets.add(
@@ -222,30 +215,56 @@ class StopSequenceSection extends StatelessWidget {
         final insertIndex = descriptor.insertIndex;
         final isPending = pendingInterchangeInsertIndex == insertIndex;
         widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => onAddInterchange(insertIndex),
-                icon: Icon(
-                  isPending
-                      ? Icons.radio_button_checked
-                      : Icons.add_circle_outline,
-                ),
-                label: Text(
-                  isPending
-                      ? 'Selecting interchange here'
-                      : 'Add interchange here',
-                ),
-              ),
-            ),
+          _AddStopButton(
+            insertIndex: insertIndex,
+            label: 'Add leg here',
+            isPending: isPending,
+            onAddInterchange: onAddInterchange,
           ),
         );
       }
     }
+    widgets.add(
+      _AddStopButton(
+        insertIndex: descriptors.length,
+        label: 'Add leg after',
+        isPending: pendingInterchangeInsertIndex == descriptors.length,
+        onAddInterchange: onAddInterchange,
+      ),
+    );
 
     return Column(children: widgets);
+  }
+}
+
+class _AddStopButton extends StatelessWidget {
+  const _AddStopButton({
+    required this.insertIndex,
+    required this.label,
+    required this.isPending,
+    required this.onAddInterchange,
+  });
+
+  final int insertIndex;
+  final String label;
+  final bool isPending;
+  final void Function(int insertIndex) onAddInterchange;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => onAddInterchange(insertIndex),
+          icon: Icon(
+            isPending ? Icons.radio_button_checked : Icons.add_circle_outline,
+          ),
+          label: Text(isPending ? 'Selecting stop here' : label),
+        ),
+      ),
+    );
   }
 }
 
@@ -303,23 +322,22 @@ class DerivedLegsSection extends StatelessWidget {
     required this.origin,
     required this.destination,
     required this.interchanges,
-    required this.selectedLine,
+    required this.fallbackMode,
     required this.accentColor,
   });
 
   final Station? origin;
   final Station? destination;
   final List<Station> interchanges;
-  final StopLineMatch? selectedLine;
+  final TransportMode fallbackMode;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final currentOrigin = origin;
     final currentDestination = destination;
-    final line = selectedLine;
 
-    if (currentOrigin == null || currentDestination == null || line == null) {
+    if (currentOrigin == null || currentDestination == null) {
       return const SizedBox.shrink();
     }
 
@@ -327,7 +345,7 @@ class DerivedLegsSection extends StatelessWidget {
       origin: currentOrigin,
       destination: currentDestination,
       interchanges: interchanges,
-      selectedLine: line,
+      fallbackMode: fallbackMode,
     );
 
     if (legs.isEmpty) {
@@ -369,7 +387,7 @@ class DerivedLegsSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 2.0),
                         Text(
-                          '${line.mode.displayName} - ${leg.lineName}',
+                          '${leg.mode.displayName} - ${leg.lineName ?? 'Service not selected'}',
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: Theme.of(context).textTheme.bodySmall,

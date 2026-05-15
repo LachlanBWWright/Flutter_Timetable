@@ -17,7 +17,7 @@ class SavedTripRenderService {
 
     final legs = <api.Leg>[];
     for (final leg in definition.legs) {
-      legs.add(await _buildManualLeg(leg, definition.mode));
+      legs.add(await _buildManualLeg(leg));
     }
 
     return api.TripJourney(
@@ -25,8 +25,6 @@ class SavedTripRenderService {
       legs: legs,
       rawJson: {
         'manual': true,
-        'lineId': definition.lineId,
-        'lineName': definition.lineName,
         'legs': definition.legs.map((leg) => leg.toJson()).toList(),
       },
     );
@@ -34,7 +32,6 @@ class SavedTripRenderService {
 
   static Future<api.Leg> _buildManualLeg(
     ManualTripLeg leg,
-    TransportMode mode,
   ) async {
     final origin = await _buildStop(leg.originId, leg.originName);
     final destination = await _buildStop(
@@ -42,29 +39,35 @@ class SavedTripRenderService {
       leg.destinationName,
     );
 
+    final displayName = leg.lineName ?? leg.mode.displayName;
+
     return api.Leg(
       origin: origin,
       destination: destination,
       isRealtimeControlled: false,
       stopSequence: [origin, destination],
       transportation: api.Transportation(
-        name: leg.lineName,
-        disassembledName: leg.lineName,
-        number: leg.lineName,
+        name: displayName,
+        disassembledName: displayName,
+        number: displayName,
         product: api.Product(
-          classField: _transportClassForMode(mode),
-          name: mode.displayName,
+          classField: _transportClassForMode(leg.mode),
+          name: leg.mode.displayName,
         ),
         rawJson: {
           'manual': true,
+          'mode': leg.mode.id,
           'lineId': leg.lineId,
           'lineName': leg.lineName,
+          'endpointKey': leg.endpointKey,
         },
       ),
       rawJson: {
         'manual': true,
+        'mode': leg.mode.id,
         'lineId': leg.lineId,
         'lineName': leg.lineName,
+        'endpointKey': leg.endpointKey,
         'originId': leg.originId,
         'destinationId': leg.destinationId,
       },

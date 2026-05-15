@@ -70,7 +70,7 @@ void main() {
         destinationMode: TransportMode.train,
       );
 
-      expect(message, contains('T1 North Shore'));
+      expect(message, contains('Add interchanges'));
     });
   });
 

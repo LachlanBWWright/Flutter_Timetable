@@ -48,8 +48,9 @@ class ManualTripLeg {
     required this.destinationName,
     required this.destinationId,
     required this.mode,
-    required this.lineId,
-    required this.lineName,
+    this.lineId,
+    this.lineName,
+    this.endpointKey,
   });
 
   final int index;
@@ -58,8 +59,9 @@ class ManualTripLeg {
   final String destinationName;
   final String destinationId;
   final TransportMode mode;
-  final String lineId;
-  final String lineName;
+  final String? lineId;
+  final String? lineName;
+  final String? endpointKey;
 
   Map<String, dynamic> toJson() {
     return {
@@ -69,13 +71,18 @@ class ManualTripLeg {
       'destinationName': destinationName,
       'destinationId': destinationId,
       'mode': mode.id,
-      'lineId': lineId,
-      'lineName': lineName,
+      if (lineId != null) 'lineId': lineId,
+      if (lineName != null) 'lineName': lineName,
+      if (endpointKey != null) 'endpointKey': endpointKey,
     };
   }
 
-  factory ManualTripLeg.fromJson(Map<String, dynamic> json) {
-    final parsedMode = transportModeFromStorage(json['mode']?.toString());
+  factory ManualTripLeg.fromJson(
+    Map<String, dynamic> json, {
+    TransportMode? fallbackMode,
+  }) {
+    final parsedMode =
+        transportModeFromStorage(json['mode']?.toString()) ?? fallbackMode;
     if (parsedMode == null) {
       throw const FormatException('Manual trip leg is missing a valid mode');
     }
@@ -87,35 +94,25 @@ class ManualTripLeg {
       destinationName: json['destinationName']?.toString() ?? '',
       destinationId: json['destinationId']?.toString() ?? '',
       mode: parsedMode,
-      lineId: json['lineId']?.toString() ?? '',
-      lineName: json['lineName']?.toString() ?? '',
+      lineId: json['lineId']?.toString(),
+      lineName: json['lineName']?.toString(),
+      endpointKey: json['endpointKey']?.toString(),
     );
   }
 }
 
 class ManualTripDefinition {
-  const ManualTripDefinition({
-    required this.mode,
-    required this.lineId,
-    required this.lineName,
-    required this.legs,
-  });
+  const ManualTripDefinition({required this.legs});
 
-  final TransportMode mode;
-  final String lineId;
-  final String lineName;
   final List<ManualTripLeg> legs;
 
   bool get isValid {
-    if (legs.length < 2) {
+    if (legs.isEmpty) {
       return false;
     }
 
     for (var index = 0; index < legs.length; index++) {
       final leg = legs[index];
-      if (leg.mode != mode || leg.lineId != lineId) {
-        return false;
-      }
       if (leg.originId.isEmpty || leg.destinationId.isEmpty) {
         return false;
       }
@@ -152,29 +149,44 @@ class ManualTripDefinition {
   }
 
   factory ManualTripDefinition.fromLegsJson({
-    required TransportMode mode,
-    required String lineId,
-    required String lineName,
     required String legsJson,
+    // Legacy fields for backward compatibility
+    TransportMode? legacyMode,
+    String? legacyLineId,
+    String? legacyLineName,
   }) {
     final raw = jsonDecode(legsJson);
     if (raw is! List) {
       throw const FormatException('Manual trip legs JSON must be a list');
     }
 
-    final legs =
-        raw
-            .whereType<Map<String, dynamic>>()
-            .map(ManualTripLeg.fromJson)
-            .toList()
-          ..sort((a, b) => a.index.compareTo(b.index));
+    final legs = raw
+        .whereType<Map<String, dynamic>>()
+        .map((legJson) {
+          // Apply legacy fallbacks if leg is missing metadata
+          final leg = ManualTripLeg.fromJson(
+            legJson,
+            fallbackMode: legacyMode,
+          );
+          if (leg.lineId == null && legacyLineId != null) {
+            return ManualTripLeg(
+              index: leg.index,
+              originName: leg.originName,
+              originId: leg.originId,
+              destinationName: leg.destinationName,
+              destinationId: leg.destinationId,
+              mode: leg.mode,
+              lineId: legacyLineId,
+              lineName: legacyLineName,
+              endpointKey: leg.endpointKey,
+            );
+          }
+          return leg;
+        })
+        .toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
 
-    return ManualTripDefinition(
-      mode: mode,
-      lineId: lineId,
-      lineName: lineName,
-      legs: legs,
-    );
+    return ManualTripDefinition(legs: legs);
   }
 }
 
@@ -186,25 +198,22 @@ extension ManualTripDefinitionX on ManualTripDefinition {
       (index) {
         final origin = reversedStops[index];
         final destination = reversedStops[index + 1];
+        final currentLeg = legs[legs.length - 1 - index];
         return ManualTripLeg(
           index: index,
           originName: origin.name,
           originId: origin.id,
           destinationName: destination.name,
           destinationId: destination.id,
-          mode: mode,
-          lineId: lineId,
-          lineName: lineName,
+          mode: currentLeg.mode,
+          lineId: currentLeg.lineId,
+          lineName: currentLeg.lineName,
+          endpointKey: currentLeg.endpointKey,
         );
       },
     );
 
-    return ManualTripDefinition(
-      mode: mode,
-      lineId: lineId,
-      lineName: lineName,
-      legs: reversedLegs,
-    );
+    return ManualTripDefinition(legs: reversedLegs);
   }
 }
 
@@ -227,28 +236,17 @@ extension JourneySavedTripX on Journey {
       return null;
     }
 
-    final tripMode = savedMode;
-    if (tripMode == null ||
-        lineId == null ||
-        lineName == null ||
-        legsJson == null) {
+    final resolvedLegsJson = legsJson;
+    if (resolvedLegsJson == null) {
       return null;
     }
 
     try {
-      final resolvedLineId = lineId;
-      final resolvedLineName = lineName;
-      final resolvedLegsJson = legsJson;
-      if (resolvedLineId == null ||
-          resolvedLineName == null ||
-          resolvedLegsJson == null) {
-        return null;
-      }
       final definition = ManualTripDefinition.fromLegsJson(
-        mode: tripMode,
-        lineId: resolvedLineId,
-        lineName: resolvedLineName,
         legsJson: resolvedLegsJson,
+        legacyMode: savedMode,
+        legacyLineId: lineId,
+        legacyLineName: lineName,
       );
       return definition.isValid ? definition : null;
     } catch (_) {

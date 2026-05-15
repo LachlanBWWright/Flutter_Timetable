@@ -76,12 +76,13 @@ class LineScopedStop {
     return Station(
       name: stopName,
       id: stopId,
+      mode: mode,
       latitude: latitude,
       longitude: longitude,
       distance: distanceKm,
       lineId: lineId,
       lineName: lineName,
-      isWithinLinePriorityRadius: isWithinAnchorRadius,
+      isPreferredNearby: isWithinAnchorRadius,
       lineStopOrder: stopOrder,
     );
   }

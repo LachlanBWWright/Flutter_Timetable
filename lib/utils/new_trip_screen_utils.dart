@@ -81,16 +81,22 @@ String? buildNewTripStatusMessage({
 
   if (manualBuilderEnabled && pendingInterchangeInsertIndex != null) {
     final insertIndex = pendingInterchangeInsertIndex;
+    if (insertIndex == 0 && orderedStops.isNotEmpty) {
+      return 'Choose a stop before ${orderedStops.first.name}. Nearby adjacent-leg stops are ranked first.';
+    }
+    if (insertIndex >= orderedStops.length && orderedStops.isNotEmpty) {
+      return 'Choose a stop after ${orderedStops.last.name}. Nearby adjacent-leg stops are ranked first.';
+    }
     if (insertIndex > 0 && insertIndex < orderedStops.length) {
       final previous = orderedStops[insertIndex - 1];
       final next = orderedStops[insertIndex];
-      return 'Choose an interchange between ${previous.name} and ${next.name}. Stops on the selected line within 5 km are listed first.';
+      return 'Choose a stop between ${previous.name} and ${next.name}. Nearby adjacent-leg stops are ranked first.';
     }
   }
 
   if (manualBuilderEnabled) {
     return manualValidationMessage ??
-        'Add interchanges on ${selectedLine?.lineName ?? 'the selected line'} to split this trip into multiple legs.';
+        'Add interchanges before, between, or after stops to build multiple legs.';
   }
 
   if (canSaveDirect && sharedLines.isEmpty) {
@@ -103,22 +109,22 @@ String? buildNewTripStatusMessage({
   }
 
   if (sharedLines.length == 1) {
-    return 'A shared line is available. Save directly or build a manual multi-leg trip.';
+    return 'Save this two-stop trip, or add stops before, after, or between the selected stops.';
   }
 
   if (sharedLines.length > 1) {
-    return 'Multiple shared lines are available. Pick one before building a manual multi-leg trip.';
+    return 'Save this two-stop trip, or add stops using the first matching shared line.';
   }
 
   return null;
 }
 
 String buildManualModeLockedMessage(StopLineMatch selectedLine) {
-  return 'Manual multi-leg editing is limited to ${selectedLine.mode.displayName} stops on ${selectedLine.lineName}.';
+  return 'Manual multi-leg editing is available across all modes.';
 }
 
-String buildInterchangeEmptyMessage(StopLineMatch selectedLine) {
-  return 'No stops found on ${selectedLine.lineName} for this interchange.';
+String buildInterchangeEmptyMessage() {
+  return 'No stops found for this interchange.';
 }
 
 String? manualTripValidationMessage({
@@ -126,7 +132,7 @@ String? manualTripValidationMessage({
   required Station? origin,
   required Station? destination,
   required List<Station> interchanges,
-  required StopLineMatch? selectedLine,
+  required TransportMode fallbackMode,
 }) {
   if (!manualBuilderEnabled) {
     return null;
@@ -136,6 +142,6 @@ String? manualTripValidationMessage({
     origin: origin,
     destination: destination,
     interchanges: interchanges,
-    selectedLine: selectedLine,
+    fallbackMode: fallbackMode,
   );
 }

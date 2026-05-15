@@ -4,13 +4,19 @@ import '../constants/transport_colors.dart';
 import '../services/debug_service.dart';
 import '../utils/station_subtitle_utils.dart';
 
+typedef StationSelectionCallback =
+    void Function(String stationName, String stationId, TransportMode? mode);
+
 /// A model class for station data
 class Station {
   final String name;
   final String id;
+  final TransportMode? mode;
   final String? lineId;
   final String? lineName;
-  final bool isWithinLinePriorityRadius;
+  final bool isPreferredNearby;
+  final String? nearbyBadgeLabel;
+  final double? nearbyAnchorDistance;
   final int? lineStopOrder;
 
   // Optional metadata from GTFS/stop endpoints
@@ -31,9 +37,12 @@ class Station {
   Station({
     required this.name,
     required this.id,
+    this.mode,
     this.lineId,
     this.lineName,
-    this.isWithinLinePriorityRadius = false,
+    this.isPreferredNearby = false,
+    this.nearbyBadgeLabel,
+    this.nearbyAnchorDistance,
     this.lineStopOrder,
     this.stopCode,
     this.stopDesc,
@@ -53,9 +62,12 @@ class Station {
   Station copyWith({
     String? name,
     String? id,
+    TransportMode? mode,
     String? lineId,
     String? lineName,
-    bool? isWithinLinePriorityRadius,
+    bool? isPreferredNearby,
+    String? nearbyBadgeLabel,
+    double? nearbyAnchorDistance,
     int? lineStopOrder,
     String? stopCode,
     String? stopDesc,
@@ -73,10 +85,12 @@ class Station {
     return Station(
       name: name ?? this.name,
       id: id ?? this.id,
+      mode: mode ?? this.mode,
       lineId: lineId ?? this.lineId,
       lineName: lineName ?? this.lineName,
-      isWithinLinePriorityRadius:
-          isWithinLinePriorityRadius ?? this.isWithinLinePriorityRadius,
+      isPreferredNearby: isPreferredNearby ?? this.isPreferredNearby,
+      nearbyBadgeLabel: nearbyBadgeLabel ?? this.nearbyBadgeLabel,
+      nearbyAnchorDistance: nearbyAnchorDistance ?? this.nearbyAnchorDistance,
       lineStopOrder: lineStopOrder ?? this.lineStopOrder,
       stopCode: stopCode ?? this.stopCode,
       stopDesc: stopDesc ?? this.stopDesc,
@@ -97,7 +111,7 @@ class Station {
 /// Widget for displaying a single station item with optional distance
 class StationView extends StatelessWidget {
   final Station station;
-  final Function(String, String) setStation;
+  final StationSelectionCallback setStation;
   final SortMode sortMode;
   final TransportMode? mode;
 
@@ -121,7 +135,7 @@ class StationView extends StatelessWidget {
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: InkWell(
           onTap: () {
-            setStation(station.name, station.id);
+            setStation(station.name, station.id, mode);
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,9 +155,29 @@ class StationView extends StatelessWidget {
       builder: (context, showDebug, _) {
         final items = <Widget>[];
         final dist = station.distance;
+        final nearbyDistance = station.nearbyAnchorDistance;
+
+        if (station.isPreferredNearby) {
+          items.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Chip(
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  label: Text(
+                    station.nearbyBadgeLabel ?? 'Best nearby',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
 
         final standardDistanceLine = formatStationDistanceLine(
-          dist,
+          nearbyDistance ?? dist,
           debugFormat: false,
         );
         if (standardDistanceLine != null && !showDebug) {
@@ -166,7 +200,7 @@ class StationView extends StatelessWidget {
           );
 
           final debugDistanceLine = formatStationDistanceLine(
-            dist,
+            nearbyDistance ?? dist,
             debugFormat: true,
           );
           if (debugDistanceLine != null) {
@@ -192,7 +226,7 @@ class StationView extends StatelessWidget {
 /// Enhanced widget for displaying a list of stations with distance support
 class EnhancedStationList extends StatelessWidget {
   final List<Station> listItems;
-  final Function(String, String) setStation;
+  final StationSelectionCallback setStation;
   final SortMode sortMode;
   final TransportMode? mode;
 
@@ -223,7 +257,7 @@ class EnhancedStationList extends StatelessWidget {
 /// Widget for displaying a list of stations
 class StationList extends StatelessWidget {
   final List<Station> listItems;
-  final Function(String, String) setStation;
+  final StationSelectionCallback setStation;
 
   const StationList({
     super.key,

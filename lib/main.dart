@@ -101,6 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isEditingMode = false;
   bool _isSearching = false;
   bool _isAlphabeticalSorting = true;
+  bool _hasShownLocationSnackBar = false;
   final TextEditingController _searchController = TextEditingController();
   // Single database instance for this stateful widget
   final db.AppDatabase _database = db.AppDatabase();
@@ -131,12 +132,13 @@ class _MyHomePageState extends State<MyHomePage> {
       // Now sort journeys according to user preference (distance vs alphabetical).
       ScaffoldMessengerState? messenger;
       final isAlphabetical = await LocationService.isAlphabeticalSorting();
-      if (!isAlphabetical && mounted) {
+      if (!isAlphabetical && mounted && !_hasShownLocationSnackBar) {
+        _hasShownLocationSnackBar = true;
         messenger = ScaffoldMessenger.of(context);
         messenger.showSnackBar(
           const SnackBar(
             content: Text('Getting your location…'),
-            duration: Duration(minutes: 1),
+            duration: Duration(seconds: 3),
           ),
         );
       }

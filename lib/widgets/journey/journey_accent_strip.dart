@@ -13,11 +13,9 @@ class JourneyAccentStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (journey.isManualMultiLeg && journey.savedMode != null) {
-      final accentColor = accentColorForModeOrFallback(
-        journey.savedMode,
-        journey,
-      );
+    final savedMode = journey.savedMode;
+    if (savedMode != null) {
+      final accentColor = accentColorForModeOrFallback(savedMode, journey);
       return _strip(accentColor, accentColor);
     }
 

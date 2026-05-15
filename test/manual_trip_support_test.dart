@@ -8,11 +8,8 @@ import 'package:lbww_flutter/widgets/station_widgets.dart';
 
 void main() {
   group('ManualTripDefinition', () {
-    test('reversed keeps the same line and reverses stop order', () {
-      final definition = const ManualTripDefinition(
-        mode: TransportMode.train,
-        lineId: 'sydneytrains|T1',
-        lineName: 'T1 North Shore Line',
+    test('reversed keeps the leg modes and reverses stop order', () {
+      const definition = ManualTripDefinition(
         legs: [
           ManualTripLeg(
             index: 0,
@@ -52,10 +49,7 @@ void main() {
     });
 
     test('journey reverse preview swaps endpoints and reversed legs json', () {
-      final definition = const ManualTripDefinition(
-        mode: TransportMode.train,
-        lineId: 'sydneytrains|T1',
-        lineName: 'T1 North Shore Line',
+      const definition = ManualTripDefinition(
         legs: [
           ManualTripLeg(
             index: 0,
@@ -87,8 +81,8 @@ void main() {
         destinationId: 'strathfield',
         tripType: SavedTripType.manualMultiLeg.storageValue,
         mode: TransportMode.train.id,
-        lineId: definition.lineId,
-        lineName: definition.lineName,
+        lineId: definition.legs.first.lineId,
+        lineName: definition.legs.first.lineName,
         legsJson: definition.toLegsJson(),
         isPinned: true,
       );
@@ -105,6 +99,107 @@ void main() {
         'redfern',
         'central',
       ]);
+    });
+
+    test('a manual trip with train and bus legs is valid', () {
+      const definition = ManualTripDefinition(
+        legs: [
+          ManualTripLeg(
+            index: 0,
+            originName: 'Central',
+            originId: 'central',
+            destinationName: 'Redfern',
+            destinationId: 'redfern',
+            mode: TransportMode.train,
+            lineId: 'sydneytrains|T1',
+            lineName: 'T1 North Shore Line',
+          ),
+          ManualTripLeg(
+            index: 1,
+            originName: 'Redfern',
+            originId: 'redfern',
+            destinationName: 'Marrickville',
+            destinationId: 'marrickville',
+            mode: TransportMode.bus,
+            lineId: 'busco|392',
+            lineName: 'Route 392',
+          ),
+        ],
+      );
+
+      expect(definition.isValid, isTrue);
+      expect(definition.legs[0].mode, TransportMode.train);
+      expect(definition.legs[1].mode, TransportMode.bus);
+    });
+
+    test('manual trip with unresolved leg metadata is valid', () {
+      const definition = ManualTripDefinition(
+        legs: [
+          ManualTripLeg(
+            index: 0,
+            originName: 'Central',
+            originId: 'central',
+            destinationName: 'Redfern',
+            destinationId: 'redfern',
+            mode: TransportMode.train,
+            lineId: null,
+            lineName: null,
+          ),
+          ManualTripLeg(
+            index: 1,
+            originName: 'Redfern',
+            originId: 'redfern',
+            destinationName: 'Marrickville',
+            destinationId: 'marrickville',
+            mode: TransportMode.bus,
+            lineId: null,
+            lineName: null,
+          ),
+        ],
+      );
+
+      expect(definition.isValid, isTrue);
+      expect(definition.legs[0].lineId, isNull);
+      expect(definition.legs[1].lineId, isNull);
+    });
+
+    test('multi-mode trip reversal preserves per-leg mode metadata', () {
+      const definition = ManualTripDefinition(
+        legs: [
+          ManualTripLeg(
+            index: 0,
+            originName: 'Central',
+            originId: 'central',
+            destinationName: 'Redfern',
+            destinationId: 'redfern',
+            mode: TransportMode.train,
+            lineId: 'sydneytrains|T1',
+            lineName: 'T1 North Shore Line',
+          ),
+          ManualTripLeg(
+            index: 1,
+            originName: 'Redfern',
+            originId: 'redfern',
+            destinationName: 'Marrickville',
+            destinationId: 'marrickville',
+            mode: TransportMode.bus,
+            lineId: 'busco|392',
+            lineName: 'Route 392',
+          ),
+        ],
+      );
+
+      final reversed = definition.reversed();
+
+      expect(reversed.isValid, isTrue);
+      expect(reversed.legs[0].mode, TransportMode.bus);
+      expect(reversed.legs[0].originId, 'marrickville');
+      expect(reversed.legs[0].destinationId, 'redfern');
+      expect(reversed.legs[0].lineId, 'busco|392');
+      expect(reversed.legs[1].mode, TransportMode.train);
+      expect(reversed.legs[1].originId, 'redfern');
+      expect(reversed.legs[1].destinationId, 'central');
+      expect(reversed.legs[1].lineId, 'sydneytrains|T1');
     });
   });
 
@@ -139,7 +234,7 @@ void main() {
         origin: origin,
         destination: destination,
         interchanges: [interchange],
-        selectedLine: selectedLine,
+        fallbackMode: selectedLine.mode,
       );
 
       expect(legs.length, 2);
@@ -150,18 +245,15 @@ void main() {
       expect(legs.map((leg) => leg.index), [0, 1]);
     });
 
-    test('validateManualTrip requires at least one interchange', () {
+    test('validateManualTrip allows direct two-stop manual trip', () {
       final validation = NewTripService.validateManualTrip(
         origin: station('central', 'Central'),
         destination: station('strathfield', 'Strathfield'),
         interchanges: const [],
-        selectedLine: selectedLine,
+        fallbackMode: selectedLine.mode,
       );
 
-      expect(
-        validation,
-        'A manual multi-leg trip needs at least one interchange.',
-      );
+      expect(validation, isNull);
     });
 
     test('validateManualTrip rejects duplicate adjacent stops', () {
@@ -177,13 +269,13 @@ void main() {
         origin: origin,
         destination: station('strathfield', 'Strathfield'),
         interchanges: [duplicate],
-        selectedLine: selectedLine,
+        fallbackMode: selectedLine.mode,
       );
 
       expect(validation, 'Adjacent stops cannot be the same.');
     });
 
-    test('validateManualTrip rejects interchanges from another line', () {
+    test('validateManualTrip accepts interchanges from another line', () {
       final validation = NewTripService.validateManualTrip(
         origin: station('central', 'Central'),
         destination: station('strathfield', 'Strathfield'),
@@ -195,10 +287,10 @@ void main() {
             lineName: 'T2 Inner West Line',
           ),
         ],
-        selectedLine: selectedLine,
+        fallbackMode: selectedLine.mode,
       );
 
-      expect(validation, 'Each interchange must stay on the selected line.');
+      expect(validation, isNull);
     });
 
     test('validateManualTrip accepts a continuous same-line trip', () {
@@ -213,7 +305,7 @@ void main() {
             lineName: selectedLine.lineName,
           ),
         ],
-        selectedLine: selectedLine,
+        fallbackMode: selectedLine.mode,
       );
 
       expect(validation, isNull);

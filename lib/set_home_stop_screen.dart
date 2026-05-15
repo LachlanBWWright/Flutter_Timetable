@@ -183,7 +183,11 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
           final lon = station.longitude;
           final distance = lat != null && lon != null
               ? LocationService.calculateDistance(
-                  position.latitude, position.longitude, lat, lon)
+                  position.latitude,
+                  position.longitude,
+                  lat,
+                  lon,
+                )
               : 0.0;
           return station.copyWith(distance: distance);
         })
@@ -219,11 +223,15 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     }
   }
 
-  void _setStation(String stationName, String stationId) {
+  void _setStation(
+    String stationName,
+    String stationId,
+    TransportMode? selectedMode,
+  ) {
     setState(() {
       _selectedStationName = stationName;
       _selectedStationId = stationId;
-      _selectedStationMode = _currentMode;
+      _selectedStationMode = selectedMode ?? _currentMode;
     });
   }
 
