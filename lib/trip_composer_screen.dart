@@ -166,10 +166,8 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
             originMode: widget.originMode,
             destinationMode: widget.destinationMode,
             selectedLine: null,
-            isDirectTripMode: false,
             isLoadingLineCandidates: false,
             originLineCount: 0,
-            onDirectTripModeChanged: null,
             statusMessage: 'Multi-mode manual trip ready',
             onClearOrigin: () {},
             onClearDestination: () {},
@@ -207,6 +205,7 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
           StopSequenceSection(
             descriptors: _descriptors,
             accentColor: accentColor,
+            allowAddingInterchanges: true,
             pendingInterchangeInsertIndex: null,
             onAddInterchange: _openStopSelectionPage,
             onRemoveInterchange: _removeInterchange,
@@ -594,7 +593,7 @@ class _ComposerActions extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: canSave ? onSave : null,
                 icon: const Icon(Icons.save),
-                label: const Text('Save Multi-Leg Trip'),
+                label: const Text('Save Trip'),
                 style: ButtonStyles.elevated(accentColor),
               ),
             ),

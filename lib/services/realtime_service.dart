@@ -44,9 +44,9 @@ class RealtimeService {
     bool includeTripUpdates = true,
   }) async {
     final now = DateTime.now();
-    if (_lastAggregatePrefetchAt != null &&
-        now.difference(_lastAggregatePrefetchAt!) <
-            _aggregatePrefetchCooldown) {
+    final lastAggregatePrefetchAt = _lastAggregatePrefetchAt;
+    if (lastAggregatePrefetchAt != null &&
+        now.difference(lastAggregatePrefetchAt) < _aggregatePrefetchCooldown) {
       return;
     }
 

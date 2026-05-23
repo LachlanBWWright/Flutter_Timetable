@@ -48,15 +48,15 @@ void main() {
       });
 
       test('Agency validates required fields', () {
-        Agency.validateCsvHeader([
-          'agency_name',
-          'agency_url',
-          'agency_timezone',
-        ]);
         expect(
-          () => Agency.validateCsvHeader(['agency_name']),
-          throwsA(isA<FormatException>()),
+          Agency.validateCsvHeader([
+            'agency_name',
+            'agency_url',
+            'agency_timezone',
+          ]),
+          isTrue,
         );
+        expect(Agency.validateCsvHeader(['agency_name']), isFalse);
       });
     });
 
@@ -111,11 +111,11 @@ void main() {
       });
 
       test('Stop validates required fields', () {
-        Stop.validateCsvHeader(['stop_id', 'stop_name', 'stop_lat']);
         expect(
-          () => Stop.validateCsvHeader(['stop_name']),
-          throwsA(isA<FormatException>()),
+          Stop.validateCsvHeader(['stop_id', 'stop_name', 'stop_lat']),
+          isTrue,
         );
+        expect(Stop.validateCsvHeader(['stop_name']), isFalse);
       });
     });
 
@@ -151,16 +151,16 @@ void main() {
       });
 
       test('Route validates required fields', () {
-        Route.validateCsvHeader([
-          'route_id',
-          'route_short_name',
-          'route_long_name',
-          'route_type',
-        ]);
         expect(
-          () => Route.validateCsvHeader(['route_id']),
-          throwsA(isA<FormatException>()),
+          Route.validateCsvHeader([
+            'route_id',
+            'route_short_name',
+            'route_long_name',
+            'route_type',
+          ]),
+          isTrue,
         );
+        expect(Route.validateCsvHeader(['route_id']), isFalse);
       });
     });
 
@@ -205,11 +205,11 @@ void main() {
       });
 
       test('Trip validates required fields', () {
-        Trip.validateCsvHeader(['route_id', 'service_id', 'trip_id']);
         expect(
-          () => Trip.validateCsvHeader(['route_id', 'trip_id']),
-          throwsA(isA<FormatException>()),
+          Trip.validateCsvHeader(['route_id', 'service_id', 'trip_id']),
+          isTrue,
         );
+        expect(Trip.validateCsvHeader(['route_id', 'trip_id']), isFalse);
       });
     });
 
@@ -257,16 +257,19 @@ void main() {
       );
 
       test('StopTime validates required fields', () {
-        StopTime.validateCsvHeader([
-          'trip_id',
-          'arrival_time',
-          'departure_time',
-          'stop_id',
-          'stop_sequence',
-        ]);
         expect(
-          () => StopTime.validateCsvHeader(['trip_id', 'arrival_time']),
-          throwsA(isA<FormatException>()),
+          StopTime.validateCsvHeader([
+            'trip_id',
+            'arrival_time',
+            'departure_time',
+            'stop_id',
+            'stop_sequence',
+          ]),
+          isTrue,
+        );
+        expect(
+          StopTime.validateCsvHeader(['trip_id', 'arrival_time']),
+          isFalse,
         );
       });
     });

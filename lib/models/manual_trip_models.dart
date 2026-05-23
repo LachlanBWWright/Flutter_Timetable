@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
+import 'package:option_result/option_result.dart';
 
 enum SavedTripType {
   direct,
@@ -38,6 +41,15 @@ TransportMode? transportModeFromStorage(String? value) {
   }
 
   return null;
+}
+
+class ManualTripDecodeFailure {
+  const ManualTripDecodeFailure(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }
 
 class ManualTripLeg {
@@ -77,26 +89,30 @@ class ManualTripLeg {
     };
   }
 
-  factory ManualTripLeg.fromJson(
+  static Result<ManualTripLeg, ManualTripDecodeFailure> tryDecode(
     Map<String, dynamic> json, {
     TransportMode? fallbackMode,
   }) {
     final parsedMode =
         transportModeFromStorage(json['mode']?.toString()) ?? fallbackMode;
     if (parsedMode == null) {
-      throw const FormatException('Manual trip leg is missing a valid mode');
+      return const Err(
+        ManualTripDecodeFailure('Manual trip leg is missing a valid mode'),
+      );
     }
 
-    return ManualTripLeg(
-      index: (json['index'] as num?)?.toInt() ?? 0,
-      originName: json['originName']?.toString() ?? '',
-      originId: json['originId']?.toString() ?? '',
-      destinationName: json['destinationName']?.toString() ?? '',
-      destinationId: json['destinationId']?.toString() ?? '',
-      mode: parsedMode,
-      lineId: json['lineId']?.toString(),
-      lineName: json['lineName']?.toString(),
-      endpointKey: json['endpointKey']?.toString(),
+    return Ok(
+      ManualTripLeg(
+        index: (json['index'] as num?)?.toInt() ?? 0,
+        originName: json['originName']?.toString() ?? '',
+        originId: json['originId']?.toString() ?? '',
+        destinationName: json['destinationName']?.toString() ?? '',
+        destinationId: json['destinationId']?.toString() ?? '',
+        mode: parsedMode,
+        lineId: json['lineId']?.toString(),
+        lineName: json['lineName']?.toString(),
+        endpointKey: json['endpointKey']?.toString(),
+      ),
     );
   }
 }
@@ -131,12 +147,13 @@ class ManualTripDefinition {
   }
 
   List<ManualTripStop> get orderedStops {
-    if (legs.isEmpty) {
+    final firstLeg = legs.isEmpty ? null : legs.first;
+    if (firstLeg == null) {
       return const [];
     }
 
     return [
-      ManualTripStop(id: legs.first.originId, name: legs.first.originName),
+      ManualTripStop(id: firstLeg.originId, name: firstLeg.originName),
       ...legs.map(
         (leg) =>
             ManualTripStop(id: leg.destinationId, name: leg.destinationName),
@@ -148,28 +165,36 @@ class ManualTripDefinition {
     return jsonEncode(legs.map((leg) => leg.toJson()).toList());
   }
 
-  factory ManualTripDefinition.fromLegsJson({
+  static Result<ManualTripDefinition, ManualTripDecodeFailure>
+  tryDecodeFromLegsJson({
     required String legsJson,
-    // Legacy fields for backward compatibility
     TransportMode? legacyMode,
     String? legacyLineId,
     String? legacyLineName,
   }) {
-    final raw = jsonDecode(legsJson);
-    if (raw is! List) {
-      throw const FormatException('Manual trip legs JSON must be a list');
+    final raw = tryDecodeJsonList(legsJson);
+    if (raw == null) {
+      return const Err(
+        ManualTripDecodeFailure('Manual trip legs JSON must be a list'),
+      );
     }
 
-    final legs = raw
-        .whereType<Map<String, dynamic>>()
-        .map((legJson) {
-          // Apply legacy fallbacks if leg is missing metadata
-          final leg = ManualTripLeg.fromJson(
-            legJson,
-            fallbackMode: legacyMode,
-          );
+    final legs = <ManualTripLeg>[];
+    for (final legJson in raw) {
+      if (legJson is! Map<String, dynamic>) {
+        return const Err(
+          ManualTripDecodeFailure(
+            'Manual trip legs JSON contains a non-object leg',
+          ),
+        );
+      }
+
+      final result = ManualTripLeg.tryDecode(legJson, fallbackMode: legacyMode);
+      switch (result) {
+        case Ok(:final v):
+          var leg = v;
           if (leg.lineId == null && legacyLineId != null) {
-            return ManualTripLeg(
+            leg = ManualTripLeg(
               index: leg.index,
               originName: leg.originName,
               originId: leg.originId,
@@ -181,18 +206,24 @@ class ManualTripDefinition {
               endpointKey: leg.endpointKey,
             );
           }
-          return leg;
-        })
-        .toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
+          legs.add(leg);
+        case Err(:final e):
+          return Err(e);
+      }
+    }
 
-    return ManualTripDefinition(legs: legs);
+    legs.sort((a, b) => a.index.compareTo(b.index));
+    return Ok(ManualTripDefinition(legs: legs));
   }
 }
 
 extension ManualTripDefinitionX on ManualTripDefinition {
   ManualTripDefinition reversed() {
     final reversedStops = orderedStops.reversed.toList();
+    if (reversedStops.length < 2) {
+      return const ManualTripDefinition(legs: []);
+    }
+
     final reversedLegs = List<ManualTripLeg>.generate(
       reversedStops.length - 1,
       (index) {
@@ -241,16 +272,18 @@ extension JourneySavedTripX on Journey {
       return null;
     }
 
-    try {
-      final definition = ManualTripDefinition.fromLegsJson(
-        legsJson: resolvedLegsJson,
-        legacyMode: savedMode,
-        legacyLineId: lineId,
-        legacyLineName: lineName,
-      );
-      return definition.isValid ? definition : null;
-    } catch (_) {
-      return null;
+    final result = ManualTripDefinition.tryDecodeFromLegsJson(
+      legsJson: resolvedLegsJson,
+      legacyMode: savedMode,
+      legacyLineId: lineId,
+      legacyLineName: lineName,
+    );
+    switch (result) {
+      case Ok(:final v):
+        return v.isValid ? v : null;
+      case Err(:final e):
+        logger.w('Failed to decode manual trip definition for journey $id: $e');
+        return null;
     }
   }
 

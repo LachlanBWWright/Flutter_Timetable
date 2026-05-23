@@ -67,13 +67,8 @@ class Trip {
     'bikes_allowed',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Require presence of required columns per GTFS spec
-    final required = ['route_id', 'service_id', 'trip_id'];
-    for (final col in required) {
-      if (!header.contains(col)) {
-        // Missing required column — callers should handle this case
-      }
-    }
+  static bool validateCsvHeader(List<String> header) {
+    const required = ['route_id', 'service_id', 'trip_id'];
+    return required.every(header.contains);
   }
 }

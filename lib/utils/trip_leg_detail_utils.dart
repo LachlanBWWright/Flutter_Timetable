@@ -2,6 +2,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 
 import 'date_time_utils.dart';
+import 'safe_value_utils.dart';
 
 int? extractTransportClassFromLeg(Map<String, dynamic>? leg) {
   if (leg == null) return 5;
@@ -48,15 +49,7 @@ LatLng? parseStopCoord(Map<String, dynamic>? stop) {
     return null;
   }
 
-  final coord = stop['coord'] as List?;
-  if (coord == null ||
-      coord.length < 2 ||
-      coord[0] == null ||
-      coord[1] == null) {
-    return null;
-  }
-
-  return LatLng((coord[0] as num).toDouble(), (coord[1] as num).toDouble());
+  return tryParseLatLng(stop['coord']);
 }
 
 String formatTimeDifference(String? plannedTime, String? estimatedTime) {

@@ -16,10 +16,10 @@ class SelectedStopsWidget extends StatelessWidget {
     required this.currentMode,
     required this.originMode,
     required this.destinationMode,
-    required this.isDirectTripMode,
     required this.isLoadingLineCandidates,
     required this.originLineCandidates,
-    required this.onDirectTripModeChanged,
+    required this.isSameLineFilterEnabled,
+    required this.onSameLineFilterChanged,
     required this.selectedLine,
     required this.interchanges,
     required this.isResolvingSharedLines,
@@ -43,10 +43,10 @@ class SelectedStopsWidget extends StatelessWidget {
   final TransportMode currentMode;
   final TransportMode? originMode;
   final TransportMode? destinationMode;
-  final bool isDirectTripMode;
   final bool isLoadingLineCandidates;
   final List<StopLineMatch> originLineCandidates;
-  final ValueChanged<bool>? onDirectTripModeChanged;
+  final bool isSameLineFilterEnabled;
+  final ValueChanged<bool>? onSameLineFilterChanged;
   final StopLineMatch? selectedLine;
   final List<Station> interchanges;
   final bool isResolvingSharedLines;
@@ -91,6 +91,11 @@ class SelectedStopsWidget extends StatelessWidget {
       orderedStops: orderedStops,
       interchangeCount: interchanges.length,
     );
+    final hasInterchanges = interchanges.isNotEmpty;
+    final canSaveTrip = hasInterchanges ? canSaveManual : canSaveDirect;
+    final onSaveTrip = hasInterchanges ? onSaveManual : onSaveDirect;
+    final showSameLineFilter =
+        !isManualBuilderEnabled && origin != null && destination == null;
 
     return Container(
       decoration: BoxDecoration(
@@ -153,15 +158,13 @@ class SelectedStopsWidget extends StatelessWidget {
                   );
                 },
               ),
-              if (!isManualBuilderEnabled &&
-                  origin != null &&
-                  destination == null) ...[
+              if (showSameLineFilter) ...[
                 const SizedBox(height: 12.0),
-                _DestinationModeSelector(
-                  isDirectTripMode: isDirectTripMode,
-                  isLoadingLineCandidates: isLoadingLineCandidates,
+                _SameLineFilterToggle(
+                  isEnabled: isSameLineFilterEnabled,
+                  isLoading: isLoadingLineCandidates,
                   lineCount: originLineCandidates.length,
-                  onChanged: onDirectTripModeChanged,
+                  onChanged: onSameLineFilterChanged,
                   accentColor: accentColor,
                 ),
               ],
@@ -173,14 +176,6 @@ class SelectedStopsWidget extends StatelessWidget {
                 const SizedBox(height: 12.0),
                 _StatusCard(
                   message: statusMessage ?? '',
-                  accentColor: accentColor,
-                ),
-              ],
-              if (!isManualBuilderEnabled) ...[
-                const SizedBox(height: 12.0),
-                DirectTripActions(
-                  canSaveDirect: canSaveDirect,
-                  onSaveDirect: onSaveDirect,
                   accentColor: accentColor,
                 ),
               ],
@@ -196,6 +191,8 @@ class SelectedStopsWidget extends StatelessWidget {
                 StopSequenceSection(
                   descriptors: sequenceDescriptors,
                   accentColor: accentColor,
+                  allowAddingInterchanges:
+                      isManualBuilderEnabled || hasInterchanges,
                   pendingInterchangeInsertIndex: pendingInterchangeInsertIndex,
                   onAddInterchange: onAddInterchange,
                   onRemoveInterchange: onRemoveInterchange,
@@ -222,9 +219,9 @@ class SelectedStopsWidget extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: canSaveManual ? onSaveManual : null,
+                    onPressed: canSaveTrip ? onSaveTrip : null,
                     icon: const Icon(Icons.save),
-                    label: const Text('Save Multi-Leg Trip'),
+                    label: const Text('Save Trip'),
                     style: ButtonStyles.elevated(accentColor),
                   ),
                 ),
@@ -246,10 +243,8 @@ class SelectedStopsSummaryBar extends StatelessWidget {
     required this.originMode,
     required this.destinationMode,
     required this.selectedLine,
-    required this.isDirectTripMode,
     required this.isLoadingLineCandidates,
     required this.originLineCount,
-    required this.onDirectTripModeChanged,
     required this.statusMessage,
     required this.onClearOrigin,
     required this.onClearDestination,
@@ -266,10 +261,8 @@ class SelectedStopsSummaryBar extends StatelessWidget {
   final TransportMode? originMode;
   final TransportMode? destinationMode;
   final StopLineMatch? selectedLine;
-  final bool isDirectTripMode;
   final bool isLoadingLineCandidates;
   final int originLineCount;
-  final ValueChanged<bool>? onDirectTripModeChanged;
   final String? statusMessage;
   final VoidCallback onClearOrigin;
   final VoidCallback onClearDestination;
@@ -362,17 +355,6 @@ class SelectedStopsSummaryBar extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (origin != null && destination == null) ...[
-                    const SizedBox(width: 8.0),
-                    Text(
-                      'Direct',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    Switch(
-                      value: isDirectTripMode,
-                      onChanged: onDirectTripModeChanged,
-                    ),
-                  ],
                 ],
               ),
             ],
@@ -414,9 +396,6 @@ class SelectedStopsSummaryBar extends StatelessWidget {
 
   String? get _compactStatusMessage {
     if (origin != null && destination == null) {
-      if (isDirectTripMode) {
-        return 'Choose any destination';
-      }
       return 'Choose destination';
     }
     if (destination != null && origin == null) {
@@ -554,30 +533,28 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _DestinationModeSelector extends StatelessWidget {
-  const _DestinationModeSelector({
-    required this.isDirectTripMode,
-    required this.isLoadingLineCandidates,
+class _SameLineFilterToggle extends StatelessWidget {
+  const _SameLineFilterToggle({
+    required this.isEnabled,
+    required this.isLoading,
     required this.lineCount,
     required this.onChanged,
     required this.accentColor,
   });
 
-  final bool isDirectTripMode;
-  final bool isLoadingLineCandidates;
+  final bool isEnabled;
+  final bool isLoading;
   final int lineCount;
   final ValueChanged<bool>? onChanged;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
-    final message = isDirectTripMode
-        ? 'Direct trip: choose any stop.'
-        : isLoadingLineCandidates
-        ? 'Finding stops on the same line...'
+    final message = isLoading
+        ? 'Loading same-line stops...'
         : lineCount == 0
-        ? 'No line match is available. Enable direct trip to choose any stop.'
-        : 'Showing stops on $lineCount matching line${lineCount == 1 ? '' : 's'}.';
+        ? 'No same-line filter available'
+        : 'Only show stops on the same line';
 
     return Container(
       width: double.infinity,
@@ -593,7 +570,10 @@ class _DestinationModeSelector extends StatelessWidget {
           const SizedBox(width: 8.0),
           Expanded(child: Text(message)),
           const SizedBox(width: 8.0),
-          Switch(value: isDirectTripMode, onChanged: onChanged),
+          Switch(
+            value: isEnabled,
+            onChanged: isLoading || lineCount == 0 ? null : onChanged,
+          ),
         ],
       ),
     );

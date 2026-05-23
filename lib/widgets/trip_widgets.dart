@@ -95,36 +95,6 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
     return stop.disassembledName ?? stop.name;
   }
 
-  bool _isAccessibilityNotice(String text) {
-    final normalized = text.toLowerCase();
-    return normalized.contains('wheelchair') ||
-        normalized.contains('accessible') ||
-        normalized.contains('accessibility') ||
-        normalized.contains('low-floor') ||
-        normalized.contains('low floor');
-  }
-
-  List<String> _journeyNotices(List<Leg> legs) {
-    final notices = <String>{};
-    for (final leg in legs) {
-      for (final info in leg.infos ?? const <Info>[]) {
-        final text = info.subtitle?.trim().isNotEmpty == true
-            ? info.subtitle!.trim()
-            : info.content?.trim();
-        if (text != null && text.isNotEmpty && !_isAccessibilityNotice(text)) {
-          notices.add(text);
-        }
-      }
-      for (final hint in leg.hints ?? const <Hint>[]) {
-        final text = hint.infoText?.trim();
-        if (text != null && text.isNotEmpty && !_isAccessibilityNotice(text)) {
-          notices.add(text);
-        }
-      }
-    }
-    return notices.toList(growable: false);
-  }
-
   String _formatTimeDifference(String? planned, String? estimated) {
     final hasPlanned = planned != null && planned.isNotEmpty;
     final hasEstimated = estimated != null && estimated.isNotEmpty;
@@ -191,7 +161,6 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
 
     final firstLeg = legs.first;
     final lastLeg = legs.last;
-    final notices = _journeyNotices(legs);
 
     // Build sequential segments per-leg, inserting grey waiting segments between legs where applicable
     final segments = <Widget>[];
@@ -285,20 +254,6 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  if (notices.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        'Alert: ${notices.first}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.deepOrange,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
                 ],
               ),
               trailing: AnimatedRotation(

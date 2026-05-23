@@ -1,15 +1,16 @@
 import 'package:latlong2/latlong.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
 
 List<LatLng> legPointsForMap(Leg leg) {
   final points = <LatLng>[];
   final stopSequence = leg.stopSequence;
   if (stopSequence != null && stopSequence.isNotEmpty) {
     for (final stop in stopSequence) {
-      final coord = stop.coord;
-      if (coord != null && coord.length >= 2) {
-        points.add(LatLng(coord[0], coord[1]));
+      final point = tryParseLatLng(stop.coord);
+      if (point != null) {
+        points.add(point);
       }
     }
   }
@@ -17,19 +18,19 @@ List<LatLng> legPointsForMap(Leg leg) {
   final legCoords = leg.coords;
   if (points.length < 2 && legCoords != null && legCoords.length >= 2) {
     for (final coord in legCoords) {
-      if (coord.length >= 2) {
-        points.add(LatLng(coord[0], coord[1]));
+      final point = tryParseLatLng(coord);
+      if (point != null) {
+        points.add(point);
       }
     }
   }
 
   if (points.length < 2) {
-    final originCoord = leg.origin.coord;
-    final destinationCoord = leg.destination.coord;
-    if ((originCoord?.length ?? 0) >= 2 &&
-        (destinationCoord?.length ?? 0) >= 2) {
-      points.add(LatLng(originCoord![0], originCoord[1]));
-      points.add(LatLng(destinationCoord![0], destinationCoord[1]));
+    final originPoint = tryParseLatLng(leg.origin.coord);
+    final destinationPoint = tryParseLatLng(leg.destination.coord);
+    if (originPoint != null && destinationPoint != null) {
+      points.add(originPoint);
+      points.add(destinationPoint);
     }
   }
 

@@ -52,13 +52,8 @@ class Agency {
     'agency_email',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Require presence of required columns per GTFS spec
-    final required = ['agency_name', 'agency_url', 'agency_timezone'];
-    for (final col in required) {
-      if (!header.contains(col)) {
-        // Missing required column — callers should handle this case
-      }
-    }
+  static bool validateCsvHeader(List<String> header) {
+    const required = ['agency_name', 'agency_url', 'agency_timezone'];
+    return required.every(header.contains);
   }
 }

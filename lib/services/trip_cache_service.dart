@@ -6,6 +6,7 @@ import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/prefetch_scheduler.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:option_result/option_result.dart';
 
 /// A simple in-memory cache for trip responses with a 10-minute TTL.
@@ -76,29 +77,33 @@ class TripCacheService {
       originId,
       destinationId,
     );
-    if (persisted?.responseJson case final responseJson?
-        when responseJson.isNotEmpty) {
-      try {
-        final response = await compute(
-          _parseTripPlannerCacheJson,
-          responseJson,
-        );
-        if (response != null) {
-          final fetchedAt = persisted!.fetchedAt;
-          _cache[key] = _CachedTrip(response: response, fetchedAt: fetchedAt);
-          final age = DateTime.now().difference(fetchedAt);
-          if (age >= _ttl) {
-            _refreshInBackground(originId, destinationId);
+    if (persisted != null) {
+      final responseJson = persisted.responseJson;
+      if (responseJson != null && responseJson.isNotEmpty) {
+        try {
+          final response = await compute(
+            _parseTripPlannerCacheJson,
+            responseJson,
+          );
+          if (response != null) {
+            final fetchedAt = persisted.fetchedAt;
+            _cache[key] = _CachedTrip(response: response, fetchedAt: fetchedAt);
+            final age = DateTime.now().difference(fetchedAt);
+            if (age >= _ttl) {
+              _refreshInBackground(originId, destinationId);
+            }
+            if (age <= _renderableTtl) {
+              logger.d('TripCacheService: drift cache hit for $key');
+            } else {
+              logger.w('TripCacheService: stale drift cache hit for $key');
+            }
+            return Ok(response);
           }
-          if (age <= _renderableTtl) {
-            logger.d('TripCacheService: drift cache hit for $key');
-          } else {
-            logger.w('TripCacheService: stale drift cache hit for $key');
-          }
-          return Ok(response);
+        } catch (e) {
+          logger.w(
+            'TripCacheService: failed to parse drift cache for $key: $e',
+          );
         }
-      } catch (e) {
-        logger.w('TripCacheService: failed to parse drift cache for $key: $e');
       }
     }
 
@@ -232,8 +237,8 @@ class _CachedTrip {
 }
 
 GetTripsResponse? _parseTripPlannerCacheJson(String responseJson) {
-  final decoded = jsonDecode(responseJson);
-  if (decoded is! Map<String, dynamic>) {
+  final decoded = tryDecodeJsonMap(responseJson);
+  if (decoded == null) {
     return null;
   }
   return GetTripsResponse.fromJson(decoded);

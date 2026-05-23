@@ -38,10 +38,8 @@ void main() {
             originMode: null,
             destinationMode: null,
             selectedLine: null,
-            isDirectTripMode: false,
             isLoadingLineCandidates: false,
             originLineCount: 0,
-            onDirectTripModeChanged: null,
             statusMessage: null,
             onClearOrigin: () {},
             onClearDestination: () {},
@@ -67,10 +65,8 @@ void main() {
             originMode: TransportMode.train,
             destinationMode: null,
             selectedLine: null,
-            isDirectTripMode: false,
             isLoadingLineCandidates: false,
             originLineCount: 2,
-            onDirectTripModeChanged: (_) {},
             statusMessage: null,
             onClearOrigin: () {},
             onClearDestination: () {},
@@ -84,7 +80,7 @@ void main() {
 
       expect(find.text('Central'), findsOneWidget);
       expect(find.text('Choose destination'), findsOneWidget);
-      expect(find.text('Direct'), findsOneWidget);
+      expect(find.text('Direct'), findsNothing);
     });
 
     testWidgets('origin and destination show save and edit actions', (
@@ -102,10 +98,8 @@ void main() {
             originMode: TransportMode.train,
             destinationMode: TransportMode.train,
             selectedLine: line,
-            isDirectTripMode: false,
             isLoadingLineCandidates: false,
             originLineCount: 2,
-            onDirectTripModeChanged: null,
             statusMessage: null,
             onClearOrigin: () {},
             onClearDestination: () {},
@@ -127,6 +121,87 @@ void main() {
 
       expect(saved, isTrue);
       expect(opened, isTrue);
+    });
+  });
+
+  group('SelectedStopsWidget', () {
+    testWidgets('origin-only state shows same-line filter toggle', (
+      tester,
+    ) async {
+      var filterEnabled = false;
+
+      await tester.pumpWidget(
+        app(
+          SelectedStopsWidget(
+            origin: station('Central', '1'),
+            destination: null,
+            currentMode: TransportMode.train,
+            originMode: TransportMode.train,
+            destinationMode: null,
+            isLoadingLineCandidates: false,
+            originLineCandidates: const [line],
+            isSameLineFilterEnabled: false,
+            onSameLineFilterChanged: (value) => filterEnabled = value,
+            selectedLine: null,
+            interchanges: const [],
+            isResolvingSharedLines: false,
+            isManualBuilderEnabled: false,
+            pendingInterchangeInsertIndex: null,
+            statusMessage: null,
+            manualValidationMessage: null,
+            onClearOrigin: () {},
+            onClearDestination: () {},
+            onSaveDirect: () {},
+            onAddInterchange: (_) {},
+            onRemoveInterchange: (_) {},
+            onMoveInterchange: (_, _) {},
+            canSaveDirect: false,
+            canSaveManual: false,
+          ),
+        ),
+      );
+
+      expect(find.text('Only show stops on the same line'), findsOneWidget);
+      await tester.tap(find.byType(Switch));
+      await tester.pump();
+
+      expect(filterEnabled, isTrue);
+    });
+
+    testWidgets('direct two-stop state hides add leg prompt', (tester) async {
+      await tester.pumpWidget(
+        app(
+          SelectedStopsWidget(
+            origin: station('Central', '1'),
+            destination: station('Town Hall', '2'),
+            currentMode: TransportMode.train,
+            originMode: TransportMode.train,
+            destinationMode: TransportMode.train,
+            isLoadingLineCandidates: false,
+            originLineCandidates: const [line],
+            isSameLineFilterEnabled: false,
+            onSameLineFilterChanged: null,
+            selectedLine: line,
+            interchanges: const [],
+            isResolvingSharedLines: false,
+            isManualBuilderEnabled: false,
+            pendingInterchangeInsertIndex: null,
+            statusMessage: null,
+            manualValidationMessage: null,
+            onClearOrigin: () {},
+            onClearDestination: () {},
+            onSaveDirect: () {},
+            onAddInterchange: (_) {},
+            onRemoveInterchange: (_) {},
+            onMoveInterchange: (_, _) {},
+            canSaveDirect: true,
+            canSaveManual: false,
+          ),
+        ),
+      );
+
+      expect(find.text('Add leg here'), findsNothing);
+      expect(find.text('Save Trip'), findsOneWidget);
     });
   });
 

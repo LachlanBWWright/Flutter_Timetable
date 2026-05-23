@@ -23,6 +23,7 @@ import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/utils/realtime_trip_id_utils.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:lbww_flutter/utils/trip_leg_debug_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/travel_warning_card.dart';
@@ -1281,28 +1282,19 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       final tripUpdates = aggregate.tripUpdates;
       final tripIds = _collectTripIdsForActiveLeg();
       final routeId = _legRouteId();
-
-      TripUpdate? match;
-      if (tripIds.isNotEmpty) {
-        for (final update in tripUpdates) {
-          if (update.trip.hasTripId() && tripIds.contains(update.trip.tripId)) {
-            match = update;
-            break;
-          }
-        }
-      }
-
-      if (match == null && routeId != null && routeId.isNotEmpty) {
-        for (final update in tripUpdates) {
-          if (update.trip.hasRouteId() && update.trip.routeId == routeId) {
-            match = update;
-            break;
-          }
-        }
-      }
-
+      final match = _matchTripUpdateForLeg(tripUpdates);
       if (match == null) {
-        throw StateError('No realtime trip update found for this leg');
+        if (!mounted) return;
+        setState(() {
+          _activeTripUpdate = null;
+          _vehicleStopsError = _buildRealtimeTripUpdateUnavailableMessage(
+            tripIds: tripIds,
+            routeId: routeId,
+            breakdown: aggregate.breakdown,
+          );
+          _isLoadingVehicleStops = false;
+        });
+        return;
       }
 
       final rows = await _buildVehicleStopsFromTripUpdate(match);
@@ -1321,6 +1313,22 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
         _isLoadingVehicleStops = false;
       });
     }
+  }
+
+  String _buildRealtimeTripUpdateUnavailableMessage({
+    required Set<String> tripIds,
+    required String? routeId,
+    required Map<String, int> breakdown,
+  }) {
+    final details = <String>[
+      if (tripIds.isNotEmpty) 'tripIds=${tripIds.join(', ')}',
+      if (routeId != null && routeId.isNotEmpty) 'routeId=$routeId',
+      if (breakdown.isNotEmpty) 'feeds=${breakdown.keys.join(', ')}',
+    ];
+    if (details.isEmpty) {
+      return 'No realtime match found for this leg.';
+    }
+    return 'No realtime match found for this leg (${details.join(' • ')}).';
   }
 
   String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
@@ -1948,11 +1956,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   Widget? _buildStopMetaSubtitle(_VehicleStopRow stop) {
     final metadata = <String>[];
-    if (stop.platform != null && stop.platform!.isNotEmpty) {
-      metadata.add('Platform ${stop.platform}');
+    final platform = trimmedOrNull(stop.platform);
+    if (platform != null) {
+      metadata.add('Platform $platform');
     }
-    if (stop.wheelchairAccess != null && stop.wheelchairAccess!.isNotEmpty) {
-      metadata.add('Wheelchair: ${stop.wheelchairAccess}');
+    final wheelchairAccess = trimmedOrNull(stop.wheelchairAccess);
+    if (wheelchairAccess != null) {
+      metadata.add('Wheelchair: $wheelchairAccess');
     }
     if (metadata.isEmpty) return null;
     return Text(
@@ -1989,9 +1999,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   List<String> _collectLegNotices(Leg leg) {
     final notices = <String>{};
     for (final info in leg.infos ?? const <Info>[]) {
-      final text = info.subtitle?.trim().isNotEmpty == true
-          ? info.subtitle!.trim()
-          : info.content?.trim();
+      final text = trimmedOrNull(info.subtitle) ?? trimmedOrNull(info.content);
       if (text != null && text.isNotEmpty) {
         notices.add(text);
       }

@@ -72,19 +72,14 @@ class StopTime {
     'timepoint',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Require presence of required columns per GTFS spec
-    final required = [
+  static bool validateCsvHeader(List<String> header) {
+    const required = [
       'trip_id',
       'arrival_time',
       'departure_time',
       'stop_id',
       'stop_sequence',
     ];
-    for (final col in required) {
-      if (!header.contains(col)) {
-        // Missing required column — callers should handle this case
-      }
-    }
+    return required.every(header.contains);
   }
 }

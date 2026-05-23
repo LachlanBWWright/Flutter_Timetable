@@ -112,11 +112,8 @@ class Stop {
     'platform_code',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Only require stop_id per GTFS spec (other fields are conditionally required)
-    if (!header.contains('stop_id')) {
-      // Missing required column — callers should handle this case
-    }
+  static bool validateCsvHeader(List<String> header) {
+    return header.contains('stop_id');
   }
 
   @override

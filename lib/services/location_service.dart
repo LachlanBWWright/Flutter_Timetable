@@ -2,42 +2,100 @@ import 'dart:async';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// logger removed
 import '../schema/database.dart';
+
+enum LocationLookupFailureReason {
+  permissionDenied,
+  permissionDeniedForever,
+  serviceDisabled,
+  timeout,
+  unavailable,
+}
+
+extension LocationLookupFailureReasonX on LocationLookupFailureReason {
+  String get message {
+    switch (this) {
+      case LocationLookupFailureReason.permissionDenied:
+        return 'Location permission denied.';
+      case LocationLookupFailureReason.permissionDeniedForever:
+        return 'Location permission permanently denied. Please enable it from device settings.';
+      case LocationLookupFailureReason.serviceDisabled:
+        return 'Location services are disabled on this device.';
+      case LocationLookupFailureReason.timeout:
+        return 'Location request timed out.';
+      case LocationLookupFailureReason.unavailable:
+        return 'Location unavailable.';
+    }
+  }
+}
+
+class LocationLookupResult {
+  const LocationLookupResult.success(Position this.position) : failure = null;
+
+  const LocationLookupResult.failure(LocationLookupFailureReason this.failure)
+    : position = null;
+
+  final Position? position;
+  final LocationLookupFailureReason? failure;
+}
 
 class LocationService {
   static const String _sortingPreferenceKey = 'journey_sorting_preference';
   static const String _sortByDistance = 'distance';
   static const String _sortAlphabetically = 'alphabetical';
 
+  static Future<LocationLookupFailureReason?> _ensureLocationAccess() async {
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return LocationLookupFailureReason.serviceDisabled;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return LocationLookupFailureReason.permissionDenied;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return LocationLookupFailureReason.permissionDeniedForever;
+    }
+
+    return null;
+  }
+
+  static Future<LocationLookupResult> getCurrentLocationResult() async {
+    try {
+      final accessFailure = await _ensureLocationAccess();
+      if (accessFailure != null) {
+        return LocationLookupResult.failure(accessFailure);
+      }
+
+      final position = await Geolocator.getCurrentPosition()
+          .then<Position?>((value) => value)
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
+      if (position == null) {
+        return const LocationLookupResult.failure(
+          LocationLookupFailureReason.timeout,
+        );
+      }
+      return LocationLookupResult.success(position);
+    } on TimeoutException {
+      return const LocationLookupResult.failure(
+        LocationLookupFailureReason.timeout,
+      );
+    } catch (_) {
+      return const LocationLookupResult.failure(
+        LocationLookupFailureReason.unavailable,
+      );
+    }
+  }
+
   /// Get current location if permission is granted
   static Future<Position?> getCurrentLocation() async {
-    try {
-      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return null;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return null;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        return null;
-      }
-
-      return await Geolocator.getCurrentPosition().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => throw TimeoutException('Location timed out'),
-      );
-    } catch (e) {
-      // Error getting location
-      return null;
-    }
+    final result = await getCurrentLocationResult();
+    return result.position;
   }
 
   /// Check and request location availability and permissions.
@@ -45,24 +103,8 @@ class LocationService {
   /// Otherwise returns a human-friendly error message describing the problem.
   static Future<String?> checkAndRequestLocationAvailability() async {
     try {
-      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return 'Location services are disabled on this device.';
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return 'Location permission denied.';
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        return 'Location permission permanently denied. Please enable it from device settings.';
-      }
-
-      return null;
+      final failure = await _ensureLocationAccess();
+      return failure?.message;
     } catch (e) {
       return 'Error checking location permission: $e';
     }

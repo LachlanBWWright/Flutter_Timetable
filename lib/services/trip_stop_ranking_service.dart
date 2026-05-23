@@ -191,18 +191,22 @@ class TripStopRankingService {
   /// Calculate distance between two stops in km.
   /// Returns null if either stop lacks coordinates.
   static double? _distanceToStop(Station from, Station to) {
-    if (from.latitude == null ||
-        from.longitude == null ||
-        to.latitude == null ||
-        to.longitude == null) {
+    final fromLatitude = from.latitude;
+    final fromLongitude = from.longitude;
+    final toLatitude = to.latitude;
+    final toLongitude = to.longitude;
+    if (fromLatitude == null ||
+        fromLongitude == null ||
+        toLatitude == null ||
+        toLongitude == null) {
       return null;
     }
 
     return LocationService.calculateDistance(
-      from.latitude!,
-      from.longitude!,
-      to.latitude!,
-      to.longitude!,
+      fromLatitude,
+      fromLongitude,
+      toLatitude,
+      toLongitude,
     );
   }
 

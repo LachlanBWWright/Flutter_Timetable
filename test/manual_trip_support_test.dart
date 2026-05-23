@@ -5,6 +5,7 @@ import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
+import 'package:option_result/option_result.dart';
 
 void main() {
   group('ManualTripDefinition', () {
@@ -200,6 +201,32 @@ void main() {
       expect(reversed.legs[1].originId, 'redfern');
       expect(reversed.legs[1].destinationId, 'central');
       expect(reversed.legs[1].lineId, 'sydneytrains|T1');
+    });
+
+    test('tryDecodeFromLegsJson returns failure for malformed JSON shape', () {
+      final result = ManualTripDefinition.tryDecodeFromLegsJson(
+        legsJson: '{"legs":[]}',
+      );
+
+      expect(result, isA<Err<ManualTripDefinition, ManualTripDecodeFailure>>());
+    });
+
+    test('manualTripDefinition ignores malformed persisted legs json', () {
+      final journey = Journey(
+        id: 99,
+        origin: 'Central',
+        originId: 'central',
+        destination: 'Town Hall',
+        destinationId: 'townhall',
+        tripType: SavedTripType.manualMultiLeg.storageValue,
+        mode: TransportMode.train.id,
+        lineId: null,
+        lineName: null,
+        legsJson: '{"invalid":true}',
+        isPinned: false,
+      );
+
+      expect(journey.manualTripDefinition, isNull);
     });
   });
 

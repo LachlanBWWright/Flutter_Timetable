@@ -4,6 +4,7 @@ import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
 import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 /// Widget for displaying trip leg information
@@ -23,10 +24,7 @@ class TripLegCard extends StatelessWidget {
   List<String> _notices() {
     final messages = <String>{};
     for (final info in leg.infos ?? const <Info>[]) {
-      final text =
-          info.subtitle?.trim().isNotEmpty == true
-          ? info.subtitle!.trim()
-          : info.content?.trim();
+      final text = trimmedOrNull(info.subtitle) ?? trimmedOrNull(info.content);
       if (text != null && text.isNotEmpty) {
         messages.add(text);
       }

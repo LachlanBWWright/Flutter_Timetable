@@ -9,6 +9,7 @@ import '../services/debug_service.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart';
 import '../utils/realtime_map_widget_utils.dart';
+import '../utils/safe_value_utils.dart';
 import 'realtime_map_helpers.dart';
 import 'trip_widgets.dart' show TransportModeUtils;
 
@@ -130,12 +131,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         // Use the midpoint as the default center in case the fit is delayed.
         _mapCenter = points[points.length ~/ 2];
       } else {
-        final legOriginCoord = leg.origin.coord;
-        if (legOriginCoord != null && legOriginCoord.length == 2) {
-          _mapCenter = LatLng(legOriginCoord[0], legOriginCoord[1]);
-        } else {
-          _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
-        }
+        _mapCenter =
+            tryParseLatLng(leg.origin.coord) ??
+            const LatLng(-33.8688, 151.2093);
       }
     } else {
       _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
@@ -421,11 +419,11 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           : Colors.blueGrey;
 
       for (final s in stops) {
-        final coord = s.coord;
-        if (coord == null || coord.length < 2) continue;
+        final point = tryParseLatLng(s.coord);
+        if (point == null) continue;
         markers.add(
           Marker(
-            point: LatLng(coord[0], coord[1]),
+            point: point,
             width: 10.0,
             height: 10.0,
             child: Container(
@@ -454,10 +452,14 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         ? TransportColors.getColorByTransportMode(mode)
         : Colors.grey;
 
-    for (final s in stops.where((s) => (s.coord?.length ?? 0) >= 2)) {
+    for (final s in stops) {
+      final point = tryParseLatLng(s.coord);
+      if (point == null) {
+        continue;
+      }
       markers.add(
         Marker(
-          point: LatLng(s.coord?[0] ?? 0, s.coord?[1] ?? 0),
+          point: point,
           width: 22,
           height: 22,
           child: GestureDetector(

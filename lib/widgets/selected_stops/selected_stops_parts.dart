@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../constants/transport_modes.dart';
 import '../../services/new_trip_service.dart';
-import '../../utils/button_styles.dart';
 import '../station_widgets.dart';
 import 'selected_stops_helpers.dart';
 
@@ -88,41 +87,12 @@ class StopCard extends StatelessWidget {
   }
 }
 
-class DirectTripActions extends StatelessWidget {
-  const DirectTripActions({
-    super.key,
-    required this.canSaveDirect,
-    required this.onSaveDirect,
-    required this.accentColor,
-  });
-
-  final bool canSaveDirect;
-  final VoidCallback onSaveDirect;
-  final Color accentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!canSaveDirect) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onSaveDirect,
-        icon: const Icon(Icons.save),
-        label: const Text('Save Trip'),
-        style: ButtonStyles.elevated(accentColor),
-      ),
-    );
-  }
-}
-
 class StopSequenceSection extends StatelessWidget {
   const StopSequenceSection({
     super.key,
     required this.descriptors,
     required this.accentColor,
+    required this.allowAddingInterchanges,
     required this.pendingInterchangeInsertIndex,
     required this.onAddInterchange,
     required this.onRemoveInterchange,
@@ -131,6 +101,7 @@ class StopSequenceSection extends StatelessWidget {
 
   final List<SequenceStopDescriptor> descriptors;
   final Color accentColor;
+  final bool allowAddingInterchanges;
   final int? pendingInterchangeInsertIndex;
   final void Function(int insertIndex) onAddInterchange;
   final void Function(int interchangeIndex) onRemoveInterchange;
@@ -154,14 +125,6 @@ class StopSequenceSection extends StatelessWidget {
     }
 
     final widgets = <Widget>[];
-    widgets.add(
-      _AddStopButton(
-        insertIndex: 0,
-        label: 'Add leg before',
-        isPending: pendingInterchangeInsertIndex == 0,
-        onAddInterchange: onAddInterchange,
-      ),
-    );
 
     for (var index = 0; index < descriptors.length; index++) {
       final descriptor = descriptors[index];
@@ -211,7 +174,7 @@ class StopSequenceSection extends StatelessWidget {
         ),
       );
 
-      if (index < descriptors.length - 1) {
+      if (allowAddingInterchanges && index < descriptors.length - 1) {
         final insertIndex = descriptor.insertIndex;
         final isPending = pendingInterchangeInsertIndex == insertIndex;
         widgets.add(
@@ -224,14 +187,6 @@ class StopSequenceSection extends StatelessWidget {
         );
       }
     }
-    widgets.add(
-      _AddStopButton(
-        insertIndex: descriptors.length,
-        label: 'Add leg after',
-        isPending: pendingInterchangeInsertIndex == descriptors.length,
-        onAddInterchange: onAddInterchange,
-      ),
-    );
 
     return Column(children: widgets);
   }

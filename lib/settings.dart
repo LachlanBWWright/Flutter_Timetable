@@ -162,10 +162,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       )) {
         if (!mounted) return;
         final endpoint = progress.endpoint?.key ?? 'all endpoints';
+        final error = progress.error;
+        final progressEndpoint = progress.endpoint;
         setState(() {
           _staticEndpointsUpdated = progress.completed;
-          if (progress.error != null && progress.endpoint != null) {
-            _staticEndpointErrors[progress.endpoint!.key] = progress.error!;
+          if (error != null && progressEndpoint != null) {
+            _staticEndpointErrors[progressEndpoint.key] = error;
           }
           _updateStatus =
               '${progress.message ?? endpoint} '

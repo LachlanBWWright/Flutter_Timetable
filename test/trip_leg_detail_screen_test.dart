@@ -261,12 +261,7 @@ void main() {
         product: Product(classField: 5),
       );
       final leg = Leg(
-        origin: Stop(
-          id: 'O1',
-          name: 'Origin',
-          type: 'stop',
-          coord: [0.0, 0.0],
-        ),
+        origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
         destination: Stop(
           id: 'D1',
           name: 'Destination',
@@ -692,6 +687,71 @@ void main() {
     expect(find.text('RT1'), findsNothing);
     expect(find.text('RT2'), findsNothing);
     expect(find.text('RT3'), findsOneWidget);
+  });
+
+  testWidgets('TripLegDetailScreen shows a no-match state for vehicle stops', (
+    tester,
+  ) async {
+    final leg = Leg(
+      origin: Stop(
+        id: 'ORIGIN',
+        name: 'Origin',
+        type: 'stop',
+        departureTimePlanned: '2024-01-01T10:00:00Z',
+      ),
+      destination: Stop(
+        id: 'DEST',
+        name: 'Destination',
+        type: 'stop',
+        arrivalTimePlanned: '2024-01-01T10:20:00Z',
+      ),
+      transportation: Transportation(
+        id: 'ROUTE1',
+        name: 'Route 1',
+        product: Product(classField: 5, iconId: 1, name: 'Bus'),
+      ),
+      rawJson: {
+        'transportation': {
+          'properties': {'RealtimeTripId': 'MATCH123'},
+        },
+      },
+      stopSequence: [Stop(id: 'LEG1', name: 'Leg Stop 1', type: 'stop')],
+    );
+    final trip = TripJourney(isAdditional: false, legs: [leg], rating: 0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TripLegDetailScreen(
+          leg: leg,
+          trip: trip,
+          getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
+          getAllTripUpdatesAggregated: () async =>
+              const TripUpdateAggregationResult(
+                tripUpdates: <TripUpdate>[],
+                breakdown: <String, int>{'updates:bus': 0},
+              ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('Show all stops'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      find.textContaining('No realtime match found for this leg'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('tripIds=MATCH123'), findsOneWidget);
+    expect(find.textContaining('feeds=updates:bus'), findsOneWidget);
   });
 
   testWidgets('Route debug card shows GTFS route and agency fields', (

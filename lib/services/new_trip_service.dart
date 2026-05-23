@@ -219,7 +219,24 @@ class NewTripService {
         try {
           final gtfsData = await fetchGtfsDataForEndpoint(endpoint);
           if (gtfsData == null) {
-            throw StateError('No GTFS data returned for ${endpoint.key}');
+            const error = 'GTFS data unavailable';
+            await StopsService.database.markStaticCacheBuildFinished(
+              endpoint.key,
+              stopsUpdated: false,
+              lineMembershipsUpdated: false,
+              error: error,
+            );
+            controller.add(
+              StaticTransportUpdateProgress(
+                endpoint: endpoint,
+                stage: StaticTransportUpdateStage.failed,
+                completed: completed,
+                total: total,
+                message: 'Failed ${endpoint.key}',
+                error: '$error for ${endpoint.key}',
+              ),
+            );
+            continue;
           }
 
           controller.add(

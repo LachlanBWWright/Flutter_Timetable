@@ -13,10 +13,19 @@ class DebugReferenceTile extends StatelessWidget {
     final subtitle = reference.subtitle;
     final reason = reference.reason;
     final request = reference.request;
+    final inheritedLoader = _inheritLoader(context);
+    final canOpen =
+        reference.canOpen && request != null && inheritedLoader != null;
+    final unavailableReason = !canOpen
+        ? reason ??
+              (request != null && inheritedLoader == null
+                  ? 'Debug navigation unavailable in this context'
+                  : null)
+        : null;
     final subtitleParts = <String>[
       reference.entityId,
       if (subtitle != null && subtitle.isNotEmpty) subtitle,
-      if (!reference.canOpen && reason != null) reason,
+      if (unavailableReason != null) unavailableReason,
     ];
 
     return ListTile(
@@ -33,33 +42,31 @@ class DebugReferenceTile extends StatelessWidget {
       ),
       subtitle: Text(subtitleParts.join(' • ')),
       leading: Icon(
-        reference.canOpen ? Icons.link : Icons.link_off,
-        color: reference.canOpen ? null : Theme.of(context).disabledColor,
+        canOpen ? Icons.link : Icons.link_off,
+        color: canOpen ? null : Theme.of(context).disabledColor,
       ),
-      trailing: reference.canOpen
+      trailing: canOpen
           ? const Icon(Icons.open_in_new)
           : const Icon(Icons.warning_amber_rounded),
-      enabled: reference.canOpen,
-      onTap: !reference.canOpen || request == null
+      enabled: canOpen,
+      onTap: !canOpen
           ? null
           : () {
               DebugNavigation.pushEntity(
                 context,
                 request: request,
-                loader: _inheritLoader(context),
+                loader: inheritedLoader,
               );
             },
     );
   }
 
-  DebugEntityPageLoader _inheritLoader(BuildContext context) {
+  DebugEntityPageLoader? _inheritLoader(BuildContext context) {
     final route = ModalRoute.of(context);
     final args = route?.settings.arguments;
-    if (args is! DebugNavigationArgs) {
-      throw StateError(
-        'Debug reference navigation requires DebugNavigationArgs',
-      );
+    if (args is DebugNavigationArgs) {
+      return args.loader;
     }
-    return args.loader;
+    return null;
   }
 }

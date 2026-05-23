@@ -8,7 +8,6 @@ import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/utils/trip_screen_utils.dart';
-import 'package:lbww_flutter/widgets/travel_warning_card.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
 import 'package:option_result/option_result.dart';
 
@@ -24,7 +23,6 @@ class TripScreen extends StatefulWidget {
 class _TripScreenState extends State<TripScreen> {
   String testText = '';
   List<TripJourney> trips = [];
-  List<ResponseMessage> _systemMessages = const [];
   final Set<int> _prefetchedVisibleTripIndexes = <int>{};
   bool _isLoading = false;
   String? _error;
@@ -46,7 +44,6 @@ class _TripScreenState extends State<TripScreen> {
 
       setState(() {
         trips = manualJourney == null ? [] : [manualJourney];
-        _systemMessages = const [];
         _rawTripJson = prettyPrintRawJson(manualJourney?.rawJson);
         _error = manualJourney == null
             ? 'Unable to load the saved manual trip.'
@@ -67,11 +64,6 @@ class _TripScreenState extends State<TripScreen> {
       case Ok(:final v):
         setState(() {
           trips = sortTripJourneysForDisplay(v.tripJourneys);
-          _systemMessages =
-              v.systemMessages.responseMessages
-                  ?.where((m) => (m.error ?? m.text)?.trim().isNotEmpty == true)
-                  .toList() ??
-              const [];
           testText = v.toString();
           _rawTripJson = prettyPrintRawJson(v.rawJson);
           _isLoading = false;
@@ -83,7 +75,6 @@ class _TripScreenState extends State<TripScreen> {
       case Err(:final e):
         setState(() {
           _error = e;
-          _systemMessages = const [];
           _isLoading = false;
         });
     }
@@ -122,43 +113,10 @@ class _TripScreenState extends State<TripScreen> {
     }
   }
 
-  List<Widget> _buildSystemMessageWarningChildren() {
-    return [
-      const SizedBox(height: 8),
-      ..._systemMessages.take(4).map((message) {
-        final text = (message.error ?? message.text ?? '').trim();
-        if (text.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        final prefix = [
-          if ((message.type ?? '').isNotEmpty) message.type,
-          if ((message.module ?? '').isNotEmpty) message.module,
-        ].join(' • ');
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text(
-            prefix.isEmpty ? text : '$prefix: $text',
-            style: const TextStyle(fontSize: 13),
-          ),
-        );
-      }),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Trip'),
-        actions: [
-          if (_systemMessages.isNotEmpty)
-            TravelWarningAction(
-              title: 'Travel Alerts',
-              tooltip: 'Show travel alerts',
-              children: _buildSystemMessageWarningChildren(),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Trip')),
       body: RefreshIndicator(
         onRefresh: () async {
           if (!widget.trip.isManualMultiLeg) {

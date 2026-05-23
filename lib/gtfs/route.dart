@@ -72,18 +72,13 @@ class Route {
     'network_id',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Require presence of required columns per GTFS spec
-    final required = [
+  static bool validateCsvHeader(List<String> header) {
+    const required = [
       'route_id',
       'route_short_name',
       'route_long_name',
       'route_type',
     ];
-    for (final col in required) {
-      if (!header.contains(col)) {
-        // Missing required column — callers should handle this case
-      }
-    }
+    return required.every(header.contains);
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:option_result/option_result.dart';
 import '../logs/logger.dart';
+import '../utils/safe_value_utils.dart';
 import 'api_key_service.dart';
 
 /// Service class for handling NSW Transport API requests
@@ -77,16 +78,21 @@ class TransportApiService {
         );
       }
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final locations = (data['locations'] as List?) ?? [];
+      final data = tryDecodeJsonMap(response.body);
+      if (data == null) {
+        return const Err(
+          'Failed to search stations: response was not a JSON object',
+        );
+      }
+      final locationsRaw = data['locations'];
+      final locations = locationsRaw is List ? locationsRaw : const [];
 
       return Ok(
         locations.map((location) {
-          final Map<String, dynamic>? loc = location as Map<String, dynamic>?;
+          final loc = location is Map<String, dynamic> ? location : null;
           final disassembledName = loc?['disassembledName']?.toString();
           final fallbackName = loc?['name']?.toString() ?? '';
-          final name =
-              (disassembledName != null && disassembledName.isNotEmpty)
+          final name = (disassembledName != null && disassembledName.isNotEmpty)
               ? disassembledName
               : fallbackName;
           final id = loc?['id']?.toString() ?? '';
@@ -139,7 +145,10 @@ class TransportApiService {
         );
       }
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = tryDecodeJsonMap(response.body);
+      if (data == null) {
+        return const Err('Failed to get trips: response was not a JSON object');
+      }
       final journeys = data['journeys'];
       final journeysCount = journeys is List ? journeys.length : 0;
       logger.i(
@@ -362,18 +371,12 @@ class Leg {
         } else {
           coords = [];
           for (var ci = 0; ci < rawCoords.length; ci++) {
-            final coord = rawCoords[ci];
-            if (coord is! List) {
-              logger.w(
-                'Leg.fromJson: coords[$ci] is not a List, type=${coord.runtimeType}; skipping',
-              );
+            final parsedCoord = tryParseDoubleList(rawCoords[ci], minLength: 2);
+            if (parsedCoord == null) {
+              logger.w('Leg.fromJson: failed to parse coords[$ci]');
               continue;
             }
-            try {
-              coords.add(coord.map((c) => (c as num).toDouble()).toList());
-            } catch (e) {
-              logger.w('Leg.fromJson: failed to parse coords[$ci]: $e');
-            }
+            coords.add(parsedCoord);
           }
         }
       }
@@ -721,16 +724,13 @@ class Stop {
             'for stop id=${json['id']}',
           );
         } else {
-          coord = [];
-          for (var i = 0; i < rawCoord.length; i++) {
-            try {
-              coord.add((rawCoord[i] as num).toDouble());
-            } catch (e) {
-              logger.w(
-                'Stop.fromJson: failed to parse coord[$i]=${rawCoord[i]}: $e '
-                'for stop id=${json['id']}',
-              );
-            }
+          final parsedCoord = tryParseCoordinatePair(rawCoord);
+          if (parsedCoord == null) {
+            logger.w(
+              'Stop.fromJson: failed to parse coord for stop id=${json['id']}',
+            );
+          } else {
+            coord = parsedCoord;
           }
         }
       }
@@ -992,9 +992,7 @@ class FootpathElemLocation {
 
   factory FootpathElemLocation.fromJson(Map<String, dynamic> json) {
     return FootpathElemLocation(
-      coord: (json['coord'] as List<dynamic>?)
-          ?.map((c) => (c as num).toDouble())
-          .toList(),
+      coord: tryParseCoordinatePair(json['coord']),
       id: json['id'],
       type: json['type'],
     );
@@ -1116,13 +1114,7 @@ class Interchange {
 
   factory Interchange.fromJson(Map<String, dynamic> json) {
     return Interchange(
-      coords: (json['coords'] as List<dynamic>?)
-          ?.map(
-            (coord) => (coord as List<dynamic>)
-                .map((c) => (c as num).toDouble())
-                .toList(),
-          )
-          .toList(),
+      coords: tryParseDoubleMatrix(json['coords'], minLengthPerRow: 2),
       desc: json['desc'],
       type: json['type'],
     );
@@ -1162,9 +1154,7 @@ class PathDescription {
 
   factory PathDescription.fromJson(Map<String, dynamic> json) {
     return PathDescription(
-      coord: (json['coord'] as List<dynamic>?)
-          ?.map((c) => (c as num).toDouble())
-          .toList(),
+      coord: tryParseCoordinatePair(json['coord']),
       cumDistance: json['cumDistance'],
       cumDuration: json['cumDuration'],
       distance: json['distance'],
