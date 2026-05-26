@@ -25,11 +25,7 @@ class DateTimeUtils {
 
   /// Parses UTC time string and returns DateTime object for comparison
   static DateTime? parseTimeToDateTime(String time) {
-    try {
-      return DateTime.parse(time).toLocal();
-    } catch (e) {
-      return null;
-    }
+    return DateTime.tryParse(time)?.toLocal();
   }
 
   /// Parses UTC time string and converts to local time in 12-hour format without date

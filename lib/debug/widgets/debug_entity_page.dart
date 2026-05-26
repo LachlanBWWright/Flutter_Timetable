@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
@@ -7,6 +5,7 @@ import 'package:lbww_flutter/debug/widgets/debug_raw_json_card.dart';
 import 'package:lbww_flutter/debug/widgets/debug_reference_tile.dart';
 import 'package:lbww_flutter/debug/widgets/debug_section_card.dart';
 import 'package:lbww_flutter/debug/widgets/debug_status_banner.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
 
 class DebugEntityPage extends StatelessWidget {
   final DebugPageData pageData;
@@ -121,11 +120,7 @@ class _InlineRawJsonBlock extends StatelessWidget {
     if (data is String) {
       return data;
     }
-    try {
-      return const JsonEncoder.withIndent('  ').convert(data);
-    } catch (_) {
-      return data.toString();
-    }
+    return prettyPrintJsonOrNull(data) ?? data.toString();
   }
 }
 

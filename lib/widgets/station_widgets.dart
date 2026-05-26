@@ -1,3 +1,5 @@
+// ignore_for_file: catch_unknown_dynamic_calls
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
@@ -7,6 +9,42 @@ import '../utils/station_subtitle_utils.dart';
 
 typedef StationSelectionCallback =
     void Function(String stationName, String stationId, TransportMode? mode);
+
+T _valueOr<T>(T? value, T fallback) {
+  if (value != null) {
+    return value;
+  }
+  return fallback;
+}
+
+String _nearbyBadgeLabelFor(Station station) {
+  return _valueOr(station.nearbyBadgeLabel, 'Best nearby');
+}
+
+double? _preferredDistanceFor(Station station) {
+  return _valueOr(station.nearbyAnchorDistance, station.distance);
+}
+
+List<Tab> _tabsOrDefault(List<Tab>? tabs) {
+  if (tabs != null) {
+    return tabs;
+  }
+  return _defaultStationTabs;
+}
+
+const List<Tab> _defaultStationTabs = <Tab>[
+  Tab(
+    icon: Icon(Icons.directions_train, color: Color.fromARGB(255, 255, 97, 35)),
+  ),
+  Tab(icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82))),
+  Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
+  Tab(
+    icon: Icon(Icons.directions_bus, color: Color.fromARGB(255, 82, 186, 255)),
+  ),
+  Tab(
+    icon: Icon(Icons.directions_ferry, color: Color.fromARGB(255, 68, 240, 91)),
+  ),
+];
 
 /// A model class for station data
 class Station {
@@ -84,27 +122,30 @@ class Station {
     double? distance,
   }) {
     return Station(
-      name: name ?? this.name,
-      id: id ?? this.id,
-      mode: mode ?? this.mode,
-      lineId: lineId ?? this.lineId,
-      lineName: lineName ?? this.lineName,
-      isPreferredNearby: isPreferredNearby ?? this.isPreferredNearby,
-      nearbyBadgeLabel: nearbyBadgeLabel ?? this.nearbyBadgeLabel,
-      nearbyAnchorDistance: nearbyAnchorDistance ?? this.nearbyAnchorDistance,
-      lineStopOrder: lineStopOrder ?? this.lineStopOrder,
-      stopCode: stopCode ?? this.stopCode,
-      stopDesc: stopDesc ?? this.stopDesc,
-      zoneId: zoneId ?? this.zoneId,
-      stopUrl: stopUrl ?? this.stopUrl,
-      stopTimezone: stopTimezone ?? this.stopTimezone,
-      levelId: levelId ?? this.levelId,
-      parentStation: parentStation ?? this.parentStation,
-      wheelchairBoarding: wheelchairBoarding ?? this.wheelchairBoarding,
-      platformCode: platformCode ?? this.platformCode,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      distance: distance ?? this.distance,
+      name: _valueOr(name, this.name),
+      id: _valueOr(id, this.id),
+      mode: _valueOr(mode, this.mode),
+      lineId: _valueOr(lineId, this.lineId),
+      lineName: _valueOr(lineName, this.lineName),
+      isPreferredNearby: _valueOr(isPreferredNearby, this.isPreferredNearby),
+      nearbyBadgeLabel: _valueOr(nearbyBadgeLabel, this.nearbyBadgeLabel),
+      nearbyAnchorDistance: _valueOr(
+        nearbyAnchorDistance,
+        this.nearbyAnchorDistance,
+      ),
+      lineStopOrder: _valueOr(lineStopOrder, this.lineStopOrder),
+      stopCode: _valueOr(stopCode, this.stopCode),
+      stopDesc: _valueOr(stopDesc, this.stopDesc),
+      zoneId: _valueOr(zoneId, this.zoneId),
+      stopUrl: _valueOr(stopUrl, this.stopUrl),
+      stopTimezone: _valueOr(stopTimezone, this.stopTimezone),
+      levelId: _valueOr(levelId, this.levelId),
+      parentStation: _valueOr(parentStation, this.parentStation),
+      wheelchairBoarding: _valueOr(wheelchairBoarding, this.wheelchairBoarding),
+      platformCode: _valueOr(platformCode, this.platformCode),
+      latitude: _valueOr(latitude, this.latitude),
+      longitude: _valueOr(longitude, this.longitude),
+      distance: _valueOr(distance, this.distance),
     );
   }
 }
@@ -125,9 +166,7 @@ class StationView extends StatelessWidget {
   });
 
   void _selectStation() {
-    try {
-      setStation(station.name, station.id, mode);
-    } catch (_) {}
+    setStation(station.name, station.id, mode);
   }
 
   @override
@@ -159,8 +198,6 @@ class StationView extends StatelessWidget {
       valueListenable: DebugService.showDebugData,
       builder: (context, showDebug, _) {
         final items = <Widget>[];
-        final dist = station.distance;
-        final nearbyDistance = station.nearbyAnchorDistance;
 
         if (station.isPreferredNearby) {
           items.add(
@@ -172,7 +209,7 @@ class StationView extends StatelessWidget {
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                   label: Text(
-                    station.nearbyBadgeLabel ?? 'Best nearby',
+                    _nearbyBadgeLabelFor(station),
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),
@@ -182,7 +219,7 @@ class StationView extends StatelessWidget {
         }
 
         final standardDistanceLine = formatStationDistanceLine(
-          nearbyDistance ?? dist,
+          _preferredDistanceFor(station),
           debugFormat: false,
         );
         if (standardDistanceLine != null && !showDebug) {
@@ -205,7 +242,7 @@ class StationView extends StatelessWidget {
           );
 
           final debugDistanceLine = formatStationDistanceLine(
-            nearbyDistance ?? dist,
+            _preferredDistanceFor(station),
             debugFormat: true,
           );
           if (debugDistanceLine != null) {
@@ -412,43 +449,16 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           ],
         ],
       ],
-      bottom: TabBar(
-        controller: tabController,
-        tabs:
-            tabs ??
-            const [
-              Tab(
-                icon: Icon(
-                  Icons.directions_train,
-                  color: Color.fromARGB(255, 255, 97, 35),
-                ),
-              ),
-              Tab(
-                icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82)),
-              ),
-              Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
-              Tab(
-                icon: Icon(
-                  Icons.directions_bus,
-                  color: Color.fromARGB(255, 82, 186, 255),
-                ),
-              ),
-              Tab(
-                icon: Icon(
-                  Icons.directions_ferry,
-                  color: Color.fromARGB(255, 68, 240, 91),
-                ),
-              ),
-            ],
-      ),
+      bottom: TabBar(controller: tabController, tabs: _tabsOrDefault(tabs)),
     );
   }
 
   @override
   Size get preferredSize {
-    final tabBarHeight = tabs?.any((tab) => tab.text != null) ?? false
-        ? 72.0
-        : kTextTabBarHeight;
+    final resolvedTabs = tabs;
+    final hasTextTabs =
+        resolvedTabs != null && resolvedTabs.any((tab) => tab.text != null);
+    final tabBarHeight = hasTextTabs ? 72.0 : kTextTabBarHeight;
     return Size.fromHeight(kToolbarHeight + tabBarHeight);
   }
 }

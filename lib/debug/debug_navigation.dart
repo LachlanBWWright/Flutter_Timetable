@@ -32,16 +32,12 @@ class DebugNavigation {
   static const String routeName = '/debug/entity';
   static const String browserRouteName = '/debug/browser';
 
-  static Future<T?> _pushNamedSafe<T>(
+  static Future<T?> _pushNamed<T>(
     BuildContext context,
     String name, {
     Object? arguments,
   }) {
-    try {
-      return Navigator.of(context).pushNamed<T>(name, arguments: arguments);
-    } catch (_) {
-      return Future<T?>.value(null);
-    }
+    return Navigator.of(context).pushNamed<T>(name, arguments: arguments);
   }
 
   static Future<T?> pushEntity<T>(
@@ -49,7 +45,7 @@ class DebugNavigation {
     required DebugEntityRequest request,
     required DebugEntityPageLoader loader,
   }) {
-    return _pushNamedSafe<T>(
+    return _pushNamed<T>(
       context,
       routeName,
       arguments: DebugNavigationArgs(request: request, loader: loader),
@@ -64,7 +60,7 @@ class DebugNavigation {
     String? initialSearchQuery,
     Map<String, String> initialFilters = const {},
   }) {
-    return _pushNamedSafe<T>(
+    return _pushNamed<T>(
       context,
       browserRouteName,
       arguments: DebugBrowserNavigationArgs(

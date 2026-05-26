@@ -1,7 +1,8 @@
+// ignore_for_file: catch_unknown_dynamic_calls
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
@@ -21,9 +22,11 @@ import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
 import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/realtime_trip_id_utils.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:lbww_flutter/utils/trip_leg_debug_utils.dart';
+import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/travel_warning_card.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
@@ -85,7 +88,8 @@ class _VehicleStopRow {
   });
 }
 
-class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
+class _TripLegDetailScreenState extends State<TripLegDetailScreen>
+    with GuardedState<TripLegDetailScreen> {
   Leg? _updatedLeg;
   late final DebugEntityPageLoader _debugPageLoader;
   late final DebugEntityListPageLoader _debugListLoader;
@@ -99,8 +103,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   bool _isLoadingVehicleStops = false;
   String? _vehicleStopsError;
   List<_VehicleStopRow> _vehicleStops = [];
-  TripUpdate? _activeTripUpdate;
-  VehiclePosition? _activeVehicle;
   bool _isLoadingRouteDebug = false;
   String? _routeDebugError;
   gtfs_route.Route? _gtfsRoute;
@@ -110,36 +112,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   int _currentLegIndex = 0;
   Future<VehiclePositionAggregationResult>? _vehicleAggregateFuture;
   Future<TripUpdateAggregationResult>? _tripUpdateAggregateFuture;
-
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
-
-  void _safeLogInfo(Object? message) {
-    try {
-      logger.i(message);
-    } catch (_) {}
-  }
-
-  void _showMessage(SnackBar snackBar) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } catch (_) {}
-  }
-
-  Future<void> _pushPage(WidgetBuilder builder) async {
-    try {
-      await Navigator.push(context, MaterialPageRoute(builder: builder));
-    } catch (_) {}
-  }
 
   T? _itemAt<T>(List<T> items, int index) {
     if (index < 0) {
@@ -164,12 +136,88 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     return null;
   }
 
-  bool _safeSupportsRealtimeForLeg(Leg leg) {
-    try {
-      return _supportsRealtimeForLeg(leg);
-    } catch (_) {
-      return false;
+  Leg get _activeLeg => _updatedLeg ?? widget.leg;
+  List<Leg> get _tripLegs => widget.trip?.legs ?? const <Leg>[];
+
+  String? _trimmedOrNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
     }
+    return trimmed;
+  }
+
+  String? _firstNonBlank(Iterable<String?> values) {
+    for (final value in values) {
+      final trimmed = _trimmedOrNull(value);
+      if (trimmed != null) {
+        return trimmed;
+      }
+    }
+    return null;
+  }
+
+  String _displayOrNa(String? value) => value ?? 'N/A';
+
+  String _displayValueOrNa(Object? value) => value?.toString() ?? 'N/A';
+
+  String? _legRouteIdFor(Leg leg) => _trimmedOrNull(leg.transportation?.id);
+
+  List<Stop> _legStops(Leg leg) => leg.stopSequence ?? const <Stop>[];
+
+  String? _transportDisassembledName(Transportation? transportation) {
+    return _trimmedOrNull(transportation?.disassembledName);
+  }
+
+  String? _transportOperatorId(Transportation? transportation) {
+    return _trimmedOrNull(transportation?.operator?.id);
+  }
+
+  String? _transportLabel(Transportation? transportation) {
+    return _firstNonBlank([
+      transportation?.name,
+      transportation?.disassembledName,
+      transportation?.id,
+    ]);
+  }
+
+  String _legTransportLabel(Leg leg) {
+    return _displayOrNa(_transportLabel(leg.transportation));
+  }
+
+  String? _transportNumber(Transportation? transportation) {
+    return _trimmedOrNull(transportation?.number);
+  }
+
+  String? _transportDescription(Transportation? transportation) {
+    return _trimmedOrNull(transportation?.description);
+  }
+
+  String? _transportDestinationId(Transportation? transportation) {
+    return _trimmedOrNull(transportation?.destination?.id);
+  }
+
+  String? _transportDestinationName(Transportation? transportation) {
+    return _firstNonBlank([transportation?.destination?.name]);
+  }
+
+  String? _transportOperatorName(Transportation? transportation) {
+    return _firstNonBlank([transportation?.operator?.name]);
+  }
+
+  String? _transportProductName(Transportation? transportation) {
+    return _firstNonBlank([transportation?.product?.name]);
+  }
+
+  int? _transportClass(Transportation? transportation) {
+    return transportation?.product?.classField;
+  }
+
+  Map<String, dynamic>? _transportRawJson(Transportation? transportation) {
+    if (transportation == null || transportation.rawJson.isEmpty) {
+      return null;
+    }
+    return transportation.rawJson;
   }
 
   @override
@@ -190,13 +238,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           getAllTripUpdatesAggregated: widget.getAllTripUpdatesAggregated,
         );
     _updatedLeg = widget.leg;
-    final legs = widget.trip?.legs;
-    if (legs != null) {
-      final idx = legs.indexOf(widget.leg);
-      _currentLegIndex = idx >= 0 ? idx : 0;
-    }
+    final idx = _tripLegs.indexOf(widget.leg);
+    _currentLegIndex = idx >= 0 ? idx : 0;
     if (widget.skipInitialLoadDelay) {
-      if (_safeSupportsRealtimeForLeg(_updatedLeg ?? widget.leg)) {
+      if (_supportsRealtimeForLeg(_activeLeg)) {
         _loadVehiclesForLeg();
       }
       if (DebugService.showDebugData.value) {
@@ -205,23 +250,22 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     } else {
       _refreshLegData();
     }
-    try {
-      DebugService.showDebugData.addListener(_handleDebugVisibilityChanged);
-    } catch (_) {}
+    addListenerSafely(
+      DebugService.showDebugData,
+      _handleDebugVisibilityChanged,
+    );
   }
 
   void _goToLeg(int index) {
-    final legs = widget.trip?.legs;
-    if (legs == null || index < 0 || index >= legs.length) return;
+    final legs = _tripLegs;
+    if (index < 0 || index >= legs.length) return;
     final selectedLeg = _itemAt(legs, index);
     if (selectedLeg == null) {
       return;
     }
-    _safeSetState(() {
+    guardedSetState(() {
       _currentLegIndex = index;
       _updatedLeg = selectedLeg;
-      _activeTripUpdate = null;
-      _activeVehicle = null;
       _vehicleStops = [];
       _vehicleStopsError = null;
       _resetRouteDebugState();
@@ -231,7 +275,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   @override
   void dispose() {
-    DebugService.showDebugData.removeListener(_handleDebugVisibilityChanged);
+    removeListenerSafely(
+      DebugService.showDebugData,
+      _handleDebugVisibilityChanged,
+    );
     super.dispose();
   }
 
@@ -275,20 +322,21 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln('  coord: ${leg.destination.coord ?? 'N/A'}');
 
     buffer.writeln('\nTransportation:');
-    if (leg.transportation != null) {
-      buffer.writeln('  id: ${leg.transportation?.id}');
-      buffer.writeln('  name: ${leg.transportation?.name}');
-      buffer.writeln('  number: ${leg.transportation?.number}');
+    final transport = leg.transportation;
+    if (transport != null) {
+      buffer.writeln('  id: ${_displayOrNa(_legRouteIdFor(leg))}');
+      buffer.writeln('  name: ${_displayOrNa(_transportLabel(transport))}');
+      buffer.writeln('  number: ${_displayOrNa(_transportNumber(transport))}');
       buffer.writeln(
-        '  product class: ${leg.transportation?.product?.classField}',
+        '  product class: ${_displayValueOrNa(_transportClass(transport))}',
       );
     } else {
       buffer.writeln('  N/A');
     }
 
-    buffer.writeln('\nStops (${leg.stopSequence?.length ?? 0}):');
-    final stopSequence = leg.stopSequence;
-    if (stopSequence != null && stopSequence.isNotEmpty) {
+    final stopSequence = _legStops(leg);
+    buffer.writeln('\nStops (${stopSequence.length}):');
+    if (stopSequence.isNotEmpty) {
       var stopNumber = 1;
       for (final stop in stopSequence) {
         buffer.writeln('  $stopNumber. ${stop.name} (id: ${stop.id})');
@@ -304,24 +352,18 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     // Raw JSON for the leg
     buffer.writeln('\nRaw leg JSON:');
-    try {
-      const enc = JsonEncoder.withIndent('  ');
-      if (leg.rawJson != null) {
-        buffer.writeln(enc.convert(leg.rawJson));
-      } else {
-        buffer.writeln('  <no raw JSON available for leg>');
-      }
-    } catch (e) {
-      buffer.writeln('  <failed to pretty-print raw JSON for leg>');
-    }
+    final prettyLegJson = prettyPrintJsonOrNull(leg.rawJson);
+    buffer.writeln(
+      prettyLegJson ?? '  <failed to pretty-print raw JSON for leg>',
+    );
 
     return buffer.toString();
   }
 
   String _tripDebugString(TripJourney trip) {
     final buffer = StringBuffer();
-    final tripIds = _safeCollectDebugTripIds(trip);
-    final routeIds = _safeCollectDebugRouteIds(trip);
+    final tripIds = _collectDebugTripIds(trip);
+    final routeIds = _collectDebugRouteIds(trip);
 
     buffer.writeln(
       'Trip IDs: ${tripIds.isNotEmpty ? tripIds.join(', ') : 'N/A'}',
@@ -339,13 +381,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     var legNumber = 1;
     for (final tripLeg in trip.legs) {
       buffer.writeln('\n--- Leg $legNumber ---');
-      buffer.writeln(_safeLegDebugString(tripLeg));
+      buffer.writeln(_legDebugString(tripLeg));
       legNumber++;
     }
-    if (trip.rawJson != null) {
-      buffer.writeln('\nFull trip raw JSON:');
-      buffer.writeln(const JsonEncoder.withIndent('  ').convert(trip.rawJson));
-    }
+    buffer.writeln('\nFull trip raw JSON:');
+    buffer.writeln(const JsonEncoder.withIndent('  ').convert(trip.rawJson));
     return buffer.toString();
   }
 
@@ -367,7 +407,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final routeIds = <String>{};
 
     for (final leg in trip.legs) {
-      final routeId = leg.transportation?.id;
+      final routeId = _legRouteIdFor(leg);
       if (routeId != null && routeId.isNotEmpty) {
         routeIds.add(routeId);
       }
@@ -401,8 +441,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String _tripDebugPreviewString(TripJourney trip) {
     final buffer = StringBuffer();
-    final tripIds = _safeCollectDebugTripIds(trip);
-    final routeIds = _safeCollectDebugRouteIds(trip);
+    final tripIds = _collectDebugTripIds(trip);
+    final routeIds = _collectDebugRouteIds(trip);
 
     buffer.writeln(
       'Trip IDs: ${tripIds.isNotEmpty ? tripIds.join(', ') : 'N/A'}',
@@ -424,9 +464,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       buffer.writeln(
         '  to: ${tripLeg.destination.name} (${tripLeg.destination.id})',
       );
-      buffer.writeln(
-        '  transport: ${tripLeg.transportation?.name ?? tripLeg.transportation?.id ?? 'N/A'}',
-      );
+      buffer.writeln('  transport: ${_legTransportLabel(tripLeg)}');
       legNumber++;
     }
     appendScalarPreviewFields(
@@ -445,9 +483,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln('  isRealtimeControlled: ${leg.isRealtimeControlled}');
     buffer.writeln('  from: ${leg.origin.name} (${leg.origin.id})');
     buffer.writeln('  to: ${leg.destination.name} (${leg.destination.id})');
-    buffer.writeln(
-      '  transport: ${leg.transportation?.name ?? leg.transportation?.id ?? 'N/A'}',
-    );
+    buffer.writeln('  transport: ${_legTransportLabel(leg)}');
     buffer.writeln('  stops: ${leg.stopSequence?.length ?? 0}');
     _appendLegRelationshipSnapshot(buffer, leg);
     appendScalarPreviewFields(buffer, leg.rawJson, title: 'Leg raw fields');
@@ -460,14 +496,14 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final stopIds = <String>{
       leg.origin.id,
       leg.destination.id,
-      ...?(leg.stopSequence?.map((stop) => stop.id)),
+      ..._legStops(leg).map((stop) => stop.id),
     }.where((id) => id.isNotEmpty).toList(growable: false)..sort();
     final vehicleIds =
         _displayedVehicles.map(vehicleDisplayId).toSet().toList(growable: false)
           ..sort();
 
     buffer.writeln('\nRelationship snapshot:');
-    buffer.writeln('  routeId: ${leg.transportation?.id ?? 'N/A'}');
+    buffer.writeln('  routeId: ${_displayOrNa(_legRouteIdFor(leg))}');
     buffer.writeln(
       '  tripIds: ${tripIds.isEmpty ? 'N/A' : tripIds.join(', ')}',
     );
@@ -477,9 +513,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     buffer.writeln(
       '  displayedVehicleIds: ${vehicleIds.isEmpty ? 'N/A' : vehicleIds.join(', ')}',
     );
-    buffer.writeln('  gtfsEndpoint: ${_gtfsRouteEndpointKey ?? 'N/A'}');
-    buffer.writeln('  gtfsRouteId: ${_gtfsRoute?.routeId ?? 'N/A'}');
-    buffer.writeln('  gtfsAgency: ${_gtfsAgency?.agencyName ?? 'N/A'}');
+    buffer.writeln('  gtfsEndpoint: ${_displayOrNa(_gtfsRouteEndpointKey)}');
+    buffer.writeln('  gtfsRouteId: ${_displayOrNa(_gtfsRoute?.routeId)}');
+    buffer.writeln('  gtfsAgency: ${_displayOrNa(_gtfsAgency?.agencyName)}');
   }
 
   String _routeDebugString(Leg leg) {
@@ -488,33 +524,44 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final rawTransport = tryReadMapValue(leg.rawJson, 'transportation');
 
     buffer.writeln('Route summary:');
-    buffer.writeln('  id: ${transport?.id ?? 'N/A'}');
+    buffer.writeln('  id: ${_displayOrNa(_legRouteIdFor(leg))}');
+    buffer.writeln('  name: ${_displayOrNa(_transportLabel(transport))}');
     buffer.writeln(
-      '  name: ${transport?.name ?? transport?.disassembledName ?? 'N/A'}',
+      '  disassembledName: ${_displayOrNa(_transportDisassembledName(transport))}',
     );
     buffer.writeln(
-      '  disassembledName: ${transport?.disassembledName ?? 'N/A'}',
+      '  description: ${_displayOrNa(_transportDescription(transport))}',
     );
-    buffer.writeln('  description: ${transport?.description ?? 'N/A'}');
-    buffer.writeln('  number: ${transport?.number ?? 'N/A'}');
-    buffer.writeln('  operator.id: ${transport?.operator?.id ?? 'N/A'}');
-    buffer.writeln('  operator.name: ${transport?.operator?.name ?? 'N/A'}');
-    buffer.writeln('  destination.id: ${transport?.destination?.id ?? 'N/A'}');
+    buffer.writeln('  number: ${_displayOrNa(_transportNumber(transport))}');
     buffer.writeln(
-      '  destination.name: ${transport?.destination?.name ?? 'N/A'}',
+      '  operator.id: ${_displayOrNa(_transportOperatorId(transport))}',
     );
-    buffer.writeln('  product.name: ${transport?.product?.name ?? 'N/A'}');
     buffer.writeln(
-      '  product.class: ${transport?.product?.classField ?? 'N/A'}',
+      '  operator.name: ${_displayOrNa(_transportOperatorName(transport))}',
     );
-    buffer.writeln('  product.iconId: ${transport?.product?.iconId ?? 'N/A'}');
-    buffer.writeln('  iconId: ${transport?.iconId ?? 'N/A'}');
+    buffer.writeln(
+      '  destination.id: ${_displayOrNa(_transportDestinationId(transport))}',
+    );
+    buffer.writeln(
+      '  destination.name: ${_displayOrNa(_transportDestinationName(transport))}',
+    );
+    buffer.writeln(
+      '  product.name: ${_displayOrNa(_transportProductName(transport))}',
+    );
+    buffer.writeln(
+      '  product.class: ${_displayValueOrNa(_transportClass(transport))}',
+    );
+    buffer.writeln(
+      '  product.iconId: ${_displayValueOrNa(transport?.product?.iconId)}',
+    );
+    buffer.writeln('  iconId: ${_displayValueOrNa(transport?.iconId)}');
     buffer.writeln();
 
     buffer.writeln('Route properties:');
-    if (transport?.properties != null) {
-      buffer.writeln('  isTTB: ${transport?.properties?.isTTB}');
-      buffer.writeln('  tripCode: ${transport?.properties?.tripCode}');
+    final properties = transport?.properties;
+    if (properties != null) {
+      buffer.writeln('  isTTB: ${properties.isTTB}');
+      buffer.writeln('  tripCode: ${properties.tripCode}');
     } else {
       buffer.writeln('  N/A');
     }
@@ -522,17 +569,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     _appendGtfsRouteDebugFields(buffer);
 
     buffer.writeln('\nTransportation raw JSON:');
-    try {
-      const enc = JsonEncoder.withIndent('  ');
-      final transportRawJson = transport?.rawJson;
-      if (transportRawJson != null) {
-        buffer.writeln(enc.convert(transportRawJson));
-      } else if (rawTransport != null) {
-        buffer.writeln(enc.convert(rawTransport));
-      } else {
-        buffer.writeln('  <no raw JSON available for route>');
-      }
-    } catch (e) {
+    final transportRawJson = _transportRawJson(transport);
+    final prettyRouteJson = prettyPrintJsonOrNull(
+      transportRawJson ?? rawTransport,
+    );
+    if (prettyRouteJson != null) {
+      buffer.writeln(prettyRouteJson);
+    } else if (transportRawJson == null && rawTransport == null) {
+      buffer.writeln('  <no raw JSON available for route>');
+    } else {
       buffer.writeln('  <failed to pretty-print raw JSON for route>');
     }
 
@@ -545,27 +590,37 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final rawTransport = tryReadMapValue(leg.rawJson, 'transportation');
 
     buffer.writeln('Route summary:');
-    buffer.writeln('  id: ${transport?.id ?? 'N/A'}');
+    buffer.writeln('  id: ${_displayOrNa(_legRouteIdFor(leg))}');
+    buffer.writeln('  name: ${_displayOrNa(_transportLabel(transport))}');
     buffer.writeln(
-      '  name: ${transport?.name ?? transport?.disassembledName ?? 'N/A'}',
+      '  disassembledName: ${_displayOrNa(_transportDisassembledName(transport))}',
     );
     buffer.writeln(
-      '  disassembledName: ${transport?.disassembledName ?? 'N/A'}',
+      '  description: ${_displayOrNa(_transportDescription(transport))}',
     );
-    buffer.writeln('  description: ${transport?.description ?? 'N/A'}');
-    buffer.writeln('  number: ${transport?.number ?? 'N/A'}');
-    buffer.writeln('  operator.id: ${transport?.operator?.id ?? 'N/A'}');
-    buffer.writeln('  operator.name: ${transport?.operator?.name ?? 'N/A'}');
-    buffer.writeln('  destination.id: ${transport?.destination?.id ?? 'N/A'}');
+    buffer.writeln('  number: ${_displayOrNa(_transportNumber(transport))}');
     buffer.writeln(
-      '  destination.name: ${transport?.destination?.name ?? 'N/A'}',
+      '  operator.id: ${_displayOrNa(_transportOperatorId(transport))}',
     );
-    buffer.writeln('  product.name: ${transport?.product?.name ?? 'N/A'}');
     buffer.writeln(
-      '  product class: ${transport?.product?.classField ?? 'N/A'}',
+      '  operator.name: ${_displayOrNa(_transportOperatorName(transport))}',
     );
-    buffer.writeln('  product.iconId: ${transport?.product?.iconId ?? 'N/A'}');
-    buffer.writeln('  iconId: ${transport?.iconId ?? 'N/A'}');
+    buffer.writeln(
+      '  destination.id: ${_displayOrNa(_transportDestinationId(transport))}',
+    );
+    buffer.writeln(
+      '  destination.name: ${_displayOrNa(_transportDestinationName(transport))}',
+    );
+    buffer.writeln(
+      '  product.name: ${_displayOrNa(_transportProductName(transport))}',
+    );
+    buffer.writeln(
+      '  product class: ${_displayValueOrNa(_transportClass(transport))}',
+    );
+    buffer.writeln(
+      '  product.iconId: ${_displayValueOrNa(transport?.product?.iconId)}',
+    );
+    buffer.writeln('  iconId: ${_displayValueOrNa(transport?.iconId)}');
 
     _appendGtfsRouteDebugFields(buffer);
 
@@ -657,59 +712,60 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return true;
     }
 
-    final transportRawJson = leg.transportation?.rawJson;
+    final transportRawJson = _transportRawJson(leg.transportation);
     return tryReadMapValue(transportRawJson, 'manual') == true;
   }
 
   bool _supportsRealtimeForLeg(Leg leg) {
-    final transportId = leg.transportation?.id;
+    final transportId = _legRouteIdFor(leg);
     return !_isManualLeg(leg) && transportId != null && transportId.isNotEmpty;
   }
 
   Future<void> _refreshLegData() async {
     _vehicleAggregateFuture = null;
     _tripUpdateAggregateFuture = null;
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      if (!mounted) return;
-      _safeSetState(() {
-        _isLoading = false;
-      });
-      final activeLeg = _updatedLeg ?? widget.leg;
-      if (_safeSupportsRealtimeForLeg(activeLeg)) {
-        await Future.wait([
-          _loadVehiclesForLeg(),
-          _loadRealtimeTripStatusForLeg(),
-        ]);
-        if (_showAllVehicleStops) {
-          await _loadVehicleStopsForLeg();
-        }
-        if (DebugService.showDebugData.value) {
-          _ensureRouteDebugLoaded();
-        }
-      } else if (mounted) {
-        _safeSetState(() {
-          _vehicles = [];
-          _activeVehicle = null;
-          _activeTripUpdate = null;
-          _vehicleBreakdown = {};
-          _vehicleStops = [];
-          _vehicleStopsError = null;
-          _isLoadingVehicles = false;
-          _isLoadingVehicleStops = false;
-          _resetRouteDebugState();
+    await runAsyncGuarded(
+      () async {
+        if (!mounted) return;
+        guardedSetState(() {
+          _isLoading = false;
         });
-      }
-    } catch (e) {
-      _safeSetState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+        final activeLeg = _activeLeg;
+        if (_supportsRealtimeForLeg(activeLeg)) {
+          await Future.wait([
+            _loadVehiclesForLeg(),
+            _loadRealtimeTripStatusForLeg(),
+          ]);
+          if (_showAllVehicleStops) {
+            await _loadVehicleStopsForLeg();
+          }
+          if (DebugService.showDebugData.value) {
+            _ensureRouteDebugLoaded();
+          }
+        } else if (mounted) {
+          guardedSetState(() {
+            _vehicles = [];
+            _vehicleBreakdown = {};
+            _vehicleStops = [];
+            _vehicleStopsError = null;
+            _isLoadingVehicles = false;
+            _isLoadingVehicleStops = false;
+            _resetRouteDebugState();
+          });
+        }
+      },
+      onError: (error, _) {
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   Future<VehiclePositionAggregationResult> _getVehicleAggregate() {
@@ -720,20 +776,22 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     late final Future<VehiclePositionAggregationResult> future;
     Future<VehiclePositionAggregationResult> loadAggregate() async {
-      try {
-        final getAllVehiclesAggregated = widget.getAllVehiclesAggregated;
-        return getAllVehiclesAggregated != null
-            ? await getAllVehiclesAggregated()
-            : await RealtimeService.getAllVehiclePositionsAggregated();
-      } catch (_) {
-        if (identical(_vehicleAggregateFuture, future)) {
-          _vehicleAggregateFuture = null;
-        }
-        return const VehiclePositionAggregationResult(
-          vehicles: <VehiclePosition>[],
-          breakdown: <String, int>{},
+      final getAllVehiclesAggregated = widget.getAllVehiclesAggregated;
+      if (getAllVehiclesAggregated != null) {
+        return runAsyncGuardedWithFallback(
+          () => getAllVehiclesAggregated(),
+          const VehiclePositionAggregationResult(
+            vehicles: <VehiclePosition>[],
+            breakdown: <String, int>{},
+          ),
+          onError: (_, _) {
+            if (identical(_vehicleAggregateFuture, future)) {
+              _vehicleAggregateFuture = null;
+            }
+          },
         );
       }
+      return RealtimeService.getAllVehiclePositionsAggregatedSafe();
     }
 
     future = loadAggregate();
@@ -749,20 +807,22 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     late final Future<TripUpdateAggregationResult> future;
     Future<TripUpdateAggregationResult> loadAggregate() async {
-      try {
-        final getAllTripUpdatesAggregated = widget.getAllTripUpdatesAggregated;
-        return getAllTripUpdatesAggregated != null
-            ? await getAllTripUpdatesAggregated()
-            : await RealtimeService.getAllTripUpdatesAggregated();
-      } catch (_) {
-        if (identical(_tripUpdateAggregateFuture, future)) {
-          _tripUpdateAggregateFuture = null;
-        }
-        return const TripUpdateAggregationResult(
-          tripUpdates: <TripUpdate>[],
-          breakdown: <String, int>{},
+      final getAllTripUpdatesAggregated = widget.getAllTripUpdatesAggregated;
+      if (getAllTripUpdatesAggregated != null) {
+        return runAsyncGuardedWithFallback(
+          () => getAllTripUpdatesAggregated(),
+          const TripUpdateAggregationResult(
+            tripUpdates: <TripUpdate>[],
+            breakdown: <String, int>{},
+          ),
+          onError: (_, _) {
+            if (identical(_tripUpdateAggregateFuture, future)) {
+              _tripUpdateAggregateFuture = null;
+            }
+          },
         );
       }
+      return RealtimeService.getAllTripUpdatesAggregatedSafe();
     }
 
     future = loadAggregate();
@@ -771,13 +831,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _ensureRouteDebugLoaded() async {
-    final leg = _updatedLeg ?? widget.leg;
-    final transportId = leg.transportation?.id;
-    final mode = _getRealtimeModeFromClass(
-      leg.transportation?.product?.classField,
-    );
+    final leg = _activeLeg;
+    final transportId = _legRouteIdFor(leg);
+    final mode = _getRealtimeModeFromClass(_transportClass(leg.transportation));
     if (transportId == null || transportId.isEmpty) {
-      _safeSetState(() {
+      guardedSetState(() {
         _routeDebugError = 'No route id available for this leg';
       });
       return;
@@ -786,7 +844,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return;
     }
 
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoadingRouteDebug = true;
       _routeDebugError = null;
       _gtfsRoute = null;
@@ -795,77 +853,80 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       _gtfsRouteMatchReason = null;
     });
 
-    try {
-      final endpoints = await _candidateRouteEndpoints(leg, mode);
-      if (endpoints.isEmpty) {
-        _safeSetState(() {
+    await runAsyncGuarded(
+      () async {
+        final endpoints = await _candidateRouteEndpoints(leg, mode);
+        if (endpoints.isEmpty) {
+          guardedSetState(() {
+            _isLoadingRouteDebug = false;
+            _routeDebugError =
+                'No GTFS endpoint mapping found for this leg. Load stops data first or provide a transport mode.';
+          });
+          return;
+        }
+
+        final injectedGtfsLoader = widget.getGtfsDataForEndpoint;
+        if (injectedGtfsLoader != null) {
+          for (final endpoint in endpoints) {
+            final data = await injectedGtfsLoader(endpoint);
+            if (data == null) {
+              continue;
+            }
+            final match = _matchGtfsRoute(leg, data.routes);
+            final route = match?.$1;
+            if (route == null) {
+              continue;
+            }
+            final agency = _matchAgencyForRoute(route, data.agencies);
+            if (!mounted) return;
+            guardedSetState(() {
+              _gtfsRoute = route;
+              _gtfsAgency = agency;
+              _gtfsRouteEndpointKey = endpoint.key;
+              _gtfsRouteMatchReason = match?.$2;
+              _isLoadingRouteDebug = false;
+              _routeDebugError = null;
+            });
+            return;
+          }
+        } else {
+          for (final endpoint in endpoints) {
+            final routes = await _loadPersistedRoutesForEndpoint(endpoint);
+            if (routes.isEmpty) {
+              continue;
+            }
+            final match = _matchGtfsRoute(leg, routes);
+            final route = match?.$1;
+            if (route == null) {
+              continue;
+            }
+            if (!mounted) return;
+            guardedSetState(() {
+              _gtfsRoute = route;
+              _gtfsAgency = null;
+              _gtfsRouteEndpointKey = endpoint.key;
+              _gtfsRouteMatchReason = '${match?.$2} (cached routes table)';
+              _isLoadingRouteDebug = false;
+              _routeDebugError = null;
+            });
+            return;
+          }
+        }
+
+        guardedSetState(() {
           _isLoadingRouteDebug = false;
           _routeDebugError =
-              'No GTFS endpoint mapping found for this leg. Load stops data first or provide a transport mode.';
+              'No GTFS route match found for route id $transportId';
         });
-        return;
-      }
-
-      final injectedGtfsLoader = widget.getGtfsDataForEndpoint;
-      if (injectedGtfsLoader != null) {
-        for (final endpoint in endpoints) {
-          final data = await injectedGtfsLoader(endpoint);
-          if (data == null) {
-            continue;
-          }
-          final match = _matchGtfsRoute(leg, data.routes);
-          final route = match?.$1;
-          if (route == null) {
-            continue;
-          }
-          final agency = _matchAgencyForRoute(route, data.agencies);
-          if (!mounted) return;
-          _safeSetState(() {
-            _gtfsRoute = route;
-            _gtfsAgency = agency;
-            _gtfsRouteEndpointKey = endpoint.key;
-            _gtfsRouteMatchReason = match?.$2;
-            _isLoadingRouteDebug = false;
-            _routeDebugError = null;
-          });
-          return;
-        }
-      } else {
-        for (final endpoint in endpoints) {
-          final routes = await _loadPersistedRoutesForEndpoint(endpoint);
-          if (routes.isEmpty) {
-            continue;
-          }
-          final match = _matchGtfsRoute(leg, routes);
-          final route = match?.$1;
-          if (route == null) {
-            continue;
-          }
-          if (!mounted) return;
-          _safeSetState(() {
-            _gtfsRoute = route;
-            _gtfsAgency = null;
-            _gtfsRouteEndpointKey = endpoint.key;
-            _gtfsRouteMatchReason = '${match?.$2} (cached routes table)';
-            _isLoadingRouteDebug = false;
-            _routeDebugError = null;
-          });
-          return;
-        }
-      }
-
-      _safeSetState(() {
-        _isLoadingRouteDebug = false;
-        _routeDebugError =
-            'No GTFS route match found for route id $transportId';
-      });
-    } catch (e) {
-      _safeLogInfo('Failed to load GTFS route debug data: $e');
-      _safeSetState(() {
-        _isLoadingRouteDebug = false;
-        _routeDebugError = e.toString();
-      });
-    }
+      },
+      onError: (error, _) {
+        safeLogInfo('Failed to load GTFS route debug data: $error');
+        guardedSetState(() {
+          _isLoadingRouteDebug = false;
+          _routeDebugError = error.toString();
+        });
+      },
+    );
   }
 
   Future<List<gtfs_route.Route>> _loadPersistedRoutesForEndpoint(
@@ -905,43 +966,23 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }.where((id) => id.isNotEmpty);
 
     for (final stopId in stopIds) {
-      try {
-        final rows = await StopsService.database.getStopsById(stopId);
-        for (final row in rows) {
-          if (!orderedKeys.contains(row.endpoint)) {
-            orderedKeys.add(row.endpoint);
-          }
+      final rows = await runAsyncGuardedWithFallback(
+        () => StopsService.database.getStopsById(stopId),
+        const <db.Stop>[],
+        onError: (error, _) {
+          safeLogInfo(
+            'Failed to resolve stop endpoint for route debug: $error',
+          );
+        },
+      );
+      for (final row in rows) {
+        if (!orderedKeys.contains(row.endpoint)) {
+          orderedKeys.add(row.endpoint);
         }
-      } catch (e) {
-        _safeLogInfo('Failed to resolve stop endpoint for route debug: $e');
       }
     }
 
     return orderedKeys.map(_endpointForKey).whereType<StopsEndpoint>().toList();
-  }
-
-  Set<String> _safeCollectDebugTripIds(TripJourney trip) {
-    try {
-      return _collectDebugTripIds(trip);
-    } catch (_) {
-      return <String>{};
-    }
-  }
-
-  Set<String> _safeCollectDebugRouteIds(TripJourney trip) {
-    try {
-      return _collectDebugRouteIds(trip);
-    } catch (_) {
-      return <String>{};
-    }
-  }
-
-  String _safeLegDebugString(Leg leg) {
-    try {
-      return _legDebugString(leg);
-    } catch (_) {
-      return 'Leg summary unavailable';
-    }
   }
 
   (gtfs_route.Route, String)? _matchGtfsRoute(
@@ -949,10 +990,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     List<gtfs_route.Route> routes,
   ) {
     final transport = leg.transportation;
-    final transportId = transport?.id?.trim();
-    final transportNumber = transport?.number?.trim();
-    final trimmedTransportName = transport?.name?.trim();
-    final trimmedDisassembledName = transport?.disassembledName?.trim();
+    final transportId = _legRouteIdFor(leg);
+    final transportNumber = _transportNumber(transport);
+    final trimmedTransportName = _trimmedOrNull(transport?.name);
+    final trimmedDisassembledName = _transportDisassembledName(transport);
     final transportNames = <String>{
       if (trimmedTransportName != null && trimmedTransportName.isNotEmpty)
         trimmedTransportName,
@@ -1030,7 +1071,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     if (trip == null) {
       return;
     }
-    final tripIds = _safeCollectDebugTripIds(trip);
+    final tripIds = _collectDebugTripIds(trip);
     final tripId = tripIds.isNotEmpty ? tripIds.first : 'trip';
     await DebugNavigation.pushEntity(
       context,
@@ -1044,7 +1085,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _openRouteDebugPage(Leg leg) async {
-    final routeId = leg.transportation?.id;
+    final routeId = _legRouteIdFor(leg);
     if (routeId == null || routeId.isEmpty) {
       return;
     }
@@ -1088,7 +1129,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _openTripDebugBrowser(Leg leg) async {
-    final routeId = leg.transportation?.id;
+    final routeId = _legRouteIdFor(leg);
     final tripId = firstSortedValue(_collectTripIdsForActiveLeg());
     await _openDebugBrowser(
       DebugEntityType.trip,
@@ -1100,7 +1141,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _openRouteDebugBrowser(Leg leg) async {
-    final routeId = leg.transportation?.id;
+    final routeId = _legRouteIdFor(leg);
     await _openDebugBrowser(
       DebugEntityType.route,
       initialSearchQuery: routeId != null && routeId.isNotEmpty
@@ -1110,7 +1151,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _openVehicleDebugBrowser(Leg leg) async {
-    final routeId = leg.transportation?.id;
+    final routeId = _legRouteIdFor(leg);
     final tripId = firstSortedValue(_collectTripIdsForActiveLeg());
     await _openDebugBrowser(
       DebugEntityType.vehicle,
@@ -1121,12 +1162,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  String? _legRouteId() => (_updatedLeg ?? widget.leg).transportation?.id;
+  String? _legRouteId() => _legRouteIdFor(_activeLeg);
 
   Set<String> _collectTripIdsForActiveLeg() {
     return collectTripIdsForVehicleFiltering(
       tripRawJson: widget.trip?.rawJson,
-      legRawJson: (_updatedLeg ?? widget.leg).rawJson,
+      legRawJson: _activeLeg.rawJson,
     );
   }
 
@@ -1143,7 +1184,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     final tripIds = collectTripIdsForVehicleFiltering(
       tripRawJson: widget.trip?.rawJson,
-      legRawJson: (_updatedLeg ?? widget.leg).rawJson,
+      legRawJson: _activeLeg.rawJson,
     );
 
     // If we found any trip IDs, filter vehicles by trip id; otherwise fallback to route id filter
@@ -1159,69 +1200,29 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _loadVehiclesForLeg() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoadingVehicles = true;
     });
-    try {
-      final aggregate = await _getVehicleAggregate();
-      final dedupedVehicles = aggregate.vehicles.toList();
-      final breakdown = aggregate.breakdown;
+    final aggregate = await _getVehicleAggregate();
+    final dedupedVehicles = aggregate.vehicles.toList();
+    final breakdown = aggregate.breakdown;
 
-      dedupedVehicles.sort(
-        (a, b) => vehicleDisplayId(
-          a,
-        ).toLowerCase().compareTo(vehicleDisplayId(b).toLowerCase()),
-      );
+    dedupedVehicles.sort(
+      (a, b) => vehicleDisplayId(
+        a,
+      ).toLowerCase().compareTo(vehicleDisplayId(b).toLowerCase()),
+    );
 
-      final selectedVehicle = _matchVehicleForLeg(dedupedVehicles);
-      _safeSetState(() {
-        _vehicles = dedupedVehicles;
-        _vehicleBreakdown = breakdown;
-        _activeVehicle = selectedVehicle;
-        _isLoadingVehicles = false;
-      });
-    } catch (e) {
-      _safeLogInfo('Failed to load vehicles for leg: $e');
-      _safeSetState(() {
-        _activeVehicle = null;
-        _isLoadingVehicles = false;
-      });
-    }
+    guardedSetState(() {
+      _vehicles = dedupedVehicles;
+      _vehicleBreakdown = breakdown;
+      _isLoadingVehicles = false;
+    });
   }
 
   Future<void> _loadRealtimeTripStatusForLeg() async {
-    try {
-      final aggregate = await _getTripUpdateAggregate();
-      final match = _matchTripUpdateForLeg(aggregate.tripUpdates);
-      _safeSetState(() {
-        _activeTripUpdate = match;
-      });
-    } catch (_) {
-      _safeSetState(() {
-        _activeTripUpdate = null;
-      });
-    }
-  }
-
-  VehiclePosition? _matchVehicleForLeg(List<VehiclePosition> vehicles) {
-    final tripIds = _collectTripIdsForActiveLeg();
-    if (tripIds.isNotEmpty) {
-      for (final vehicle in vehicles) {
-        if (vehicle.trip.hasTripId() && tripIds.contains(vehicle.trip.tripId)) {
-          return vehicle;
-        }
-      }
-    }
-
-    final routeId = _legRouteId();
-    if (routeId != null && routeId.isNotEmpty) {
-      for (final vehicle in vehicles) {
-        if (vehicle.trip.hasRouteId() && vehicle.trip.routeId == routeId) {
-          return vehicle;
-        }
-      }
-    }
-    return null;
+    final aggregate = await _getTripUpdateAggregate();
+    _matchTripUpdateForLeg(aggregate.tripUpdates);
   }
 
   TripUpdate? _matchTripUpdateForLeg(List<TripUpdate> tripUpdates) {
@@ -1268,7 +1269,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     TripUpdate update,
   ) async {
     final stopUpdates = update.stopTimeUpdate;
-    final legStops = (_updatedLeg ?? widget.leg).stopSequence ?? const <Stop>[];
+    final legStops = _legStops(_activeLeg);
     final rows = _buildTripStopRows(legStops);
     final usedUpdateIndexes = <int>{};
 
@@ -1397,45 +1398,63 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _loadVehicleStopsForLeg() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoadingVehicleStops = true;
       _vehicleStopsError = null;
       _vehicleStops = [];
     });
 
-    try {
-      final aggregate = await _getTripUpdateAggregate();
-      final tripUpdates = aggregate.tripUpdates;
-      final tripIds = _collectTripIdsForActiveLeg();
-      final routeId = _legRouteId();
-      final match = _matchTripUpdateForLeg(tripUpdates);
-      if (match == null) {
-        _safeSetState(() {
-          _activeTripUpdate = null;
-          _vehicleStopsError = _buildRealtimeTripUpdateUnavailableMessage(
-            tripIds: tripIds,
-            routeId: routeId,
-            breakdown: aggregate.breakdown,
-          );
+    await runAsyncGuarded(
+      () async {
+        final aggregate = await _getTripUpdateAggregate();
+        final tripUpdates = aggregate.tripUpdates;
+        final tripIds = _collectTripIdsForActiveLeg();
+        final routeId = _legRouteId();
+        final match = _matchTripUpdateForLeg(tripUpdates);
+        if (match == null) {
+          guardedSetState(() {
+            _vehicleStopsError = _buildRealtimeTripUpdateUnavailableMessage(
+              tripIds: tripIds,
+              routeId: routeId,
+              breakdown: aggregate.breakdown,
+            );
+            _isLoadingVehicleStops = false;
+          });
+          return;
+        }
+
+        final rows = await _buildVehicleStopsFromTripUpdate(match);
+
+        guardedSetState(() {
+          _vehicleStops = rows;
           _isLoadingVehicleStops = false;
         });
-        return;
-      }
+      },
+      onError: (error, _) {
+        safeLogInfo('Failed to load vehicle stops for leg: $error');
+        guardedSetState(() {
+          _vehicleStopsError = error.toString();
+          _isLoadingVehicleStops = false;
+        });
+      },
+    );
+  }
 
-      final rows = await _buildVehicleStopsFromTripUpdate(match);
-
-      _safeSetState(() {
-        _activeTripUpdate = match;
-        _vehicleStops = rows;
-        _isLoadingVehicleStops = false;
-      });
-    } catch (e) {
-      _safeLogInfo('Failed to load vehicle stops for leg: $e');
-      _safeSetState(() {
-        _vehicleStopsError = e.toString();
-        _isLoadingVehicleStops = false;
-      });
+  Future<void> _copyDebugText({
+    required String text,
+    required String successMessage,
+    required String failureMessage,
+  }) async {
+    final copied = await setClipboardTextSafely(text);
+    if (copied) {
+      showSnackBar(SnackBar(content: Text(successMessage)));
+      return;
     }
+    showSnackBar(SnackBar(content: Text(failureMessage)));
+  }
+
+  String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
+    return formatTimeDifference(plannedTime, estimatedTime);
   }
 
   String _buildRealtimeTripUpdateUnavailableMessage({
@@ -1452,39 +1471,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       return 'No realtime match found for this leg.';
     }
     return 'No realtime match found for this leg (${details.join(' • ')}).';
-  }
-
-  String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
-    if (estimatedTime == null) {
-      return plannedTime != null
-          ? DateTimeUtils.parseTimeOnly(plannedTime)
-          : 'TBD';
-    }
-
-    if (plannedTime == null) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
-
-    try {
-      final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
-      final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
-
-      if (planned == null || estimated == null) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      }
-
-      final difference = estimated.difference(planned).inMinutes;
-
-      if (difference == 0) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      } else if (difference > 0) {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)';
-      } else {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
-      }
-    } catch (e) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
   }
 
   /// Returns true when the leg has enough coordinate data to render a map.
@@ -1562,7 +1548,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   icon: const Icon(Icons.fullscreen),
                   color: modeColor,
                   onPressed: () {
-                    _pushPage(
+                    pushPage(
                       (context) => RealtimeMapPage(
                         leg: leg,
                         additionalLegs: additionalLegs,
@@ -1599,13 +1585,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     Stop destination,
     Leg leg,
   ) {
-    final routeNumber = leg.transportation?.number;
-    final headsign = leg.transportation?.destination?.name;
-    final operator = leg.transportation?.operator?.name;
-    final serviceStatus = _serviceStatusLabel();
-    final vehicleState = _vehicleStateLabel(_activeVehicle);
-    final occupancyLabel = _vehicleOccupancyLabel(_activeVehicle);
-    final accessibilityHighlights = _accessibilityHighlights(leg);
+    final routeNumber = _transportNumber(leg.transportation);
+    final headsign = _transportDestinationName(leg.transportation);
+    final operator = _transportOperatorName(leg.transportation);
 
     return Card(
       child: Padding(
@@ -1687,32 +1669,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                _statusChip(serviceStatus.label, serviceStatus.color),
-                if (vehicleState != null)
-                  _statusChip(vehicleState.label, vehicleState.color),
-                if (occupancyLabel != null)
-                  _statusChip('Occupancy: $occupancyLabel', Colors.blueGrey),
-                if (leg.isRealtimeControlled == true)
-                  _statusChip('Realtime tracked', Colors.green.shade700),
-                if (leg.properties?.differentFares != null)
-                  _statusChip('Possible fare boundary', Colors.orange.shade800),
-              ],
-            ),
-            if (accessibilityHighlights.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: accessibilityHighlights
-                    .map((item) => _statusChip(item, Colors.indigo))
-                    .toList(),
-              ),
-            ],
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -1810,103 +1766,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  ({String label, Color color}) _serviceStatusLabel() {
-    final update = _activeTripUpdate;
-    if (update == null || !update.trip.hasScheduleRelationship()) {
-      return (label: 'Status unknown', color: Colors.grey.shade700);
-    }
-
-    switch (update.trip.scheduleRelationship) {
-      case TripDescriptor_ScheduleRelationship.CANCELED:
-        return (label: 'Cancelled', color: Colors.red.shade700);
-      case TripDescriptor_ScheduleRelationship.ADDED:
-        return (label: 'Extra service', color: Colors.green.shade700);
-      case TripDescriptor_ScheduleRelationship.UNSCHEDULED:
-        return (label: 'Unscheduled', color: Colors.orange.shade700);
-      case TripDescriptor_ScheduleRelationship.SCHEDULED:
-        return (label: 'Scheduled service', color: Colors.blue.shade700);
-    }
-    return (label: 'Status unknown', color: Colors.grey.shade700);
-  }
-
-  ({String label, Color color})? _vehicleStateLabel(VehiclePosition? vehicle) {
-    if (vehicle == null || !vehicle.hasCurrentStatus()) return null;
-    switch (vehicle.currentStatus) {
-      case VehiclePosition_VehicleStopStatus.IN_TRANSIT_TO:
-        return (label: 'In transit', color: Colors.blue.shade700);
-      case VehiclePosition_VehicleStopStatus.STOPPED_AT:
-        return (label: 'Stopped at stop', color: Colors.teal.shade700);
-      case VehiclePosition_VehicleStopStatus.INCOMING_AT:
-        return (label: 'Approaching stop', color: Colors.orange.shade700);
-    }
-    return null;
-  }
-
-  String? _vehicleOccupancyLabel(VehiclePosition? vehicle) {
-    if (vehicle == null || !vehicle.hasOccupancyStatus()) return null;
-    switch (vehicle.occupancyStatus) {
-      case VehiclePosition_OccupancyStatus.EMPTY:
-      case VehiclePosition_OccupancyStatus.MANY_SEATS_AVAILABLE:
-        return 'Many seats available';
-      case VehiclePosition_OccupancyStatus.FEW_SEATS_AVAILABLE:
-        return 'Few seats available';
-      case VehiclePosition_OccupancyStatus.STANDING_ROOM_ONLY:
-        return 'Standing room only';
-      case VehiclePosition_OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY:
-        return 'Very crowded';
-      case VehiclePosition_OccupancyStatus.FULL:
-        return 'Full';
-      case VehiclePosition_OccupancyStatus.NOT_ACCEPTING_PASSENGERS:
-        return 'Not accepting passengers';
-    }
-    return null;
-  }
-
-  bool _isTruthy(String? value) {
-    if (value == null) return false;
-    final normalized = value.trim().toLowerCase();
-    return normalized == 'yes' || normalized == 'true' || normalized == '1';
-  }
-
-  List<String> _accessibilityHighlights(Leg leg) {
-    final highlights = <String>[];
-    if (_isTruthy(leg.properties?.planWheelChairAccess)) {
-      highlights.add('Wheelchair accessible route');
-    }
-    if (_isTruthy(leg.properties?.planLowFloorVehicle)) {
-      highlights.add('Low-floor vehicle planned');
-    }
-    final vehicleAccess = leg.properties?.vehicleAccess;
-    if (vehicleAccess != null) {
-      for (final feature in vehicleAccess.take(3)) {
-        final trimmed = feature.trim();
-        if (trimmed.isNotEmpty) {
-          highlights.add(trimmed);
-        }
-      }
-    }
-    return highlights;
-  }
-
-  Widget _statusChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-
   /// Builds a card listing every stop in the leg's stop sequence with
   /// its planned/estimated departure and arrival times.
   Widget _buildStopList(Leg leg, Color modeColor) {
@@ -1953,13 +1812,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                     TextButton.icon(
                       onPressed: () async {
                         if (_showAllVehicleStops) {
-                          _safeSetState(() {
+                          guardedSetState(() {
                             _showAllVehicleStops = false;
                           });
                           return;
                         }
 
-                        _safeSetState(() {
+                        guardedSetState(() {
                           _showAllVehicleStops = true;
                         });
                         await _loadVehicleStopsForLeg();
@@ -2098,7 +1957,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   String? _extractPlatformLabel(Stop stop) {
     final raw = stop.rawJson;
-    if (raw == null) return null;
     final candidates = [
       tryReadMapValue(raw, 'platform'),
       tryReadMapValue(raw, 'platformCode'),
@@ -2186,7 +2044,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     String? estimated, {
     bool isArrival = false,
   }) {
-    final plannedFormatted = _safeFormatTime(planned);
+    final plannedFormatted = _formatTimeOrEmpty(planned);
     String? delayText;
     Color timeColor = Colors.grey.shade700;
 
@@ -2233,13 +2091,9 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     );
   }
 
-  String _safeFormatTime(String? timeStr) {
+  String _formatTimeOrEmpty(String? timeStr) {
     if (timeStr == null || timeStr.isEmpty) return '';
-    try {
-      return DateTimeUtils.parseTimeOnly(timeStr);
-    } catch (_) {
-      return timeStr;
-    }
+    return DateTimeUtils.parseTimeOnly(timeStr);
   }
 
   Widget _buildDebugCards(Leg leg, String? transportId, Color modeColor) {
@@ -2273,7 +2127,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                       Switch.adaptive(
                         value: _filterByLegRoute,
                         onChanged: (v) {
-                          _safeSetState(() {
+                          guardedSetState(() {
                             _filterByLegRoute = v;
                           });
                         },
@@ -2317,28 +2171,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                               IconButton(
                                 tooltip: 'Copy trip debug to clipboard',
                                 onPressed: () async {
-                                  try {
-                                    await Clipboard.setData(
-                                      ClipboardData(
-                                        text: _tripDebugString(trip),
-                                      ),
-                                    );
-                                    _showMessage(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Copied trip debug data to clipboard',
-                                        ),
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    _showMessage(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Failed to copy trip debug data',
-                                        ),
-                                      ),
-                                    );
-                                  }
+                                  await _copyDebugText(
+                                    text: _tripDebugString(trip),
+                                    successMessage:
+                                        'Copied trip debug data to clipboard',
+                                    failureMessage:
+                                        'Failed to copy trip debug data',
+                                  );
                                 },
                                 icon: const Icon(Icons.copy, size: 18),
                               ),
@@ -2407,26 +2246,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             IconButton(
                               tooltip: 'Copy route debug to clipboard',
                               onPressed: () async {
-                                try {
-                                  await Clipboard.setData(
-                                    ClipboardData(text: _routeDebugString(leg)),
-                                  );
-                                  _showMessage(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Copied route debug data to clipboard',
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  _showMessage(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Failed to copy route debug data',
-                                      ),
-                                    ),
-                                  );
-                                }
+                                await _copyDebugText(
+                                  text: _routeDebugString(leg),
+                                  successMessage:
+                                      'Copied route debug data to clipboard',
+                                  failureMessage:
+                                      'Failed to copy route debug data',
+                                );
                               },
                               icon: const Icon(Icons.copy, size: 18),
                             ),
@@ -2481,24 +2307,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                         IconButton(
                           tooltip: 'Copy debug text to clipboard',
                           onPressed: () async {
-                            try {
-                              await Clipboard.setData(
-                                ClipboardData(text: _legDebugString(leg)),
-                              );
-                              _showMessage(
-                                const SnackBar(
-                                  content: Text(
-                                    'Copied leg debug data to clipboard',
-                                  ),
-                                ),
-                              );
-                            } catch (e) {
-                              _showMessage(
-                                const SnackBar(
-                                  content: Text('Failed to copy to clipboard'),
-                                ),
-                              );
-                            }
+                            await _copyDebugText(
+                              text: _legDebugString(leg),
+                              successMessage:
+                                  'Copied leg debug data to clipboard',
+                              failureMessage: 'Failed to copy to clipboard',
+                            );
                           },
                           icon: const Icon(Icons.copy, size: 18),
                         ),
@@ -2559,52 +2373,39 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                             IconButton(
                               tooltip: 'Copy vehicle debug to clipboard',
                               onPressed: () async {
-                                try {
-                                  final lines = _displayedVehicles
-                                      .map((v) {
-                                        final id = v.vehicle.hasId()
-                                            ? v.vehicle.id
-                                            : 'N/A';
-                                        final tripId = v.trip.hasTripId()
-                                            ? v.trip.tripId
-                                            : 'N/A';
-                                        final routeId = v.trip.hasRouteId()
-                                            ? v.trip.routeId
-                                            : 'N/A';
-                                        final pos =
-                                            v.hasPosition() &&
-                                                v.position.hasLatitude() &&
-                                                v.position.hasLongitude()
-                                            ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
-                                            : 'N/A';
-                                        final ts = v.hasTimestamp()
-                                            ? DateTime.fromMillisecondsSinceEpoch(
-                                                v.timestamp.toInt() * 1000,
-                                              ).toIso8601String()
-                                            : 'N/A';
-                                        return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
-                                      })
-                                      .join('\n');
+                                final lines = _displayedVehicles
+                                    .map((v) {
+                                      final id = v.vehicle.hasId()
+                                          ? v.vehicle.id
+                                          : 'N/A';
+                                      final tripId = v.trip.hasTripId()
+                                          ? v.trip.tripId
+                                          : 'N/A';
+                                      final routeId = v.trip.hasRouteId()
+                                          ? v.trip.routeId
+                                          : 'N/A';
+                                      final pos =
+                                          v.hasPosition() &&
+                                              v.position.hasLatitude() &&
+                                              v.position.hasLongitude()
+                                          ? '${v.position.latitude.toStringAsFixed(6)}, ${v.position.longitude.toStringAsFixed(6)}'
+                                          : 'N/A';
+                                      final ts = v.hasTimestamp()
+                                          ? DateTime.fromMillisecondsSinceEpoch(
+                                              v.timestamp.toInt() * 1000,
+                                            ).toIso8601String()
+                                          : 'N/A';
+                                      return 'id=$id trip=$tripId route=$routeId pos=$pos ts=$ts';
+                                    })
+                                    .join('\n');
 
-                                  await Clipboard.setData(
-                                    ClipboardData(text: lines),
-                                  );
-                                  _showMessage(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Copied vehicle debug data to clipboard',
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  _showMessage(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Failed to copy vehicle debug data',
-                                      ),
-                                    ),
-                                  );
-                                }
+                                await _copyDebugText(
+                                  text: lines,
+                                  successMessage:
+                                      'Copied vehicle debug data to clipboard',
+                                  failureMessage:
+                                      'Failed to copy vehicle debug data',
+                                );
                               },
                               icon: const Icon(Icons.copy, size: 18),
                             ),
@@ -2732,29 +2533,21 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   /// Get the color of the adjacent leg (for navigation button colors).
   Color _getAdjacentLegColor(int index) {
-    final legs = widget.trip?.legs;
-    if (legs == null || index < 0 || index >= legs.length) return Colors.grey;
+    final legs = _tripLegs;
+    if (index < 0 || index >= legs.length) return Colors.grey;
     final adjLeg = _itemAt(legs, index);
     if (adjLeg == null) {
       return Colors.grey;
     }
-    final adjClass = adjLeg.transportation?.product?.classField;
+    final adjClass = _transportClass(adjLeg.transportation);
     return adjClass != null
         ? TransportModeUtils.getModeColor(adjClass)
         : Colors.grey;
   }
 
-  Color _safeAdjacentLegColor(int index) {
-    try {
-      return _getAdjacentLegColor(index);
-    } catch (_) {
-      return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final leg = _updatedLeg ?? widget.leg;
+    final leg = _activeLeg;
     final transportation = leg.transportation;
     final transportProduct = transportation?.product;
     final transportClass = transportProduct?.classField;
@@ -2763,9 +2556,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     final destination = leg.destination;
     final originName = origin.disassembledName ?? origin.name;
     final destinationName = destination.disassembledName ?? destination.name;
-    final transportName =
-        transportation?.name ?? transportation?.disassembledName ?? '';
-    final String? transportId = transportation?.id;
+    final transportName = _transportLabel(transportation) ?? '';
+    final String? transportId = _legRouteIdFor(leg);
 
     final modeColor = transportClass != null
         ? TransportModeUtils.getModeColor(transportClass)
@@ -2773,17 +2565,17 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
     final mode = _getRealtimeModeFromClass(transportClass);
 
-    final tripLegs = widget.trip?.legs ?? [];
+    final tripLegs = _tripLegs;
     final otherLegs = tripLegs.where((l) => l != leg).toList();
     final legCount = tripLegs.length;
     final hasPrev = legCount > 1 && _currentLegIndex > 0;
     final hasNext = legCount > 1 && _currentLegIndex < legCount - 1;
 
     final prevColor = hasPrev
-        ? _safeAdjacentLegColor(_currentLegIndex - 1)
+        ? _getAdjacentLegColor(_currentLegIndex - 1)
         : Colors.grey;
     final nextColor = hasNext
-        ? _safeAdjacentLegColor(_currentLegIndex + 1)
+        ? _getAdjacentLegColor(_currentLegIndex + 1)
         : Colors.grey;
     final hasAlertWarnings = _hasAlertWarnings(leg);
 
@@ -2821,7 +2613,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
             IconButton(
               icon: const Icon(Icons.map),
               onPressed: () {
-                _pushPage(
+                pushPage(
                   (context) => RealtimeMapPage(
                     leg: leg,
                     additionalLegs: otherLegs,

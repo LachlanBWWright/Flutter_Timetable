@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
-import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
 import '../gtfs/agency.dart';
@@ -18,6 +17,8 @@ import '../gtfs/stop_time.dart';
 import '../gtfs/trip.dart';
 import '../logs/logger.dart';
 import '../services/api_key_service.dart';
+import '../services/app_http_client.dart';
+import '../utils/safe_value_utils.dart';
 
 /// Which schedule surface to use when fetching GTFS schedule ZIPs
 enum GtfsScheduleVersion { v1, v2 }
@@ -53,16 +54,22 @@ Non-standard extensions used by NSW Transport API:
 */
 
 Map<String, String> getHeaders() {
-  try {
-    final apiKey = ApiKeyService.getEffectiveApiKey();
-    return {
-      'Authorization': 'apikey $apiKey',
-      //'Accept': 'application/x-protobuf', wrong
-    };
-  } catch (e, st) {
-    _safeLogE('Failed to build API headers: $e\n$st');
-    return const {};
+  final apiKey = ApiKeyService.getEffectiveApiKey();
+  return {
+    'Authorization': 'apikey $apiKey',
+    //'Accept': 'application/x-protobuf', wrong
+  };
+}
+
+Uri? _apiUri(String path) {
+  return tryParseUriValue('https://api.transport.nsw.gov.au/$path');
+}
+
+List<int>? _archiveFileContent(dynamic content) {
+  if (content is List<int>) {
+    return content;
   }
+  return null;
 }
 
 Future<FeedMessage?> _fetchRealtimeFeed(
@@ -71,19 +78,21 @@ Future<FeedMessage?> _fetchRealtimeFeed(
   required String logLabel,
 }) async {
   try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/$versionPath/gtfs/realtime$endpoint',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      _safeLogE(
-        'Failed to fetch $logLabel for $endpoint: ${response.statusCode}, ${response.body}',
+    final url = _apiUri('$versionPath/gtfs/realtime$endpoint');
+    if (url == null) {
+      safeLogError('Failed to build realtime URI for $endpoint');
+      return null;
+    }
+    final response = await AppHttpClient.get(url, headers: getHeaders());
+    if (response == null || response.statusCode != 200) {
+      safeLogError(
+        'Failed to fetch $logLabel for $endpoint: ${response?.statusCode ?? 'network error'}, ${response?.body ?? ''}',
       );
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e, st) {
-    _safeLogE('Error fetching $logLabel for $endpoint: $e\n$st');
+    safeLogError('Error fetching $logLabel for $endpoint: $e\n$st');
     return null;
   }
 }
@@ -94,13 +103,15 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
 }) async {
   try {
     final versionPath = version == GtfsScheduleVersion.v2 ? 'v2' : 'v1';
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule$endpoint',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
+    final url = _apiUri('$versionPath/gtfs/schedule$endpoint');
+    if (url == null) {
+      logger.e('Failed to build GTFS URI for $endpoint (version=$versionPath)');
+      return null;
+    }
+    final response = await AppHttpClient.get(url, headers: getHeaders());
+    if (response == null || response.statusCode != 200) {
       logger.e(
-        'Failed to fetch GTFS data for $endpoint (version=$versionPath): ${response.statusCode}, ${response.body}',
+        'Failed to fetch GTFS data for $endpoint (version=$versionPath): ${response?.statusCode ?? 'network error'}, ${response?.body ?? ''}',
       );
       return null;
     }
@@ -108,16 +119,21 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
     final Map<String, String> csvFiles = {};
     for (final file in archive) {
       if (file.isFile && file.name.endsWith('.txt')) {
-        csvFiles[file.name] = utf8.decode(file.content as List<int>);
+        final content = _archiveFileContent(file.content);
+        if (content == null) {
+          safeLogWarning('Skipping ${file.name}: invalid archive content type');
+          continue;
+        }
+        csvFiles[file.name] = utf8.decode(content);
       }
     }
     final data = parseGtfsFiles(csvFiles);
-    _safeLogI(
+    safeLogInfo(
       'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files, ${data.stops.length} stops',
     );
     return data;
   } catch (e, st) {
-    _safeLogE('Error fetching GTFS data for $endpoint: $e\n$st');
+    safeLogError('Error fetching GTFS data for $endpoint: $e\n$st');
     return null;
   }
 }
@@ -335,12 +351,12 @@ List<T> _parseCsvRecords<T>(
 }) {
   final rows = _csvToRows(csv, shouldParseNumbers: shouldParseNumbers);
   if (rows.isEmpty) {
-    _safeLogW('$fileLabel is empty');
+    safeLogWarning('$fileLabel is empty');
     return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    _safeLogW(
+    safeLogWarning(
       '$fileLabel contains less than 2 rows; using fallback empty list; sample="$sample"',
     );
     return [];
@@ -348,7 +364,7 @@ List<T> _parseCsvRecords<T>(
 
   final rowIterator = rows.iterator;
   if (!rowIterator.moveNext()) {
-    _safeLogW('$fileLabel did not expose a readable header row');
+    safeLogWarning('$fileLabel did not expose a readable header row');
     return [];
   }
 
@@ -356,7 +372,7 @@ List<T> _parseCsvRecords<T>(
   try {
     header = _rowToStrings(rowIterator.current, stripLeadingBom: true);
   } catch (e, st) {
-    _safeLogW('Failed to parse $fileLabel header row: $e\n$st');
+    safeLogWarning('Failed to parse $fileLabel header row: $e\n$st');
     return [];
   }
 
@@ -366,7 +382,7 @@ List<T> _parseCsvRecords<T>(
     try {
       records.add(parseRow(header, _rowToStrings(row)));
     } catch (e, st) {
-      _safeLogW('Skipping malformed $fileLabel row #$rowIndex: $e\n$st');
+      safeLogWarning('Skipping malformed $fileLabel row #$rowIndex: $e\n$st');
     }
     rowIndex++;
   }
@@ -420,7 +436,7 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
       shouldParseNumbers: shouldParseNumbers,
     ).convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
   } catch (e) {
-    _safeLogW(
+    safeLogWarning(
       'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e',
     );
     // Fallback: try with a simple LF eol
@@ -429,7 +445,7 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
         shouldParseNumbers: shouldParseNumbers,
       ).convert(csv, eol: '\n');
     } catch (e2) {
-      _safeLogW('CSV parsing fallback failed: $e2');
+      safeLogWarning('CSV parsing fallback failed: $e2');
       return [];
     }
   }
@@ -466,7 +482,7 @@ GtfsData parseGtfsFiles(Map<String, String> files) {
   final shapesFile = _lookupTextFile(files, 'shapes.txt');
   final notesFile = _lookupTextFile(files, 'notes.txt');
   if (stopsFile == null) {
-    _safeLogE('Stops.txt is missing');
+    safeLogError('Stops.txt is missing');
   }
   return GtfsData(
     agencies: agencyFile != null ? parseAgencyCsv(agencyFile) : [],
@@ -496,7 +512,7 @@ List<Stop> parseStopsOnlyFromZipBytes(Uint8List bytes) {
         final csv = utf8.decode(file.content as List<int>);
         return parseStopsCsv(csv);
       } catch (e, st) {
-        _safeLogW('Failed to decode stops.txt from ZIP: $e\n$st');
+        safeLogWarning('Failed to decode stops.txt from ZIP: $e\n$st');
         return [];
       }
     }
@@ -508,25 +524,7 @@ String? _lookupTextFile(Map<String, String> files, String fileName) {
   try {
     return files[fileName];
   } catch (e, st) {
-    _safeLogW('Failed to look up $fileName: $e\n$st');
+    safeLogWarning('Failed to look up $fileName: $e\n$st');
     return null;
   }
-}
-
-void _safeLogI(Object? message) {
-  try {
-    logger.i(message);
-  } catch (_) {}
-}
-
-void _safeLogW(Object? message) {
-  try {
-    logger.w(message);
-  } catch (_) {}
-}
-
-void _safeLogE(Object? message) {
-  try {
-    logger.e(message);
-  } catch (_) {}
 }

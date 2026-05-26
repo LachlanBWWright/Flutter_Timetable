@@ -30,9 +30,7 @@ class SavedTripRenderService {
     );
   }
 
-  static Future<api.Leg> _buildManualLeg(
-    ManualTripLeg leg,
-  ) async {
+  static Future<api.Leg> _buildManualLeg(ManualTripLeg leg) async {
     final origin = await _buildStop(leg.originId, leg.originName);
     final destination = await _buildStop(
       leg.destinationId,

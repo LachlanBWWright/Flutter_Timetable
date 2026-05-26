@@ -43,9 +43,5 @@ Color accentColorForModeOrFallback(TransportMode? mode, Journey journey) {
   if (mode != null) {
     return TransportColors.getColorByTransportMode(mode);
   }
-  try {
-    return accentColorForJourneyFallback(journey);
-  } catch (_) {
-    return _firstJourneyAccentColor();
-  }
+  return accentColorForJourneyFallback(journey);
 }

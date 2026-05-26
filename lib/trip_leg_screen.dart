@@ -7,6 +7,7 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
@@ -21,7 +22,8 @@ class TripLegDetailScreen extends StatefulWidget {
   State<TripLegDetailScreen> createState() => _TripLegDetailScreenState();
 }
 
-class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
+class _TripLegDetailScreenState extends State<TripLegDetailScreen>
+    with GuardedState<TripLegDetailScreen> {
   final MapController _mapController = MapController();
   geo.Position? _userLocation;
   VehiclePosition? _currentVehicle;
@@ -31,15 +33,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   // Sydney CBD as default center
   static const LatLng _defaultCenter = LatLng(-33.8688, 151.2093);
 
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
-
   @override
   void initState() {
     super.initState();
@@ -48,66 +41,56 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _loadUserLocation() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoadingLocation = true;
     });
 
-    try {
-      final position = await LocationService.getCurrentLocation();
-      if (mounted) {
-        _safeSetState(() {
-          _userLocation = position;
-          _isLoadingLocation = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        _safeSetState(() {
-          _isLoadingLocation = false;
-        });
-      }
+    final position = await LocationService.getCurrentLocation();
+    if (mounted) {
+      guardedSetState(() {
+        _userLocation = position;
+        _isLoadingLocation = false;
+      });
     }
   }
 
   Future<void> _loadRealtimeData() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoadingVehicles = true;
     });
 
-    try {
-      final int? transportClass = extractTransportClassFromLeg(widget.leg);
-      final tripId = extractTripId(widget.leg);
+    final int? transportClass = extractTransportClassFromLeg(widget.leg);
+    final tripId = extractTripId(widget.leg);
 
-      if (transportClass != null) {
-        final TransportMode? mode = realtimeModeFromClass(transportClass);
+    if (transportClass != null) {
+      final TransportMode? mode = realtimeModeFromClass(transportClass);
 
-        if (mode != null) {
-          final feedMessage =
-              await RealtimeService.getPositionsForTransportMode(mode);
-          final vehicles = RealtimeService.extractVehiclePositions(feedMessage);
+      if (mode != null) {
+        final feedMessage = await RealtimeService.getPositionsForTransportMode(
+          mode,
+        );
+        final vehicles = RealtimeService.extractVehiclePositions(feedMessage);
 
-          // Try to find the specific vehicle for this trip
-          VehiclePosition? currentVehicle;
-          if (tripId != null) {
-            currentVehicle = vehicles.firstWhereOrNull(
-              (vehicle) => vehicle.trip.tripId == tripId,
-            );
-          }
+        final currentVehicle = tripId == null
+            ? null
+            : vehicles.firstWhereOrNull(
+                (vehicle) => vehicle.trip.tripId == tripId,
+              );
 
-          if (mounted) {
-            _safeSetState(() {
-              _currentVehicle = currentVehicle;
-              _isLoadingVehicles = false;
-            });
-          }
+        if (mounted) {
+          guardedSetState(() {
+            _currentVehicle = currentVehicle;
+            _isLoadingVehicles = false;
+          });
         }
+        return;
       }
-    } catch (e) {
-      if (mounted) {
-        _safeSetState(() {
-          _isLoadingVehicles = false;
-        });
-      }
+    }
+
+    if (mounted) {
+      guardedSetState(() {
+        _isLoadingVehicles = false;
+      });
     }
   }
 

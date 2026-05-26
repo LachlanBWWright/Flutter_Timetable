@@ -7,11 +7,7 @@ Station? _stationAtOrNull(List<Station> stations, int index) {
   if (index < 0 || index >= stations.length) {
     return null;
   }
-  try {
-    return stations[index];
-  } catch (_) {
-    return null;
-  }
+  return stations[index];
 }
 
 TransportMode transportModeFromTabIndex(int index) {

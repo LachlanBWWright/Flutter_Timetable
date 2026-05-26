@@ -39,10 +39,7 @@ class DebugRawJsonCard extends StatelessWidget {
     if (data is String) {
       return data;
     }
-    try {
-      return const JsonEncoder.withIndent('  ').convert(data);
-    } catch (_) {
-      return data.toString();
-    }
+
+    return const JsonEncoder.withIndent('  ').convert(data);
   }
 }

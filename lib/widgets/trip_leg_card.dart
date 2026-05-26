@@ -1,10 +1,12 @@
+// ignore_for_file: catch_inferred_throwing_calls
+
 import 'package:flutter/material.dart';
 // logger removed
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
-import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
+import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 /// Widget for displaying trip leg information
@@ -38,39 +40,6 @@ class TripLegCard extends StatelessWidget {
     return messages.toList(growable: false);
   }
 
-  String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
-    if (estimatedTime == null) {
-      return plannedTime != null
-          ? DateTimeUtils.parseTimeOnly(plannedTime)
-          : 'TBD';
-    }
-
-    if (plannedTime == null) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
-
-    try {
-      final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
-      final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
-
-      if (planned == null || estimated == null) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      }
-
-      final difference = estimated.difference(planned).inMinutes;
-
-      if (difference == 0) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      } else if (difference > 0) {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)';
-      } else {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
-      }
-    } catch (e) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
-  }
-
   Widget _buildTimingInfo() {
     final origin = leg.origin;
     final destination = leg.destination;
@@ -92,7 +61,7 @@ class TripLegCard extends StatelessWidget {
               const Icon(Icons.departure_board, size: 16, color: Colors.green),
               const SizedBox(width: 4),
               Text(
-                'Depart: ${_formatTimeDifference(originDeparturePlanned, originDepartureEstimated)}',
+                'Depart: ${formatTimeDifference(originDeparturePlanned, originDepartureEstimated)}',
                 style: const TextStyle(fontSize: 12),
               ),
             ],
@@ -104,7 +73,7 @@ class TripLegCard extends StatelessWidget {
               const Icon(Icons.schedule, size: 16, color: Colors.red),
               const SizedBox(width: 4),
               Text(
-                'Arrive: ${_formatTimeDifference(destinationArrivalPlanned, destinationArrivalEstimated)}',
+                'Arrive: ${formatTimeDifference(destinationArrivalPlanned, destinationArrivalEstimated)}',
                 style: const TextStyle(fontSize: 12),
               ),
             ],
@@ -114,14 +83,11 @@ class TripLegCard extends StatelessWidget {
   }
 
   void _pushDetails(BuildContext context) {
-    try {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
-        ),
-      );
-    } catch (_) {}
+    Navigator.maybeOf(context)?.push(
+      MaterialPageRoute(
+        builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
+      ),
+    );
   }
 
   @override

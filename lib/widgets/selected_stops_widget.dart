@@ -64,19 +64,6 @@ class SelectedStopsWidget extends StatelessWidget {
   final bool canSaveDirect;
   final bool canSaveManual;
 
-  List<SequenceStopDescriptor> _buildSequenceDescriptorsSafe(
-    List<Station> orderedStops,
-  ) {
-    try {
-      return buildSequenceDescriptors(
-        orderedStops: orderedStops,
-        interchangeCount: interchanges.length,
-      );
-    } catch (_) {
-      return const <SequenceStopDescriptor>[];
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (origin == null && destination == null) {
@@ -100,7 +87,10 @@ class SelectedStopsWidget extends StatelessWidget {
       destination: destination,
       interchanges: interchanges,
     );
-    final sequenceDescriptors = _buildSequenceDescriptorsSafe(orderedStops);
+    final sequenceDescriptors = buildSequenceDescriptors(
+      orderedStops: orderedStops,
+      interchangeCount: interchanges.length,
+    );
     final hasInterchanges = interchanges.isNotEmpty;
     final canSaveTrip = hasInterchanges ? canSaveManual : canSaveDirect;
     final onSaveTrip = hasInterchanges ? onSaveManual : onSaveDirect;

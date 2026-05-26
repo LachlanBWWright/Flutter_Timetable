@@ -12,7 +12,7 @@ DebugEntityPageLoader buildDebugEntityPageLoader({
   DebugTripUpdateAggregationLoader? getAllTripUpdatesAggregated,
   DebugDbStopLoader? getDbStopsById,
 }) {
-  final resolver = DebugEntityResolver(
+  final resolver = buildDebugEntityResolver(
     getGtfsDataForEndpoint: getGtfsDataForEndpoint,
     getAllVehiclesAggregated: getAllVehiclesAggregated,
     getAllTripUpdatesAggregated: getAllTripUpdatesAggregated,

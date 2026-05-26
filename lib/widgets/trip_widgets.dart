@@ -1,8 +1,12 @@
+// ignore_for_file: catch_unknown_dynamic_calls
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
+import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 
 /// Utility class for transport mode colors and names
 class TransportModeUtils {
@@ -71,34 +75,22 @@ class TripCard extends StatefulWidget {
   State<TripCard> createState() => _TripCardState();
 }
 
-class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
+class _TripCardState extends State<TripCard>
+    with TickerProviderStateMixin, GuardedState<TripCard> {
   bool _expanded = false;
   bool _didNotifyVisible = false;
-
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
 
   void _notifyVisible() {
     final onVisible = widget.onVisible;
     if (onVisible == null) {
       return;
     }
-    try {
-      onVisible(widget.trip);
-    } catch (_) {}
+    runGuarded(() => onVisible(widget.trip));
   }
 
   void _selectLeg(Leg leg) {
     final onSelectLeg = widget.onSelectLeg;
-    try {
-      onSelectLeg(leg);
-    } catch (_) {}
+    runGuarded(() => onSelectLeg(leg));
   }
 
   @override
@@ -112,12 +104,10 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
   void _notifyVisibleOnce() {
     if (_didNotifyVisible) return;
     _didNotifyVisible = true;
-    try {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _notifyVisible();
-      });
-    } catch (_) {}
+    addPostFrameCallbackSafely((_) {
+      if (!mounted) return;
+      _notifyVisible();
+    });
   }
 
   String _displayStopName(Stop stop) {
@@ -140,26 +130,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
     if (!hasPlanned) {
       return DateTimeUtils.parseTimeOnly(fallbackTime);
     }
-    try {
-      final plannedTime = DateTimeUtils.parseTimeToDateTime(planned);
-      final estimatedTime = DateTimeUtils.parseTimeToDateTime(estimated);
-
-      if (plannedTime == null || estimatedTime == null) {
-        return DateTimeUtils.parseTimeOnly(fallbackTime);
-      }
-
-      final difference = estimatedTime.difference(plannedTime).inMinutes;
-
-      if (difference == 0) {
-        return DateTimeUtils.parseTimeOnly(estimated);
-      } else if (difference > 0) {
-        return '${DateTimeUtils.parseTimeOnly(estimated)} (+${difference}m late)';
-      } else {
-        return '${DateTimeUtils.parseTimeOnly(estimated)} (${difference.abs()}m early)';
-      }
-    } catch (e) {
-      return DateTimeUtils.parseTimeOnly(fallbackTime);
-    }
+    return formatTimeDifference(planned, estimated);
   }
 
   String _formatTimeRange(Leg leg) {
@@ -256,7 +227,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
               if (legs.length == 1) {
                 _selectLeg(legs.first);
               } else {
-                _safeSetState(() => _expanded = !_expanded);
+                guardedSetState(() => _expanded = !_expanded);
               }
             },
             child: ListTile(

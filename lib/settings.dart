@@ -3,19 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
-import 'package:lbww_flutter/schema/database.dart' as db;
-import 'package:url_launcher/url_launcher.dart';
 
 import 'debug/debug_entity_type.dart';
 import 'debug/debug_navigation.dart';
 import 'debug/debug_page_loader.dart';
 import 'services/api_key_service.dart';
+import 'services/app_url_launcher.dart';
+import 'services/database_admin_service.dart';
 import 'services/debug_service.dart';
 import 'services/new_trip_service.dart';
 import 'services/transport_preferences_service.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
+import 'utils/guarded_state.dart';
 import 'utils/settings_screen_utils.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
@@ -45,7 +46,8 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with GuardedState<SettingsScreen> {
   static const String _devGuideUrl =
       'https://opendata.transport.nsw.gov.au/developers/userguide';
 
@@ -74,38 +76,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    try {
-      _apiKeyController.dispose();
-    } catch (_) {}
+    disposeChangeNotifierSafely(_apiKeyController);
     super.dispose();
   }
 
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
-
-  void _showMessage(SnackBar snackBar) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } catch (_) {}
-  }
-
-  Future<void> _pushPage(WidgetBuilder builder) async {
-    try {
-      await Navigator.push(context, MaterialPageRoute(builder: builder));
-    } catch (_) {}
-  }
-
   void _loadApiKeyState() {
-    _safeSetState(() {
+    guardedSetState(() {
       _hasUserApiKey = _resolveHasUserApiKey();
     });
   }
@@ -113,117 +89,94 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveApiKey() async {
     final key = _apiKeyController.text.trim();
     if (key.isEmpty) {
-      _safeSetState(() => _apiKeyStatus = 'Please enter an API key.');
+      guardedSetState(() => _apiKeyStatus = 'Please enter an API key.');
       return;
     }
-    _safeSetState(() => _isSavingApiKey = true);
-    try {
-      await ApiKeyService.setUserApiKey(key);
-      _safeSetState(() {
-        _hasUserApiKey = true;
-        _apiKeyController.clear();
-        _apiKeyStatus = 'Custom API key saved successfully.';
-        _isSavingApiKey = false;
-      });
-    } catch (e) {
-      _safeSetState(() {
-        _apiKeyStatus = 'Failed to save API key: $e';
-        _isSavingApiKey = false;
-      });
-    }
+    guardedSetState(() => _isSavingApiKey = true);
+    await ApiKeyService.setUserApiKey(key);
+    guardedSetState(() {
+      _hasUserApiKey = true;
+      _apiKeyController.clear();
+      _apiKeyStatus = 'Custom API key saved successfully.';
+      _isSavingApiKey = false;
+    });
   }
 
   Future<void> _clearApiKey() async {
-    _safeSetState(() => _isSavingApiKey = true);
-    try {
-      await ApiKeyService.clearUserApiKey();
-      final hasBuiltInApiKey = _resolveHasBuiltInApiKey();
-      _safeSetState(() {
-        _hasUserApiKey = false;
-        _apiKeyController.clear();
-        _apiKeyStatus = hasBuiltInApiKey
-            ? 'Custom key removed - using built-in API key.'
-            : 'Custom key removed - no API key is configured.';
-        _isSavingApiKey = false;
-      });
-    } catch (e) {
-      _safeSetState(() {
-        _apiKeyStatus = 'Failed to clear API key: $e';
-        _isSavingApiKey = false;
-      });
-    }
+    guardedSetState(() => _isSavingApiKey = true);
+    await ApiKeyService.clearUserApiKey();
+    final hasBuiltInApiKey = _resolveHasBuiltInApiKey();
+    guardedSetState(() {
+      _hasUserApiKey = false;
+      _apiKeyController.clear();
+      _apiKeyStatus = hasBuiltInApiKey
+          ? 'Custom key removed - using built-in API key.'
+          : 'Custom key removed - no API key is configured.';
+      _isSavingApiKey = false;
+    });
   }
 
   Future<void> _openDevGuide() async {
     final uri = Uri.tryParse(_devGuideUrl);
     if (uri == null) {
-      _showMessage(
+      showSnackBar(
         const SnackBar(content: Text('Could not open developer guide URL')),
       );
       return;
     }
-    try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        _showMessage(
-          const SnackBar(content: Text('Could not open $_devGuideUrl')),
-        );
-      }
-    } catch (_) {
-      _showMessage(
+    final launched = await AppUrlLauncher.launchExternalUrl(
+      uri,
+      label: _devGuideUrl,
+    );
+    if (!launched) {
+      showSnackBar(
         const SnackBar(content: Text('Could not open $_devGuideUrl')),
       );
     }
   }
 
   Future<void> _performUpdate({bool force = false}) async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isUpdating = true;
       _updateStatus = 'Starting static transport data update...';
       _staticEndpointsUpdated = 0;
       _staticEndpointErrors.clear();
     });
 
-    try {
-      await for (final progress in NewTripService.updateStaticTransportData(
-        force: force,
-      )) {
-        if (!mounted) return;
-        final endpoint = progress.endpoint?.key ?? 'all endpoints';
-        final error = progress.error;
-        final progressEndpoint = progress.endpoint;
-        _safeSetState(() {
-          _staticEndpointsUpdated = progress.completed;
-          if (error != null && progressEndpoint != null) {
-            _staticEndpointErrors.addAll({progressEndpoint.key: error});
-          }
-          _updateStatus =
-              '${progress.message ?? endpoint} '
-              '(${progress.completed}/${progress.total})';
-        });
-      }
-      _safeSetState(() {
-        _updateStatus = _staticEndpointErrors.isEmpty
-            ? 'Static transport data update completed successfully'
-            : 'Static transport data update completed with '
-                  '${_staticEndpointErrors.length} error(s)';
-        _isUpdating = false;
-      });
-    } catch (e) {
-      _safeSetState(() {
-        _updateStatus = 'Update failed: $e';
-        _isUpdating = false;
+    await for (final progress in NewTripService.updateStaticTransportData(
+      force: force,
+    )) {
+      if (!mounted) return;
+      final endpoint = progress.endpoint?.key ?? 'all endpoints';
+      final error = progress.error;
+      final progressEndpoint = progress.endpoint;
+      guardedSetState(() {
+        _staticEndpointsUpdated = progress.completed;
+        if (error != null && progressEndpoint != null) {
+          _staticEndpointErrors.addAll({progressEndpoint.key: error});
+        }
+        _updateStatus =
+            '${progress.message ?? endpoint} '
+            '(${progress.completed}/${progress.total})';
       });
     }
+    guardedSetState(() {
+      _updateStatus = _staticEndpointErrors.isEmpty
+          ? 'Static transport data update completed successfully'
+          : 'Static transport data update completed with '
+                '${_staticEndpointErrors.length} error(s)';
+      _isUpdating = false;
+    });
   }
 
   Future<void> _toggleDebugData(bool value) async {
     await DebugService.setShowDebugData(value);
-    _safeSetState(() {});
+    guardedSetState(() {});
   }
 
   Future<void> _toggleNswTrainLink(bool value) async {
     await TransportPreferencesService.setShowNswTrainLink(value);
-    _safeSetState(() {});
+    guardedSetState(() {});
   }
 
   Color _apiKeyStatusColor(String status) {
@@ -231,58 +184,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _clearUpdateStatus() {
-    _safeSetState(() {
+    guardedSetState(() {
       _updateStatus = null;
       _staticEndpointErrors.clear();
     });
   }
 
   Future<void> _resetDatabase() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isUpdating = true;
       _updateStatus = 'Resetting database...';
     });
 
-    try {
-      await db.AppDatabase.resetDatabase();
-      _showMessage(
+    final reset = await DatabaseAdminService.resetDatabase();
+    if (reset) {
+      showSnackBar(
         const SnackBar(
           content: Text('Database reset successfully'),
           backgroundColor: Colors.green,
         ),
       );
-    } catch (e) {
-      _showMessage(
-        SnackBar(
-          content: Text('Database reset failed: $e'),
+    } else {
+      showSnackBar(
+        const SnackBar(
+          content: Text('Database reset failed'),
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      _safeSetState(() {
-        _isUpdating = false;
-        _updateStatus = null;
-      });
     }
+    guardedSetState(() {
+      _isUpdating = false;
+      _updateStatus = null;
+    });
   }
 
   void _openDebugBrowser(DebugEntityType entityType) {
-    try {
-      DebugNavigation.pushBrowser(
-        context,
-        entityType: entityType,
-        listLoader: _debugListLoader,
-        pageLoader: _debugPageLoader,
-      );
-    } catch (_) {}
+    DebugNavigation.pushBrowser(
+      context,
+      entityType: entityType,
+      listLoader: _debugListLoader,
+      pageLoader: _debugPageLoader,
+    );
   }
 
   Future<void> _navigateToRealtimeMap() async {
-    await _pushPage((context) => const RealtimeMapWidget());
+    await pushPage((context) => const RealtimeMapWidget());
   }
 
   Future<void> _navigateToSetHomeStop() async {
-    await _pushPage((context) => const SetHomeStopScreen());
+    await pushPage((context) => const SetHomeStopScreen());
   }
 
   @override
@@ -392,7 +342,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 : Icons.visibility_off,
                           ),
                           tooltip: _apiKeyObscured ? 'Show key' : 'Hide key',
-                          onPressed: () => _safeSetState(
+                          onPressed: () => guardedSetState(
                             () => _apiKeyObscured = !_apiKeyObscured,
                           ),
                         ),
@@ -701,11 +651,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (override != null) {
       return override;
     }
-    try {
-      return ApiKeyService.hasUserApiKey();
-    } catch (_) {
-      return false;
-    }
+    return ApiKeyService.hasUserApiKey();
   }
 
   bool _resolveHasBuiltInApiKey() {
@@ -713,10 +659,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (override != null) {
       return override;
     }
-    try {
-      return ApiKeyService.hasBuiltInApiKey();
-    } catch (_) {
-      return false;
-    }
+    return ApiKeyService.hasBuiltInApiKey();
   }
 }

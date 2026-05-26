@@ -1,3 +1,5 @@
+// ignore_for_file: catch_unknown_dynamic_calls, catch_inferred_throwing_calls
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
@@ -37,9 +39,7 @@ class _JourneyCardState extends State<JourneyCard> {
     if (onJourneyVisible == null) {
       return;
     }
-    try {
-      onJourneyVisible(widget.journey);
-    } catch (_) {}
+    onJourneyVisible(widget.journey);
   }
 
   @override
@@ -53,12 +53,10 @@ class _JourneyCardState extends State<JourneyCard> {
   void _notifyVisible() {
     if (_didNotifyVisible) return;
     _didNotifyVisible = true;
-    try {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _emitJourneyVisible();
-      });
-    } catch (_) {}
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _emitJourneyVisible();
+    });
   }
 
   @override
@@ -185,27 +183,19 @@ class JourneyList extends StatelessWidget {
   });
 
   void _handleJourneyTap(Journey journey) {
-    try {
-      onJourneyTap(journey);
-    } catch (_) {}
+    onJourneyTap(journey);
   }
 
   void _handleReverseJourneyTap(Journey journey) {
-    try {
-      onReverseJourneyTap(journey);
-    } catch (_) {}
+    onReverseJourneyTap(journey);
   }
 
   void _handleDeleteJourney(Journey journey) {
-    try {
-      onDeleteJourney(journey.id);
-    } catch (_) {}
+    onDeleteJourney(journey.id);
   }
 
   void _handleTogglePin(Journey journey) {
-    try {
-      onTogglePin(journey.id, journey.isPinned);
-    } catch (_) {}
+    onTogglePin(journey.id, journey.isPinned);
   }
 
   @override
@@ -270,9 +260,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (isAlphabetical == isAlphabeticalSorting) {
       return;
     }
-    try {
-      onToggleSort();
-    } catch (_) {}
+    onToggleSort();
   }
 
   @override

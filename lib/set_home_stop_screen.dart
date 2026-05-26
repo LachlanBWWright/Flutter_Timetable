@@ -1,9 +1,12 @@
+// ignore_for_file: catch_inferred_throwing_calls
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'constants/transport_modes.dart';
+import 'services/app_preferences.dart';
 import 'services/location_service.dart';
 import 'services/station_loader.dart';
+import 'utils/guarded_state.dart';
 import 'widgets/station_widgets.dart';
 
 class SetHomeStopScreen extends StatefulWidget {
@@ -14,34 +17,7 @@ class SetHomeStopScreen extends StatefulWidget {
 }
 
 class _SetHomeStopScreenState extends State<SetHomeStopScreen>
-    with TickerProviderStateMixin {
-  // --- Safe wrappers (repo standard) ---
-  void _safeSetState(VoidCallback fn) {
-    if (!mounted) return;
-    try {
-      setState(fn);
-    } catch (_) {}
-  }
-
-  void _showMessage(SnackBar snackBar) {
-    if (!mounted) return;
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } catch (_) {}
-  }
-
-  void _safeRequestFocus(FocusNode node) {
-    try {
-      node.requestFocus();
-    } catch (_) {}
-  }
-
-  void _safeNavigatorPop() {
-    try {
-      Navigator.of(context).pop();
-    } catch (_) {}
-  }
-
+    with TickerProviderStateMixin, GuardedState<SetHomeStopScreen> {
   List<Station> _trainStationList = [];
   List<Station> _busStationList = [];
   List<Station> _ferryStationList = [];
@@ -59,110 +35,69 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   TransportMode _currentMode = TransportMode.train;
   String? _currentHomeStop;
 
+  List<Station> _stationsAtOrEmpty(List<List<Station>> results, int index) {
+    return results.skip(index).firstOrNull ?? const <Station>[];
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
-    try {
-      _tabController.addListener(_onTabChanged);
-    } catch (_) {}
-    try {
-      keyController.addListener(_applySearchFilter);
-    } catch (_) {}
+    addListenerSafely(_tabController, _onTabChanged);
+    addListenerSafely(keyController, _applySearchFilter);
+
     _searchFocusNode = FocusNode();
     _loadAllModes();
     _loadCurrentHomeStop();
   }
 
   Future<void> _loadCurrentHomeStop() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    _safeSetState(() {
-      _currentHomeStop = prefs.getString('home_stop_name');
+    final homeStopName = await AppPreferences.getString('home_stop_name');
+    guardedSetState(() {
+      _currentHomeStop = homeStopName;
     });
   }
 
   Future<void> _loadAllModes() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoading = true;
     });
 
-    try {
-      final futures = [
-        loadStationsFromDbForMode(TransportMode.train),
-        loadStationsFromDbForMode(TransportMode.lightrail),
-        loadStationsFromDbForMode(TransportMode.metro),
-        loadStationsFromDbForMode(TransportMode.bus),
-        loadStationsFromDbForMode(TransportMode.ferry),
-      ];
+    final results = await Future.wait([
+      loadStationsFromDbForMode(TransportMode.train),
+      loadStationsFromDbForMode(TransportMode.lightrail),
+      loadStationsFromDbForMode(TransportMode.metro),
+      loadStationsFromDbForMode(TransportMode.bus),
+      loadStationsFromDbForMode(TransportMode.ferry),
+    ]);
 
-      final results = await Future.wait(
-        futures.map((future) => future.catchError((_) => <Station>[])),
-      );
+    if (!mounted) return;
 
-      if (!mounted) return;
+    guardedSetState(() {
+      _trainStationList = _stationsAtOrEmpty(results, 0);
+      _lightRailStationList = _stationsAtOrEmpty(results, 1);
+      _metroStationList = _stationsAtOrEmpty(results, 2);
+      _busStationList = _stationsAtOrEmpty(results, 3);
+      _ferryStationList = _stationsAtOrEmpty(results, 4);
+      _isLoading = false;
+    });
 
-      _safeSetState(() {
-        _trainStationList = results.isNotEmpty ? results.first : [];
-        try {
-          _lightRailStationList = results[1];
-        } catch (_) {
-          _lightRailStationList = [];
-        }
-        try {
-          _metroStationList = results[2];
-        } catch (_) {
-          _metroStationList = [];
-        }
-        try {
-          _busStationList = results[3];
-        } catch (_) {
-          _busStationList = [];
-        }
-        try {
-          _ferryStationList = results[4];
-        } catch (_) {
-          _ferryStationList = [];
-        }
-        _isLoading = false;
-      });
-
-      await _applySorting();
-    } catch (e) {
-      if (mounted) {
-        _showMessage(SnackBar(content: Text('Error loading stations: $e')));
-        _safeSetState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    await _applySorting();
   }
 
   @override
   void dispose() {
-    try {
-      _tabController.removeListener(_onTabChanged);
-    } catch (_) {}
-    try {
-      _tabController.dispose();
-    } catch (_) {}
-    try {
-      keyController.removeListener(_applySearchFilter);
-    } catch (_) {}
-    try {
-      keyController.dispose();
-    } catch (_) {}
-    try {
-      _searchFocusNode.dispose();
-    } catch (_) {}
-    try {
-      super.dispose();
-    } catch (_) {}
+    removeListenerSafely(_tabController, _onTabChanged);
+    disposeChangeNotifierSafely(_tabController);
+    removeListenerSafely(keyController, _applySearchFilter);
+    disposeChangeNotifierSafely(keyController);
+    disposeFocusNodeSafely(_searchFocusNode);
+    super.dispose();
   }
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      _safeSetState(() {
+      guardedSetState(() {
         _currentMode = _getTransportModeForIndex(_tabController.index);
       });
       _applySearchFilter();
@@ -188,7 +123,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
 
   void _applySearchFilter() {
     final searchTerm = keyController.text.toLowerCase();
-    _safeSetState(() {
+    guardedSetState(() {
       _trainStationList = _trainStationList
           .where((station) => station.name.toLowerCase().contains(searchTerm))
           .toList();
@@ -212,7 +147,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       final position = await LocationService.getCurrentLocation();
       if (position != null) {
         if (!mounted) return;
-        _safeSetState(() {
+        guardedSetState(() {
           _trainStationList = _sortByDistance(_trainStationList, position);
           _busStationList = _sortByDistance(_busStationList, position);
           _ferryStationList = _sortByDistance(_ferryStationList, position);
@@ -224,7 +159,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
         });
       }
     } else {
-      _safeSetState(() {
+      guardedSetState(() {
         _trainStationList.sort((a, b) => a.name.compareTo(b.name));
         _busStationList.sort((a, b) => a.name.compareTo(b.name));
         _ferryStationList.sort((a, b) => a.name.compareTo(b.name));
@@ -261,7 +196,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   void _toggleSort() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _sortMode = _sortMode == SortMode.alphabetical
           ? SortMode.distance
           : SortMode.alphabetical;
@@ -270,7 +205,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   void _toggleSearch() {
-    _safeSetState(() {
+    guardedSetState(() {
       _isSearching = !_isSearching;
       if (!_isSearching) {
         keyController.clear();
@@ -278,7 +213,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       }
     });
     if (_isSearching) {
-      _safeRequestFocus(_searchFocusNode);
+      requestFocus(_searchFocusNode);
     }
   }
 
@@ -287,7 +222,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     String stationId,
     TransportMode? selectedMode,
   ) {
-    _safeSetState(() {
+    guardedSetState(() {
       _selectedStationName = stationName;
       _selectedStationId = stationId;
       _selectedStationMode = selectedMode ?? _currentMode;
@@ -303,25 +238,18 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    try {
-      await prefs.setString('home_stop_name', _selectedStationName);
-    } catch (_) {}
-    try {
-      await prefs.setString('home_stop_id', _selectedStationId);
-    } catch (_) {}
-    try {
-      await prefs.setString('home_stop_mode', selectedMode.id);
-    } catch (_) {}
+    await AppPreferences.setString('home_stop_name', _selectedStationName);
+    await AppPreferences.setString('home_stop_id', _selectedStationId);
+    await AppPreferences.setString('home_stop_mode', selectedMode.id);
 
     if (mounted) {
-      _showMessage(
+      showSnackBar(
         SnackBar(
           content: Text('Home stop set to $_selectedStationName'),
           backgroundColor: Colors.green,
         ),
       );
-      _safeNavigatorPop();
+      popPage();
     }
   }
 
@@ -387,7 +315,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
                 IconButton(
                   icon: const Icon(Icons.clear),
                   onPressed: () {
-                    _safeSetState(() {
+                    guardedSetState(() {
                       _selectedStationName = '';
                       _selectedStationId = '';
                       _selectedStationMode = null;

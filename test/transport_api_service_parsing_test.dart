@@ -16,7 +16,7 @@ void main() {
 
       final trip = TripJourney.fromJson(data);
       expect(trip.rawJson, isNotNull);
-      expect(trip.rawJson?['rating'], equals(0));
+      expect(trip.rawJson['rating'], equals(0));
       // Verify we parsed at least one leg and that parsed count does not
       // exceed the count in the raw JSON (malformed legs may be skipped).
       final rawLegs = (data['legs'] as List?) ?? [];
@@ -25,26 +25,35 @@ void main() {
 
       final leg = trip.legs.first;
       expect(leg.rawJson, isNotNull);
-      expect(leg.rawJson?['isRealtimeControlled'], equals(true));
+      expect(leg.rawJson['isRealtimeControlled'], equals(true));
 
       final origin = leg.origin;
       expect(origin.rawJson, isNotNull);
-      expect(origin.rawJson?['isGlobalId'], equals(true));
-      expect(origin.rawJson?['niveau'], equals(1));
+      expect(origin.rawJson['isGlobalId'], equals(true));
+      expect(origin.rawJson['niveau'], equals(1));
 
       final dest = leg.destination;
       expect(dest.rawJson, isNotNull);
-      expect(dest.rawJson?['isGlobalId'], equals(true));
-      expect(dest.rawJson?['niveau'], equals(-1));
+      expect(dest.rawJson['isGlobalId'], equals(true));
+      expect(dest.rawJson['niveau'], equals(-1));
 
       final trans = leg.transportation;
       expect(trans, isNotNull);
       expect(trans?.rawJson, isNotNull);
       expect(
-        (trans?.rawJson?['properties']
+        (trans?.rawJson['properties']
             as Map<String, dynamic>?)?['RealtimeTripId'],
         isNotNull,
       );
     },
   );
+
+  test('GetTripsResponse.fromJson defaults essential outputs to non-null', () {
+    final response = GetTripsResponse.fromJson(const <String, dynamic>{});
+
+    expect(response.tripJourneys, isEmpty);
+    expect(response.systemMessages.responseMessages, isEmpty);
+    expect(response.version, isEmpty);
+    expect(response.rawJson, isEmpty);
+  });
 }

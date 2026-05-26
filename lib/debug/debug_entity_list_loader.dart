@@ -35,8 +35,24 @@ class DebugEntityListLoader {
     }
   }
 
+  Future<List<db.Stop>> _loadDbStops() async {
+    final preloadedStops = _preloadedDbStops;
+    if (preloadedStops != null) {
+      return preloadedStops;
+    }
+    return StopsService.database.getAllStops();
+  }
+
+  Future<List<db.Route>> _loadDbRoutes() async {
+    final preloadedRoutes = _preloadedDbRoutes;
+    if (preloadedRoutes != null) {
+      return preloadedRoutes;
+    }
+    return StopsService.database.getAllRoutes();
+  }
+
   Future<DebugEntityListPageData> _loadStopList() async {
-    final rows = _preloadedDbStops ?? await StopsService.database.getAllStops();
+    final rows = await _loadDbStops();
     final grouped = <String, List<db.Stop>>{};
     for (final row in rows) {
       grouped.putIfAbsent(row.stopId, () => <db.Stop>[]).add(row);
@@ -150,8 +166,7 @@ class DebugEntityListLoader {
 
   Future<DebugEntityListPageData> _loadRouteList() async {
     final catalog = <String, _RouteListEntry>{};
-    final persistedRoutes =
-        _preloadedDbRoutes ?? await StopsService.database.getAllRoutes();
+    final persistedRoutes = await _loadDbRoutes();
 
     for (final persistedRoute in persistedRoutes) {
       final entry = catalog.putIfAbsent(
@@ -538,7 +553,7 @@ class DebugEntityListLoader {
               .map(
                 (option) => DebugEntityListFilterOption(
                   id: option.key,
-                  label: _safeFilterLabel(option.key),
+                  label: filterLabel(option.key),
                   count: option.value,
                 ),
               )
@@ -609,14 +624,6 @@ class DebugEntityListLoader {
     final current = _mapValue(counts, value) ?? 0;
     counts.addAll({value: current + 1});
   }
-
-  String _safeFilterLabel(String value) {
-    try {
-      return filterLabel(value);
-    } catch (_) {
-      return value;
-    }
-  }
 }
 
 DebugEntityListPageLoader buildDebugEntityListLoader({
@@ -625,7 +632,7 @@ DebugEntityListPageLoader buildDebugEntityListLoader({
   DebugTripUpdateAggregationLoader? getAllTripUpdatesAggregated,
   DebugDbStopLoader? getDbStopsById,
 }) {
-  final resolver = DebugEntityResolver(
+  final resolver = buildDebugEntityResolver(
     getGtfsDataForEndpoint: getGtfsDataForEndpoint,
     getAllVehiclesAggregated: getAllVehiclesAggregated,
     getAllTripUpdatesAggregated: getAllTripUpdatesAggregated,

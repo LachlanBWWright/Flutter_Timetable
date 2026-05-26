@@ -1,3 +1,5 @@
+// ignore_for_file: catch_inferred_throwing_calls, catch_unknown_dynamic_calls
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import '../services/debug_service.dart';
 import '../services/location_service.dart';
 import '../services/stops_service.dart';
 import '../utils/color_utils.dart';
+import '../utils/guarded_state.dart';
 import '../utils/stops_map_utils.dart';
 
 /// Widget for displaying stops on a map for a specific transport mode.
@@ -52,7 +55,8 @@ class StopsMapWidget extends StatefulWidget {
   State<StopsMapWidget> createState() => _StopsMapWidgetState();
 }
 
-class _StopsMapWidgetState extends State<StopsMapWidget> {
+class _StopsMapWidgetState extends State<StopsMapWidget>
+    with GuardedState<StopsMapWidget> {
   final MapController _mapController = MapController();
   List<Stop> _stops = [];
   List<Marker> _cachedMarkers = [];
@@ -65,29 +69,16 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   bool _showZoomWarning = false;
   Timer? _zoomDebounce;
 
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
-
   void _safePop() {
-    if (!mounted) {
-      return;
+    final navigator = Navigator.maybeOf(context);
+    if (navigator?.canPop() ?? false) {
+      navigator?.pop();
     }
-    try {
-      Navigator.of(context).pop();
-    } catch (_) {}
   }
 
   void _selectStop(Stop stop) {
     final onStopSelected = widget.onStopSelected;
-    try {
-      onStopSelected(stop.stopName, stop.stopId);
-    } catch (_) {}
+    onStopSelected(stop.stopName, stop.stopId);
   }
 
   void _closeEmbeddedMap() {
@@ -95,9 +86,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     if (onClose == null) {
       return;
     }
-    try {
-      onClose();
-    } catch (_) {}
+    onClose();
   }
 
   void _runPendingMapAction() {
@@ -106,9 +95,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     if (action == null) {
       return;
     }
-    try {
-      action();
-    } catch (_) {}
+    runGuarded(action);
   }
 
   @override
@@ -149,59 +136,57 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   }
 
   Future<void> _loadStopsAndLocation() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      // Load user location
-      _userLocation = await LocationService.getCurrentLocation();
+    await runAsyncGuarded(
+      () async {
+        _userLocation = await LocationService.getCurrentLocation();
+        final allStops = await _getStopsForTransportMode(widget.transportMode);
 
-      // Load stops for the transport mode
-      final allStops = await _getStopsForTransportMode(widget.transportMode);
+        if (!mounted) return;
 
-      if (!mounted) return;
+        _stops = allStops.where((s) {
+          final allowedStopIds = widget.allowedStopIds;
+          return s.stopLat != 0.0 &&
+              s.stopLon != 0.0 &&
+              (allowedStopIds == null || allowedStopIds.contains(s.stopId));
+        }).toList();
+        _buildMarkerCache();
 
-      // Pre-filter stops with invalid coordinates once on load
-      _stops = allStops.where((s) {
-        final allowedStopIds = widget.allowedStopIds;
-        return s.stopLat != 0.0 &&
-            s.stopLon != 0.0 &&
-            (allowedStopIds == null || allowedStopIds.contains(s.stopId));
-      }).toList();
-      _buildMarkerCache();
+        guardedSetState(() {
+          _isLoading = false;
+        });
 
-      _safeSetState(() {
-        _isLoading = false;
-      });
-
-      // Center map on user location or stops
-      final userLoc = _userLocation;
-      if (userLoc != null) {
-        if (_mapIsReady) {
-          _mapController.move(
-            LatLng(userLoc.latitude, userLoc.longitude),
-            13.0,
-          );
-        } else {
-          _pendingMapAction = () {
+        final userLoc = _userLocation;
+        if (userLoc != null) {
+          if (_mapIsReady) {
             _mapController.move(
               LatLng(userLoc.latitude, userLoc.longitude),
               13.0,
             );
-          };
+          } else {
+            _pendingMapAction = () {
+              _mapController.move(
+                LatLng(userLoc.latitude, userLoc.longitude),
+                13.0,
+              );
+            };
+          }
+        } else if (_stops.isNotEmpty) {
+          _centerMapOnStops();
         }
-      } else if (_stops.isNotEmpty) {
-        _centerMapOnStops();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _safeSetState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+      },
+      onError: (error, _) {
+        if (!mounted) return;
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   Future<List<Stop>> _getStopsForTransportMode(TransportMode mode) async {
@@ -209,14 +194,11 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
     final List<Stop> allStops = [];
 
     for (final endpoint in endpoints) {
-      try {
-        final stops = await StopsService.getStopsForEndpoint(endpoint);
-        // Exclude child/platform stops (those with a parent_station) so the
-        // map shows only top-level stations.
-        allStops.addAll(stops.where((s) => s.parentStation == null));
-      } catch (e) {
-        // Error loading stops for endpoint: $endpoint
-      }
+      final stops = await runAsyncGuardedWithFallback(
+        () => StopsService.getStopsForEndpoint(endpoint),
+        const <Stop>[],
+      );
+      allStops.addAll(stops.where((s) => s.parentStation == null));
     }
 
     return allStops;
@@ -379,7 +361,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
               _zoomDebounce?.cancel();
               _zoomDebounce = Timer(const Duration(milliseconds: 150), () {
                 if (!mounted) return;
-                _safeSetState(() {
+                guardedSetState(() {
                   _currentZoom = position.zoom;
                   _showZoomWarning = shouldShowBusZoomWarning(
                     mode: widget.transportMode,
@@ -390,7 +372,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
             },
             onMapReady: () {
               // Mark map as ready and run any pending map action
-              _safeSetState(() {
+              guardedSetState(() {
                 _mapIsReady = true;
               });
               _runPendingMapAction();

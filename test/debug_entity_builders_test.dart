@@ -114,12 +114,14 @@ void main() {
         type: 'stop',
         coord: const [0.0, 0.0],
         parent: api.Parent(id: 'PARENT-1', name: 'Central Group'),
+        rawJson: const {'id': 'STOP-1', 'name': 'Central'},
       ),
       destination: api.Stop(
         id: 'STOP-3',
         name: 'Wynyard',
         type: 'stop',
         coord: const [0.2, 0.2],
+        rawJson: const {'id': 'STOP-3', 'name': 'Wynyard'},
       ),
       transportation: api.Transportation(
         id: 'ROUTE-1',
@@ -134,9 +136,24 @@ void main() {
         rawJson: const {'id': 'ROUTE-1', 'name': 'Route 1'},
       ),
       stopSequence: [
-        api.Stop(id: 'STOP-1', name: 'Central', type: 'stop'),
-        api.Stop(id: 'STOP-2', name: 'Town Hall', type: 'stop'),
-        api.Stop(id: 'STOP-3', name: 'Wynyard', type: 'stop'),
+        api.Stop(
+          id: 'STOP-1',
+          name: 'Central',
+          type: 'stop',
+          rawJson: const {'id': 'STOP-1'},
+        ),
+        api.Stop(
+          id: 'STOP-2',
+          name: 'Town Hall',
+          type: 'stop',
+          rawJson: const {'id': 'STOP-2'},
+        ),
+        api.Stop(
+          id: 'STOP-3',
+          name: 'Wynyard',
+          type: 'stop',
+          rawJson: const {'id': 'STOP-3'},
+        ),
       ],
       rawJson: const {
         'transportation': {

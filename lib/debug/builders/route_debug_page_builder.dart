@@ -20,43 +20,26 @@ class RouteDebugPageBuilder {
       leg: request.context.leg,
       trip: request.context.tripJourney,
     );
-    DebugResolvedGtfsRoute? gtfsMatch;
-    try {
-      gtfsMatch = await resolver.resolveGtfsRoute(
-        routeId: routeId,
-        leg: request.context.leg,
-        trip: request.context.tripJourney,
-        transportation: transport,
-        explicitRoute: request.context.gtfsRoute,
-        explicitAgency: request.context.gtfsAgency,
-        explicitData: request.context.gtfsData,
-        explicitEndpoint: request.context.gtfsEndpoint,
-        explicitMatchReason: request.context.gtfsMatchReason,
-      );
-    } catch (_) {}
+    final gtfsMatch = await resolver.resolveGtfsRoute(
+      routeId: routeId,
+      leg: request.context.leg,
+      trip: request.context.tripJourney,
+      transportation: transport,
+      explicitRoute: request.context.gtfsRoute,
+      explicitAgency: request.context.gtfsAgency,
+      explicitData: request.context.gtfsData,
+      explicitEndpoint: request.context.gtfsEndpoint,
+      explicitMatchReason: request.context.gtfsMatchReason,
+    );
 
-    var vehicles = const <VehiclePosition>[];
-    try {
-      vehicles = await resolver.matchVehicles(routeIds: {routeId});
-    } catch (_) {}
-
-    var tripUpdates = const <TripUpdate>[];
-    try {
-      tripUpdates = await resolver.matchTripUpdates(routeIds: {routeId});
-    } catch (_) {}
-
-    List<DebugEntityRef> servedStopRefs;
-    try {
-      servedStopRefs = _servedStopReferences(request, gtfsMatch?.data, routeId);
-    } catch (_) {
-      servedStopRefs = const <DebugEntityRef>[];
-    }
-    List<DebugEntityRef> tripRefs;
-    try {
-      tripRefs = _tripReferences(request, tripUpdates);
-    } catch (_) {
-      tripRefs = const <DebugEntityRef>[];
-    }
+    final vehicles = await resolver.matchVehicles(routeIds: {routeId});
+    final tripUpdates = await resolver.matchTripUpdates(routeIds: {routeId});
+    final servedStopRefs = _servedStopReferences(
+      request,
+      gtfsMatch?.data,
+      routeId,
+    );
+    final tripRefs = _tripReferences(request, tripUpdates);
     final title =
         transport?.name ??
         transport?.disassembledName ??

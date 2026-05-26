@@ -13,50 +13,27 @@ class TripDebugPageBuilder {
   Future<DebugPageData> build(DebugEntityRequest request) async {
     final trip = request.context.tripJourney;
     final leg = request.context.leg;
-    Set<String> tripIds;
-    try {
-      tripIds = DebugExtractors.collectTripIdsForTrip(trip);
-    } catch (_) {
-      tripIds = <String>{};
-    }
+    final tripIds = DebugExtractors.collectTripIdsForTrip(trip);
     if (tripIds.isEmpty && request.entityId.isNotEmpty) {
       tripIds.add(request.entityId);
     }
 
-    Set<String> routeIds;
-    try {
-      routeIds = DebugExtractors.collectRouteIdsForTrip(trip)
-        ..addAll(
-          DebugExtractors.dedupeStrings([
-            leg?.transportation?.id,
-            request.context.transportation?.id,
-          ]),
-        );
-    } catch (_) {
-      routeIds = DebugExtractors.dedupeStrings([
-        leg?.transportation?.id,
-        request.context.transportation?.id,
-      ]).toSet();
-    }
+    final routeIds = DebugExtractors.collectRouteIdsForTrip(trip)
+      ..addAll(
+        DebugExtractors.dedupeStrings([
+          leg?.transportation?.id,
+          request.context.transportation?.id,
+        ]),
+      );
     final canonicalId = tripIds.isNotEmpty ? tripIds.first : request.entityId;
-    List<VehiclePosition> matchingVehicles;
-    try {
-      matchingVehicles = await resolver.matchVehicles(
-        tripIds: tripIds,
-        routeIds: routeIds,
-      );
-    } catch (_) {
-      matchingVehicles = const <VehiclePosition>[];
-    }
-    List<TripUpdate> matchingTripUpdates;
-    try {
-      matchingTripUpdates = await resolver.matchTripUpdates(
-        tripIds: tripIds,
-        routeIds: routeIds,
-      );
-    } catch (_) {
-      matchingTripUpdates = const <TripUpdate>[];
-    }
+    final matchingVehicles = await resolver.matchVehicles(
+      tripIds: tripIds,
+      routeIds: routeIds,
+    );
+    final matchingTripUpdates = await resolver.matchTripUpdates(
+      tripIds: tripIds,
+      routeIds: routeIds,
+    );
 
     final title = _titleForTrip(trip, canonicalId);
     final aliases = DebugExtractors.dedupeStrings(

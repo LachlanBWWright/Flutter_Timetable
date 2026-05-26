@@ -1,21 +1,10 @@
-import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/api_key_service.dart';
+import 'package:lbww_flutter/services/app_http_client.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
 
-String _effectiveApiKeyOrEmpty() {
-  try {
-    return ApiKeyService.getEffectiveApiKey();
-  } catch (_) {
-    return '';
-  }
-}
-
-void _logWarningSafe(String message) {
-  try {
-    logger.w(message);
-  } catch (_) {}
-}
+String _effectiveApiKeyOrEmpty() => ApiKeyService.getEffectiveApiKey();
 
 Map<String, String> buildRealtimeHeaders() {
   final apiKey = _effectiveApiKeyOrEmpty();
@@ -26,15 +15,23 @@ Map<String, String> buildRealtimeHeaders() {
 }
 
 Future<FeedMessage?> fetchRealtimeFeed(String url, {String? logLabel}) async {
+  final uri = tryParseUriValue(url);
+  if (uri == null) {
+    if (logLabel != null) {
+      safeLogWarning('Realtime fetch skipped for $logLabel: invalid URL $url');
+    }
+    return null;
+  }
+
   try {
-    final response = await http.get(
-      Uri.parse(url),
+    final response = await AppHttpClient.get(
+      uri,
       headers: buildRealtimeHeaders(),
     );
-    if (response.statusCode != 200) {
+    if (response == null || response.statusCode != 200) {
       if (logLabel != null) {
-        _logWarningSafe(
-          'Failed to fetch $logLabel: ${response.statusCode}, ${response.body}',
+        safeLogWarning(
+          'Failed to fetch $logLabel: ${response?.statusCode ?? 'network error'}, ${response?.body ?? ''}',
         );
       }
       return null;
@@ -43,7 +40,7 @@ Future<FeedMessage?> fetchRealtimeFeed(String url, {String? logLabel}) async {
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e, st) {
     if (logLabel != null) {
-      _logWarningSafe('Realtime fetch failed for $logLabel: $e\n$st');
+      safeLogWarning('Realtime fetch failed for $logLabel: $e\n$st');
     }
     return null;
   }

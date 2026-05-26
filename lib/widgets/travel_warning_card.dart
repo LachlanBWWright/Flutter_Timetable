@@ -1,3 +1,5 @@
+// ignore_for_file: catch_inferred_throwing_calls
+
 import 'package:flutter/material.dart';
 
 class TravelWarningCard extends StatelessWidget {
@@ -66,30 +68,29 @@ class TravelWarningAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void closeDialog() {
-      try {
-        Navigator.of(context).pop();
-      } catch (_) {}
+      final navigator = Navigator.maybeOf(context);
+      if (navigator?.canPop() ?? false) {
+        navigator?.pop();
+      }
     }
 
     void showWarningsDialog() {
-      try {
-        showDialog<void>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            contentPadding: const EdgeInsets.all(12),
-            content: SingleChildScrollView(
-              child: TravelWarningCard(
-                title: title,
-                margin: EdgeInsets.zero,
-                children: children,
-              ),
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          contentPadding: const EdgeInsets.all(12),
+          content: SingleChildScrollView(
+            child: TravelWarningCard(
+              title: title,
+              margin: EdgeInsets.zero,
+              children: children,
             ),
-            actions: [
-              TextButton(onPressed: closeDialog, child: const Text('Close')),
-            ],
           ),
-        );
-      } catch (_) {}
+          actions: [
+            TextButton(onPressed: closeDialog, child: const Text('Close')),
+          ],
+        ),
+      );
     }
 
     return IconButton(

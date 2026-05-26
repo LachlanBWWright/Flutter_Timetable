@@ -1,3 +1,5 @@
+// ignore_for_file: catch_unknown_dynamic_calls, catch_inferred_throwing_calls
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import '../gtfs/stop.dart';
 import '../services/new_trip_service.dart';
 import '../services/stops_service.dart';
 import '../utils/button_styles.dart';
+import '../utils/guarded_state.dart';
 import '../utils/stops_widget_utils.dart';
 
 /// Widget for managing and displaying GTFS stops data
@@ -36,7 +39,8 @@ class StopsManagementWidget extends StatefulWidget {
   State<StopsManagementWidget> createState() => _StopsManagementWidgetState();
 }
 
-class _StopsManagementWidgetState extends State<StopsManagementWidget> {
+class _StopsManagementWidgetState extends State<StopsManagementWidget>
+    with GuardedState<StopsManagementWidget> {
   Map<String, int> _stopsCount = {};
   Map<TransportMode?, Map<String, int>> _stopsByMode = {};
   int _totalStops = 0;
@@ -47,95 +51,49 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   late final DebugEntityListPageLoader _debugListLoader =
       widget.debugListLoader ?? buildDebugEntityListLoader();
 
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
+  Future<int> _getTotalStopsCount() async {
+    final loader = widget.getTotalStopsCount;
+    if (loader != null) {
+      return runAsyncGuardedWithFallback(() => loader(), 0);
     }
-    try {
-      setState(update);
-    } catch (_) {}
+    return StopsService.getTotalStopsCount();
+  }
+
+  Future<Map<TransportMode?, Map<String, int>>>
+  _getStopsCountByEndpoint() async {
+    final loader = widget.getStopsCountByEndpoint;
+    if (loader != null) {
+      return runAsyncGuardedWithFallback(
+        () => loader(),
+        const <TransportMode?, Map<String, int>>{},
+      );
+    }
+    return StopsService.getStopsCountByEndpoint();
   }
 
   Future<T?> _showSafeDialog<T>({
     required WidgetBuilder builder,
     bool barrierDismissible = true,
   }) async {
-    try {
-      return await showDialog<T>(
-        context: context,
-        barrierDismissible: barrierDismissible,
-        builder: builder,
-      );
-    } catch (_) {
-      return null;
-    }
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: builder,
+    );
   }
 
   void _safePop<T>([T? result, bool rootNavigator = false]) {
-    if (!mounted) {
-      return;
+    final navigator = Navigator.maybeOf(context, rootNavigator: rootNavigator);
+    if (navigator?.canPop() ?? false) {
+      navigator?.pop(result);
     }
-    try {
-      Navigator.of(context, rootNavigator: rootNavigator).pop(result);
-    } catch (_) {}
-  }
-
-  void _showMessage(String message, Color backgroundColor) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: backgroundColor),
-      );
-    } catch (_) {}
   }
 
   void _updateDialogState(StateSetter? setDialogState, VoidCallback update) {
     if (setDialogState == null) {
       return;
     }
-    try {
-      setDialogState(update);
-    } catch (_) {}
-  }
-
-  String _formatEndpointDisplayNameSafe(String endpointKey) {
-    try {
-      return formatEndpointDisplayName(endpointKey);
-    } catch (_) {
-      return endpointKey;
-    }
-  }
-
-  String _displayNameForStopsModeGroupSafe(
-    TransportMode? modeKey,
-    Map<String, int> endpoints,
-  ) {
-    try {
-      return displayNameForStopsModeGroup(modeKey, endpoints);
-    } catch (_) {
-      return modeKey?.displayName ?? 'Other';
-    }
-  }
-
-  Color _transportModeColorSafe(TransportMode? modeKey) {
-    if (modeKey == null) {
-      return Colors.grey;
-    }
-    try {
-      return TransportColors.getColorByTransportMode(modeKey);
-    } catch (_) {
-      return Colors.grey;
-    }
-  }
-
-  Widget _buildEndpointsListSafe() {
-    try {
-      return _buildEndpointsList();
-    } catch (_) {
-      return const Text('Unable to display stops by transport mode.');
-    }
+    setDialogState(update);
   }
 
   @override
@@ -145,151 +103,153 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   }
 
   Future<void> _loadStopsData() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      final count =
-          await (widget.getTotalStopsCount ??
-              StopsService.getTotalStopsCount)();
-      final grouped =
-          await (widget.getStopsCountByEndpoint ??
-              StopsService.getStopsCountByEndpoint)();
-
-      if (!mounted) return;
-
-      final flattened = flattenStopsCountByEndpoint(grouped);
-
-      _safeSetState(() {
-        _totalStops = count;
-        _stopsByMode = grouped;
-        _stopsCount = flattened;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      _safeSetState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _updateFromApi() async {
-    _safeSetState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // Show warning dialog first
-      final confirmed = await _showSafeDialog<bool>(
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Update from API'),
-          content: const Text(
-            'This will fetch static transport data from all API endpoints and may take several minutes. '
-            'This operation requires a valid API key. Continue?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => _safePop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => _safePop(true),
-              child: const Text('Continue'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed == true) {
-        // Show the progress dialog first, then start the stream once the
-        // dialog's setState is available — this ensures no progress events
-        // are silently dropped while dialogSetState is still null.
-        String dialogMessage = 'Preparing update...';
-        StateSetter? dialogSetState;
-        StreamSubscription<StaticTransportUpdateProgress>? subscription;
+    await runAsyncGuarded(
+      () async {
+        final count = await _getTotalStopsCount();
+        final grouped = await _getStopsCountByEndpoint();
 
         if (!mounted) return;
 
-        // Show modal progress dialog (not dismissible)
-        final dialogFuture = _showSafeDialog<void>(
-          barrierDismissible: false,
-          builder: (dialogContext) {
-            return StatefulBuilder(
-              builder: (context, setDialogState) {
-                dialogSetState = setDialogState;
-                return AlertDialog(
-                  title: const Text('Updating static transport data'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 8),
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(dialogMessage),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
+        final flattened = flattenStopsCountByEndpoint(grouped);
 
-        // Wait one frame so the dialog is built and dialogSetState is populated
-        // before starting the stream.
-        await Future.microtask(() {});
-
-        subscription = NewTripService.updateStaticTransportData(force: true).listen(
-          (progress) {
-            final epLabel = progress.endpoint?.key ?? '';
-            final text =
-                '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
-            _updateDialogState(dialogSetState, () {
-              dialogMessage = text;
-            });
-          },
-          onError: (e) {
-            _updateDialogState(dialogSetState, () {
-              dialogMessage = 'Error: $e';
-            });
-          },
-          onDone: () async {
-            _safePop(null, true);
-            await subscription?.cancel();
-          },
-        );
-
-        await dialogFuture;
-
-        // After dialog closes, refresh counts
-        await _loadStopsData();
-
-        if (mounted) {
-          _showMessage(
-            'Static transport data updated from API successfully',
-            Colors.green,
-          );
-        }
-      } else {
-        _safeSetState(() {
+        guardedSetState(() {
+          _totalStops = count;
+          _stopsByMode = grouped;
+          _stopsCount = flattened;
           _isLoading = false;
         });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _safeSetState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      },
+      onError: (error, _) {
+        if (!mounted) return;
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
+  }
 
-      if (mounted) {
-        _showMessage('Error updating from API: $e', Colors.red);
-      }
-    }
+  Future<void> _updateFromApi() async {
+    guardedSetState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    await runAsyncGuarded(
+      () async {
+        final confirmed = await _showSafeDialog<bool>(
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Update from API'),
+            content: const Text(
+              'This will fetch static transport data from all API endpoints and may take several minutes. '
+              'This operation requires a valid API key. Continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => _safePop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => _safePop(true),
+                child: const Text('Continue'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed == true) {
+          // Show the progress dialog first, then start the stream once the
+          // dialog's setState is available — this ensures no progress events
+          // are silently dropped while dialogSetState is still null.
+          String dialogMessage = 'Preparing update...';
+          StateSetter? dialogSetState;
+          StreamSubscription<StaticTransportUpdateProgress>? subscription;
+
+          if (!mounted) return;
+
+          // Show modal progress dialog (not dismissible)
+          final dialogFuture = _showSafeDialog<void>(
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              return StatefulBuilder(
+                builder: (context, setDialogState) {
+                  dialogSetState = setDialogState;
+                  return AlertDialog(
+                    title: const Text('Updating static transport data'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(dialogMessage),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          );
+
+          // Wait one frame so the dialog is built and dialogSetState is populated
+          // before starting the stream.
+          await Future.microtask(() {});
+
+          subscription = NewTripService.updateStaticTransportData(force: true)
+              .listen(
+                (progress) {
+                  final epLabel = progress.endpoint?.key ?? '';
+                  final text =
+                      '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
+                  _updateDialogState(dialogSetState, () {
+                    dialogMessage = text;
+                  });
+                },
+                onError: (e) {
+                  _updateDialogState(dialogSetState, () {
+                    dialogMessage = 'Error: $e';
+                  });
+                },
+                onDone: () async {
+                  _safePop(null, true);
+                  await subscription?.cancel();
+                },
+              );
+
+          await dialogFuture;
+
+          // After dialog closes, refresh counts
+          await _loadStopsData();
+
+          if (mounted) {
+            showSnackBarMessage(
+              'Static transport data updated from API successfully',
+              backgroundColor: Colors.green,
+            );
+          }
+        } else {
+          guardedSetState(() {
+            _isLoading = false;
+          });
+        }
+      },
+      onError: (error, _) {
+        if (!mounted) return;
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+        showSnackBarMessage(
+          'Error updating from API: $error',
+          backgroundColor: Colors.red,
+        );
+      },
+    );
   }
 
   Future<void> _wipeStopsData() async {
@@ -317,29 +277,35 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     );
 
     if (confirmed == true) {
-      _safeSetState(() {
+      guardedSetState(() {
         _isLoading = true;
         _error = null;
       });
 
-      try {
-        await StopsService.wipeAllStopsData();
-        await _loadStopsData(); // Refresh the counts
+      await runAsyncGuarded(
+        () async {
+          await StopsService.wipeAllStopsData();
+          await _loadStopsData(); // Refresh the counts
 
-        if (mounted) {
-          _showMessage('All stops data wiped successfully', Colors.orange);
-        }
-      } catch (e) {
-        if (!mounted) return;
-        _safeSetState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
-
-        if (mounted) {
-          _showMessage('Error wiping stops data: $e', Colors.red);
-        }
-      }
+          if (mounted) {
+            showSnackBarMessage(
+              'All stops data wiped successfully',
+              backgroundColor: Colors.orange,
+            );
+          }
+        },
+        onError: (error, _) {
+          if (!mounted) return;
+          guardedSetState(() {
+            _error = error.toString();
+            _isLoading = false;
+          });
+          showSnackBarMessage(
+            'Error wiping stops data: $error',
+            backgroundColor: Colors.red,
+          );
+        },
+      );
     }
   }
 
@@ -478,7 +444,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                 ),
               )
             else if (_stopsCount.isNotEmpty)
-              _buildEndpointsListSafe()
+              _buildEndpointsList()
             else
               const Text(
                 'No stops data found. Load placeholder data to get started.',
@@ -508,17 +474,17 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             (sum, count) => sum + count,
           );
 
-          final displayName = _displayNameForStopsModeGroupSafe(
-            modeKey,
-            endpoints,
-          );
+          final displayName = displayNameForStopsModeGroup(modeKey, endpoints);
+          final modeColor = modeKey == null
+              ? Colors.grey
+              : TransportColors.getColorByTransportMode(modeKey);
 
           return ExpansionTile(
             leading: Container(
               width: 4,
               height: 30,
               decoration: BoxDecoration(
-                color: _transportModeColorSafe(modeKey),
+                color: modeColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -530,7 +496,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               return ListTile(
                 contentPadding: const EdgeInsets.only(left: 32, right: 16),
                 title: Text(
-                  _formatEndpointDisplayNameSafe(endpoint.key),
+                  formatEndpointDisplayName(endpoint.key),
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Container(
@@ -567,64 +533,49 @@ class StopsSearchWidget extends StatefulWidget {
   State<StopsSearchWidget> createState() => _StopsSearchWidgetState();
 }
 
-class _StopsSearchWidgetState extends State<StopsSearchWidget> {
+class _StopsSearchWidgetState extends State<StopsSearchWidget>
+    with GuardedState<StopsSearchWidget> {
   final TextEditingController _searchController = TextEditingController();
   List<Stop> _searchResults = [];
   bool _isSearching = false;
-
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
 
   void _startSearch(String query) {
     unawaited(_searchStops(query));
   }
 
   void _clearSearch() {
-    try {
-      _searchController.clear();
-    } catch (_) {}
+    _searchController.clear();
     _startSearch('');
-  }
-
-  List<Widget> _buildSearchResultsSafe() {
-    try {
-      return _buildSearchResults();
-    } catch (_) {
-      return const [Text('Unable to display search results.')];
-    }
   }
 
   Future<void> _searchStops(String query) async {
     if (query.trim().isEmpty) {
-      _safeSetState(() {
+      guardedSetState(() {
         _searchResults = [];
       });
       return;
     }
 
-    _safeSetState(() {
+    guardedSetState(() {
       _isSearching = true;
     });
 
-    try {
-      final results = await StopsService.searchStops(query);
-      if (!mounted) return;
-      _safeSetState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    } catch (e) {
-      _safeSetState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-    }
+    await runAsyncGuarded(
+      () async {
+        final results = await StopsService.searchStops(query);
+        if (!mounted) return;
+        guardedSetState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+      },
+      onError: (_, _) {
+        guardedSetState(() {
+          _searchResults = [];
+          _isSearching = false;
+        });
+      },
+    );
   }
 
   @override
@@ -670,7 +621,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
                 ),
               )
             else if (_searchResults.isNotEmpty)
-              ..._buildSearchResultsSafe(),
+              ..._buildSearchResults(),
           ],
         ),
       ),
@@ -717,9 +668,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
 
   @override
   void dispose() {
-    try {
-      _searchController.dispose();
-    } catch (_) {}
+    disposeChangeNotifierSafely(_searchController);
     super.dispose();
   }
 }

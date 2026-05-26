@@ -9,18 +9,10 @@ class DebugEntityScreen extends StatelessWidget {
 
   const DebugEntityScreen({super.key, required this.args});
 
-  Future<DebugPageData?> _loadPageSafe() async {
-    try {
-      return await args.loader(args.request);
-    } catch (_) {
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DebugPageData?>(
-      future: _loadPageSafe(),
+      future: args.loader(args.request),
       builder: (context, snapshot) {
         final title = args.request.entityType.label;
         final pageData = snapshot.data;

@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
@@ -8,6 +7,7 @@ import 'package:lbww_flutter/services/saved_trip_render_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
 import 'package:option_result/option_result.dart';
@@ -21,7 +21,7 @@ class TripScreen extends StatefulWidget {
   State<TripScreen> createState() => _TripScreenState();
 }
 
-class _TripScreenState extends State<TripScreen> {
+class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
   String testText = '';
   List<TripJourney> trips = [];
   final Set<int> _prefetchedVisibleTripIndexes = <int>{};
@@ -30,29 +30,53 @@ class _TripScreenState extends State<TripScreen> {
 
   String? _rawTripJson;
 
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
+  void _pushLegDetail(Leg leg, TripJourney tripJourney) {
+    pushPage((context) => TripLegDetailScreen(leg: leg, trip: tripJourney));
   }
 
-  void _pushLegDetail(Leg leg, TripJourney tripJourney) {
-    try {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              TripLegDetailScreen(leg: leg, trip: tripJourney),
-        ),
+  void _setTripLoadState({
+    required List<TripJourney> loadedTrips,
+    String? error,
+    String? rawTripJson,
+  }) {
+    guardedSetState(() {
+      trips = loadedTrips;
+      _error = error;
+      _rawTripJson = rawTripJson;
+      _isLoading = false;
+    });
+  }
+
+  void _setManualTripState(TripJourney? manualJourney) {
+    if (manualJourney == null) {
+      _setTripLoadState(
+        loadedTrips: const <TripJourney>[],
+        error: 'Unable to load the saved manual trip.',
       );
-    } catch (_) {}
+      return;
+    }
+
+    _setTripLoadState(
+      loadedTrips: <TripJourney>[manualJourney],
+      rawTripJson: prettyPrintRawJson(manualJourney.rawJson),
+    );
+  }
+
+  void _setFetchedTripState(GetTripsResponse response) {
+    guardedSetState(() {
+      trips = sortTripJourneysForDisplay(response.tripJourneys);
+      testText = response.toString();
+      _rawTripJson = prettyPrintRawJson(response.rawJson);
+      _isLoading = false;
+    });
+  }
+
+  void _setTripLoadError(String error) {
+    _setTripLoadState(loadedTrips: const <TripJourney>[], error: error);
   }
 
   Future<void> getTripData() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
@@ -63,15 +87,7 @@ class _TripScreenState extends State<TripScreen> {
       );
 
       if (!context.mounted) return;
-
-      _safeSetState(() {
-        trips = manualJourney == null ? [] : [manualJourney];
-        _rawTripJson = prettyPrintRawJson(manualJourney?.rawJson);
-        _error = manualJourney == null
-            ? 'Unable to load the saved manual trip.'
-            : null;
-        _isLoading = false;
-      });
+      _setManualTripState(manualJourney);
       return;
     }
 
@@ -84,21 +100,13 @@ class _TripScreenState extends State<TripScreen> {
 
     switch (result) {
       case Ok(:final v):
-        _safeSetState(() {
-          trips = sortTripJourneysForDisplay(v.tripJourneys);
-          testText = v.toString();
-          _rawTripJson = prettyPrintRawJson(v.rawJson);
-          _isLoading = false;
-        });
+        _setFetchedTripState(v);
 
         // Preemptively load realtime vehicle positions in the background so
         // the trip leg detail map loads faster when the user taps a leg.
         RealtimeService.prefetchAggregates().ignore();
       case Err(:final e):
-        _safeSetState(() {
-          _error = e;
-          _isLoading = false;
-        });
+        _setTripLoadError(e);
     }
   }
 
@@ -135,122 +143,125 @@ class _TripScreenState extends State<TripScreen> {
     }
   }
 
+  Future<void> _refreshTrips() async {
+    if (!widget.trip.isManualMultiLeg) {
+      TripCacheService.invalidate(
+        widget.trip.originId,
+        widget.trip.destinationId,
+      );
+    }
+    await getTripData();
+  }
+
+  Widget _buildRawTripJsonCard(String rawTripJson) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxHeight: 240),
+        decoration: BoxDecoration(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            rawTripJson,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyTripState(BuildContext context) {
+    final rawTripJson = _rawTripJson;
+    return ListView(
+      children: [
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isLoading)
+                  const CircularProgressIndicator()
+                else
+                  const Icon(Icons.info_outline, size: 48, color: Colors.grey),
+                const SizedBox(height: 12),
+                if (_isLoading)
+                  Text(loadingTripMessage(widget.trip))
+                else if (_error != null)
+                  Column(
+                    children: [
+                      Text(
+                        'Error loading trips:\n$_error',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: getTripData,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  )
+                else
+                  Column(
+                    children: [
+                      Text(emptyTripMessage(widget.trip)),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: getTripData,
+                        child: Text(retryButtonLabel(widget.trip)),
+                      ),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: DebugService.showDebugData,
+                        builder: (context, showDebug, _) {
+                          if (!showDebug || rawTripJson == null) {
+                            return const SizedBox.shrink();
+                          }
+                          return _buildRawTripJsonCard(rawTripJson);
+                        },
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTripList() {
+    final tripCards = <Widget>[];
+    var index = 0;
+    for (final tripJourney in trips) {
+      tripCards.add(
+        TripCard(
+          trip: tripJourney,
+          onVisible: (trip) => _prefetchVisibleTrip(trip, index),
+          onSelectLeg: (leg) => _pushLegDetail(leg, tripJourney),
+        ),
+      );
+      index++;
+    }
+
+    return ListView(children: tripCards);
+  }
+
+  Widget _buildBody(BuildContext context) {
+    return trips.isEmpty ? _buildEmptyTripState(context) : _buildTripList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Trip')),
       body: RefreshIndicator(
-        onRefresh: () async {
-          if (!widget.trip.isManualMultiLeg) {
-            TripCacheService.invalidate(
-              widget.trip.originId,
-              widget.trip.destinationId,
-            );
-          }
-          await getTripData();
-        },
-        child: trips.isEmpty
-            ? ListView(
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isLoading)
-                            const CircularProgressIndicator()
-                          else
-                            const Icon(
-                              Icons.info_outline,
-                              size: 48,
-                              color: Colors.grey,
-                            ),
-                          const SizedBox(height: 12),
-                          if (_isLoading)
-                            Text(loadingTripMessage(widget.trip))
-                          else if (_error != null)
-                            Column(
-                              children: [
-                                Text(
-                                  'Error loading trips:\n$_error',
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: getTripData,
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            )
-                          else
-                            Column(
-                              children: [
-                                Text(emptyTripMessage(widget.trip)),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: getTripData,
-                                  child: Text(retryButtonLabel(widget.trip)),
-                                ),
-                                ValueListenableBuilder<bool>(
-                                  valueListenable: DebugService.showDebugData,
-                                  builder: (context, showDebug, _) {
-                                    if (!showDebug || _rawTripJson == null) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return Padding(
-                                      padding: const EdgeInsets.only(top: 12),
-                                      child: Container(
-                                        width: double.infinity,
-                                        constraints: const BoxConstraints(
-                                          maxHeight: 240,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black12,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        child: SingleChildScrollView(
-                                          padding: const EdgeInsets.all(12),
-                                          child: Text(
-                                            _rawTripJson ?? '',
-                                            style: const TextStyle(
-                                              fontFamily: 'monospace',
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : ListView(
-                children: [
-                  ...List.generate(trips.length, (index) {
-                    final tripJourney = trips.elementAtOrNull(index);
-                    if (tripJourney == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return TripCard(
-                      trip: tripJourney,
-                      onVisible: (trip) => _prefetchVisibleTrip(trip, index),
-                      onSelectLeg: (leg) => _pushLegDetail(leg, tripJourney),
-                    );
-                  }),
-                ],
-              ),
+        onRefresh: _refreshTrips,
+        child: _buildBody(context),
       ),
     );
   }

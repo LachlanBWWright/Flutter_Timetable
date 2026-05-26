@@ -1,50 +1,29 @@
+// ignore_for_file: catch_inferred_throwing_calls
+
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
-import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
-import 'package:lbww_flutter/services/api_key_service.dart';
-import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/app_bootstrap_service.dart';
+import 'package:lbww_flutter/services/journey_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/prefetch_scheduler.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
-import 'package:lbww_flutter/services/transport_preferences_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/journey_filter_utils.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await dotenv.load();
-  } catch (_) {}
-  // Initialize debug service early so widgets can access it synchronously
-  try {
-    await DebugService.init();
-  } catch (_) {
-    // If debug service can't initialize, it's not fatal for the app.
-  }
-  try {
-    await TransportPreferencesService.init();
-  } catch (_) {
-    // If transport preferences can't initialize, use defaults.
-  }
-  // Load any user-supplied API key override from SharedPreferences.
-  try {
-    await ApiKeyService.init();
-  } catch (_) {
-    // Not fatal if ApiKeyService fails to initialize.
-  }
-
-  // API key is handled by individual services directly from dotenv
+  await AppBootstrapService.initialize();
   runApp(const MyApp());
 }
 
@@ -52,11 +31,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   ThemeData _safeTheme(Brightness brightness) {
-    try {
-      return ThemeData(primarySwatch: Colors.blue, brightness: brightness);
-    } catch (_) {
-      return ThemeData.fallback();
-    }
+    return ThemeData(primarySwatch: Colors.blue, brightness: brightness);
   }
 
   // This widget is the root of your application.
@@ -98,7 +73,7 @@ int _staticEndpointPriority(StopsEndpoint endpoint) {
   return 6;
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   List<db.Journey> _journeys = [];
   List<db.Journey> _filteredJourneys = [];
   bool _hasApiKey = false;
@@ -110,111 +85,68 @@ class _MyHomePageState extends State<MyHomePage> {
   // Single database instance for this stateful widget
   final db.AppDatabase _database = db.AppDatabase();
 
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
-
-  void _safeLogError(Object? message) {
-    try {
-      logger.e(message);
-    } catch (_) {}
-  }
-
   void _hideCurrentMessage() {
     if (!mounted) {
       return;
     }
-    try {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    } catch (_) {}
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
   }
 
   void _pushPage(Widget page, VoidCallback onReturn) {
-    try {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => page),
-      ).then((_) {
-        try {
-          onReturn();
-        } catch (_) {}
-      });
-    } catch (_) {}
+    pushPage((context) => page).then((_) => runGuarded(onReturn));
   }
 
   void _enqueueStaticPrefetch(StopsEndpoint endpoint) {
-    try {
-      PrefetchScheduler.instance.enqueueStatic(
-        key: endpoint.key,
-        priority: _staticEndpointPriority(endpoint),
-        job: () async {
-          await for (final _ in NewTripService.updateStaticTransportData(
-            endpoints: [endpoint],
-          )) {}
-        },
-      );
-    } catch (_) {}
+    PrefetchScheduler.instance.enqueueStatic(
+      key: endpoint.key,
+      priority: _staticEndpointPriority(endpoint),
+      job: () async {
+        await for (final _ in NewTripService.updateStaticTransportData(
+          endpoints: [endpoint],
+        )) {}
+      },
+    );
   }
 
   Future<void> getTrips() async {
-    try {
-      final pinnedJourneys = await _database.getPinnedJourneys();
-      final unpinnedJourneys = await _database.getUnpinnedJourneys();
+    final result = await JourneyService.loadJourneys(_database);
+    final pinnedJourneys = result.pinnedJourneys;
+    final unpinnedJourneys = result.unpinnedJourneys;
 
-      // Show the saved trips immediately even if we still need to fetch the
-      // user location for distance-based sorting. This avoids "empty" screens
-      // when the location permission dialog is still open.
-      final initialJourneys = [...pinnedJourneys, ...unpinnedJourneys];
-      if (!mounted) return;
-      _safeSetState(() {
-        _journeys = initialJourneys;
-        _filteredJourneys = _applySearchFilter(initialJourneys);
-      });
+    final initialJourneys = result.allJourneys;
+    if (!mounted) return;
+    guardedSetState(() {
+      _journeys = initialJourneys;
+      _filteredJourneys = _applySearchFilter(initialJourneys);
+    });
 
-      // Preemptively fetch trip data for the top 10 journeys in the background.
-      TripCacheService.prefetch(initialJourneys);
+    TripCacheService.prefetch(initialJourneys);
+    prefetchAllStations();
+    _prefetchStaticTransportData();
 
-      // Preemptively load stations for all modes so the 'Add New Trip' screen
-      // opens without a loading delay.
-      prefetchAllStations();
-      _prefetchStaticTransportData();
-
-      // Now sort journeys according to user preference (distance vs alphabetical).
-      ScaffoldMessengerState? messenger;
-      final isAlphabetical = await LocationService.isAlphabeticalSorting();
-      if (!isAlphabetical && mounted && !_hasShownLocationSnackBar) {
-        _hasShownLocationSnackBar = true;
-        messenger = ScaffoldMessenger.maybeOf(context);
-        try {
-          messenger?.showSnackBar(
-            const SnackBar(
-              content: Text('Getting your location…'),
-              duration: Duration(seconds: 3),
-            ),
-          );
-        } catch (_) {}
-      }
-
-      final sortedUnpinned = await LocationService.sortJourneys(
-        unpinnedJourneys,
+    ScaffoldMessengerState? messenger;
+    final isAlphabetical = await LocationService.isAlphabeticalSorting();
+    if (!isAlphabetical && mounted && !_hasShownLocationSnackBar) {
+      _hasShownLocationSnackBar = true;
+      messenger = ScaffoldMessenger.maybeOf(context);
+      messenger?.showSnackBar(
+        const SnackBar(
+          content: Text('Getting your location…'),
+          duration: Duration(seconds: 3),
+        ),
       );
-
-      _hideCurrentMessage();
-
-      final sortedJourneys = [...pinnedJourneys, ...sortedUnpinned];
-      if (!mounted) return;
-      _safeSetState(() {
-        _journeys = sortedJourneys;
-        _filteredJourneys = _applySearchFilter(sortedJourneys);
-      });
-    } catch (e) {
-      _safeLogError('Error loading trips: $e');
     }
+
+    final sortedUnpinned = await LocationService.sortJourneys(unpinnedJourneys);
+
+    _hideCurrentMessage();
+
+    final sortedJourneys = [...pinnedJourneys, ...sortedUnpinned];
+    if (!mounted) return;
+    guardedSetState(() {
+      _journeys = sortedJourneys;
+      _filteredJourneys = _applySearchFilter(sortedJourneys);
+    });
   }
 
   void _prefetchStaticTransportData() {
@@ -228,42 +160,35 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _filterJourneys(String query) {
-    _safeSetState(() {
+    guardedSetState(() {
       _filteredJourneys = filterJourneysByQuery(_journeys, query);
     });
   }
 
   Future<void> deleteTrip(int tripId) async {
-    try {
-      await _database.deleteJourney(tripId);
+    final deleted = await JourneyService.deleteJourney(_database, tripId);
+    if (deleted) {
       getTrips();
-    } catch (e) {
-      _safeLogError('Error deleting trip: $e');
     }
   }
 
   Future<void> togglePin(int tripId, bool isPinned) async {
-    try {
-      await _database.toggleJourneyPin(tripId, !isPinned);
+    final toggled = await JourneyService.toggleJourneyPin(
+      _database,
+      tripId,
+      isPinned,
+    );
+    if (toggled) {
       getTrips();
-    } catch (e) {
-      _safeLogError('Error toggling pin: $e');
     }
   }
 
   Future<void> checkApiKey() async {
-    try {
-      final isValid = await TransportApiService.isApiKeyValid();
-      if (!mounted) return;
-      _safeSetState(() {
-        _hasApiKey = isValid;
-      });
-    } catch (err) {
-      if (!mounted) return;
-      _safeSetState(() {
-        _hasApiKey = false;
-      });
-    }
+    final isValid = await TransportApiService.isApiKeyValid();
+    if (!mounted) return;
+    guardedSetState(() {
+      _hasApiKey = isValid;
+    });
   }
 
   @override
@@ -277,7 +202,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _loadInitialSorting() async {
     final isAlphabetical = await LocationService.isAlphabeticalSorting();
     if (!mounted) return;
-    _safeSetState(() {
+    guardedSetState(() {
       _isAlphabeticalSorting = isAlphabetical;
     });
   }
@@ -286,7 +211,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final newValue = !_isAlphabeticalSorting;
     await LocationService.setSortingPreference(newValue);
     if (!mounted) return;
-    _safeSetState(() {
+    guardedSetState(() {
       _isAlphabeticalSorting = newValue;
     });
     // Re-sort with the new preference
@@ -294,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _toggleSearchMode() {
-    _safeSetState(() {
+    guardedSetState(() {
       _isSearching = !_isSearching;
       if (!_isSearching) {
         _searchController.clear();
@@ -304,16 +229,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _toggleEditingMode() {
-    _safeSetState(() {
+    guardedSetState(() {
       _isEditingMode = !_isEditingMode;
     });
   }
 
   @override
   void dispose() {
-    try {
-      _searchController.dispose();
-    } catch (_) {}
+    disposeChangeNotifierSafely(_searchController);
     super.dispose();
   }
 

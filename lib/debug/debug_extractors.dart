@@ -7,20 +7,15 @@ class DebugExtractors {
     if (values == null) {
       return null;
     }
-    try {
-      return values[key];
-    } catch (_) {
-      return null;
-    }
+
+    return values[key];
   }
 
-  static void _collectTripIdsFromRawJsonIntoSafe(
+  static void collectTripIdsFromRawJsonIntoSafe(
     Map<String, dynamic>? rawJson,
     Set<String> ids,
   ) {
-    try {
-      collectTripIdsFromRawJsonInto(rawJson, ids);
-    } catch (_) {}
+    collectTripIdsFromRawJsonInto(rawJson, ids);
   }
 
   static void collectTripIdsFromRawJsonInto(
@@ -66,15 +61,15 @@ class DebugExtractors {
       return ids;
     }
 
-    _collectTripIdsFromRawJsonIntoSafe(trip.rawJson, ids);
+    collectTripIdsFromRawJsonIntoSafe(trip.rawJson, ids);
     for (final leg in trip.legs) {
-      _collectTripIdsFromRawJsonIntoSafe(leg.rawJson, ids);
+      collectTripIdsFromRawJsonIntoSafe(leg.rawJson, ids);
     }
 
     final rawLegs = _mapValueOrNull(trip.rawJson, 'legs');
     if (rawLegs is List) {
       for (final legJson in rawLegs.whereType<Map<String, dynamic>>()) {
-        _collectTripIdsFromRawJsonIntoSafe(legJson, ids);
+        collectTripIdsFromRawJsonIntoSafe(legJson, ids);
       }
     }
 
@@ -86,8 +81,8 @@ class DebugExtractors {
     api.TripJourney? trip,
   }) {
     final ids = <String>{};
-    _collectTripIdsFromRawJsonIntoSafe(trip?.rawJson, ids);
-    _collectTripIdsFromRawJsonIntoSafe(leg?.rawJson, ids);
+    collectTripIdsFromRawJsonIntoSafe(trip?.rawJson, ids);
+    collectTripIdsFromRawJsonIntoSafe(leg?.rawJson, ids);
     return ids;
   }
 

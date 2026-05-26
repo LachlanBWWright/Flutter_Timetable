@@ -8,19 +8,11 @@ Object? _mapValueOrNull(Map<String, dynamic>? values, String key) {
   if (values == null) {
     return null;
   }
-  try {
-    return values[key];
-  } catch (_) {
-    return null;
-  }
+  return values[key];
 }
 
 LatLng? _tryParseLatLngSafe(Object? coord) {
-  try {
-    return tryParseLatLng(coord);
-  } catch (_) {
-    return null;
-  }
+  return tryParseLatLng(coord);
 }
 
 int? extractTransportClassFromLeg(Map<String, dynamic>? leg) {

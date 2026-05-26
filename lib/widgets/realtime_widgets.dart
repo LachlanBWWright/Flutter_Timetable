@@ -4,6 +4,7 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
+import '../utils/guarded_state.dart';
 import '../utils/safe_value_utils.dart';
 import '../utils/transport_display.dart';
 
@@ -15,7 +16,8 @@ class RealtimeInfoWidget extends StatefulWidget {
   State<RealtimeInfoWidget> createState() => _RealtimeInfoWidgetState();
 }
 
-class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
+class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
+    with GuardedState<RealtimeInfoWidget> {
   Map<TransportMode, Map<String, Object?>>? _statusSummary;
   bool _isLoading = false;
   String? _error;
@@ -29,15 +31,6 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
     return null;
   }
 
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
-
   @override
   void initState() {
     super.initState();
@@ -45,23 +38,26 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   }
 
   Future<void> _loadRealtimeStatus() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      final summary = await RealtimeService.getRealtimeStatusSummary();
-      _safeSetState(() {
-        _statusSummary = summary;
-        _isLoading = false;
-      });
-    } catch (error) {
-      _safeSetState(() {
-        _error = error.toString();
-        _isLoading = false;
-      });
-    }
+    await runAsyncGuarded(
+      () async {
+        final summary = await RealtimeService.getRealtimeStatusSummary();
+        guardedSetState(() {
+          _statusSummary = summary;
+          _isLoading = false;
+        });
+      },
+      onError: (error, _) {
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   @override
@@ -92,21 +88,13 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
             else if (_error != null)
               Text('Error: $_error', style: const TextStyle(color: Colors.red))
             else if (_statusSummary != null)
-              ..._safeBuildStatusList()
+              ..._buildStatusList()
             else
               const Text('No data available'),
           ],
         ),
       ),
     );
-  }
-
-  List<Widget> _safeBuildStatusList() {
-    try {
-      return _buildStatusList();
-    } catch (_) {
-      return const [];
-    }
   }
 
   List<Widget> _buildStatusList() {
@@ -217,19 +205,11 @@ class TransportPositionsWidget extends StatefulWidget {
       _TransportPositionsWidgetState();
 }
 
-class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
+class _TransportPositionsWidgetState extends State<TransportPositionsWidget>
+    with GuardedState<TransportPositionsWidget> {
   List<VehiclePosition> _positions = [];
   bool _isLoading = false;
   String? _error;
-
-  void _safeSetState(VoidCallback update) {
-    if (!mounted) {
-      return;
-    }
-    try {
-      setState(update);
-    } catch (_) {}
-  }
 
   @override
   void initState() {
@@ -238,35 +218,38 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
   }
 
   Future<void> _loadPositions() async {
-    _safeSetState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      FeedMessage? feed;
-      final transportMode = widget.transportMode;
-      final mode = widget.mode;
-      if (transportMode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(
-          transportMode,
-        );
-      } else if (mode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(mode);
-      } else {
-        feed = null;
-      }
-      final positions = RealtimeService.extractVehiclePositions(feed);
-      _safeSetState(() {
-        _positions = positions;
-        _isLoading = false;
-      });
-    } catch (e) {
-      _safeSetState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+    await runAsyncGuarded(
+      () async {
+        FeedMessage? feed;
+        final transportMode = widget.transportMode;
+        final mode = widget.mode;
+        if (transportMode != null) {
+          feed = await RealtimeService.getPositionsForTransportMode(
+            transportMode,
+          );
+        } else if (mode != null) {
+          feed = await RealtimeService.getPositionsForTransportMode(mode);
+        } else {
+          feed = null;
+        }
+        final positions = RealtimeService.extractVehiclePositions(feed);
+        guardedSetState(() {
+          _positions = positions;
+          _isLoading = false;
+        });
+      },
+      onError: (error, _) {
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   @override
@@ -302,19 +285,11 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
             else if (_positions.isEmpty)
               const Text('No vehicles currently tracked')
             else
-              ..._safeBuildPositionsList(),
+              ..._buildPositionsList(),
           ],
         ),
       ),
     );
-  }
-
-  List<Widget> _safeBuildPositionsList() {
-    try {
-      return _buildPositionsList();
-    } catch (_) {
-      return const [];
-    }
   }
 
   List<Widget> _buildPositionsList() {

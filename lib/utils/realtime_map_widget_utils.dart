@@ -1,14 +1,11 @@
+import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 
 LatLng? _tryParseLatLngSafe(Object? raw) {
-  try {
-    return tryParseLatLng(raw);
-  } catch (_) {
-    return null;
-  }
+  return tryParseLatLng(raw);
 }
 
 List<LatLng> legPointsForMap(Leg leg) {
@@ -57,4 +54,13 @@ String realtimeMapPageTitle({required TransportMode? mode, required Leg? leg}) {
 
 String vehicleNotFoundMessage(String vehicleId) {
   return 'No vehicle found for id $vehicleId';
+}
+
+bool tryFitMapCamera(MapController controller, CameraFit fit) {
+  try {
+    controller.fitCamera(fit);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }

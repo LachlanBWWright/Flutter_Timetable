@@ -13,6 +13,17 @@ class StopDebugPageBuilder {
 
   const StopDebugPageBuilder({required this.resolver});
 
+  Future<List<db.Stop>> _loadDbStops(
+    DebugEntityRequest request,
+    String stopId,
+  ) async {
+    final preloadedStops = request.context.dbStops;
+    if (preloadedStops != null) {
+      return preloadedStops;
+    }
+    return resolver.lookupDbStops(stopId);
+  }
+
   Future<DebugPageData> build(DebugEntityRequest request) async {
     final stopId = request.entityId;
     final apiStop = DebugExtractors.bestStopFromContext(
@@ -21,40 +32,22 @@ class StopDebugPageBuilder {
       leg: request.context.leg,
       trip: request.context.tripJourney,
     );
-    List<db.Stop> dbStops;
-    try {
-      dbStops = request.context.dbStops ?? await resolver.lookupDbStops(stopId);
-    } catch (_) {
-      dbStops = request.context.dbStops ?? const <db.Stop>[];
-    }
+    final dbStops = await _loadDbStops(request, stopId);
     final endpointHints = _endpointHintsForRows(dbStops);
-    DebugResolvedGtfsStop? gtfsStop;
-    try {
-      gtfsStop = await resolver.resolveGtfsStop(
-        stopId: stopId,
-        explicitData: request.context.gtfsData,
-        explicitEndpoint: request.context.gtfsEndpoint,
-        endpointHints: endpointHints,
-      );
-    } catch (_) {}
+    final gtfsStop = await resolver.resolveGtfsStop(
+      stopId: stopId,
+      explicitData: request.context.gtfsData,
+      explicitEndpoint: request.context.gtfsEndpoint,
+      endpointHints: endpointHints,
+    );
     final title =
         apiStop?.disassembledName ??
         apiStop?.name ??
         gtfsStop?.stop.stopName ??
         (dbStops.isNotEmpty ? dbStops.first.stopName : stopId);
 
-    List<DebugEntityRef> routeRefs;
-    try {
-      routeRefs = _routeReferences(request, stopId, gtfsStop?.data);
-    } catch (_) {
-      routeRefs = const <DebugEntityRef>[];
-    }
-    List<DebugEntityRef> tripRefs;
-    try {
-      tripRefs = _tripReferences(request, stopId);
-    } catch (_) {
-      tripRefs = const <DebugEntityRef>[];
-    }
+    final routeRefs = _routeReferences(request, stopId, gtfsStop?.data);
+    final tripRefs = _tripReferences(request, stopId);
     final parentRefs = _parentReferences(
       request,
       apiStop,
@@ -262,12 +255,7 @@ class StopDebugPageBuilder {
       return const [];
     }
 
-    Set<String> tripIds;
-    try {
-      tripIds = DebugExtractors.collectTripIdsForTrip(trip);
-    } catch (_) {
-      tripIds = <String>{};
-    }
+    final tripIds = DebugExtractors.collectTripIdsForTrip(trip);
     final canonicalId = tripIds.isNotEmpty ? tripIds.first : request.entityId;
     return [
       DebugEntityRef(

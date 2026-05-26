@@ -11,19 +11,11 @@ class JourneyAccentStrip extends StatelessWidget {
 
   final Journey journey;
 
-  Color _safeAccentColor(TransportMode? mode) {
-    try {
-      return accentColorForModeOrFallback(mode, journey);
-    } catch (_) {
-      return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final savedMode = journey.savedMode;
     if (savedMode != null) {
-      final accentColor = _safeAccentColor(savedMode);
+      final accentColor = accentColorForModeOrFallback(savedMode, journey);
       return _strip(accentColor, accentColor);
     }
 
@@ -38,8 +30,11 @@ class JourneyAccentStrip extends StatelessWidget {
         final data = snapshot.data;
         final originMode = data?.firstOrNull;
         final destinationMode = data?.skip(1).firstOrNull;
-        final originColor = _safeAccentColor(originMode);
-        final destinationColor = _safeAccentColor(destinationMode);
+        final originColor = accentColorForModeOrFallback(originMode, journey);
+        final destinationColor = accentColorForModeOrFallback(
+          destinationMode,
+          journey,
+        );
 
         return _strip(originColor, destinationColor);
       },

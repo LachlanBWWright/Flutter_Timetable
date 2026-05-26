@@ -5,6 +5,7 @@ import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:option_result/option_result.dart';
+import 'package:zard/zard.dart';
 
 enum SavedTripType {
   direct,
@@ -52,12 +53,11 @@ class ManualTripDecodeFailure {
   String toString() => message;
 }
 
+final _coercedIntSchema = z.coerce.int();
+final _coercedStringSchema = z.coerce.string();
+
 Object? _jsonValueOrNull(Map<String, dynamic> json, String key) {
-  try {
-    return json[key];
-  } catch (_) {
-    return null;
-  }
+  return tryReadMapValue(json, key);
 }
 
 String _stringValueOrEmpty(Map<String, dynamic> json, String key) {
@@ -68,12 +68,6 @@ String? _stringValueOrNull(Map<String, dynamic> json, String key) {
   return _jsonValueOrNull(json, key)?.toString();
 }
 
-void _safeLogWarning(String message) {
-  try {
-    logger.w(message);
-  } catch (_) {}
-}
-
 String? _reversedLegsJsonOrFallback(
   ManualTripDefinition? manualDefinition,
   String? fallbackLegsJson,
@@ -81,11 +75,7 @@ String? _reversedLegsJsonOrFallback(
   if (manualDefinition == null) {
     return fallbackLegsJson;
   }
-  try {
-    return manualDefinition.reversed().toLegsJson();
-  } catch (_) {
-    return fallbackLegsJson;
-  }
+  return manualDefinition.reversed().toLegsJson();
 }
 
 class ManualTripLeg {
@@ -130,7 +120,11 @@ class ManualTripLeg {
     TransportMode? fallbackMode,
   }) {
     final parsedMode =
-        transportModeFromStorage(_jsonValueOrNull(json, 'mode')?.toString()) ??
+        transportModeFromStorage(
+          _coercedStringSchema
+              .safeParse(_jsonValueOrNull(json, 'mode'))
+              .unwrapOrNull(),
+        ) ??
         fallbackMode;
     if (parsedMode == null) {
       return const Err(
@@ -140,7 +134,11 @@ class ManualTripLeg {
 
     return Ok(
       ManualTripLeg(
-        index: tryParseIntValue(_jsonValueOrNull(json, 'index')) ?? 0,
+        index:
+            _coercedIntSchema
+                .safeParse(_jsonValueOrNull(json, 'index'))
+                .unwrapOrNull() ??
+            0,
         originName: _stringValueOrEmpty(json, 'originName'),
         originId: _stringValueOrEmpty(json, 'originId'),
         destinationName: _stringValueOrEmpty(json, 'destinationName'),
@@ -229,7 +227,7 @@ class ManualTripDefinition {
         );
       }
 
-      final result = _tryDecodeLeg(legJson, fallbackMode: legacyMode);
+      final result = ManualTripLeg.tryDecode(legJson, fallbackMode: legacyMode);
       switch (result) {
         case Ok(:final v):
           var leg = v;
@@ -303,6 +301,21 @@ class ManualTripStop {
   final String name;
 }
 
+Result<ManualTripDefinition, ManualTripDecodeFailure>
+_tryDecodeManualTripDefinition({
+  required String legsJson,
+  TransportMode? legacyMode,
+  String? legacyLineId,
+  String? legacyLineName,
+}) {
+  return ManualTripDefinition.tryDecodeFromLegsJson(
+    legsJson: legsJson,
+    legacyMode: legacyMode,
+    legacyLineId: legacyLineId,
+    legacyLineName: legacyLineName,
+  );
+}
+
 extension JourneySavedTripX on Journey {
   SavedTripType get savedTripType => SavedTripType.fromStorage(tripType);
 
@@ -330,7 +343,7 @@ extension JourneySavedTripX on Journey {
       case Ok(:final v):
         return v.isValid ? v : null;
       case Err(:final e):
-        _safeLogWarning(
+        safeLogWarning(
           'Failed to decode manual trip definition for journey $id: $e',
         );
         return null;
@@ -351,38 +364,6 @@ extension JourneySavedTripX on Journey {
       lineName: lineName,
       legsJson: _reversedLegsJsonOrFallback(manualDefinition, legsJson),
       isPinned: isPinned,
-    );
-  }
-}
-
-Result<ManualTripLeg, ManualTripDecodeFailure> _tryDecodeLeg(
-  Map<String, dynamic> json, {
-  TransportMode? fallbackMode,
-}) {
-  try {
-    return ManualTripLeg.tryDecode(json, fallbackMode: fallbackMode);
-  } catch (e) {
-    return Err(ManualTripDecodeFailure('Failed to decode manual trip leg: $e'));
-  }
-}
-
-Result<ManualTripDefinition, ManualTripDecodeFailure>
-_tryDecodeManualTripDefinition({
-  required String legsJson,
-  TransportMode? legacyMode,
-  String? legacyLineId,
-  String? legacyLineName,
-}) {
-  try {
-    return ManualTripDefinition.tryDecodeFromLegsJson(
-      legsJson: legsJson,
-      legacyMode: legacyMode,
-      legacyLineId: legacyLineId,
-      legacyLineName: legacyLineName,
-    );
-  } catch (e) {
-    return Err(
-      ManualTripDecodeFailure('Failed to decode manual trip definition: $e'),
     );
   }
 }

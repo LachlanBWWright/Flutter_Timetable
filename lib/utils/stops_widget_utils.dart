@@ -4,15 +4,7 @@ import 'package:lbww_flutter/utils/transport_display.dart';
 Map<String, int> flattenStopsCountByEndpoint(
   Map<TransportMode?, Map<String, int>> grouped,
 ) {
-  final flattened = <String, int>{};
-  for (final group in grouped.values) {
-    for (final entry in group.entries) {
-      try {
-        flattened[entry.key] = entry.value;
-      } catch (_) {}
-    }
-  }
-  return flattened;
+  return {for (final group in grouped.values) ...group};
 }
 
 String displayNameForStopsModeGroup(

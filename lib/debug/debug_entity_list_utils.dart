@@ -7,13 +7,9 @@ String _capitalizeSegment(String segment) {
   if (segment.isEmpty) {
     return segment;
   }
-  try {
-    final first = segment.substring(0, 1).toUpperCase();
-    final remainder = segment.length > 1 ? segment.substring(1) : '';
-    return '$first$remainder';
-  } catch (_) {
-    return segment;
-  }
+  final first = segment.substring(0, 1).toUpperCase();
+  final remainder = segment.length > 1 ? segment.substring(1) : '';
+  return '$first$remainder';
 }
 
 DateTime? timestampFromUnixSeconds(int? seconds) {
