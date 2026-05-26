@@ -1,19 +1,21 @@
+import 'safe_value_utils.dart';
+
 Set<String> collectTripIdsFromRawJson(Map<String, dynamic>? rawJson) {
   final ids = <String>{};
   if (rawJson == null) {
     return ids;
   }
 
-  _addNonEmptyValue(ids, rawJson['tripId']);
-  _addNonEmptyValue(ids, rawJson['id']);
-  _addNonEmptyValue(ids, rawJson['trip_id']);
+  _addNonEmptyValue(ids, tryReadMapValue(rawJson, 'tripId'));
+  _addNonEmptyValue(ids, tryReadMapValue(rawJson, 'id'));
+  _addNonEmptyValue(ids, tryReadMapValue(rawJson, 'trip_id'));
 
-  final transport = rawJson['transportation'];
-  if (transport is Map && transport['properties'] is Map) {
-    final properties = transport['properties'] as Map<dynamic, dynamic>;
-    _addNonEmptyValue(ids, properties['RealtimeTripId']);
-    _addNonEmptyValue(ids, properties['AVMSTripID']);
-    _addNonEmptyValue(ids, properties['realtimeTripId']);
+  final transport = tryReadJsonMap(rawJson, 'transportation');
+  final properties = tryReadJsonMap(transport, 'properties');
+  if (properties != null) {
+    _addNonEmptyValue(ids, tryReadMapValue(properties, 'RealtimeTripId'));
+    _addNonEmptyValue(ids, tryReadMapValue(properties, 'AVMSTripID'));
+    _addNonEmptyValue(ids, tryReadMapValue(properties, 'realtimeTripId'));
   }
 
   return ids;
@@ -27,7 +29,7 @@ Set<String> collectTripIdsForVehicleFiltering({
   ids.addAll(collectTripIdsFromRawJson(tripRawJson));
   ids.addAll(collectTripIdsFromRawJson(legRawJson));
 
-  final legsJson = tripRawJson?['legs'];
+  final legsJson = tryReadListValue(tripRawJson, 'legs');
   if (legsJson is List) {
     for (final legJson in legsJson.whereType<Map<String, dynamic>>()) {
       ids.addAll(collectTripIdsFromRawJson(legJson));

@@ -19,6 +19,38 @@ Map<String, dynamic>? tryDecodeJsonMap(String source) {
   }
 }
 
+Object? tryReadMapValue(Map<String, dynamic>? map, String key) {
+  if (map == null) {
+    return null;
+  }
+  try {
+    return map[key];
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, dynamic>? tryReadJsonMap(Map<String, dynamic>? map, String key) {
+  final raw = tryReadMapValue(map, key);
+  if (raw is Map<String, dynamic>) {
+    return raw;
+  }
+  if (raw is Map) {
+    return {for (final entry in raw.entries) entry.key.toString(): entry.value};
+  }
+  return null;
+}
+
+List<dynamic>? tryReadListValue(Map<String, dynamic>? map, String key) {
+  final raw = tryReadMapValue(map, key);
+  return raw is List ? raw : null;
+}
+
+String? tryReadStringValue(Map<String, dynamic>? map, String key) {
+  final raw = tryReadMapValue(map, key);
+  return raw?.toString();
+}
+
 List<dynamic>? tryDecodeJsonList(String source) {
   try {
     final decoded = jsonDecode(source);
@@ -36,6 +68,30 @@ double? tryParseDoubleValue(Object? raw) {
     return double.tryParse(raw);
   }
   return null;
+}
+
+int? tryParseIntValue(Object? raw) {
+  if (raw is int) {
+    return raw;
+  }
+  if (raw is num) {
+    return raw.toInt();
+  }
+  if (raw is String) {
+    return int.tryParse(raw);
+  }
+  return null;
+}
+
+T? _listValueOrNull<T>(List<T>? values, int index) {
+  if (values == null || index < 0 || index >= values.length) {
+    return null;
+  }
+  try {
+    return values[index];
+  } catch (_) {
+    return null;
+  }
 }
 
 List<double>? tryParseDoubleList(Object? raw, {int minLength = 1}) {
@@ -78,13 +134,28 @@ List<double>? tryParseCoordinatePair(Object? raw) {
   if (values == null) {
     return null;
   }
-  return [values[0], values[1]];
+  final latitude = _listValueOrNull(values, 0);
+  final longitude = _listValueOrNull(values, 1);
+  if (latitude == null || longitude == null) {
+    return null;
+  }
+  return [latitude, longitude];
 }
 
 LatLng? tryParseLatLng(Object? raw) {
-  final pair = tryParseCoordinatePair(raw);
+  List<double>? pair;
+  try {
+    pair = tryParseCoordinatePair(raw);
+  } catch (_) {
+    return null;
+  }
   if (pair == null) {
     return null;
   }
-  return LatLng(pair[0], pair[1]);
+  final latitude = _listValueOrNull(pair, 0);
+  final longitude = _listValueOrNull(pair, 1);
+  if (latitude == null || longitude == null) {
+    return null;
+  }
+  return LatLng(latitude, longitude);
 }

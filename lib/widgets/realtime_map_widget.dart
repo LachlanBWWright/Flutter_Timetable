@@ -7,7 +7,7 @@ import '../logs/logger.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/debug_service.dart';
 import '../services/realtime_service.dart';
-import '../services/transport_api_service.dart';
+import '../services/transport_api_service.dart' hide logger;
 import '../utils/realtime_map_widget_utils.dart';
 import '../utils/safe_value_utils.dart';
 import 'realtime_map_helpers.dart';
@@ -89,6 +89,99 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   CameraFit? _pendingFit;
   LatLng? _pendingCenter;
 
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  void _safeLogInfo(String message) {
+    try {
+      logger.i(message);
+    } catch (_) {}
+  }
+
+  void _safeLogError(String message, Object error, StackTrace stackTrace) {
+    try {
+      logger.e(message, error: error, stackTrace: stackTrace);
+    } catch (_) {}
+  }
+
+  LatLng? _tryParseLatLngSafe(List<double>? coord) {
+    try {
+      return tryParseLatLng(coord);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _isModeEnabled(TransportMode? mode) {
+    if (mode == null) {
+      return true;
+    }
+    try {
+      return _modeEnabled[mode] ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  List<Marker> _buildStopMarkersSafe() {
+    try {
+      return _buildStopMarkers();
+    } catch (_) {
+      return const <Marker>[];
+    }
+  }
+
+  List<Marker> _buildVehicleMarkersSafe() {
+    try {
+      return _buildVehicleMarkers();
+    } catch (_) {
+      return const <Marker>[];
+    }
+  }
+
+  void _showStopDetailsSafe(Stop stop) {
+    try {
+      _showStopDetails(stop);
+    } catch (_) {}
+  }
+
+  double? _coordValueAt(List<double>? coord, int index) {
+    if (coord == null || index < 0 || index >= coord.length) {
+      return null;
+    }
+    try {
+      return coord[index];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  LatLng? _pointAtOrNull(List<LatLng> points, int index) {
+    if (index < 0 || index >= points.length) {
+      return null;
+    }
+    try {
+      return points[index];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _closeBottomSheet() {
+    if (!mounted) {
+      return;
+    }
+    try {
+      Navigator.of(context).pop();
+    } catch (_) {}
+  }
+
   // Available transport modes and whether they're enabled in the UI filter.
   static const List<TransportMode> _allModes = [
     TransportMode.train,
@@ -129,10 +222,12 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           padding: const EdgeInsets.all(50.0),
         );
         // Use the midpoint as the default center in case the fit is delayed.
-        _mapCenter = points[points.length ~/ 2];
+        _mapCenter =
+            _pointAtOrNull(points, points.length ~/ 2) ??
+            const LatLng(-33.8688, 151.2093);
       } else {
         _mapCenter =
-            tryParseLatLng(leg.origin.coord) ??
+            _tryParseLatLngSafe(leg.origin.coord) ??
             const LatLng(-33.8688, 151.2093);
       }
     } else {
@@ -220,7 +315,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   }
 
   Future<void> _loadVehiclePositions() async {
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
       _error = null;
     });
@@ -317,30 +412,30 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           );
           final routeList = routeMatches.toList();
           if (routeList.isNotEmpty) {
-            logger.i(
+            _safeLogInfo(
               'RealtimeMapWidget: vehicle id $vehicleId not found as vehicle id. Falling back to route id and showing ${routeList.length} vehicle(s).',
             );
             vehicles.clear();
             vehicles.addAll(routeList);
           } else {
-            logger.i(
+            _safeLogInfo(
               'RealtimeMapWidget: vehicle id $vehicleId not found in feeds',
             );
           }
         }
       }
-      setState(() {
+      _safeSetState(() {
         _vehicles = vehicles;
         _isLoading = false;
       });
     } catch (e, st) {
-      logger.e(
+      _safeLogError(
         'RealtimeMapWidget: failed to load vehicle positions',
-        error: e,
-        stackTrace: st,
+        e,
+        st,
       );
       if (!mounted) return;
-      setState(() {
+      _safeSetState(() {
         _error = e.toString();
         _isLoading = false;
       });
@@ -355,11 +450,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
               vw.vehicle.position.hasLatitude() &&
               vw.vehicle.position.hasLongitude() &&
               // Only include vehicles whose mode is enabled in the filter
-              (() {
-                final parsed = vw.mode;
-                if (parsed != null) return _modeEnabled[parsed] ?? true;
-                return true;
-              })(),
+              _isModeEnabled(vw.mode),
         )
         .map((vw) {
           final vehicle = vw.vehicle;
@@ -419,7 +510,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           : Colors.blueGrey;
 
       for (final s in stops) {
-        final point = tryParseLatLng(s.coord);
+        final point = _tryParseLatLngSafe(s.coord);
         if (point == null) continue;
         markers.add(
           Marker(
@@ -453,7 +544,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
         : Colors.grey;
 
     for (final s in stops) {
-      final point = tryParseLatLng(s.coord);
+      final point = _tryParseLatLngSafe(s.coord);
       if (point == null) {
         continue;
       }
@@ -463,7 +554,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
           width: 22,
           height: 22,
           child: GestureDetector(
-            onTap: () => _showStopDetails(s),
+            onTap: () => _showStopDetailsSafe(s),
             child: Container(
               decoration: BoxDecoration(
                 color: markerColor,
@@ -489,6 +580,8 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
   }
 
   void _showStopDetails(Stop stop) {
+    final latitude = _coordValueAt(stop.coord, 0);
+    final longitude = _coordValueAt(stop.coord, 1);
     showModalBottomSheet(
       context: context,
       builder: (context) => ValueListenableBuilder<bool>(
@@ -508,14 +601,14 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
                 _buildInfoRow('Arrive (planned)', arrive),
               if (stop.departureTimePlanned case final depart?)
                 _buildInfoRow('Depart (planned)', depart),
-              if (showDebug && (stop.coord?.length ?? 0) >= 2)
+              if (showDebug && latitude != null && longitude != null)
                 _buildInfoRow(
                   'Coords',
-                  '${stop.coord?[0].toStringAsFixed(6)}, ${stop.coord?[1].toStringAsFixed(6)}',
+                  '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
                 ),
               const SizedBox(height: 8),
               ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: _closeBottomSheet,
                 child: const Text('Close'),
               ),
             ],
@@ -651,9 +744,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget> {
             // Draw the route polyline if available
             PolylineLayer(polylines: _buildRoutePolylines()),
             // Show stop markers (if the leg has stops)
-            MarkerLayer(markers: _buildStopMarkers()),
+            MarkerLayer(markers: _buildStopMarkersSafe()),
             // Show vehicle markers above stops so they remain visible
-            MarkerLayer(markers: _buildVehicleMarkers()),
+            MarkerLayer(markers: _buildVehicleMarkersSafe()),
           ],
         ),
         if (widget.showVehicleCount)

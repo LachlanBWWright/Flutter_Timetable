@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
@@ -56,6 +57,68 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
   late Station _destination;
   late List<Station> _interchanges;
 
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  Future<T?> _pushPageSafe<T>(Route<T> route) async {
+    try {
+      return await Navigator.of(context).push<T>(route);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Station>> _loadInterchangeCandidates(int insertIndex) async {
+    try {
+      return await widget.onLoadInterchangeCandidates(insertIndex);
+    } catch (_) {
+      return const <Station>[];
+    }
+  }
+
+  void _insertInterchange(int insertIndex, Station station) {
+    try {
+      widget.onInsertInterchange(insertIndex, station);
+    } catch (_) {}
+  }
+
+  void _notifyRemoveInterchange(int interchangeIndex) {
+    try {
+      widget.onRemoveInterchange(interchangeIndex);
+    } catch (_) {}
+  }
+
+  void _notifyMoveInterchange(int interchangeIndex, int delta) {
+    try {
+      widget.onMoveInterchange(interchangeIndex, delta);
+    } catch (_) {}
+  }
+
+  Station? _stationAtOrNull(List<Station> stations, int index) {
+    if (index < 0 || index >= stations.length) {
+      return null;
+    }
+    try {
+      return stations[index];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _contextLabelSafe(int insertIndex) {
+    try {
+      return _contextLabel(insertIndex);
+    } catch (_) {
+      return 'Adding stop';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -96,13 +159,13 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
   }
 
   Future<void> _openStopSelectionPage(int insertIndex) async {
-    final selectedStation = await Navigator.of(context).push<Station>(
+    final selectedStation = await _pushPageSafe<Station>(
       MaterialPageRoute(
         builder: (context) => _InterchangeStopSelectionScreen(
           insertIndex: insertIndex,
-          contextLabel: _contextLabel(insertIndex),
+          contextLabel: _contextLabelSafe(insertIndex),
           currentMode: widget.currentMode,
-          candidatesFuture: widget.onLoadInterchangeCandidates(insertIndex),
+          candidatesFuture: _loadInterchangeCandidates(insertIndex),
         ),
       ),
     );
@@ -111,9 +174,9 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
       return;
     }
 
-    widget.onInsertInterchange(insertIndex, selectedStation);
+    _insertInterchange(insertIndex, selectedStation);
 
-    setState(() {
+    _safeSetState(() {
       if (insertIndex == 0) {
         _interchanges.insert(0, _origin);
         _origin = selectedStation;
@@ -127,8 +190,8 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
   }
 
   void _removeInterchange(int interchangeIndex) {
-    widget.onRemoveInterchange(interchangeIndex);
-    setState(() {
+    _notifyRemoveInterchange(interchangeIndex);
+    _safeSetState(() {
       _interchanges.removeAt(interchangeIndex);
     });
   }
@@ -138,8 +201,8 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
     if (newIndex < 0 || newIndex >= _interchanges.length) {
       return;
     }
-    widget.onMoveInterchange(interchangeIndex, delta);
-    setState(() {
+    _notifyMoveInterchange(interchangeIndex, delta);
+    _safeSetState(() {
       final updated = List<Station>.from(_interchanges);
       final station = updated.removeAt(interchangeIndex);
       updated.insert(newIndex, station);
@@ -233,14 +296,16 @@ class _TripComposerScreenState extends State<TripComposerScreen> {
 
   String _contextLabel(int insertIndex) {
     final orderedStops = _orderedStops;
+    final previousStop = _stationAtOrNull(orderedStops, insertIndex - 1);
+    final nextStop = _stationAtOrNull(orderedStops, insertIndex);
     if (insertIndex == 0 && orderedStops.isNotEmpty) {
       return 'Adding before ${orderedStops.first.name}';
     }
     if (insertIndex >= orderedStops.length && orderedStops.isNotEmpty) {
       return 'Adding after ${orderedStops.last.name}';
     }
-    if (insertIndex > 0 && insertIndex < orderedStops.length) {
-      return 'Adding between ${orderedStops[insertIndex - 1].name} and ${orderedStops[insertIndex].name}';
+    if (previousStop != null && nextStop != null) {
+      return 'Adding between ${previousStop.name} and ${nextStop.name}';
     }
     return 'Adding stop';
   }
@@ -274,6 +339,82 @@ class _InterchangeStopSelectionScreenState
   bool _isSearching = false;
   SortMode _sortMode = SortMode.distance;
 
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  void _disposeSearchController() {
+    try {
+      _searchController.dispose();
+    } catch (_) {}
+  }
+
+  void _disposeSearchFocusNode() {
+    try {
+      _searchFocusNode.dispose();
+    } catch (_) {}
+  }
+
+  void _disposeTabController() {
+    try {
+      _tabController.dispose();
+    } catch (_) {}
+  }
+
+  void _addPostFrameCallback(void Function(Duration) callback) {
+    try {
+      WidgetsBinding.instance.addPostFrameCallback(callback);
+    } catch (_) {}
+  }
+
+  void _requestSearchFocus() {
+    try {
+      _searchFocusNode.requestFocus();
+    } catch (_) {}
+  }
+
+  void _clearSearchFocus() {
+    try {
+      _searchFocusNode.unfocus();
+    } catch (_) {}
+  }
+
+  void _clearSearchText() {
+    try {
+      _searchController.clear();
+    } catch (_) {}
+  }
+
+  void _handleSearchChanged(String _) {
+    _safeSetState(() {});
+  }
+
+  _InterchangeStopTab? _tabAtOrNull(int index) {
+    if (index < 0 || index >= _tabs.length) {
+      return null;
+    }
+    try {
+      return _tabs[index];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  TransportMode _currentTabMode() {
+    return _tabAtOrNull(_tabController.index)?.mode ?? widget.currentMode;
+  }
+
+  void _popSelectedStation(Station station) {
+    try {
+      Navigator.of(context).pop(station);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
@@ -290,33 +431,37 @@ class _InterchangeStopSelectionScreenState
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    _tabController.dispose();
-    super.dispose();
+    try {
+      _disposeSearchController();
+      _disposeSearchFocusNode();
+      _disposeTabController();
+      try {
+        super.dispose();
+      } catch (_) {}
+    } finally {}
   }
 
   void _toggleSearch() {
-    setState(() {
+    _safeSetState(() {
       if (_searchController.text.isEmpty) {
         _isSearching = !_isSearching;
         if (_isSearching) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          _addPostFrameCallback((_) {
             if (mounted) {
-              _searchFocusNode.requestFocus();
+              _requestSearchFocus();
             }
           });
         } else {
-          _searchFocusNode.unfocus();
+          _clearSearchFocus();
         }
       } else {
-        _searchController.clear();
+        _clearSearchText();
       }
     });
   }
 
   void _toggleSort() {
-    setState(() {
+    _safeSetState(() {
       _sortMode = _sortMode == SortMode.alphabetical
           ? SortMode.distance
           : SortMode.alphabetical;
@@ -370,7 +515,7 @@ class _InterchangeStopSelectionScreenState
   @override
   Widget build(BuildContext context) {
     final accentColor = TransportColors.getColorByTransportMode(
-      _tabs[_tabController.index].mode,
+      _currentTabMode(),
     );
 
     return Scaffold(
@@ -384,7 +529,7 @@ class _InterchangeStopSelectionScreenState
                   hintStyle: TextStyle(color: Colors.white),
                 ),
                 style: const TextStyle(color: Colors.white),
-                onChanged: (_) => setState(() {}),
+                onChanged: _handleSearchChanged,
               )
             : const Text('Select Stop'),
         actions: [
@@ -484,10 +629,12 @@ class _InterchangeStopSelectionScreenState
                             sortMode: _sortMode,
                             mode: tab.mode,
                             setStation: (stationName, stationId, mode) {
-                              final selected = stations.firstWhere(
+                              final selected = stations.firstWhereOrNull(
                                 (station) => station.id == stationId,
                               );
-                              Navigator.of(context).pop(selected);
+                              if (selected != null) {
+                                _popSelectedStation(selected);
+                              }
                             },
                           ),
                         ),

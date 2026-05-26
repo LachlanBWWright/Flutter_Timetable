@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
@@ -74,6 +75,32 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
   bool _expanded = false;
   bool _didNotifyVisible = false;
 
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  void _notifyVisible() {
+    final onVisible = widget.onVisible;
+    if (onVisible == null) {
+      return;
+    }
+    try {
+      onVisible(widget.trip);
+    } catch (_) {}
+  }
+
+  void _selectLeg(Leg leg) {
+    final onSelectLeg = widget.onSelectLeg;
+    try {
+      onSelectLeg(leg);
+    } catch (_) {}
+  }
+
   @override
   void didUpdateWidget(covariant TripCard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -85,10 +112,12 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
   void _notifyVisibleOnce() {
     if (_didNotifyVisible) return;
     _didNotifyVisible = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      widget.onVisible?.call(widget.trip);
-    });
+    try {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _notifyVisible();
+      });
+    } catch (_) {}
   }
 
   String _displayStopName(Stop stop) {
@@ -164,8 +193,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
 
     // Build sequential segments per-leg, inserting grey waiting segments between legs where applicable
     final segments = <Widget>[];
-    for (var i = 0; i < legs.length; i++) {
-      final l = legs[i];
+    for (final (index, l) in legs.indexed) {
       final transportClass = l.transportation?.product?.classField;
       // Convert leg duration (which is seconds in the API) to minutes so the visual
       // proportion between travel time and waiting time makes sense.
@@ -184,9 +212,10 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
       );
 
       // If there's a next leg, compute waiting time (in minutes) and add a grey segment if > 0
-      if (i < legs.length - 1) {
+      final nextLeg = legs.skip(index + 1).firstOrNull;
+      if (nextLeg != null) {
         final curDest = l.destination;
-        final nextOrigin = legs[i + 1].origin;
+        final nextOrigin = nextLeg.origin;
         final curArrival =
             curDest.arrivalTimeEstimated ?? curDest.arrivalTimePlanned;
         final nextDeparture =
@@ -225,9 +254,9 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
           InkWell(
             onTap: () {
               if (legs.length == 1) {
-                widget.onSelectLeg(legs.first);
+                _selectLeg(legs.first);
               } else {
-                setState(() => _expanded = !_expanded);
+                _safeSetState(() => _expanded = !_expanded);
               }
             },
             child: ListTile(
@@ -304,7 +333,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                   padding: EdgeInsets.only(right: 24.0),
                   child: Icon(Icons.chevron_right, size: 20),
                 ),
-                onTap: () => widget.onSelectLeg(leg),
+                onTap: () => _selectLeg(leg),
               ),
             const Divider(height: 1),
           ],

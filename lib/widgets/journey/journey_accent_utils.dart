@@ -16,13 +16,36 @@ const journeyAccentColors = [
   TransportColors.trainsT8,
 ];
 
+Color _firstJourneyAccentColor() {
+  final firstColor = journeyAccentColors.firstOrNull;
+  return firstColor ?? TransportColors.bus;
+}
+
 Color accentColorForJourneyFallback(Journey journey) {
-  return journeyAccentColors[journey.id.abs() % journeyAccentColors.length];
+  final accentCount = journeyAccentColors.length;
+  if (accentCount <= 0) {
+    return TransportColors.bus;
+  }
+
+  final accentIndex = journey.id.abs() % accentCount;
+  var currentIndex = 0;
+  for (final accentColor in journeyAccentColors) {
+    if (currentIndex == accentIndex) {
+      return accentColor;
+    }
+    currentIndex += 1;
+  }
+
+  return _firstJourneyAccentColor();
 }
 
 Color accentColorForModeOrFallback(TransportMode? mode, Journey journey) {
   if (mode != null) {
     return TransportColors.getColorByTransportMode(mode);
   }
-  return accentColorForJourneyFallback(journey);
+  try {
+    return accentColorForJourneyFallback(journey);
+  } catch (_) {
+    return _firstJourneyAccentColor();
+  }
 }

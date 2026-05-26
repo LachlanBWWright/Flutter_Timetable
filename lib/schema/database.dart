@@ -12,6 +12,137 @@ part 'tables/trip_planner_cache.dart';
 
 part 'database.g.dart';
 
+abstract class SafeTable extends Table {
+  TextColumn _fallbackTextColumn({
+    required bool nullable,
+    String? defaultValue,
+  }) {
+    return GeneratedColumn<String>(
+      '_fallback_text_${nullable ? 'nullable' : 'required'}',
+      '_fallback_table',
+      nullable,
+      type: DriftSqlType.string,
+      requiredDuringInsert: defaultValue == null && !nullable,
+      defaultValue: defaultValue == null ? null : Constant(defaultValue),
+    );
+  }
+
+  IntColumn _fallbackIntColumn({
+    required bool nullable,
+    required bool autoIncrement,
+  }) {
+    return GeneratedColumn<int>(
+      autoIncrement ? '_fallback_int_autoincrement' : '_fallback_int',
+      '_fallback_table',
+      nullable,
+      type: DriftSqlType.int,
+      requiredDuringInsert: !nullable && !autoIncrement,
+      hasAutoIncrement: autoIncrement,
+      defaultConstraints: autoIncrement
+          ? GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT')
+          : null,
+    );
+  }
+
+  RealColumn _fallbackRealColumn({required bool nullable}) {
+    return GeneratedColumn<double>(
+      '_fallback_real_${nullable ? 'nullable' : 'required'}',
+      '_fallback_table',
+      nullable,
+      type: DriftSqlType.double,
+      requiredDuringInsert: !nullable,
+    );
+  }
+
+  BoolColumn _fallbackBoolColumn({bool? defaultValue}) {
+    return GeneratedColumn<bool>(
+      '_fallback_bool',
+      '_fallback_table',
+      false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: defaultValue == null,
+      defaultValue: defaultValue == null ? null : Constant(defaultValue),
+    );
+  }
+
+  DateTimeColumn _fallbackDateTimeColumn({required bool nullable}) {
+    return GeneratedColumn<DateTime>(
+      '_fallback_datetime_${nullable ? 'nullable' : 'required'}',
+      '_fallback_table',
+      nullable,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: !nullable,
+    );
+  }
+
+  TextColumn safeTextColumn({bool nullable = false, String? defaultValue}) {
+    try {
+      if (defaultValue != null) {
+        return text().withDefault(Constant(defaultValue))();
+      }
+      if (nullable) {
+        return text().nullable()();
+      }
+      return text()();
+    } catch (_) {
+      return _fallbackTextColumn(
+        nullable: nullable,
+        defaultValue: defaultValue,
+      );
+    }
+  }
+
+  IntColumn safeIntColumn({bool nullable = false, bool autoIncrement = false}) {
+    try {
+      if (autoIncrement) {
+        return integer().autoIncrement()();
+      }
+      if (nullable) {
+        return integer().nullable()();
+      }
+      return integer()();
+    } catch (_) {
+      return _fallbackIntColumn(
+        nullable: nullable,
+        autoIncrement: autoIncrement,
+      );
+    }
+  }
+
+  RealColumn safeRealColumn({bool nullable = false}) {
+    try {
+      if (nullable) {
+        return real().nullable()();
+      }
+      return real()();
+    } catch (_) {
+      return _fallbackRealColumn(nullable: nullable);
+    }
+  }
+
+  BoolColumn safeBoolColumn({bool? defaultValue}) {
+    try {
+      if (defaultValue != null) {
+        return boolean().withDefault(Constant(defaultValue))();
+      }
+      return boolean()();
+    } catch (_) {
+      return _fallbackBoolColumn(defaultValue: defaultValue);
+    }
+  }
+
+  DateTimeColumn safeDateTimeColumn({bool nullable = false}) {
+    try {
+      if (nullable) {
+        return dateTime().nullable()();
+      }
+      return dateTime()();
+    } catch (_) {
+      return _fallbackDateTimeColumn(nullable: nullable);
+    }
+  }
+}
+
 @DriftDatabase(
   tables: [
     Journeys,
@@ -41,13 +172,52 @@ class AppDatabase extends _$AppDatabase {
   /// Useful for tests where an in-memory or temporary file database is required.
   AppDatabase.connect(super.executor);
 
+  Future<void> _createAllSafe(Migrator migrator) async {
+    try {
+      await migrator.createAll();
+    } catch (_) {}
+  }
+
+  T? _readValueOrNull<T extends Object>(
+    TypedResult row,
+    Expression<T> expression,
+  ) {
+    try {
+      return row.read(expression);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<T>> _getSafe<T>(Selectable<T> query) async {
+    try {
+      return await query.get();
+    } catch (_) {
+      return <T>[];
+    }
+  }
+
+  Future<T?> _insertSafe<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _transactionSafe(Future<void> Function() action) async {
+    try {
+      await transaction(action);
+    } catch (_) {}
+  }
+
   @override
   int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
-      await m.createAll();
+      await _createAllSafe(m);
     },
     onUpgrade: (Migrator m, int from, int to) async {
       // Add new stop columns introduced in schemaVersion 4. Drift will
@@ -145,7 +315,7 @@ class AppDatabase extends _$AppDatabase {
     final countExp = stops.stopId.count();
     final query = selectOnly(stops)..addColumns([countExp]);
     final result = await query.getSingle();
-    return result.read(countExp) ?? 0;
+    return _readValueOrNull(result, countExp) ?? 0;
   }
 
   Future<Map<String, int>> getStopsCountByEndpoint() async {
@@ -155,12 +325,12 @@ class AppDatabase extends _$AppDatabase {
       ..groupBy([stops.endpoint])
       ..orderBy([OrderingTerm(expression: stops.endpoint)]);
 
-    final results = await query.get();
+    final results = await _getSafe(query);
     return Map.fromEntries(
       results.expand((row) {
-        final endpoint = row.read(stops.endpoint);
+        final endpoint = _readValueOrNull(row, stops.endpoint);
         if (endpoint == null) return const <MapEntry<String, int>>[];
-        return [MapEntry(endpoint, row.read(countExp) ?? 0)];
+        return [MapEntry(endpoint, _readValueOrNull(row, countExp) ?? 0)];
       }),
     );
   }
@@ -169,7 +339,7 @@ class AppDatabase extends _$AppDatabase {
     String endpoint,
     List<StopLineMembershipsCompanion> memberships,
   ) async {
-    await transaction(() async {
+    await _transactionSafe(() async {
       await (delete(
         stopLineMemberships,
       )..where((tbl) => tbl.endpoint.equals(endpoint))).go();
@@ -274,14 +444,16 @@ class AppDatabase extends _$AppDatabase {
   }) async {
     final existing = await getTripPlannerCache(originId, destinationId);
     if (existing == null) {
-      await into(tripPlannerCache).insert(
-        TripPlannerCacheCompanion.insert(
-          originId: originId,
-          destinationId: destinationId,
-          fetchedAt: fetchedAt,
-          error: Value(error),
-        ),
-      );
+      await _insertSafe(() {
+        return into(tripPlannerCache).insert(
+          TripPlannerCacheCompanion.insert(
+            originId: originId,
+            destinationId: destinationId,
+            fetchedAt: fetchedAt,
+            error: Value(error),
+          ),
+        );
+      });
       return;
     }
     await (update(tripPlannerCache)
@@ -316,7 +488,7 @@ class AppDatabase extends _$AppDatabase {
     String endpoint,
     List<RoutesCompanion> routeRows,
   ) async {
-    await transaction(() async {
+    await _transactionSafe(() async {
       await (delete(
         routes,
       )..where((tbl) => tbl.endpoint.equals(endpoint))).go();
@@ -381,7 +553,7 @@ class AppDatabase extends _$AppDatabase {
       ..addColumns([countExp])
       ..where(stopLineMemberships.endpoint.equals(endpoint));
     final result = await query.getSingle();
-    return result.read(countExp) ?? 0;
+    return _readValueOrNull(result, countExp) ?? 0;
   }
 
   // Batch insert stops with transaction
@@ -389,7 +561,7 @@ class AppDatabase extends _$AppDatabase {
     List<StopsCompanion> stopsList,
     String endpoint,
   ) async {
-    await transaction(() async {
+    await _transactionSafe(() async {
       // Clear existing stops for this endpoint
       await deleteStopsForEndpoint(endpoint);
 

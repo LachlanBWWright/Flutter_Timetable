@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
@@ -20,23 +21,40 @@ class StopDebugPageBuilder {
       leg: request.context.leg,
       trip: request.context.tripJourney,
     );
-    final dbStops =
-        request.context.dbStops ?? await resolver.lookupDbStops(stopId);
+    List<db.Stop> dbStops;
+    try {
+      dbStops = request.context.dbStops ?? await resolver.lookupDbStops(stopId);
+    } catch (_) {
+      dbStops = request.context.dbStops ?? const <db.Stop>[];
+    }
     final endpointHints = _endpointHintsForRows(dbStops);
-    final gtfsStop = await resolver.resolveGtfsStop(
-      stopId: stopId,
-      explicitData: request.context.gtfsData,
-      explicitEndpoint: request.context.gtfsEndpoint,
-      endpointHints: endpointHints,
-    );
+    DebugResolvedGtfsStop? gtfsStop;
+    try {
+      gtfsStop = await resolver.resolveGtfsStop(
+        stopId: stopId,
+        explicitData: request.context.gtfsData,
+        explicitEndpoint: request.context.gtfsEndpoint,
+        endpointHints: endpointHints,
+      );
+    } catch (_) {}
     final title =
         apiStop?.disassembledName ??
         apiStop?.name ??
         gtfsStop?.stop.stopName ??
         (dbStops.isNotEmpty ? dbStops.first.stopName : stopId);
 
-    final routeRefs = _routeReferences(request, stopId, gtfsStop?.data);
-    final tripRefs = _tripReferences(request, stopId);
+    List<DebugEntityRef> routeRefs;
+    try {
+      routeRefs = _routeReferences(request, stopId, gtfsStop?.data);
+    } catch (_) {
+      routeRefs = const <DebugEntityRef>[];
+    }
+    List<DebugEntityRef> tripRefs;
+    try {
+      tripRefs = _tripReferences(request, stopId);
+    } catch (_) {
+      tripRefs = const <DebugEntityRef>[];
+    }
     final parentRefs = _parentReferences(
       request,
       apiStop,
@@ -164,7 +182,9 @@ class StopDebugPageBuilder {
     };
     final seen = <String>{};
     for (final row in rows) {
-      final endpoint = endpointByKey[row.endpoint];
+      final endpoint = endpointByKey.entries
+          .firstWhereOrNull((entry) => entry.key == row.endpoint)
+          ?.value;
       if (endpoint != null && seen.add(endpoint.key)) {
         yield endpoint;
       }
@@ -242,7 +262,12 @@ class StopDebugPageBuilder {
       return const [];
     }
 
-    final tripIds = DebugExtractors.collectTripIdsForTrip(trip);
+    Set<String> tripIds;
+    try {
+      tripIds = DebugExtractors.collectTripIdsForTrip(trip);
+    } catch (_) {
+      tripIds = <String>{};
+    }
     final canonicalId = tripIds.isNotEmpty ? tripIds.first : request.entityId;
     return [
       DebugEntityRef(
@@ -306,9 +331,10 @@ class StopDebugPageBuilder {
       final stopTimes = gtfsData.stopTimes.where(
         (stopTime) => stopTime.stopId == stopId,
       );
-      final tripById = {for (final trip in gtfsData.trips) trip.tripId: trip};
       for (final stopTime in stopTimes) {
-        final routeId = tripById[stopTime.tripId]?.routeId;
+        final routeId = gtfsData.trips
+            .firstWhereOrNull((trip) => trip.tripId == stopTime.tripId)
+            ?.routeId;
         if (routeId == null || routeId.isEmpty || !seenRoutes.add(routeId)) {
           continue;
         }

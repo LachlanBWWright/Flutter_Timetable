@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
@@ -15,8 +16,25 @@ class DebugEntityListScreen extends StatefulWidget {
 }
 
 class _DebugEntityListScreenState extends State<DebugEntityListScreen> {
-  late final Future<DebugEntityListPageData> _pageFuture = widget.args
-      .listLoader(widget.args.entityType);
+  late final Future<DebugEntityListPageData> _pageFuture = _loadPage();
+
+  Future<DebugEntityListPageData> _loadPage() async {
+    final DebugEntityListPageLoader listLoader = widget.args.listLoader;
+    try {
+      return await listLoader(widget.args.entityType);
+    } catch (_) {
+      return DebugEntityListPageData(
+        entityType: widget.args.entityType,
+        title: '',
+        description: '',
+        emptyMessage: 'No debug list data available.',
+        items: <DebugEntityListItem>[],
+        filterGroups: <DebugEntityListFilterGroup>[],
+        sortOptions: <DebugEntityListSort>[],
+        defaultSort: DebugEntityListSort.titleAsc,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,17 +93,69 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
   late DebugEntityListSort _selectedSort = widget.pageData.defaultSort;
   late final Map<String, String?> _selectedFilters = {
     for (final group in widget.pageData.filterGroups)
-      group.key: _initialFilterValueFor(group),
+      group.key: _safeInitialFilterValueFor(group),
   };
+
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  String? _safeInitialFilterValueFor(DebugEntityListFilterGroup group) {
+    try {
+      return _initialFilterValueFor(group);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<DebugEntityListItem> _visibleItemsSafe() {
+    try {
+      return _applyFilters(widget.pageData.items);
+    } catch (_) {
+      return const <DebugEntityListItem>[];
+    }
+  }
+
+  String? _selectedFilterValueFor(String key) {
+    try {
+      return _selectedFilters[key];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _updateSelectedFilter(String key, String? value) {
+    try {
+      _selectedFilters[key] = value;
+    } catch (_) {}
+  }
+
+  List<String> _filterValuesForItem(DebugEntityListItem item, String key) {
+    try {
+      return item.filterValues[key] ?? const <String>[];
+    } catch (_) {
+      return const <String>[];
+    }
+  }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    try {
+      _searchController.dispose();
+    } catch (_) {}
     super.dispose();
   }
 
   String? _initialFilterValueFor(DebugEntityListFilterGroup group) {
-    final requestedValue = widget.initialFilters[group.key];
+    final requestedValue = _selectedFilterValueOrNull(
+      widget.initialFilters,
+      group.key,
+    );
     if (requestedValue == null) {
       return null;
     }
@@ -97,9 +167,17 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
     return null;
   }
 
+  String? _selectedFilterValueOrNull(Map<String, String> values, String key) {
+    try {
+      return values[key];
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final visibleItems = _applyFilters(widget.pageData.items);
+    final visibleItems = _visibleItemsSafe();
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -141,7 +219,7 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
           const SizedBox(height: 12),
           TextField(
             controller: _searchController,
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) => _safeSetState(() {}),
             decoration: InputDecoration(
               labelText:
                   'Search ${widget.pageData.entityType.label.toLowerCase()}s',
@@ -152,7 +230,7 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                   : IconButton(
                       onPressed: () {
                         _searchController.clear();
-                        setState(() {});
+                        _safeSetState(() {});
                       },
                       icon: const Icon(Icons.clear),
                     ),
@@ -184,7 +262,7 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                     if (sort == null) {
                       return;
                     }
-                    setState(() {
+                    _safeSetState(() {
                       _selectedSort = sort;
                     });
                   },
@@ -195,7 +273,7 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                   width: 220,
                   child: DropdownButtonFormField<String>(
                     key: ValueKey('debug-list-filter-${group.key}'),
-                    initialValue: _selectedFilters[group.key],
+                    initialValue: _selectedFilterValueFor(group.key),
                     decoration: InputDecoration(
                       labelText: group.label,
                       border: const OutlineInputBorder(),
@@ -213,8 +291,8 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                       ),
                     ],
                     onChanged: (value) {
-                      setState(() {
-                        _selectedFilters[group.key] = value;
+                      _safeSetState(() {
+                        _updateSelectedFilter(group.key, value);
                       });
                     },
                   ),
@@ -235,7 +313,10 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
                     itemCount: visibleItems.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) {
-                      final item = visibleItems[index];
+                      final item = visibleItems.elementAtOrNull(index);
+                      if (item == null) {
+                        return const SizedBox.shrink();
+                      }
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(item.title),
@@ -297,7 +378,7 @@ class _DebugEntityListViewState extends State<_DebugEntityListView> {
             if (value == null) {
               continue;
             }
-            final itemValues = item.filterValues[entry.key] ?? const <String>[];
+            final itemValues = _filterValuesForItem(item, entry.key);
             if (!itemValues.contains(value)) {
               return false;
             }

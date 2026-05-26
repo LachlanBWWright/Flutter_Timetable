@@ -11,29 +11,35 @@ class JourneyAccentStrip extends StatelessWidget {
 
   final Journey journey;
 
+  Color _safeAccentColor(TransportMode? mode) {
+    try {
+      return accentColorForModeOrFallback(mode, journey);
+    } catch (_) {
+      return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final savedMode = journey.savedMode;
     if (savedMode != null) {
-      final accentColor = accentColorForModeOrFallback(savedMode, journey);
+      final accentColor = _safeAccentColor(savedMode);
       return _strip(accentColor, accentColor);
     }
 
     return FutureBuilder<List<TransportMode?>>(
-      future: Future.wait([
-        StopsService.getModeForStopId(journey.originId),
-        StopsService.getModeForStopId(journey.destinationId),
-      ]),
+      future: Future.wait(
+        [
+          StopsService.getModeForStopId(journey.originId),
+          StopsService.getModeForStopId(journey.destinationId),
+        ].map((future) => future.catchError((_) => null)),
+      ),
       builder: (context, snapshot) {
         final data = snapshot.data;
-        final originColor = accentColorForModeOrFallback(
-          data != null && data.isNotEmpty ? data[0] : null,
-          journey,
-        );
-        final destinationColor = accentColorForModeOrFallback(
-          data != null && data.length > 1 ? data[1] : null,
-          journey,
-        );
+        final originMode = data?.firstOrNull;
+        final destinationMode = data?.skip(1).firstOrNull;
+        final originColor = _safeAccentColor(originMode);
+        final destinationColor = _safeAccentColor(destinationMode);
 
         return _strip(originColor, destinationColor);
       },

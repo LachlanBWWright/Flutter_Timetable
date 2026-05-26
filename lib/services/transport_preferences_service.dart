@@ -8,6 +8,16 @@ class TransportPreferencesService {
     false,
   );
 
+  static Future<void> _setBoolSafe(
+    SharedPreferences prefs,
+    String key,
+    bool value,
+  ) async {
+    try {
+      await prefs.setBool(key, value);
+    } catch (_) {}
+  }
+
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     showNswTrainLink.value = prefs.getBool(_showNswTrainLinkKey) ?? false;
@@ -15,7 +25,7 @@ class TransportPreferencesService {
 
   static Future<void> setShowNswTrainLink(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_showNswTrainLinkKey, value);
+    await _setBoolSafe(prefs, _showNswTrainLinkKey, value);
     showNswTrainLink.value = value;
   }
 }

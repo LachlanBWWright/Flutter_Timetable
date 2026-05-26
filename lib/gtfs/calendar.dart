@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class Calendar {
   final String serviceId;
   final String monday;
@@ -25,24 +27,19 @@ class Calendar {
 
   /// Create a Calendar from a CSV row using header-based field mapping
   factory Calendar.fromCsv(List<String> header, List<String> row) {
-    String getField(String fieldName, {String defaultValue = ''}) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return defaultValue;
-      final value = row[index];
-      return value.isEmpty ? defaultValue : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
     return Calendar(
-      serviceId: getField('service_id'),
-      monday: getField('monday'),
-      tuesday: getField('tuesday'),
-      wednesday: getField('wednesday'),
-      thursday: getField('thursday'),
-      friday: getField('friday'),
-      saturday: getField('saturday'),
-      sunday: getField('sunday'),
-      startDate: getField('start_date'),
-      endDate: getField('end_date'),
+      serviceId: reader.fieldOrEmpty('service_id'),
+      monday: reader.fieldOrEmpty('monday'),
+      tuesday: reader.fieldOrEmpty('tuesday'),
+      wednesday: reader.fieldOrEmpty('wednesday'),
+      thursday: reader.fieldOrEmpty('thursday'),
+      friday: reader.fieldOrEmpty('friday'),
+      saturday: reader.fieldOrEmpty('saturday'),
+      sunday: reader.fieldOrEmpty('sunday'),
+      startDate: reader.fieldOrEmpty('start_date'),
+      endDate: reader.fieldOrEmpty('end_date'),
     );
   }
 

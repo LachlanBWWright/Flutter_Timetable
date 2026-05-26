@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart' as geo;
@@ -6,6 +7,7 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
@@ -29,6 +31,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   // Sydney CBD as default center
   static const LatLng _defaultCenter = LatLng(-33.8688, 151.2093);
 
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
@@ -37,21 +48,21 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _loadUserLocation() async {
-    setState(() {
+    _safeSetState(() {
       _isLoadingLocation = true;
     });
 
     try {
       final position = await LocationService.getCurrentLocation();
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _userLocation = position;
           _isLoadingLocation = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isLoadingLocation = false;
         });
       }
@@ -59,7 +70,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Future<void> _loadRealtimeData() async {
-    setState(() {
+    _safeSetState(() {
       _isLoadingVehicles = true;
     });
 
@@ -78,17 +89,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           // Try to find the specific vehicle for this trip
           VehiclePosition? currentVehicle;
           if (tripId != null) {
-            try {
-              currentVehicle = vehicles.firstWhere(
-                (vehicle) => vehicle.trip.tripId == tripId,
-              );
-            } catch (e) {
-              // Vehicle not found, keep currentVehicle as null
-            }
+            currentVehicle = vehicles.firstWhereOrNull(
+              (vehicle) => vehicle.trip.tripId == tripId,
+            );
           }
 
           if (mounted) {
-            setState(() {
+            _safeSetState(() {
               _currentVehicle = currentVehicle;
               _isLoadingVehicles = false;
             });
@@ -97,7 +104,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isLoadingVehicles = false;
         });
       }
@@ -117,7 +124,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
       );
     }
 
-    final origin = widget.leg['origin'] as Map<String, dynamic>?;
+    final origin = tryReadJsonMap(widget.leg, 'origin');
     final originCoord = parseStopCoord(origin);
     if (originCoord != null) {
       return originCoord;
@@ -175,8 +182,8 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     }
 
     // Add origin and destination markers
-    final origin = widget.leg['origin'] as Map<String, dynamic>?;
-    final destination = widget.leg['destination'] as Map<String, dynamic>?;
+    final origin = tryReadJsonMap(widget.leg, 'origin');
+    final destination = tryReadJsonMap(widget.leg, 'destination');
     final originCoord = parseStopCoord(origin);
     if (originCoord != null) {
       markers.add(
@@ -219,11 +226,23 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
   }
 
   Widget _buildStopCard(Map<String, dynamic> stop, int index) {
-    final stopName = stop['disassembledName'] ?? stop['name'] ?? 'Unknown Stop';
-    final departureTimePlanned = stop['departureTimePlanned'] as String?;
-    final departureTimeEstimated = stop['departureTimeEstimated'] as String?;
-    final arrivalTimePlanned = stop['arrivalTimePlanned'] as String?;
-    final arrivalTimeEstimated = stop['arrivalTimeEstimated'] as String?;
+    final stopName =
+        tryReadStringValue(stop, 'disassembledName') ??
+        tryReadStringValue(stop, 'name') ??
+        'Unknown Stop';
+    final departureTimePlanned = tryReadStringValue(
+      stop,
+      'departureTimePlanned',
+    );
+    final departureTimeEstimated = tryReadStringValue(
+      stop,
+      'departureTimeEstimated',
+    );
+    final arrivalTimePlanned = tryReadStringValue(stop, 'arrivalTimePlanned');
+    final arrivalTimeEstimated = tryReadStringValue(
+      stop,
+      'arrivalTimeEstimated',
+    );
 
     // Check if this stop is where the vehicle currently is
     bool isCurrentStop = false;
@@ -301,20 +320,24 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dynamic transportationRaw = widget.leg['transportation'];
-    final Map<String, dynamic>? transportation =
-        transportationRaw is Map<String, dynamic> ? transportationRaw : null;
+    final transportation = tryReadJsonMap(widget.leg, 'transportation');
     final int? transportClass = extractTransportClassFromLeg(widget.leg);
 
-    final origin = widget.leg['origin'] as Map<String, dynamic>?;
-    final destination = widget.leg['destination'] as Map<String, dynamic>?;
-    final originName = origin?['disassembledName'] ?? origin?['name'];
+    final origin = tryReadJsonMap(widget.leg, 'origin');
+    final destination = tryReadJsonMap(widget.leg, 'destination');
+    final originName =
+        tryReadStringValue(origin, 'disassembledName') ??
+        tryReadStringValue(origin, 'name') ??
+        'Unknown';
     final destinationName =
-        destination?['disassembledName'] ?? destination?['name'];
+        tryReadStringValue(destination, 'disassembledName') ??
+        tryReadStringValue(destination, 'name') ??
+        'Unknown';
     final transportName =
-        (transportation?['name'] ?? transportation?['disassembledName'] ?? '')
-            as String;
-    final stopSequence = widget.leg['stopSequence'] as List?;
+        tryReadStringValue(transportation, 'name') ??
+        tryReadStringValue(transportation, 'disassembledName') ??
+        '';
+    final stopSequence = tryReadListValue(widget.leg, 'stopSequence');
 
     final currentVehicle = _currentVehicle;
 
@@ -435,12 +458,21 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 itemCount: stopSequence.length,
                 itemBuilder: (context, index) {
+                  final rawStop = stopSequence.elementAtOrNull(index);
+                  final stop = rawStop is Map<String, dynamic>
+                      ? rawStop
+                      : rawStop is Map
+                      ? {
+                          for (final entry in rawStop.entries)
+                            entry.key.toString(): entry.value,
+                        }
+                      : null;
+                  if (stop == null) {
+                    return const SizedBox.shrink();
+                  }
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
-                    child: _buildStopCard(
-                      stopSequence[index] as Map<String, dynamic>,
-                      index,
-                    ),
+                    child: _buildStopCard(stop, index),
                   );
                 },
               )

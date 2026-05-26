@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
-import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/debug/debug_page_loader.dart';
@@ -43,13 +42,101 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   int _totalStops = 0;
   bool _isLoading = false;
   String? _error;
-  late final DebugEntityResolver _debugResolver = DebugEntityResolver();
   late final DebugEntityPageLoader _debugPageLoader =
-      widget.debugPageLoader ??
-      DebugPageLoaderCoordinator(resolver: _debugResolver).load;
+      widget.debugPageLoader ?? buildDebugEntityPageLoader();
   late final DebugEntityListPageLoader _debugListLoader =
-      widget.debugListLoader ??
-      DebugEntityListLoader(resolver: _debugResolver).load;
+      widget.debugListLoader ?? buildDebugEntityListLoader();
+
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  Future<T?> _showSafeDialog<T>({
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+  }) async {
+    try {
+      return await showDialog<T>(
+        context: context,
+        barrierDismissible: barrierDismissible,
+        builder: builder,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _safePop<T>([T? result, bool rootNavigator = false]) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      Navigator.of(context, rootNavigator: rootNavigator).pop(result);
+    } catch (_) {}
+  }
+
+  void _showMessage(String message, Color backgroundColor) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      );
+    } catch (_) {}
+  }
+
+  void _updateDialogState(StateSetter? setDialogState, VoidCallback update) {
+    if (setDialogState == null) {
+      return;
+    }
+    try {
+      setDialogState(update);
+    } catch (_) {}
+  }
+
+  String _formatEndpointDisplayNameSafe(String endpointKey) {
+    try {
+      return formatEndpointDisplayName(endpointKey);
+    } catch (_) {
+      return endpointKey;
+    }
+  }
+
+  String _displayNameForStopsModeGroupSafe(
+    TransportMode? modeKey,
+    Map<String, int> endpoints,
+  ) {
+    try {
+      return displayNameForStopsModeGroup(modeKey, endpoints);
+    } catch (_) {
+      return modeKey?.displayName ?? 'Other';
+    }
+  }
+
+  Color _transportModeColorSafe(TransportMode? modeKey) {
+    if (modeKey == null) {
+      return Colors.grey;
+    }
+    try {
+      return TransportColors.getColorByTransportMode(modeKey);
+    } catch (_) {
+      return Colors.grey;
+    }
+  }
+
+  Widget _buildEndpointsListSafe() {
+    try {
+      return _buildEndpointsList();
+    } catch (_) {
+      return const Text('Unable to display stops by transport mode.');
+    }
+  }
 
   @override
   void initState() {
@@ -58,7 +145,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   }
 
   Future<void> _loadStopsData() async {
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
       _error = null;
     });
@@ -75,7 +162,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
 
       final flattened = flattenStopsCountByEndpoint(grouped);
 
-      setState(() {
+      _safeSetState(() {
         _totalStops = count;
         _stopsByMode = grouped;
         _stopsCount = flattened;
@@ -83,7 +170,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
+      _safeSetState(() {
         _error = e.toString();
         _isLoading = false;
       });
@@ -91,16 +178,15 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   }
 
   Future<void> _updateFromApi() async {
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
       // Show warning dialog first
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
+      final confirmed = await _showSafeDialog<bool>(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('Update from API'),
           content: const Text(
             'This will fetch static transport data from all API endpoints and may take several minutes. '
@@ -108,11 +194,11 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => _safePop(false),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => _safePop(true),
               child: const Text('Continue'),
             ),
           ],
@@ -124,16 +210,15 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         // dialog's setState is available — this ensures no progress events
         // are silently dropped while dialogSetState is still null.
         String dialogMessage = 'Preparing update...';
-        void Function(void Function())? dialogSetState;
+        StateSetter? dialogSetState;
         StreamSubscription<StaticTransportUpdateProgress>? subscription;
 
         if (!mounted) return;
 
         // Show modal progress dialog (not dismissible)
-        final dialogFuture = showDialog<void>(
-          context: context,
+        final dialogFuture = _showSafeDialog<void>(
           barrierDismissible: false,
-          builder: (context) {
+          builder: (dialogContext) {
             return StatefulBuilder(
               builder: (context, setDialogState) {
                 dialogSetState = setDialogState;
@@ -163,19 +248,17 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             final epLabel = progress.endpoint?.key ?? '';
             final text =
                 '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
-            dialogSetState?.call(() {
+            _updateDialogState(dialogSetState, () {
               dialogMessage = text;
             });
           },
           onError: (e) {
-            dialogSetState?.call(() {
+            _updateDialogState(dialogSetState, () {
               dialogMessage = 'Error: $e';
             });
           },
           onDone: () async {
-            try {
-              if (mounted) Navigator.of(context, rootNavigator: true).pop();
-            } catch (_) {}
+            _safePop(null, true);
             await subscription?.cancel();
           },
         );
@@ -186,43 +269,33 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         await _loadStopsData();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Static transport data updated from API successfully',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          _showMessage(
+            'Static transport data updated from API successfully',
+            Colors.green,
           );
         }
       } else {
-        setState(() {
+        _safeSetState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() {
+      _safeSetState(() {
         _error = e.toString();
         _isLoading = false;
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating from API: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showMessage('Error updating from API: $e', Colors.red);
       }
     }
   }
 
   Future<void> _wipeStopsData() async {
     // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+    final confirmed = await _showSafeDialog<bool>(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Wipe Stops Data'),
         content: const Text(
           'This will permanently delete all stops data from the local database. '
@@ -231,11 +304,11 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => _safePop(false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => _safePop(true),
             style: ButtonStyles.elevatedSmall(Colors.red),
             child: const Text('Delete All'),
           ),
@@ -244,7 +317,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     );
 
     if (confirmed == true) {
-      setState(() {
+      _safeSetState(() {
         _isLoading = true;
         _error = null;
       });
@@ -254,27 +327,17 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         await _loadStopsData(); // Refresh the counts
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('All stops data wiped successfully'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          _showMessage('All stops data wiped successfully', Colors.orange);
         }
       } catch (e) {
         if (!mounted) return;
-        setState(() {
+        _safeSetState(() {
           _error = e.toString();
           _isLoading = false;
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error wiping stops data: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          _showMessage('Error wiping stops data: $e', Colors.red);
         }
       }
     }
@@ -397,9 +460,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               Container(
                 padding: const EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
+                  color: Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8.0),
-                  border: Border.all(color: Colors.red[200] ?? Colors.red),
+                  border: Border.all(color: Colors.red.shade200),
                 ),
                 child: Row(
                   children: [
@@ -415,7 +478,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                 ),
               )
             else if (_stopsCount.isNotEmpty)
-              _buildEndpointsList()
+              _buildEndpointsListSafe()
             else
               const Text(
                 'No stops data found. Load placeholder data to get started.',
@@ -445,19 +508,17 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             (sum, count) => sum + count,
           );
 
-          final displayName = displayNameForStopsModeGroup(modeKey, endpoints);
+          final displayName = _displayNameForStopsModeGroupSafe(
+            modeKey,
+            endpoints,
+          );
 
           return ExpansionTile(
             leading: Container(
               width: 4,
               height: 30,
               decoration: BoxDecoration(
-                color: (() {
-                  if (modeKey != null) {
-                    return TransportColors.getColorByTransportMode(modeKey);
-                  }
-                  return Colors.grey;
-                })(),
+                color: _transportModeColorSafe(modeKey),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -469,7 +530,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               return ListTile(
                 contentPadding: const EdgeInsets.only(left: 32, right: 16),
                 title: Text(
-                  formatEndpointDisplayName(endpoint.key),
+                  _formatEndpointDisplayNameSafe(endpoint.key),
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Container(
@@ -478,7 +539,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -511,27 +572,55 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
   List<Stop> _searchResults = [];
   bool _isSearching = false;
 
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  void _startSearch(String query) {
+    unawaited(_searchStops(query));
+  }
+
+  void _clearSearch() {
+    try {
+      _searchController.clear();
+    } catch (_) {}
+    _startSearch('');
+  }
+
+  List<Widget> _buildSearchResultsSafe() {
+    try {
+      return _buildSearchResults();
+    } catch (_) {
+      return const [Text('Unable to display search results.')];
+    }
+  }
+
   Future<void> _searchStops(String query) async {
     if (query.trim().isEmpty) {
-      setState(() {
+      _safeSetState(() {
         _searchResults = [];
       });
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _isSearching = true;
     });
 
     try {
       final results = await StopsService.searchStops(query);
       if (!mounted) return;
-      setState(() {
+      _safeSetState(() {
         _searchResults = results;
         _isSearching = false;
       });
     } catch (e) {
-      setState(() {
+      _safeSetState(() {
         _searchResults = [];
         _isSearching = false;
       });
@@ -563,14 +652,11 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchStops('');
-                        },
+                        onPressed: _clearSearch,
                       )
                     : null,
               ),
-              onChanged: _searchStops,
+              onChanged: _startSearch,
             ),
             const SizedBox(height: 16),
             if (_isSearching)
@@ -584,7 +670,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
                 ),
               )
             else if (_searchResults.isNotEmpty)
-              ..._buildSearchResults(),
+              ..._buildSearchResultsSafe(),
           ],
         ),
       ),
@@ -597,9 +683,9 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey[300] ?? Colors.grey),
+          border: Border.all(color: Colors.grey.shade300),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,17 +697,17 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
             const SizedBox(height: 4),
             Text(
               'ID: ${stop.stopId}',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
             if (stop.stopLat != 0.0 && stop.stopLon != 0.0)
               Text(
                 'Location: ${stop.stopLat.toStringAsFixed(6)}, ${stop.stopLon.toStringAsFixed(6)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             if (stop.platformCode?.isNotEmpty == true)
               Text(
                 'Platform: ${stop.platformCode}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
           ],
         ),
@@ -631,7 +717,9 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    try {
+      _searchController.dispose();
+    } catch (_) {}
     super.dispose();
   }
 }

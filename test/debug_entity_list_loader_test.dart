@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
@@ -103,7 +105,7 @@ void main() {
     () async {
       final loader = DebugEntityListLoader(
         resolver: buildResolver(),
-        getAllDbStops: () async => [
+        preloadedDbStops: [
           buildDbStop(
             stopId: 'STOP-1',
             stopName: 'Central',
@@ -172,7 +174,7 @@ void main() {
           vehicles: [buildVehicle()],
           tripUpdates: [buildTripUpdate()],
         ),
-        getAllDbRoutes: () async => [buildDbRoute()],
+        preloadedDbRoutes: [buildDbRoute()],
       );
 
       final page = await loader.load(DebugEntityType.route);

@@ -7,6 +7,16 @@ class DebugService {
   // Default is true (debug data visible)
   static final ValueNotifier<bool> showDebugData = ValueNotifier<bool>(true);
 
+  static Future<void> _setBoolSafe(
+    SharedPreferences prefs,
+    String key,
+    bool value,
+  ) async {
+    try {
+      await prefs.setBool(key, value);
+    } catch (_) {}
+  }
+
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getBool(_prefKey);
@@ -20,7 +30,7 @@ class DebugService {
 
   static Future<void> setShowDebugData(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKey, value);
+    await _setBoolSafe(prefs, _prefKey, value);
     showDebugData.value = value;
   }
 }

@@ -4,14 +4,33 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'date_time_utils.dart';
 import 'safe_value_utils.dart';
 
+Object? _mapValueOrNull(Map<String, dynamic>? values, String key) {
+  if (values == null) {
+    return null;
+  }
+  try {
+    return values[key];
+  } catch (_) {
+    return null;
+  }
+}
+
+LatLng? _tryParseLatLngSafe(Object? coord) {
+  try {
+    return tryParseLatLng(coord);
+  } catch (_) {
+    return null;
+  }
+}
+
 int? extractTransportClassFromLeg(Map<String, dynamic>? leg) {
   if (leg == null) return 5;
-  final transportation = leg['transportation'];
+  final transportation = _mapValueOrNull(leg, 'transportation');
   if (transportation is! Map<String, dynamic>) return 5;
-  final product = transportation['product'];
+  final product = _mapValueOrNull(transportation, 'product');
   if (product is! Map<String, dynamic>) return 5;
 
-  final raw = product['class'];
+  final raw = _mapValueOrNull(product, 'class');
   if (raw == null) return null;
   if (raw is int) return raw;
   return int.tryParse('$raw');
@@ -19,12 +38,12 @@ int? extractTransportClassFromLeg(Map<String, dynamic>? leg) {
 
 String? extractTripId(Map<String, dynamic>? leg) {
   if (leg == null) return null;
-  final transportationRaw = leg['transportation'];
+  final transportationRaw = _mapValueOrNull(leg, 'transportation');
   final transportation = transportationRaw is Map<String, dynamic>
       ? transportationRaw
       : null;
   if (transportation == null) return null;
-  final id = transportation['id'];
+  final id = _mapValueOrNull(transportation, 'id');
   return id == null ? null : '$id';
 }
 
@@ -45,11 +64,12 @@ TransportMode? realtimeModeFromClass(int transportClass) {
 }
 
 LatLng? parseStopCoord(Map<String, dynamic>? stop) {
-  if (stop == null || stop['coord'] == null) {
+  final coord = _mapValueOrNull(stop, 'coord');
+  if (stop == null || coord == null) {
     return null;
   }
 
-  return tryParseLatLng(stop['coord']);
+  return _tryParseLatLngSafe(coord);
 }
 
 String formatTimeDifference(String? plannedTime, String? estimatedTime) {

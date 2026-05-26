@@ -19,12 +19,72 @@ class PrefetchScheduler {
   static const int _maxTripPlannerJobs = 2;
   static const Duration _baseBackoff = Duration(minutes: 2);
 
+  _PrefetchJob? _removeFirstOrNull(Queue<_PrefetchJob> queue) {
+    if (queue.isEmpty) {
+      return null;
+    }
+    try {
+      return queue.removeFirst();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  DateTime? _backoffUntilFor(String key) {
+    try {
+      return _backoffUntil[key];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _setBackoffUntil(String key, DateTime value) {
+    try {
+      _backoffUntil[key] = value;
+    } catch (_) {}
+  }
+
+  void _safeEnqueue(Queue<_PrefetchJob> queue, _PrefetchJob job) {
+    try {
+      _enqueue(queue, job);
+    } catch (_) {}
+  }
+
+  void _safeStart(_PrefetchJob? job) {
+    if (job == null) {
+      return;
+    }
+    try {
+      _start(job);
+    } catch (_) {}
+  }
+
+  Future<void> _runJob(_PrefetchJob job) async {
+    try {
+      await job.run();
+      _backoffUntil.remove(job.key);
+    } catch (_) {
+      _setBackoffUntil(job.key, DateTime.now().add(_baseBackoff));
+    } finally {
+      _queuedOrInflightKeys.remove(job.key);
+      switch (job.kind) {
+        case PrefetchQueueKind.staticData:
+          _activeStaticJobs -= 1;
+          break;
+        case PrefetchQueueKind.tripPlanner:
+          _activeTripPlannerJobs -= 1;
+          break;
+      }
+      _pump();
+    }
+  }
+
   void enqueueStatic({
     required String key,
     required Future<void> Function() job,
     int priority = 100,
   }) {
-    _enqueue(
+    _safeEnqueue(
       _staticQueue,
       _PrefetchJob(
         kind: PrefetchQueueKind.staticData,
@@ -40,7 +100,7 @@ class PrefetchScheduler {
     required Future<void> Function() job,
     int priority = 100,
   }) {
-    _enqueue(
+    _safeEnqueue(
       _tripPlannerQueue,
       _PrefetchJob(
         kind: PrefetchQueueKind.tripPlanner,
@@ -55,7 +115,7 @@ class PrefetchScheduler {
     if (_queuedOrInflightKeys.contains(job.key)) {
       return;
     }
-    final backoffUntil = _backoffUntil[job.key];
+    final backoffUntil = _backoffUntilFor(job.key);
     if (backoffUntil != null && DateTime.now().isBefore(backoffUntil)) {
       return;
     }
@@ -68,11 +128,11 @@ class PrefetchScheduler {
 
   void _pump() {
     while (_activeStaticJobs < _maxStaticJobs && _staticQueue.isNotEmpty) {
-      _start(_staticQueue.removeFirst());
+      _safeStart(_removeFirstOrNull(_staticQueue));
     }
     while (_activeTripPlannerJobs < _maxTripPlannerJobs &&
         _tripPlannerQueue.isNotEmpty) {
-      _start(_tripPlannerQueue.removeFirst());
+      _safeStart(_removeFirstOrNull(_tripPlannerQueue));
     }
   }
 
@@ -86,25 +146,7 @@ class PrefetchScheduler {
         break;
     }
 
-    () async {
-      try {
-        await job.run();
-        _backoffUntil.remove(job.key);
-      } catch (_) {
-        _backoffUntil[job.key] = DateTime.now().add(_baseBackoff);
-      } finally {
-        _queuedOrInflightKeys.remove(job.key);
-        switch (job.kind) {
-          case PrefetchQueueKind.staticData:
-            _activeStaticJobs -= 1;
-            break;
-          case PrefetchQueueKind.tripPlanner:
-            _activeTripPlannerJobs -= 1;
-            break;
-        }
-        _pump();
-      }
-    }();
+    unawaited(_runJob(job));
   }
 
   void _sortQueue(Queue<_PrefetchJob> queue) {

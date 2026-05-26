@@ -70,8 +70,8 @@ List<SequenceStopDescriptor> buildSequenceDescriptors({
   }
 
   final descriptors = <SequenceStopDescriptor>[];
-  for (var index = 0; index < orderedStops.length; index++) {
-    final stop = orderedStops[index];
+  var index = 0;
+  for (final stop in orderedStops) {
     final isOrigin = index == 0;
     final isDestination = index == orderedStops.length - 1;
     final interchangeIndex = index - 1;
@@ -94,6 +94,7 @@ List<SequenceStopDescriptor> buildSequenceDescriptors({
             interchangeIndex >= 0 && interchangeIndex < interchangeCount - 1,
       ),
     );
+    index += 1;
   }
 
   return descriptors;

@@ -113,6 +113,17 @@ class TripLegCard extends StatelessWidget {
     );
   }
 
+  void _pushDetails(BuildContext context) {
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
+        ),
+      );
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final transportation = leg.transportation;
@@ -145,14 +156,7 @@ class TripLegCard extends StatelessWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(8.0),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
-            ),
-          );
-        },
+        onTap: () => _pushDetails(context),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.0),

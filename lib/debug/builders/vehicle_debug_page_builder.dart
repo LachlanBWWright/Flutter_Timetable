@@ -13,16 +13,19 @@ class VehicleDebugPageBuilder {
     final requestedVehicleId = request.entityId;
     final preferredVehicle = request.context.vehiclePosition;
     final contextTripUpdate = request.context.tripUpdate;
-    final vehicle = await resolver.resolveVehicle(
-      preferredVehicle: preferredVehicle,
-      vehicleId: requestedVehicleId,
-      tripId: contextTripUpdate?.trip.hasTripId() == true
-          ? contextTripUpdate?.trip.tripId
-          : null,
-      routeId: contextTripUpdate?.trip.hasRouteId() == true
-          ? contextTripUpdate?.trip.routeId
-          : null,
-    );
+    VehiclePosition? vehicle;
+    try {
+      vehicle = await resolver.resolveVehicle(
+        preferredVehicle: preferredVehicle,
+        vehicleId: requestedVehicleId,
+        tripId: contextTripUpdate?.trip.hasTripId() == true
+            ? contextTripUpdate?.trip.tripId
+            : null,
+        routeId: contextTripUpdate?.trip.hasRouteId() == true
+            ? contextTripUpdate?.trip.routeId
+            : null,
+      );
+    } catch (_) {}
     final vehicleId = vehicle == null
         ? requestedVehicleId
         : DebugExtractors.vehicleId(vehicle) ??
@@ -38,10 +41,7 @@ class VehicleDebugPageBuilder {
         ? const DebugDerivedVehicleStops(
             reason: 'No realtime vehicle could be resolved for this request.',
           )
-        : await resolver.deriveVehicleStops(
-            vehicle,
-            preferredTripUpdate: request.context.tripUpdate,
-          );
+        : await _deriveVehicleStops(vehicle, request.context.tripUpdate);
 
     final banners = <DebugStatusBannerData>[];
     if (vehicle == null) {
@@ -345,5 +345,21 @@ class VehicleDebugPageBuilder {
           )
           .toList(growable: false),
     };
+  }
+
+  Future<DebugDerivedVehicleStops> _deriveVehicleStops(
+    VehiclePosition vehicle,
+    TripUpdate? preferredTripUpdate,
+  ) async {
+    try {
+      return await resolver.deriveVehicleStops(
+        vehicle,
+        preferredTripUpdate: preferredTripUpdate,
+      );
+    } catch (_) {
+      return const DebugDerivedVehicleStops(
+        reason: 'Realtime trip update lookup failed for this vehicle.',
+      );
+    }
   }
 }

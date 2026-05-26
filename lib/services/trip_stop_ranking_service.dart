@@ -143,10 +143,10 @@ class TripStopRankingService {
     // Tier 2: Within 5 km of either anchor
     if ((previousDistance != null && previousDistance <= nearbyDistanceKm) ||
         (nextDistance != null && nextDistance <= nearbyDistanceKm)) {
-      final nearestDistance = [
+      final nearestDistance = _getNearestDistance(
         previousDistance,
         nextDistance,
-      ].whereType<double>().reduce((a, b) => a < b ? a : b);
+      );
       return (StopRankingTier.withinEitherAnchor, nearestDistance);
     }
 

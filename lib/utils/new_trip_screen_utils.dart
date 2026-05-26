@@ -3,6 +3,17 @@ import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 
+Station? _stationAtOrNull(List<Station> stations, int index) {
+  if (index < 0 || index >= stations.length) {
+    return null;
+  }
+  try {
+    return stations[index];
+  } catch (_) {
+    return null;
+  }
+}
+
 TransportMode transportModeFromTabIndex(int index) {
   switch (index) {
     case 0:
@@ -88,8 +99,11 @@ String? buildNewTripStatusMessage({
       return 'Choose a stop after ${orderedStops.last.name}. Nearby adjacent-leg stops are ranked first.';
     }
     if (insertIndex > 0 && insertIndex < orderedStops.length) {
-      final previous = orderedStops[insertIndex - 1];
-      final next = orderedStops[insertIndex];
+      final previous = _stationAtOrNull(orderedStops, insertIndex - 1);
+      final next = _stationAtOrNull(orderedStops, insertIndex);
+      if (previous == null || next == null) {
+        return 'Choose an interchange stop. Nearby adjacent-leg stops are ranked first.';
+      }
       return 'Choose a stop between ${previous.name} and ${next.name}. Nearby adjacent-leg stops are ranked first.';
     }
   }

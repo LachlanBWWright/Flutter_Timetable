@@ -40,13 +40,30 @@ class StaticTransportUpdateProgress {
   bool get success => error == null;
 }
 
+typedef NewTripProgressCallback =
+    void Function(String message, int current, int total);
+
 /// Service for managing stops data in the New Trip screen
 class NewTripService {
+  static void _reportProgress(
+    NewTripProgressCallback? onProgress,
+    String message,
+    int current,
+    int total,
+  ) {
+    if (onProgress == null) {
+      return;
+    }
+    try {
+      onProgress(message, current, total);
+    } catch (_) {}
+  }
+
   /// Load stops for a specific transport mode from database or API
   /// Optional progress callback for UI updates
   static Future<List<Station>> loadStopsForMode(
     TransportMode mode, {
-    Function(String message, int current, int total)? onProgress,
+    NewTripProgressCallback? onProgress,
   }) async {
     final endpoints = _getEndpointsForMode(mode);
     final List<Stop> allStops = [];
@@ -63,12 +80,19 @@ class NewTripService {
 
     // If no stops found in database, try to load from API
     if (!hasStops) {
-      await _loadStopsFromApi(endpoints, onProgress: onProgress);
-
+      try {
+        await _loadStopsFromApi(endpoints, onProgress: onProgress);
+      } catch (_) {
+        // Swallow errors from API load, fallback to DB
+      }
       // Try loading from database again
       for (final endpoint in endpoints) {
-        final stops = await StopsService.getStopsForEndpoint(endpoint);
-        allStops.addAll(stops);
+        try {
+          final stops = await StopsService.getStopsForEndpoint(endpoint);
+          allStops.addAll(stops);
+        } catch (_) {
+          // Defensive: ignore DB errors
+        }
       }
     }
 
@@ -148,13 +172,14 @@ class NewTripService {
   /// Optional progress callback for UI updates
   static Future<void> _loadStopsFromApi(
     List<StopsEndpoint> endpoints, {
-    Function(String message, int current, int total)? onProgress,
+    NewTripProgressCallback? onProgress,
   }) async {
     final total = endpoints.length;
     for (var i = 0; i < endpoints.length; i++) {
-      final endpoint = endpoints[i];
+      StopsEndpoint? endpoint;
       try {
-        onProgress?.call('Loading ${endpoint.key}...', i + 1, total);
+        endpoint = endpoints[i];
+        _reportProgress(onProgress, 'Loading ${endpoint.key}...', i + 1, total);
 
         // Get GTFS data from the appropriate endpoint
         final gtfsData = await fetchGtfsDataForEndpoint(endpoint);
@@ -165,16 +190,23 @@ class NewTripService {
             endpoint,
             gtfsData,
           );
-          onProgress?.call(
+          _reportProgress(
+            onProgress,
             'Loaded ${gtfsData.stops.length} stops from ${endpoint.key}',
             i + 1,
             total,
           );
         } else {
-          onProgress?.call('No data found for ${endpoint.key}', i + 1, total);
+          _reportProgress(
+            onProgress,
+            'No data found for ${endpoint.key}',
+            i + 1,
+            total,
+          );
         }
       } catch (e) {
-        onProgress?.call('Error loading ${endpoint.key}: $e', i + 1, total);
+        final key = endpoint?.key ?? 'unknown';
+        _reportProgress(onProgress, 'Error loading $key: $e', i + 1, total);
       }
     }
   }
@@ -187,9 +219,25 @@ class NewTripService {
     final total = selectedEndpoints.length;
     final controller = StreamController<StaticTransportUpdateProgress>();
 
-    () async {
-      var completed = 0;
-      for (final endpoint in selectedEndpoints) {
+    _runUpdateStaticTransportData(
+      controller: controller,
+      selectedEndpoints: selectedEndpoints,
+      total: total,
+      force: force,
+    );
+
+    return controller.stream;
+  }
+
+  static Future<void> _runUpdateStaticTransportData({
+    required StreamController<StaticTransportUpdateProgress> controller,
+    required List<StopsEndpoint> selectedEndpoints,
+    required int total,
+    required bool force,
+  }) async {
+    var completed = 0;
+    for (final endpoint in selectedEndpoints) {
+      try {
         final cached = await _hasValidStaticCache(endpoint);
         if (cached && !force) {
           completed += 1;
@@ -307,22 +355,31 @@ class NewTripService {
             ),
           );
         }
+      } catch (e) {
+        // Defensive: catch errors in _hasValidStaticCache or other boundaries
+        controller.add(
+          StaticTransportUpdateProgress(
+            endpoint: endpoint,
+            stage: StaticTransportUpdateStage.failed,
+            completed: completed,
+            total: total,
+            message: 'Failed ${endpoint.key}',
+            error: e.toString(),
+          ),
+        );
       }
+    }
 
-      controller.add(
-        StaticTransportUpdateProgress(
-          endpoint: null,
-          stage: StaticTransportUpdateStage.complete,
-          completed: completed,
-          total: total,
-          message:
-              'Finished updating static transport data ($completed/$total)',
-        ),
-      );
-      await controller.close();
-    }();
-
-    return controller.stream;
+    controller.add(
+      StaticTransportUpdateProgress(
+        endpoint: null,
+        stage: StaticTransportUpdateStage.complete,
+        completed: completed,
+        total: total,
+        message: 'Finished updating static transport data (completed/total)',
+      ),
+    );
+    await controller.close();
   }
 
   static Future<bool> _hasValidStaticCache(StopsEndpoint endpoint) async {
@@ -512,31 +569,41 @@ class NewTripService {
       interchanges: interchanges,
     );
 
-    return List<ManualTripLeg>.generate(orderedStops.length - 1, (index) {
-      final legOrigin = orderedStops[index];
-      final legDestination = orderedStops[index + 1];
-      final fallbackLineId = legOrigin.lineId ?? legDestination.lineId;
-      final fallbackEndpointKey = _endpointKeyFromLineId(fallbackLineId);
-      final fallbackLineMode = fallbackEndpointKey != null
-          ? StopsService.modeForEndpointKey(fallbackEndpointKey)
-          : null;
+    final legs = <ManualTripLeg>[];
+    Station? prev;
+    int idx = 0;
+    for (final stop in orderedStops) {
+      if (prev != null) {
+        final legOrigin = prev;
+        final legDestination = stop;
+        final fallbackLineId = legOrigin.lineId ?? legDestination.lineId;
+        final fallbackEndpointKey = _endpointKeyFromLineId(fallbackLineId);
+        final fallbackLineMode = fallbackEndpointKey != null
+            ? StopsService.modeForEndpointKey(fallbackEndpointKey)
+            : null;
 
-      return ManualTripLeg(
-        index: index,
-        originName: legOrigin.name,
-        originId: legOrigin.id,
-        destinationName: legDestination.name,
-        destinationId: legDestination.id,
-        mode:
-            legOrigin.mode ??
-            legDestination.mode ??
-            fallbackLineMode ??
-            fallbackMode,
-        lineId: fallbackLineId,
-        lineName: legOrigin.lineName ?? legDestination.lineName,
-        endpointKey: fallbackEndpointKey,
-      );
-    });
+        legs.add(
+          ManualTripLeg(
+            index: idx,
+            originName: legOrigin.name,
+            originId: legOrigin.id,
+            destinationName: legDestination.name,
+            destinationId: legDestination.id,
+            mode:
+                legOrigin.mode ??
+                legDestination.mode ??
+                fallbackLineMode ??
+                fallbackMode,
+            lineId: fallbackLineId,
+            lineName: legOrigin.lineName ?? legDestination.lineName,
+            endpointKey: fallbackEndpointKey,
+          ),
+        );
+        idx++;
+      }
+      prev = stop;
+    }
+    return legs;
   }
 
   static Future<List<ManualTripLeg>> buildManualTripLegsWithResolvedMetadata({
@@ -555,66 +622,79 @@ class NewTripService {
     final legs = <ManualTripLeg>[];
     TransportMode? previousMode;
 
-    for (var index = 0; index < orderedStops.length - 1; index++) {
-      final legOrigin = orderedStops[index];
-      final legDestination = orderedStops[index + 1];
+    Station? prev;
+    int idx = 0;
+    for (final stop in orderedStops) {
+      if (prev != null) {
+        final legOrigin = prev;
+        final legDestination = stop;
+        List<StopLineMatch> originLines = [];
+        List<StopLineMatch> destinationLines = [];
+        try {
+          originLines = await lineService.getLinesForStop(
+            legOrigin.id,
+            allowBuild: true,
+          );
+        } catch (_) {}
+        try {
+          destinationLines = await lineService.getLinesForStop(
+            legDestination.id,
+            allowBuild: true,
+          );
+        } catch (_) {}
+        final destinationLineIds = destinationLines
+            .map((line) => line.lineId)
+            .toSet();
+        final sharedLines = originLines
+            .where((line) => destinationLineIds.contains(line.lineId))
+            .toList();
 
-      final originLines = await lineService.getLinesForStop(
-        legOrigin.id,
-        allowBuild: true,
-      );
-      final destinationLines = await lineService.getLinesForStop(
-        legDestination.id,
-        allowBuild: true,
-      );
-      final destinationLineIds = destinationLines
-          .map((line) => line.lineId)
-          .toSet();
-      final sharedLines = originLines
-          .where((line) => destinationLineIds.contains(line.lineId))
-          .toList();
-
-      StopLineMatch? selectedSharedLine;
-      final preferredMode = legOrigin.mode ?? legDestination.mode;
-      if (preferredMode != null) {
-        selectedSharedLine = _firstWhereOrNull(
+        StopLineMatch? selectedSharedLine;
+        final preferredMode = legOrigin.mode ?? legDestination.mode;
+        if (preferredMode != null) {
+          selectedSharedLine = _firstWhereOrNull(
+            sharedLines,
+            (line) => line.mode == preferredMode,
+          );
+        }
+        selectedSharedLine ??= _firstWhereOrNull(
           sharedLines,
-          (line) => line.mode == preferredMode,
+          (line) => line.mode == (previousMode ?? fallbackMode),
         );
+        selectedSharedLine ??= sharedLines.isNotEmpty
+            ? sharedLines.first
+            : null;
+
+        final fallbackLineId = legOrigin.lineId ?? legDestination.lineId;
+        final fallbackEndpointKey = _endpointKeyFromLineId(fallbackLineId);
+        final fallbackLineMode = fallbackEndpointKey != null
+            ? StopsService.modeForEndpointKey(fallbackEndpointKey)
+            : null;
+
+        final resolvedMode =
+            selectedSharedLine?.mode ??
+            preferredMode ??
+            previousMode ??
+            fallbackLineMode ??
+            fallbackMode;
+
+        legs.add(
+          ManualTripLeg(
+            index: idx,
+            originName: legOrigin.name,
+            originId: legOrigin.id,
+            destinationName: legDestination.name,
+            destinationId: legDestination.id,
+            mode: resolvedMode,
+            lineId: selectedSharedLine?.lineId,
+            lineName: selectedSharedLine?.lineName,
+            endpointKey: selectedSharedLine?.endpointKey,
+          ),
+        );
+        previousMode = resolvedMode;
+        idx++;
       }
-      selectedSharedLine ??= _firstWhereOrNull(
-        sharedLines,
-        (line) => line.mode == (previousMode ?? fallbackMode),
-      );
-      selectedSharedLine ??= sharedLines.isNotEmpty ? sharedLines.first : null;
-
-      final fallbackLineId = legOrigin.lineId ?? legDestination.lineId;
-      final fallbackEndpointKey = _endpointKeyFromLineId(fallbackLineId);
-      final fallbackLineMode = fallbackEndpointKey != null
-          ? StopsService.modeForEndpointKey(fallbackEndpointKey)
-          : null;
-
-      final resolvedMode =
-          selectedSharedLine?.mode ??
-          preferredMode ??
-          previousMode ??
-          fallbackLineMode ??
-          fallbackMode;
-
-      legs.add(
-        ManualTripLeg(
-          index: index,
-          originName: legOrigin.name,
-          originId: legOrigin.id,
-          destinationName: legDestination.name,
-          destinationId: legDestination.id,
-          mode: resolvedMode,
-          lineId: selectedSharedLine?.lineId,
-          lineName: selectedSharedLine?.lineName,
-          endpointKey: selectedSharedLine?.endpointKey,
-        ),
-      );
-      previousMode = resolvedMode;
+      prev = stop;
     }
 
     return legs;
@@ -640,12 +720,16 @@ class NewTripService {
       return 'Choose at least one leg before saving.';
     }
 
-    for (var index = 0; index < orderedStops.length - 1; index++) {
-      final currentStop = orderedStops[index];
-      final nextStop = orderedStops[index + 1];
-      if (currentStop.id == nextStop.id) {
-        return 'Adjacent stops cannot be the same.';
+    Station? prev;
+    for (final stop in orderedStops) {
+      if (prev != null) {
+        final currentStop = prev;
+        final nextStop = stop;
+        if (currentStop.id == nextStop.id) {
+          return 'Adjacent stops cannot be the same.';
+        }
       }
+      prev = stop;
     }
 
     final definition = ManualTripDefinition(
@@ -680,8 +764,12 @@ class NewTripService {
     bool Function(StopLineMatch) predicate,
   ) {
     for (final match in matches) {
-      if (predicate(match)) {
-        return match;
+      try {
+        if (predicate(match)) {
+          return match;
+        }
+      } catch (_) {
+        // Defensive: ignore predicate errors
       }
     }
     return null;

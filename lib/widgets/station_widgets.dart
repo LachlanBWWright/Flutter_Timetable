@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import '../constants/transport_colors.dart';
@@ -123,6 +124,12 @@ class StationView extends StatelessWidget {
     this.mode,
   });
 
+  void _selectStation() {
+    try {
+      setStation(station.name, station.id, mode);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final transportMode = mode;
@@ -134,9 +141,7 @@ class StationView extends StatelessWidget {
       child: Card(
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: InkWell(
-          onTap: () {
-            setStation(station.name, station.id, mode);
-          },
+          onTap: _selectStation,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -243,8 +248,12 @@ class EnhancedStationList extends StatelessWidget {
     return ListView.builder(
       itemCount: listItems.length,
       itemBuilder: (context, index) {
+        final station = listItems.elementAtOrNull(index);
+        if (station == null) {
+          return const SizedBox.shrink();
+        }
         return StationView(
-          station: listItems[index],
+          station: station,
           setStation: setStation,
           sortMode: sortMode,
           mode: mode,
@@ -271,8 +280,12 @@ class StationList extends StatelessWidget {
       itemCount: listItems.length,
       itemBuilder: (context, index) {
         // Default to alphabetical if not specified
+        final station = listItems.elementAtOrNull(index);
+        if (station == null) {
+          return const SizedBox.shrink();
+        }
         return StationView(
-          station: listItems[index],
+          station: station,
           setStation: setStation,
           sortMode: SortMode.alphabetical,
         );

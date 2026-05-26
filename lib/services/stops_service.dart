@@ -133,6 +133,112 @@ class StopsUpdateProgress {
 class StopsService {
   static AppDatabase? _database;
 
+  static void _safeLogInfo(Object? message) {
+    try {
+      logger.i(message);
+    } catch (_) {}
+  }
+
+  static void _safeLogWarning(Object? message) {
+    try {
+      logger.w(message);
+    } catch (_) {}
+  }
+
+  static void _safeLogError(Object? message) {
+    try {
+      logger.e(message);
+    } catch (_) {}
+  }
+
+  static void _putGroupedCount(
+    Map<TransportMode?, Map<String, int>> grouped,
+    TransportMode? modeKey,
+    String endpoint,
+    int count,
+  ) {
+    try {
+      final existing = grouped.entries
+          .where((entry) => entry.key == modeKey)
+          .map((entry) => entry.value)
+          .firstOrNull;
+      final current = <String, int>{...?existing, endpoint: count};
+      grouped.remove(modeKey);
+      grouped.addAll({modeKey: current});
+    } catch (_) {}
+  }
+
+  static Future<void> _runStopsUpdates(
+    StreamController<StopsUpdateProgress> controller,
+    List<StopsEndpoint> endpoints,
+  ) async {
+    final total = endpoints.length;
+    controller.add(
+      StopsUpdateProgress(
+        endpoint: null,
+        completed: 0,
+        total: total,
+        success: true,
+        message: 'Starting update of $total endpoints',
+      ),
+    );
+
+    var completed = 0;
+
+    for (var i = 0; i < endpoints.length; i += _batchSize) {
+      final batch = endpoints.skip(i).take(_batchSize).toList();
+
+      await Future.wait(
+        batch.map((endpoint) async {
+          controller.add(
+            StopsUpdateProgress(
+              endpoint: endpoint,
+              completed: completed,
+              total: total,
+              success: true,
+              message: 'Starting ${endpoint.key}',
+            ),
+          );
+          try {
+            await updateStopsFromEndpoint(endpoint);
+            completed += 1;
+            controller.add(
+              StopsUpdateProgress(
+                endpoint: endpoint,
+                completed: completed,
+                total: total,
+                success: true,
+                message: 'Completed ${endpoint.key}',
+              ),
+            );
+          } catch (e) {
+            _safeLogWarning('Failed to update ${endpoint.key}: $e');
+            controller.add(
+              StopsUpdateProgress(
+                endpoint: endpoint,
+                completed: completed,
+                total: total,
+                success: false,
+                message: 'Failed ${endpoint.key}: $e',
+              ),
+            );
+          }
+        }),
+      );
+    }
+
+    controller.add(
+      StopsUpdateProgress(
+        endpoint: null,
+        completed: completed,
+        total: total,
+        success: true,
+        message: 'Finished updating stops ($completed/$total)',
+      ),
+    );
+    await controller.close();
+  }
+
   static TransportMode? modeForEndpointKey(String endpoint) {
     if (endpoint.startsWith('buses') || endpoint.startsWith('regionbuses')) {
       return TransportMode.bus;
@@ -165,7 +271,7 @@ class StopsService {
       final csvString = await rootBundle.loadString(assetPath);
       return _parseStopsFromCsv(csvString);
     } catch (e) {
-      logger.w('Error loading stops from asset $assetPath: $e');
+      _safeLogWarning('Error loading stops from asset $assetPath: $e');
       return [];
     }
   }
@@ -179,16 +285,17 @@ class StopsService {
     if (csvData.isEmpty || csvData.length < 2) return [];
 
     // Get header row
-    final header = csvData[0].map((e) => e.toString()).toList();
+    final header = csvData.first.map((e) => e.toString()).toList();
 
     // Parse data rows using header-based parsing
     final stops = <Stop>[];
-    for (var i = 1; i < csvData.length; i++) {
+    for (final entry in csvData.skip(1).indexed) {
+      final i = entry.$1 + 1;
       try {
-        final row = csvData[i].map((e) => e.toString()).toList();
+        final row = entry.$2.map((e) => e.toString()).toList();
         stops.add(Stop.fromCsv(header, row));
       } catch (e) {
-        logger.w('Error parsing stop row ${i + 1}: $e');
+        _safeLogWarning('Error parsing stop row ${i + 1}: $e');
       }
     }
 
@@ -214,7 +321,7 @@ class StopsService {
     }
     final stations = cleaned.values.toList();
 
-    logger.i(
+    _safeLogInfo(
       'Storing ${stations.length} stops (from ${stops.length} total, skipped $missingIdCount missing-id rows) for endpoint ${endpoint.key}',
     );
 
@@ -317,9 +424,11 @@ class StopsService {
       final stops = await _fetchStopsOnly(endpoint);
       if (stops == null) return;
       await storeStopsToDatabase(stops, endpoint);
-      logger.i('Updated ${stops.length} stops for ${endpoint.key} from API');
+      _safeLogInfo(
+        'Updated ${stops.length} stops for ${endpoint.key} from API',
+      );
     } catch (e) {
-      logger.e('Error updating stops from endpoint ${endpoint.key}: $e');
+      _safeLogError('Error updating stops from endpoint ${endpoint.key}: $e');
     }
   }
 
@@ -327,13 +436,17 @@ class StopsService {
   /// background isolate. Returns null on any network or parse failure.
   static Future<List<Stop>?> _fetchStopsOnly(StopsEndpoint endpoint) async {
     final versionPath = endpoint.isV2 ? 'v2' : 'v1';
-    final url = Uri.parse(
+    final url = Uri.tryParse(
       'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule${endpoint.path}',
     );
+    if (url == null) {
+      _safeLogError('Invalid GTFS URL for endpoint ${endpoint.key}');
+      return null;
+    }
     try {
       final response = await http.get(url, headers: getHeaders());
       if (response.statusCode != 200) {
-        logger.e(
+        _safeLogError(
           'Failed to fetch GTFS for ${endpoint.key}: ${response.statusCode}',
         );
         return null;
@@ -342,7 +455,7 @@ class StopsService {
       // thread is not blocked by the CPU-intensive work.
       return await compute(parseStopsOnlyFromZipBytes, response.bodyBytes);
     } catch (e) {
-      logger.e('Network error fetching ${endpoint.key}: $e');
+      _safeLogError('Network error fetching ${endpoint.key}: $e');
       return null;
     }
   }
@@ -356,75 +469,9 @@ class StopsService {
 
   static Stream<StopsUpdateProgress> updateAllStopsFromApi() {
     final endpoints = StopsEndpoint.values;
-    final total = endpoints.length;
     final controller = StreamController<StopsUpdateProgress>();
 
-    () async {
-      controller.add(
-        StopsUpdateProgress(
-          endpoint: null,
-          completed: 0,
-          total: total,
-          success: true,
-          message: 'Starting update of $total endpoints',
-        ),
-      );
-
-      var completed = 0;
-
-      for (var i = 0; i < endpoints.length; i += _batchSize) {
-        final batch = endpoints.skip(i).take(_batchSize).toList();
-
-        await Future.wait(
-          batch.map((endpoint) async {
-            controller.add(
-              StopsUpdateProgress(
-                endpoint: endpoint,
-                completed: completed,
-                total: total,
-                success: true,
-                message: 'Starting ${endpoint.key}',
-              ),
-            );
-            try {
-              await updateStopsFromEndpoint(endpoint);
-              completed += 1;
-              controller.add(
-                StopsUpdateProgress(
-                  endpoint: endpoint,
-                  completed: completed,
-                  total: total,
-                  success: true,
-                  message: 'Completed ${endpoint.key}',
-                ),
-              );
-            } catch (e) {
-              logger.w('Failed to update ${endpoint.key}: $e');
-              controller.add(
-                StopsUpdateProgress(
-                  endpoint: endpoint,
-                  completed: completed,
-                  total: total,
-                  success: false,
-                  message: 'Failed ${endpoint.key}: $e',
-                ),
-              );
-            }
-          }),
-        );
-      }
-
-      controller.add(
-        StopsUpdateProgress(
-          endpoint: null,
-          completed: completed,
-          total: total,
-          success: true,
-          message: 'Finished updating stops ($completed/$total)',
-        ),
-      );
-      await controller.close();
-    }();
+    _runStopsUpdates(controller, endpoints).ignore();
 
     return controller.stream;
   }
@@ -455,8 +502,7 @@ class StopsService {
       // Try to map common endpoint prefixes to TransportMode
       final modeKey = modeForEndpointKey(endpoint);
 
-      grouped.putIfAbsent(modeKey, () => {});
-      grouped[modeKey]?[endpoint] = count;
+      _putGroupedCount(grouped, modeKey, endpoint, count);
     }
 
     return grouped;

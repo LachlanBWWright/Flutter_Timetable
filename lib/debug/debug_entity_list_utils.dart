@@ -3,6 +3,19 @@ import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
 import 'package:lbww_flutter/gtfs/route.dart' as gtfs_route;
 
+String _capitalizeSegment(String segment) {
+  if (segment.isEmpty) {
+    return segment;
+  }
+  try {
+    final first = segment.substring(0, 1).toUpperCase();
+    final remainder = segment.length > 1 ? segment.substring(1) : '';
+    return '$first$remainder';
+  } catch (_) {
+    return segment;
+  }
+}
+
 DateTime? timestampFromUnixSeconds(int? seconds) {
   if (seconds == null) {
     return null;
@@ -120,15 +133,7 @@ String filterLabel(String value) {
   if (normalized.isEmpty) {
     return value;
   }
-  return normalized
-      .split(' ')
-      .map((segment) {
-        if (segment.isEmpty) {
-          return segment;
-        }
-        return '${segment[0].toUpperCase()}${segment.substring(1)}';
-      })
-      .join(' ');
+  return normalized.split(' ').map(_capitalizeSegment).join(' ');
 }
 
 String listSubtitleForEntity(

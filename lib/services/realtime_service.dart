@@ -36,6 +36,60 @@ class RealtimeService {
   _feedListCache = {};
   static final Map<String, Future<List<FeedMessage?>>> _inflightFeedLists = {};
 
+  static V? _mapValueOrNull<K, V>(Map<K, V> map, K key) {
+    try {
+      for (final entry in map.entries) {
+        if (entry.key == key) {
+          return entry.value;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static void _putValue<K, V>(Map<K, V> map, K key, V value) {
+    try {
+      map.remove(key);
+      map.addAll({key: value});
+    } catch (_) {}
+  }
+
+  static void _incrementCount(Map<String, int> counts, String key, int delta) {
+    final previousCount = _mapValueOrNull(counts, key) ?? 0;
+    _putValue(counts, key, previousCount + delta);
+  }
+
+  static Future<T> _loadOrFallback<T>(
+    Future<T> Function() loader,
+    T fallback,
+  ) async {
+    try {
+      return await loader();
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  static Future<FeedMessage?> _invokeFeedLoader(
+    Future<FeedMessage?> Function() loader,
+  ) async {
+    try {
+      return await loader();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<List<FeedMessage?>> _invokeFeedListLoader(
+    Future<List<FeedMessage?>> Function() loader,
+  ) async {
+    try {
+      return await loader();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// Warm critical realtime datasets before the user opens detail actions.
   ///
   /// This is intentionally throttled because feeds are network-heavy.
@@ -55,21 +109,29 @@ class RealtimeService {
       return inflight;
     }
 
-    final request = () async {
+    Future<void> requestBody() async {
       try {
-        final futures = <Future<dynamic>>[];
+        final futures = <Future<Object?>>[];
         if (includeVehicles) {
           futures.add(getAllVehiclePositionsAggregated());
         }
         if (includeTripUpdates) {
           futures.add(getAllTripUpdatesAggregated());
         }
-        await Future.wait(futures);
+        await Future.wait<void>(
+          futures.map((future) async {
+            try {
+              await future;
+            } catch (_) {}
+          }),
+        );
         _lastAggregatePrefetchAt = DateTime.now();
       } finally {
         _inflightAggregatePrefetch = null;
       }
-    }();
+    }
+
+    final request = requestBody();
 
     _inflightAggregatePrefetch = request;
     return request;
@@ -84,24 +146,21 @@ class RealtimeService {
   static Future<Map<TransportMode, FeedMessage?>>
   getAllRealtimePositions() async {
     final results = <TransportMode, FeedMessage?>{};
-
-    // Use the typed wrappers which map a broad TransportMode to a
-    // canonical feed key and fetch function.
-    results[TransportMode.train] = await getPositionsForTransportMode(
+    final modes = <TransportMode>[
       TransportMode.train,
-    );
-    results[TransportMode.metro] = await getPositionsForTransportMode(
       TransportMode.metro,
-    );
-    results[TransportMode.bus] = await getPositionsForTransportMode(
       TransportMode.bus,
-    );
-    results[TransportMode.lightrail] = await getPositionsForTransportMode(
       TransportMode.lightrail,
-    );
-    results[TransportMode.ferry] = await getPositionsForTransportMode(
       TransportMode.ferry,
-    );
+    ];
+
+    for (final mode in modes) {
+      final feed = await _loadOrFallback<FeedMessage?>(
+        () => getPositionsForTransportMode(mode),
+        null,
+      );
+      _putValue(results, mode, feed);
+    }
 
     return results;
   }
@@ -113,22 +172,21 @@ class RealtimeService {
   static Future<Map<TransportMode, FeedMessage?>>
   getAllRealtimeUpdates() async {
     final results = <TransportMode, FeedMessage?>{};
-
-    results[TransportMode.train] = await getUpdatesForTransportMode(
+    final modes = <TransportMode>[
       TransportMode.train,
-    );
-    results[TransportMode.metro] = await getUpdatesForTransportMode(
       TransportMode.metro,
-    );
-    results[TransportMode.bus] = await getUpdatesForTransportMode(
       TransportMode.bus,
-    );
-    results[TransportMode.lightrail] = await getUpdatesForTransportMode(
       TransportMode.lightrail,
-    );
-    results[TransportMode.ferry] = await getUpdatesForTransportMode(
       TransportMode.ferry,
-    );
+    ];
+
+    for (final mode in modes) {
+      final feed = await _loadOrFallback<FeedMessage?>(
+        () => getUpdatesForTransportMode(mode),
+        null,
+      );
+      _putValue(results, mode, feed);
+    }
 
     return results;
   }
@@ -212,27 +270,33 @@ class RealtimeService {
     String key,
     Future<FeedMessage?> Function() loader,
   ) async {
-    final cached = _feedCache[key];
+    final cached = _mapValueOrNull(_feedCache, key);
     if (cached != null &&
         DateTime.now().difference(cached.fetchedAt) < _feedTtl) {
       return cached.value;
     }
 
-    final inflight = _inflightFeeds[key];
+    final inflight = _mapValueOrNull(_inflightFeeds, key);
     if (inflight != null) {
       return inflight;
     }
 
-    final request = () async {
+    Future<FeedMessage?> requestBody() async {
       try {
-        final value = await loader();
-        _feedCache[key] = _RealtimeFeedCacheEntry(value, DateTime.now());
+        final FeedMessage? value = await _invokeFeedLoader(loader);
+        _putValue(
+          _feedCache,
+          key,
+          _RealtimeFeedCacheEntry(value, DateTime.now()),
+        );
         return value;
       } finally {
         _inflightFeeds.remove(key);
       }
-    }();
-    _inflightFeeds[key] = request;
+    }
+
+    final request = requestBody();
+    _putValue(_inflightFeeds, key, request);
     return request;
   }
 
@@ -240,27 +304,33 @@ class RealtimeService {
     String key,
     Future<List<FeedMessage?>> Function() loader,
   ) async {
-    final cached = _feedListCache[key];
+    final cached = _mapValueOrNull(_feedListCache, key);
     if (cached != null &&
         DateTime.now().difference(cached.fetchedAt) < _feedTtl) {
       return cached.value;
     }
 
-    final inflight = _inflightFeedLists[key];
+    final inflight = _mapValueOrNull(_inflightFeedLists, key);
     if (inflight != null) {
       return inflight;
     }
 
-    final request = () async {
+    Future<List<FeedMessage?>> requestBody() async {
       try {
-        final value = await loader();
-        _feedListCache[key] = _RealtimeFeedCacheEntry(value, DateTime.now());
+        final List<FeedMessage?> value = await _invokeFeedListLoader(loader);
+        _putValue(
+          _feedListCache,
+          key,
+          _RealtimeFeedCacheEntry(value, DateTime.now()),
+        );
         return value;
       } finally {
         _inflightFeedLists.remove(key);
       }
-    }();
-    _inflightFeedLists[key] = request;
+    }
+
+    final request = requestBody();
+    _putValue(_inflightFeedLists, key, request);
     return request;
   }
 
@@ -297,42 +367,53 @@ class RealtimeService {
     final vehicles = <VehiclePosition>[];
     final breakdown = <String, int>{};
 
-    final all = await (getAllPositionsOverride ?? getAllRealtimePositions)();
+    final Map<TransportMode, FeedMessage?> all = getAllPositionsOverride != null
+        ? await _loadOrFallback(
+            getAllPositionsOverride,
+            <TransportMode, FeedMessage?>{},
+          )
+        : await _loadOrFallback(
+            getAllRealtimePositions,
+            <TransportMode, FeedMessage?>{},
+          );
     for (final entry in all.entries) {
       final pack = extractVehiclePositions(entry.value);
       vehicles.addAll(pack);
-      breakdown['${entry.key}'] =
-          (breakdown['${entry.key}'] ?? 0) + pack.length;
+      _incrementCount(breakdown, '${entry.key}', pack.length);
     }
 
-    final regionBuses =
-        await (getRegionBusesOverride ?? getRegionBusPositions)();
+    final List<FeedMessage?> regionBuses = getRegionBusesOverride != null
+        ? await _loadOrFallback(getRegionBusesOverride, <FeedMessage?>[])
+        : await _loadOrFallback(getRegionBusPositions, <FeedMessage?>[]);
     var regionCount = 0;
     for (final feed in regionBuses) {
       final pack = extractVehiclePositions(feed);
       regionCount += pack.length;
       vehicles.addAll(pack);
     }
-    breakdown['regionBuses'] = regionCount;
+    _putValue(breakdown, 'regionBuses', regionCount);
 
-    final allFerries = await (getAllFerriesOverride ?? getAllFerryPositions)();
+    final List<FeedMessage?> allFerries = getAllFerriesOverride != null
+        ? await _loadOrFallback(getAllFerriesOverride, <FeedMessage?>[])
+        : await _loadOrFallback(getAllFerryPositions, <FeedMessage?>[]);
     var ferryCount = 0;
     for (final feed in allFerries) {
       final pack = extractVehiclePositions(feed);
       ferryCount += pack.length;
       vehicles.addAll(pack);
     }
-    breakdown['ferries'] = ferryCount;
+    _putValue(breakdown, 'ferries', ferryCount);
 
-    final allLightRail =
-        await (getAllLightRailOverride ?? getAllLightRailPositions)();
+    final List<FeedMessage?> allLightRail = getAllLightRailOverride != null
+        ? await _loadOrFallback(getAllLightRailOverride, <FeedMessage?>[])
+        : await _loadOrFallback(getAllLightRailPositions, <FeedMessage?>[]);
     var lightrailCount = 0;
     for (final feed in allLightRail) {
       final pack = extractVehiclePositions(feed);
       lightrailCount += pack.length;
       vehicles.addAll(pack);
     }
-    breakdown['lightrail'] = lightrailCount;
+    _putValue(breakdown, 'lightrail', lightrailCount);
 
     // Deduplicate using vehicle.id > tripId > position+timestamp
     final unique = <String, VehiclePosition>{};
@@ -350,7 +431,9 @@ class RealtimeService {
         final ts = v.hasTimestamp() ? v.timestamp.toString() : 'nots';
         key = 'pos:$lat:$lng:$ts';
       }
-      if (!unique.containsKey(key)) unique[key] = v;
+      if (!unique.containsKey(key)) {
+        _putValue(unique, key, v);
+      }
     }
 
     return VehiclePositionAggregationResult(
@@ -370,41 +453,53 @@ class RealtimeService {
     final tripUpdates = <TripUpdate>[];
     final breakdown = <String, int>{};
 
-    final all = await (getAllUpdatesOverride ?? getAllRealtimeUpdates)();
+    final Map<TransportMode, FeedMessage?> all = getAllUpdatesOverride != null
+        ? await _loadOrFallback(
+            getAllUpdatesOverride,
+            <TransportMode, FeedMessage?>{},
+          )
+        : await _loadOrFallback(
+            getAllRealtimeUpdates,
+            <TransportMode, FeedMessage?>{},
+          );
     for (final entry in all.entries) {
       final pack = extractTripUpdates(entry.value);
       tripUpdates.addAll(pack);
-      breakdown['${entry.key}'] =
-          (breakdown['${entry.key}'] ?? 0) + pack.length;
+      _incrementCount(breakdown, '${entry.key}', pack.length);
     }
 
-    final regionBuses = await (getRegionBusesOverride ?? getRegionBusUpdates)();
+    final List<FeedMessage?> regionBuses = getRegionBusesOverride != null
+        ? await _loadOrFallback(getRegionBusesOverride, <FeedMessage?>[])
+        : await _loadOrFallback(getRegionBusUpdates, <FeedMessage?>[]);
     var regionCount = 0;
     for (final feed in regionBuses) {
       final pack = extractTripUpdates(feed);
       regionCount += pack.length;
       tripUpdates.addAll(pack);
     }
-    breakdown['regionBuses'] = regionCount;
+    _putValue(breakdown, 'regionBuses', regionCount);
 
-    final allFerries = await (getAllFerriesOverride ?? getAllFerryUpdates)();
+    final List<FeedMessage?> allFerries = getAllFerriesOverride != null
+        ? await _loadOrFallback(getAllFerriesOverride, <FeedMessage?>[])
+        : await _loadOrFallback(getAllFerryUpdates, <FeedMessage?>[]);
     var ferryCount = 0;
     for (final feed in allFerries) {
       final pack = extractTripUpdates(feed);
       ferryCount += pack.length;
       tripUpdates.addAll(pack);
     }
-    breakdown['ferries'] = ferryCount;
+    _putValue(breakdown, 'ferries', ferryCount);
 
-    final allLightRail =
-        await (getAllLightRailOverride ?? getAllLightRailUpdates)();
+    final List<FeedMessage?> allLightRail = getAllLightRailOverride != null
+        ? await _loadOrFallback(getAllLightRailOverride, <FeedMessage?>[])
+        : await _loadOrFallback(getAllLightRailUpdates, <FeedMessage?>[]);
     var lightrailCount = 0;
     for (final feed in allLightRail) {
       final pack = extractTripUpdates(feed);
       lightrailCount += pack.length;
       tripUpdates.addAll(pack);
     }
-    breakdown['lightrail'] = lightrailCount;
+    _putValue(breakdown, 'lightrail', lightrailCount);
 
     final unique = <String, TripUpdate>{};
     for (final u in tripUpdates) {
@@ -416,7 +511,9 @@ class RealtimeService {
           : routeId.isNotEmpty
           ? 'route:$routeId:$startDate'
           : 'unknown:${unique.length}';
-      if (!unique.containsKey(key)) unique[key] = u;
+      if (!unique.containsKey(key)) {
+        _putValue(unique, key, u);
+      }
     }
 
     return TripUpdateAggregationResult(
@@ -426,7 +523,7 @@ class RealtimeService {
   }
 
   /// Get realtime status summary
-  static Future<Map<TransportMode, Map<String, dynamic>>>
+  static Future<Map<TransportMode, Map<String, Object?>>>
   getRealtimeStatusSummary() async {
     // Build summary by fetching positions and updates for each broad TransportMode
     final modes = <TransportMode>[
@@ -437,7 +534,7 @@ class RealtimeService {
       TransportMode.ferry,
     ];
 
-    final summary = <TransportMode, Map<String, dynamic>>{};
+    final summary = <TransportMode, Map<String, Object?>>{};
 
     for (final mode in modes) {
       final errors = <String>[];
@@ -465,12 +562,12 @@ class RealtimeService {
       final positionCount = extractVehiclePositions(posFeed).length;
       final updateCount = extractTripUpdates(updFeed).length;
 
-      summary[mode] = {
+      _putValue(summary, mode, {
         'vehicles': positionCount,
         'updates': updateCount,
         'last_updated': DateTime.now().toIso8601String(),
         'errors': errors,
-      };
+      });
     }
 
     return summary;

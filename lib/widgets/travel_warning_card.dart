@@ -65,13 +65,17 @@ class TravelWarningAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      icon: const Icon(Icons.warning_amber_rounded),
-      onPressed: () {
+    void closeDialog() {
+      try {
+        Navigator.of(context).pop();
+      } catch (_) {}
+    }
+
+    void showWarningsDialog() {
+      try {
         showDialog<void>(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             contentPadding: const EdgeInsets.all(12),
             content: SingleChildScrollView(
               child: TravelWarningCard(
@@ -81,14 +85,17 @@ class TravelWarningAction extends StatelessWidget {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
+              TextButton(onPressed: closeDialog, child: const Text('Close')),
             ],
           ),
         );
-      },
+      } catch (_) {}
+    }
+
+    return IconButton(
+      tooltip: tooltip,
+      icon: const Icon(Icons.warning_amber_rounded),
+      onPressed: showWarningsDialog,
     );
   }
 }

@@ -13,6 +13,24 @@ class ApiKeyService {
   /// In-memory cache of the user-supplied key. `null` means "no override".
   static String? _userApiKey;
 
+  static String _envValueOrEmpty(String key) {
+    try {
+      return dotenv.env[key] ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static Future<void> _setStringSafe(
+    SharedPreferences prefs,
+    String key,
+    String value,
+  ) async {
+    try {
+      await prefs.setString(key, value);
+    } catch (_) {}
+  }
+
   /// Load the user-supplied override from [SharedPreferences] into memory.
   /// Call once at app startup alongside other service initialisations.
   static Future<void> init() async {
@@ -24,14 +42,14 @@ class ApiKeyService {
   /// The active API key: user-supplied override if set, otherwise the key
   /// baked into the build via `.env`, falling back to an empty string.
   static String getEffectiveApiKey() {
-    return _userApiKey ?? dotenv.env['API_KEY'] ?? '';
+    return _userApiKey ?? _envValueOrEmpty('API_KEY');
   }
 
   /// Whether the user has stored a custom API key override.
   static bool hasUserApiKey() => _userApiKey != null;
 
   /// Whether the build ships with a baked-in API key.
-  static bool hasBuiltInApiKey() => (dotenv.env['API_KEY'] ?? '').isNotEmpty;
+  static bool hasBuiltInApiKey() => _envValueOrEmpty('API_KEY').isNotEmpty;
 
   /// Persist [key] as the user-supplied override and update the in-memory cache.
   static Future<void> setUserApiKey(String key) async {
@@ -41,7 +59,7 @@ class ApiKeyService {
       await prefs.remove(_prefKey);
       _userApiKey = null;
     } else {
-      await prefs.setString(_prefKey, trimmed);
+      await _setStringSafe(prefs, _prefKey, trimmed);
       _userApiKey = trimmed;
     }
   }

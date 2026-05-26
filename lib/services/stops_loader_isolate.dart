@@ -6,6 +6,9 @@ import '../gtfs/gtfs_data.dart';
 import 'stops_service.dart';
 
 /// Message types for communication between isolate and main thread
+typedef LoadStopsProgressCallback = void Function(LoadStopsProgress progress);
+typedef LoadStopsCompleteCallback = void Function(LoadStopsResult result);
+
 class LoadStopsMessage {
   final List<StopsEndpoint> endpoints;
   final SendPort sendPort;
@@ -38,8 +41,8 @@ class StopsLoaderIsolate {
   /// Load stops for multiple endpoints in background isolate
   static Future<void> loadStopsInBackground({
     required List<StopsEndpoint> endpoints,
-    required Function(LoadStopsProgress) onProgress,
-    required Function(LoadStopsResult) onComplete,
+    required LoadStopsProgressCallback onProgress,
+    required LoadStopsCompleteCallback onComplete,
   }) async {
     final receivePort = ReceivePort();
 
@@ -51,19 +54,38 @@ class StopsLoaderIsolate {
 
       await for (final message in receivePort) {
         if (message is LoadStopsProgress) {
-          onProgress(message);
+          _reportProgress(onProgress, message);
         } else if (message is LoadStopsResult) {
-          onComplete(message);
+          _reportComplete(onComplete, message);
           receivePort.close();
           break;
         }
       }
     } catch (e) {
-      onComplete(
+      _reportComplete(
+        onComplete,
         LoadStopsResult(success: false, error: e.toString(), stopsLoaded: 0),
       );
       receivePort.close();
     }
+  }
+
+  static void _reportProgress(
+    LoadStopsProgressCallback onProgress,
+    LoadStopsProgress progress,
+  ) {
+    try {
+      onProgress(progress);
+    } catch (_) {}
+  }
+
+  static void _reportComplete(
+    LoadStopsCompleteCallback onComplete,
+    LoadStopsResult result,
+  ) {
+    try {
+      onComplete(result);
+    } catch (_) {}
   }
 
   /// Worker function that runs in the isolate

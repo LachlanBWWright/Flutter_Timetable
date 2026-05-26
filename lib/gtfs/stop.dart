@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class Stop {
   final String stopId;
   final String? stopCode;
@@ -35,39 +37,20 @@ class Stop {
 
   /// Create a Stop from a CSV row using header-based field mapping
   factory Stop.fromCsv(List<String> header, List<String> row) {
-    String? getField(String fieldName) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return null;
-      final value = row[index];
-      return value.isEmpty ? null : value;
-    }
-
-    double getDoubleField(String fieldName, {double defaultValue = 0.0}) {
-      final value = getField(fieldName);
-      return value != null
-          ? (double.tryParse(value) ?? defaultValue)
-          : defaultValue;
-    }
-
-    int getIntField(String fieldName, {int defaultValue = 0}) {
-      final value = getField(fieldName);
-      return value != null
-          ? (int.tryParse(value) ?? defaultValue)
-          : defaultValue;
-    }
+    final reader = CsvFieldReader(header, row);
 
     // Resolve stop_id with fallbacks for feeds that omit stop_id values.
     // Prefer stop_id, then stop_code, then derive a deterministic id from
     // stop_name + lat/lon to ensure we can persist the stop rather than
     // dropping rows silently.
     String resolveStopId() {
-      final rawId = getField('stop_id');
+      final rawId = reader.fieldOrNull('stop_id');
       if (rawId != null && rawId.trim().isNotEmpty) return rawId.trim();
-      final code = getField('stop_code');
+      final code = reader.fieldOrNull('stop_code');
       if (code != null && code.trim().isNotEmpty) return code.trim();
-      final name = getField('stop_name') ?? 'unknown';
-      final lat = getField('stop_lat') ?? '';
-      final lon = getField('stop_lon') ?? '';
+      final name = reader.fieldOrNull('stop_name') ?? 'unknown';
+      final lat = reader.fieldOrEmpty('stop_lat');
+      final lon = reader.fieldOrEmpty('stop_lon');
       // Create a compact derived id. Replace whitespace with underscores and
       // remove commas to keep the id DB-friendly.
       final safeName = name.replaceAll(RegExp(r'[\s,]+'), '_');
@@ -76,20 +59,20 @@ class Stop {
 
     return Stop(
       stopId: resolveStopId(),
-      stopCode: getField('stop_code'),
-      stopName: getField('stop_name') ?? '',
-      ttsStopName: getField('tts_stop_name'),
-      stopDesc: getField('stop_desc'),
-      stopLat: getDoubleField('stop_lat'),
-      stopLon: getDoubleField('stop_lon'),
-      zoneId: getField('zone_id'),
-      stopUrl: getField('stop_url'),
-      locationType: getIntField('location_type'),
-      parentStation: getField('parent_station'),
-      stopTimezone: getField('stop_timezone'),
-      wheelchairBoarding: getIntField('wheelchair_boarding'),
-      levelId: getField('level_id'),
-      platformCode: getField('platform_code'),
+      stopCode: reader.fieldOrNull('stop_code'),
+      stopName: reader.fieldOrEmpty('stop_name'),
+      ttsStopName: reader.fieldOrNull('tts_stop_name'),
+      stopDesc: reader.fieldOrNull('stop_desc'),
+      stopLat: reader.doubleField('stop_lat'),
+      stopLon: reader.doubleField('stop_lon'),
+      zoneId: reader.fieldOrNull('zone_id'),
+      stopUrl: reader.fieldOrNull('stop_url'),
+      locationType: reader.intField('location_type'),
+      parentStation: reader.fieldOrNull('parent_station'),
+      stopTimezone: reader.fieldOrNull('stop_timezone'),
+      wheelchairBoarding: reader.intField('wheelchair_boarding'),
+      levelId: reader.fieldOrNull('level_id'),
+      platformCode: reader.fieldOrNull('platform_code'),
     );
   }
 

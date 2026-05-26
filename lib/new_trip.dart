@@ -26,6 +26,83 @@ class NewTripScreen extends StatefulWidget {
 
 class _NewTripScreenState extends State<NewTripScreen>
     with TickerProviderStateMixin {
+  // Local safe helpers following repo conventions
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(fn);
+    } catch (_) {}
+  }
+
+  void _showMessage(SnackBar snackBar) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (_) {}
+  }
+
+  void _addListenerSafe(Listenable listenable, VoidCallback listener) {
+    try {
+      listenable.addListener(listener);
+    } catch (_) {}
+  }
+
+  void _removeListenerSafe(Listenable listenable, VoidCallback listener) {
+    try {
+      listenable.removeListener(listener);
+    } catch (_) {}
+  }
+
+  void _disposeSafe(ChangeNotifier notifier) {
+    try {
+      notifier.dispose();
+    } catch (_) {}
+  }
+
+  void _disposeFocusNodeSafe(FocusNode focusNode) {
+    try {
+      focusNode.dispose();
+    } catch (_) {}
+  }
+
+  void _addPostFrameCallbackSafe(void Function(Duration) callback) {
+    try {
+      WidgetsBinding.instance.addPostFrameCallback(callback);
+    } catch (_) {}
+  }
+
+  void _requestSearchFocus() {
+    try {
+      FocusScope.of(context).requestFocus(_searchFocusNode);
+    } catch (_) {}
+  }
+
+  void _clearSearchFocus() {
+    try {
+      _searchFocusNode.unfocus();
+    } catch (_) {}
+  }
+
+  T? _itemAtOrNull<T>(List<T> items, int index) {
+    if (index < 0 || index >= items.length) {
+      return null;
+    }
+    try {
+      return items[index];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<Station> _stationsAtOrEmpty(List<dynamic> results, int index) {
+    final value = _itemAtOrNull(results, index);
+    return value is List<Station> ? value : const <Station>[];
+  }
+
   List<Station> _trainStationList = [];
   List<Station> _nswTrainLinkStationList = [];
   List<Station> _busStationList = [];
@@ -55,7 +132,10 @@ class _NewTripScreenState extends State<NewTripScreen>
   late List<_TripCreatorTab> _tabs;
   _TripCreatorTabKind _currentTabKind = _TripCreatorTabKind.sydneyTrains;
   TransportMode get _currentMode => _currentTab.mode;
-  _TripCreatorTab get _currentTab => _tabs[_tabController.index];
+  _TripCreatorTab get _currentTab {
+    return _itemAtOrNull(_tabs, _tabController.index) ??
+        (_tabs.isNotEmpty ? _tabs.first : _fallbackTripCreatorTab);
+  }
 
   List<StopLineMatch> _sharedLines = [];
   List<StopLineMatch> _originLineCandidates = [];
@@ -71,11 +151,12 @@ class _NewTripScreenState extends State<NewTripScreen>
     super.initState();
     _tabs = _buildTabs();
     _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(_onTabChanged);
-    TransportPreferencesService.showNswTrainLink.addListener(
+    _addListenerSafe(_tabController, _onTabChanged);
+    _addListenerSafe(
+      TransportPreferencesService.showNswTrainLink,
       _onTransportPreferencesChanged,
     );
-    keyController.addListener(_applySearchFilter);
+    _addListenerSafe(keyController, _applySearchFilter);
     _searchFocusNode = FocusNode();
     _loadAllModes();
   }
@@ -83,32 +164,44 @@ class _NewTripScreenState extends State<NewTripScreen>
   Future<void> _loadAllModes() async {
     if (!mounted) return;
 
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
     });
 
     try {
       final results = await Future.wait([
-        loadStationsFromDbForEndpoints([StopsEndpoint.sydneytrains]),
+        loadStationsFromDbForEndpoints([
+          StopsEndpoint.sydneytrains,
+        ]).catchError((_) => <Station>[]),
         if (TransportPreferencesService.showNswTrainLink.value)
-          loadStationsFromDbForEndpoints([StopsEndpoint.nswtrains])
+          loadStationsFromDbForEndpoints([
+            StopsEndpoint.nswtrains,
+          ]).catchError((_) => <Station>[])
         else
           Future.value(<Station>[]),
-        loadStationsFromDbForMode(TransportMode.lightrail),
-        loadStationsFromDbForMode(TransportMode.metro),
-        loadStationsFromDbForMode(TransportMode.bus),
-        loadStationsFromDbForMode(TransportMode.ferry),
+        loadStationsFromDbForMode(
+          TransportMode.lightrail,
+        ).catchError((_) => <Station>[]),
+        loadStationsFromDbForMode(
+          TransportMode.metro,
+        ).catchError((_) => <Station>[]),
+        loadStationsFromDbForMode(
+          TransportMode.bus,
+        ).catchError((_) => <Station>[]),
+        loadStationsFromDbForMode(
+          TransportMode.ferry,
+        ).catchError((_) => <Station>[]),
       ]);
 
       if (!mounted) return;
 
-      setState(() {
-        _trainStationList = results[0];
-        _nswTrainLinkStationList = results[1];
-        _lightRailStationList = results[2];
-        _metroStationList = results[3];
-        _busStationList = results[4];
-        _ferryStationList = results[5];
+      _safeSetState(() {
+        _trainStationList = _stationsAtOrEmpty(results, 0);
+        _nswTrainLinkStationList = _stationsAtOrEmpty(results, 1);
+        _lightRailStationList = _stationsAtOrEmpty(results, 2);
+        _metroStationList = _stationsAtOrEmpty(results, 3);
+        _busStationList = _stationsAtOrEmpty(results, 4);
+        _ferryStationList = _stationsAtOrEmpty(results, 5);
         _isLoading = false;
       });
 
@@ -123,7 +216,7 @@ class _NewTripScreenState extends State<NewTripScreen>
           _metroStationList.isNotEmpty;
 
       if (!hasAnyStops && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _showMessage(
           const SnackBar(
             content: Text(
               'No stops found in database. Please update static transport data from Settings.',
@@ -135,11 +228,8 @@ class _NewTripScreenState extends State<NewTripScreen>
       }
     } catch (e) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error loading stations: $e')));
-      setState(() {
+      _showMessage(SnackBar(content: Text('Error loading stations: $e')));
+      _safeSetState(() {
         _isLoading = false;
       });
     }
@@ -147,15 +237,18 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   @override
   void dispose() {
-    TransportPreferencesService.showNswTrainLink.removeListener(
+    _removeListenerSafe(
+      TransportPreferencesService.showNswTrainLink,
       _onTransportPreferencesChanged,
     );
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
-    keyController.removeListener(_applySearchFilter);
-    keyController.dispose();
-    _searchFocusNode.dispose();
-    super.dispose();
+    _removeListenerSafe(_tabController, _onTabChanged);
+    _disposeSafe(_tabController);
+    _removeListenerSafe(keyController, _applySearchFilter);
+    _disposeSafe(keyController);
+    _disposeFocusNodeSafe(_searchFocusNode);
+    try {
+      super.dispose();
+    } catch (_) {}
   }
 
   void _onTabChanged() {
@@ -163,7 +256,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     _currentTabKind = _currentTab.kind;
 
     if (oldTabKind != _currentTabKind) {
-      setState(() {});
+      _safeSetState(() {});
       if (_filterDestinationsToSameLine &&
           _originStation != null &&
           _destinationStation == null) {
@@ -177,24 +270,25 @@ class _NewTripScreenState extends State<NewTripScreen>
     final nextTabs = _buildTabs();
     final nextIndex = nextTabs.indexWhere((tab) => tab.kind == previousKind);
 
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
+    _removeListenerSafe(_tabController, _onTabChanged);
+    _disposeSafe(_tabController);
     _tabs = nextTabs;
     _tabController = TabController(
       length: _tabs.length,
       vsync: this,
       initialIndex: nextIndex == -1 ? 0 : nextIndex,
     );
-    _currentTabKind = _tabs[_tabController.index].kind;
-    _tabController.addListener(_onTabChanged);
+    _currentTabKind = _tabs.isNotEmpty
+        ? (_itemAtOrNull(_tabs, _tabController.index)?.kind ??
+              _TripCreatorTabKind.sydneyTrains)
+        : _TripCreatorTabKind.sydneyTrains;
+    _addListenerSafe(_tabController, _onTabChanged);
     if (TransportPreferencesService.showNswTrainLink.value &&
         _nswTrainLinkStationList.isEmpty) {
       _loadAllModes();
     }
 
-    if (mounted) {
-      setState(() {});
-    }
+    _safeSetState(() {});
   }
 
   Future<void> setStation(
@@ -218,7 +312,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
 
     if (_originStation == null) {
-      setState(() {
+      _safeSetState(() {
         _originStation = station;
         _originMode = mode;
         keyController.clear();
@@ -229,7 +323,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
 
     if (_destinationStation == null) {
-      setState(() {
+      _safeSetState(() {
         _destinationStation = station;
         _destinationMode = mode;
         keyController.clear();
@@ -240,7 +334,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    _showMessage(
       const SnackBar(
         content: Text('Clear a selected stop before choosing another one.'),
       ),
@@ -258,7 +352,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _clearOrigin() {
-    setState(() {
+    _safeSetState(() {
       _originStation = null;
       _originMode = null;
     });
@@ -266,7 +360,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _clearDestination() {
-    setState(() {
+    _safeSetState(() {
       _destinationStation = null;
       _destinationMode = null;
     });
@@ -282,7 +376,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       _destinationMode = null;
     }
 
-    setState(() {
+    _safeSetState(() {
       _manualBuilderEnabled = false;
       _interchanges = [];
       _pendingInterchangeInsertIndex = null;
@@ -304,7 +398,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _isLoadingLineCandidates = true;
       _originLineCandidates = [];
       _sameLineDestinationStations = [];
@@ -317,29 +411,25 @@ class _NewTripScreenState extends State<NewTripScreen>
         allowBuild: true,
       );
       if (!mounted) return;
-      setState(() {
+      _safeSetState(() {
         _originLineCandidates = lines;
       });
       if (_filterDestinationsToSameLine) {
         await _loadSameLineDestinationStations();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to load same-line stops: $e')),
-        );
-      }
+      _showMessage(
+        SnackBar(content: Text('Unable to load same-line stops: $e')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingLineCandidates = false;
-        });
-      }
+      _safeSetState(() {
+        _isLoadingLineCandidates = false;
+      });
     }
   }
 
   Future<void> _toggleSameLineDestinationFilter(bool value) async {
-    setState(() {
+    _safeSetState(() {
       _filterDestinationsToSameLine = value;
       if (!value) {
         _sameLineDestinationStations = [];
@@ -355,13 +445,13 @@ class _NewTripScreenState extends State<NewTripScreen>
   Future<void> _loadSameLineDestinationStations() async {
     final origin = _originStation;
     if (origin == null || _originLineCandidates.isEmpty) {
-      setState(() {
+      _safeSetState(() {
         _sameLineDestinationStations = [];
       });
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _isLoadingLineCandidates = true;
       _sameLineDestinationStations = [];
     });
@@ -393,21 +483,17 @@ class _NewTripScreenState extends State<NewTripScreen>
       if (!mounted) return;
       final stations = stopsById.values.toList()
         ..sort((a, b) => a.name.compareTo(b.name));
-      setState(() {
+      _safeSetState(() {
         _sameLineDestinationStations = stations;
       });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to load same-line stops: $e')),
-        );
-      }
+      _showMessage(
+        SnackBar(content: Text('Unable to load same-line stops: $e')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingLineCandidates = false;
-        });
-      }
+      _safeSetState(() {
+        _isLoadingLineCandidates = false;
+      });
     }
   }
 
@@ -422,15 +508,13 @@ class _NewTripScreenState extends State<NewTripScreen>
     }
 
     if (origin.id == destination.id) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Origin and destination cannot be the same stop.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      setState(() {
+      _showMessage(
+        const SnackBar(
+          content: Text('Origin and destination cannot be the same stop.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      _safeSetState(() {
         _sharedLines = [];
         _selectedLine = null;
       });
@@ -440,14 +524,14 @@ class _NewTripScreenState extends State<NewTripScreen>
     if (originMode == null ||
         destinationMode == null ||
         originMode != destinationMode) {
-      setState(() {
+      _safeSetState(() {
         _sharedLines = [];
         _selectedLine = null;
       });
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _isResolvingSharedLines = true;
       _sharedLines = [];
       _selectedLine = null;
@@ -466,37 +550,33 @@ class _NewTripScreenState extends State<NewTripScreen>
       );
       if (!mounted) return;
 
-      setState(() {
+      _safeSetState(() {
         _sharedLines = sharedLines;
         _selectedLine = sharedLines.isEmpty ? null : sharedLines.first;
       });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to resolve shared lines: $e')),
-        );
-      }
+      _showMessage(
+        SnackBar(content: Text('Unable to resolve shared lines: $e')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isResolvingSharedLines = false;
-        });
-      }
+      _safeSetState(() {
+        _isResolvingSharedLines = false;
+      });
     }
   }
 
   void _toggleSearch() {
-    setState(() {
+    _safeSetState(() {
       if (keyController.text.isEmpty) {
         _isSearching = !_isSearching;
         if (_isSearching) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          _addPostFrameCallbackSafe((_) {
             if (mounted) {
-              FocusScope.of(context).requestFocus(_searchFocusNode);
+              _requestSearchFocus();
             }
           });
         } else {
-          _searchFocusNode.unfocus();
+          _clearSearchFocus();
         }
       } else {
         keyController.clear();
@@ -513,22 +593,18 @@ class _NewTripScreenState extends State<NewTripScreen>
     if (_sortMode == SortMode.alphabetical) {
       final error = await LocationService.checkAndRequestLocationAvailability();
       if (error != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(error)));
-        }
-        setState(() {
+        _showMessage(SnackBar(content: Text(error)));
+        _safeSetState(() {
           _sortMode = SortMode.alphabetical;
         });
         return;
       }
 
-      setState(() {
+      _safeSetState(() {
         _sortMode = SortMode.distance;
       });
     } else {
-      setState(() {
+      _safeSetState(() {
         _sortMode = SortMode.alphabetical;
       });
     }
@@ -538,7 +614,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   void _openMap() {
     if (_manualBuilderEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _showMessage(
         const SnackBar(
           content: Text('Use the list to add manual interchanges on a line.'),
         ),
@@ -546,7 +622,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _showMapView = !_showMapView;
     });
   }
@@ -586,11 +662,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       return;
     }
     if (validationMessage != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(validationMessage)));
-      }
+      _showMessage(SnackBar(content: Text(validationMessage)));
       return;
     }
 
@@ -644,21 +716,15 @@ class _NewTripScreenState extends State<NewTripScreen>
       if (!mounted) return;
 
       _clearAllSelections();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(successMessage)));
+      _showMessage(SnackBar(content: Text(successMessage)));
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving trip: $e')));
-      }
+      _showMessage(SnackBar(content: Text('Error saving trip: $e')));
     }
   }
 
   void _clearAllSelections() {
-    setState(() {
+    _safeSetState(() {
       _originStation = null;
       _originMode = null;
       _destinationStation = null;
@@ -687,10 +753,13 @@ class _NewTripScreenState extends State<NewTripScreen>
       return;
     }
 
-    final previousStop = orderedStops[insertIndex - 1];
-    final nextStop = orderedStops[insertIndex];
+    final previousStop = _itemAtOrNull(orderedStops, insertIndex - 1);
+    final nextStop = _itemAtOrNull(orderedStops, insertIndex);
+    if (previousStop == null || nextStop == null) {
+      return;
+    }
 
-    setState(() {
+    _safeSetState(() {
       _pendingInterchangeInsertIndex = insertIndex;
       _isLoadingInterchangeCandidates = true;
       _manualCandidateStations = [];
@@ -709,23 +778,19 @@ class _NewTripScreenState extends State<NewTripScreen>
       );
 
       if (!mounted) return;
-      setState(() {
+      _safeSetState(() {
         _manualCandidateStations = rankedStops
             .map((lineStop) => lineStop.toStation())
             .toList();
       });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading interchange stops: $e')),
-        );
-      }
+      _showMessage(
+        SnackBar(content: Text('Error loading interchange stops: $e')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingInterchangeCandidates = false;
-        });
-      }
+      _safeSetState(() {
+        _isLoadingInterchangeCandidates = false;
+      });
     }
   }
 
@@ -745,7 +810,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       lineName: selectedLine.lineName,
     );
 
-    setState(() {
+    _safeSetState(() {
       _interchanges.insert(insertIndex - 1, interchange);
       _pendingInterchangeInsertIndex = null;
       _manualCandidateStations = [];
@@ -754,7 +819,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _removeInterchange(int interchangeIndex) {
-    setState(() {
+    _safeSetState(() {
       _interchanges.removeAt(interchangeIndex);
       _pendingInterchangeInsertIndex = null;
       _manualCandidateStations = [];
@@ -767,7 +832,7 @@ class _NewTripScreenState extends State<NewTripScreen>
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       final updated = List<Station>.from(_interchanges);
       final station = updated.removeAt(interchangeIndex);
       updated.insert(newIndex, station);
@@ -898,7 +963,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         ? NewTripService.sortAlphabetically(stations)
         : await NewTripService.sortByDistance(stations);
 
-    setState(() {
+    _safeSetState(() {
       switch (_currentTab.kind) {
         case _TripCreatorTabKind.sydneyTrains:
           _trainStationList = sortedStations;
@@ -923,9 +988,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _applySearchFilter() {
-    if (mounted) {
-      setState(() {});
-    }
+    _safeSetState(() {});
   }
 
   @override
@@ -1002,7 +1065,7 @@ class _NewTripScreenState extends State<NewTripScreen>
           setStation(name, id, mode);
         },
         onClose: () {
-          setState(() {
+          _safeSetState(() {
             _showMapView = false;
           });
         },
@@ -1090,6 +1153,15 @@ class _TripCreatorTab {
   final Tab tab;
   final List<StopsEndpoint> endpoints;
 }
+
+const _TripCreatorTab _fallbackTripCreatorTab = _TripCreatorTab(
+  kind: _TripCreatorTabKind.sydneyTrains,
+  mode: TransportMode.train,
+  endpoints: <StopsEndpoint>[StopsEndpoint.sydneytrains],
+  tab: Tab(
+    icon: Icon(Icons.directions_train, color: Color.fromARGB(255, 255, 97, 35)),
+  ),
+);
 
 List<_TripCreatorTab> _buildTabs() {
   return [

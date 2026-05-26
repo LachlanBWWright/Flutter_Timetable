@@ -3,6 +3,26 @@ import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' as api;
 
 class DebugExtractors {
+  static Object? _mapValueOrNull(Map<String, dynamic>? values, String key) {
+    if (values == null) {
+      return null;
+    }
+    try {
+      return values[key];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static void _collectTripIdsFromRawJsonIntoSafe(
+    Map<String, dynamic>? rawJson,
+    Set<String> ids,
+  ) {
+    try {
+      collectTripIdsFromRawJsonInto(rawJson, ids);
+    } catch (_) {}
+  }
+
   static void collectTripIdsFromRawJsonInto(
     Map<String, dynamic>? rawJson,
     Set<String> ids,
@@ -10,28 +30,30 @@ class DebugExtractors {
     if (rawJson == null) return;
 
     for (final key in const ['tripId', 'id', 'trip_id']) {
-      final value = rawJson[key]?.toString();
+      final value = _mapValueOrNull(rawJson, key)?.toString();
       if (value != null && value.isNotEmpty) {
         ids.add(value);
       }
     }
 
-    final transportation = rawJson['transportation'];
+    final transportation = _mapValueOrNull(rawJson, 'transportation');
     if (transportation is! Map) {
       return;
     }
+    final typedTransportation = Map<String, dynamic>.from(transportation);
 
-    final properties = transportation['properties'];
+    final properties = _mapValueOrNull(typedTransportation, 'properties');
     if (properties is! Map) {
       return;
     }
+    final typedProperties = Map<String, dynamic>.from(properties);
 
     for (final key in const [
       'RealtimeTripId',
       'AVMSTripID',
       'realtimeTripId',
     ]) {
-      final value = properties[key]?.toString();
+      final value = _mapValueOrNull(typedProperties, key)?.toString();
       if (value != null && value.isNotEmpty) {
         ids.add(value);
       }
@@ -44,15 +66,15 @@ class DebugExtractors {
       return ids;
     }
 
-    collectTripIdsFromRawJsonInto(trip.rawJson, ids);
+    _collectTripIdsFromRawJsonIntoSafe(trip.rawJson, ids);
     for (final leg in trip.legs) {
-      collectTripIdsFromRawJsonInto(leg.rawJson, ids);
+      _collectTripIdsFromRawJsonIntoSafe(leg.rawJson, ids);
     }
 
-    final rawLegs = trip.rawJson?['legs'];
+    final rawLegs = _mapValueOrNull(trip.rawJson, 'legs');
     if (rawLegs is List) {
       for (final legJson in rawLegs.whereType<Map<String, dynamic>>()) {
-        collectTripIdsFromRawJsonInto(legJson, ids);
+        _collectTripIdsFromRawJsonIntoSafe(legJson, ids);
       }
     }
 
@@ -64,8 +86,8 @@ class DebugExtractors {
     api.TripJourney? trip,
   }) {
     final ids = <String>{};
-    collectTripIdsFromRawJsonInto(trip?.rawJson, ids);
-    collectTripIdsFromRawJsonInto(leg?.rawJson, ids);
+    _collectTripIdsFromRawJsonIntoSafe(trip?.rawJson, ids);
+    _collectTripIdsFromRawJsonIntoSafe(leg?.rawJson, ids);
     return ids;
   }
 
@@ -81,22 +103,24 @@ class DebugExtractors {
         ids.add(routeId);
       }
 
-      final rawTransport = leg.rawJson?['transportation'];
-      if (rawTransport is Map && rawTransport['id'] != null) {
-        final rawId = rawTransport['id'].toString();
-        if (rawId.isNotEmpty) {
+      final rawTransport = _mapValueOrNull(leg.rawJson, 'transportation');
+      if (rawTransport is Map) {
+        final typedRawTransport = Map<String, dynamic>.from(rawTransport);
+        final rawId = _mapValueOrNull(typedRawTransport, 'id')?.toString();
+        if (rawId != null && rawId.isNotEmpty) {
           ids.add(rawId);
         }
       }
     }
 
-    final rawLegs = trip.rawJson?['legs'];
+    final rawLegs = _mapValueOrNull(trip.rawJson, 'legs');
     if (rawLegs is List) {
       for (final legJson in rawLegs.whereType<Map<String, dynamic>>()) {
-        final rawTransport = legJson['transportation'];
-        if (rawTransport is Map && rawTransport['id'] != null) {
-          final rawId = rawTransport['id'].toString();
-          if (rawId.isNotEmpty) {
+        final rawTransport = _mapValueOrNull(legJson, 'transportation');
+        if (rawTransport is Map) {
+          final typedRawTransport = Map<String, dynamic>.from(rawTransport);
+          final rawId = _mapValueOrNull(typedRawTransport, 'id')?.toString();
+          if (rawId != null && rawId.isNotEmpty) {
             ids.add(rawId);
           }
         }

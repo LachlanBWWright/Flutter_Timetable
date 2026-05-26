@@ -44,6 +44,27 @@ class LocationService {
   static const String _sortByDistance = 'distance';
   static const String _sortAlphabetically = 'alphabetical';
 
+  static double? _coordValueAt(List<double> coords, int index) {
+    if (index < 0 || index >= coords.length) {
+      return null;
+    }
+    try {
+      return coords[index];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> _setStringSafe(
+    SharedPreferences prefs,
+    String key,
+    String value,
+  ) async {
+    try {
+      await prefs.setString(key, value);
+    } catch (_) {}
+  }
+
   static Future<LocationLookupFailureReason?> _ensureLocationAccess() async {
     final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -183,12 +204,14 @@ class LocationService {
 
     for (final journey in journeys) {
       final stopCoords = await getClosestStopCoordinates(journey, database);
-      if (stopCoords != null) {
+      final lat = stopCoords == null ? null : _coordValueAt(stopCoords, 0);
+      final lon = stopCoords == null ? null : _coordValueAt(stopCoords, 1);
+      if (lat != null && lon != null) {
         final distance = calculateDistance(
           currentPosition.latitude,
           currentPosition.longitude,
-          stopCoords[0],
-          stopCoords[1],
+          lat,
+          lon,
         );
         journeysWithDistance.add(MapEntry(journey, distance));
       } else {
@@ -214,7 +237,8 @@ class LocationService {
   /// Set sorting preference
   static Future<void> setSortingPreference(bool isAlphabetical) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
+    await _setStringSafe(
+      prefs,
       _sortingPreferenceKey,
       isAlphabetical ? _sortAlphabetically : _sortByDistance,
     );

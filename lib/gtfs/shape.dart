@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class Shape {
   final String shapeId;
   final String shapePtLat;
@@ -15,19 +17,14 @@ class Shape {
 
   /// Create a Shape from a CSV row using header-based field mapping
   factory Shape.fromCsv(List<String> header, List<String> row) {
-    String? getField(String fieldName) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return null;
-      final value = row[index];
-      return value.isEmpty ? null : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
     return Shape(
-      shapeId: getField('shape_id') ?? '',
-      shapePtLat: getField('shape_pt_lat') ?? '',
-      shapePtLon: getField('shape_pt_lon') ?? '',
-      shapePtSequence: getField('shape_pt_sequence') ?? '',
-      shapeDistTraveled: getField('shape_dist_traveled'),
+      shapeId: reader.fieldOrEmpty('shape_id'),
+      shapePtLat: reader.fieldOrEmpty('shape_pt_lat'),
+      shapePtLon: reader.fieldOrEmpty('shape_pt_lon'),
+      shapePtSequence: reader.fieldOrEmpty('shape_pt_sequence'),
+      shapeDistTraveled: reader.fieldOrNull('shape_dist_traveled'),
     );
   }
 

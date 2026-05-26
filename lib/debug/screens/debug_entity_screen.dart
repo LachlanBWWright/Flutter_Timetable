@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/debug/widgets/debug_entity_page.dart';
@@ -8,10 +9,18 @@ class DebugEntityScreen extends StatelessWidget {
 
   const DebugEntityScreen({super.key, required this.args});
 
+  Future<DebugPageData?> _loadPageSafe() async {
+    try {
+      return await args.loader(args.request);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: args.loader(args.request),
+    return FutureBuilder<DebugPageData?>(
+      future: _loadPageSafe(),
       builder: (context, snapshot) {
         final title = args.request.entityType.label;
         final pageData = snapshot.data;

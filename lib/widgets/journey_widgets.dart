@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
@@ -31,6 +32,16 @@ class JourneyCard extends StatefulWidget {
 class _JourneyCardState extends State<JourneyCard> {
   bool _didNotifyVisible = false;
 
+  void _emitJourneyVisible() {
+    final onJourneyVisible = widget.onJourneyVisible;
+    if (onJourneyVisible == null) {
+      return;
+    }
+    try {
+      onJourneyVisible(widget.journey);
+    } catch (_) {}
+  }
+
   @override
   void didUpdateWidget(covariant JourneyCard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -42,10 +53,12 @@ class _JourneyCardState extends State<JourneyCard> {
   void _notifyVisible() {
     if (_didNotifyVisible) return;
     _didNotifyVisible = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      widget.onJourneyVisible?.call(widget.journey);
-    });
+    try {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _emitJourneyVisible();
+      });
+    } catch (_) {}
   }
 
   @override
@@ -171,6 +184,30 @@ class JourneyList extends StatelessWidget {
     required this.isPinnedSection,
   });
 
+  void _handleJourneyTap(Journey journey) {
+    try {
+      onJourneyTap(journey);
+    } catch (_) {}
+  }
+
+  void _handleReverseJourneyTap(Journey journey) {
+    try {
+      onReverseJourneyTap(journey);
+    } catch (_) {}
+  }
+
+  void _handleDeleteJourney(Journey journey) {
+    try {
+      onDeleteJourney(journey.id);
+    } catch (_) {}
+  }
+
+  void _handleTogglePin(Journey journey) {
+    try {
+      onTogglePin(journey.id, journey.isPinned);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -178,14 +215,17 @@ class JourneyList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: journeys.length,
       itemBuilder: (context, index) {
+        final journey = journeys.elementAtOrNull(index);
+        if (journey == null) {
+          return const SizedBox.shrink();
+        }
         return JourneyCard(
-          journey: journeys[index],
-          onTap: () => onJourneyTap(journeys[index]),
-          onReverseTap: () => onReverseJourneyTap(journeys[index]),
+          journey: journey,
+          onTap: () => _handleJourneyTap(journey),
+          onReverseTap: () => _handleReverseJourneyTap(journey),
           onJourneyVisible: onJourneyVisible,
-          onDelete: () => onDeleteJourney(journeys[index].id),
-          onTogglePin: () =>
-              onTogglePin(journeys[index].id, journeys[index].isPinned),
+          onDelete: () => _handleDeleteJourney(journey),
+          onTogglePin: () => _handleTogglePin(journey),
           isEditingMode: isEditingMode,
         );
       },
@@ -206,7 +246,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onToggleSearch;
   final VoidCallback onToggleEdit;
   final VoidCallback onToggleSort;
-  final Function(String) onSearchChanged;
+  final void Function(String) onSearchChanged;
   final TextEditingController searchController;
 
   const HomeAppBar({
@@ -225,6 +265,15 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onSearchChanged,
     required this.searchController,
   });
+
+  void _handleSortSelection(bool isAlphabetical) {
+    if (isAlphabetical == isAlphabeticalSorting) {
+      return;
+    }
+    try {
+      onToggleSort();
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -293,11 +342,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               PopupMenuButton<bool>(
                 icon: const Icon(Icons.filter_list),
                 tooltip: 'Sort trips',
-                onSelected: (isAlphabetical) {
-                  if (isAlphabetical != isAlphabeticalSorting) {
-                    onToggleSort();
-                  }
-                },
+                onSelected: _handleSortSelection,
                 itemBuilder: (context) => [
                   PopupMenuItem<bool>(
                     value: true,

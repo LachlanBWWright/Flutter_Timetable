@@ -53,11 +53,16 @@ Non-standard extensions used by NSW Transport API:
 */
 
 Map<String, String> getHeaders() {
-  final apiKey = ApiKeyService.getEffectiveApiKey();
-  return {
-    'Authorization': 'apikey $apiKey',
-    //'Accept': 'application/x-protobuf', wrong
-  };
+  try {
+    final apiKey = ApiKeyService.getEffectiveApiKey();
+    return {
+      'Authorization': 'apikey $apiKey',
+      //'Accept': 'application/x-protobuf', wrong
+    };
+  } catch (e, st) {
+    _safeLogE('Failed to build API headers: $e\n$st');
+    return const {};
+  }
 }
 
 Future<FeedMessage?> _fetchRealtimeFeed(
@@ -71,14 +76,14 @@ Future<FeedMessage?> _fetchRealtimeFeed(
     );
     final response = await http.get(url, headers: getHeaders());
     if (response.statusCode != 200) {
-      logger.e(
+      _safeLogE(
         'Failed to fetch $logLabel for $endpoint: ${response.statusCode}, ${response.body}',
       );
       return null;
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e, st) {
-    logger.e('Error fetching $logLabel for $endpoint: $e\n$st');
+    _safeLogE('Error fetching $logLabel for $endpoint: $e\n$st');
     return null;
   }
 }
@@ -107,12 +112,12 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
       }
     }
     final data = parseGtfsFiles(csvFiles);
-    logger.i(
+    _safeLogI(
       'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files, ${data.stops.length} stops',
     );
     return data;
   } catch (e, st) {
-    logger.e('Error fetching GTFS data for $endpoint: $e\n$st');
+    _safeLogE('Error fetching GTFS data for $endpoint: $e\n$st');
     return null;
   }
 }
@@ -242,211 +247,130 @@ Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/farwest');
 
 List<Agency> parseAgencyCsv(String csv) {
-  // Use a resilient CSV-to-rows helper that autodetects EOL and field delimiter.
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
-  if (rows.isEmpty) {
-    logger.w('agency.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'agency.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      Agency.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'agency.txt',
+    shouldParseNumbers: false,
+    parseRow: Agency.fromCsv,
+  );
 }
 
 List<Calendar> parseCalendarCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
-  if (rows.isEmpty) {
-    logger.w('calendar.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'calendar.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      Calendar.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'calendar.txt',
+    shouldParseNumbers: false,
+    parseRow: Calendar.fromCsv,
+  );
 }
 
 List<CalendarDate> parseCalendarDatesCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
-  if (rows.isEmpty) {
-    logger.w('calendar_dates.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'calendar_dates.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      CalendarDate.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'calendar_dates.txt',
+    shouldParseNumbers: false,
+    parseRow: CalendarDate.fromCsv,
+  );
 }
 
 List<Route> parseRoutesCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
-  if (rows.isEmpty) {
-    logger.w('routes.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'routes.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      Route.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'routes.txt',
+    shouldParseNumbers: false,
+    parseRow: Route.fromCsv,
+  );
 }
 
 List<Stop> parseStopsCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: true);
-  if (rows.isEmpty) {
-    logger.w('stops.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'stops.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      Stop.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'stops.txt',
+    shouldParseNumbers: true,
+    parseRow: Stop.fromCsv,
+  );
 }
 
 List<StopTime> parseStopTimesCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
-  if (rows.isEmpty) {
-    logger.w('stop_times.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'stop_times.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      StopTime.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'stop_times.txt',
+    shouldParseNumbers: false,
+    parseRow: StopTime.fromCsv,
+  );
 }
 
 List<Trip> parseTripsCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
-  if (rows.isEmpty) {
-    logger.w('trips.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'trips.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      Trip.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'trips.txt',
+    shouldParseNumbers: false,
+    parseRow: Trip.fromCsv,
+  );
 }
 
 List<Shape> parseShapesCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
-  if (rows.isEmpty) {
-    logger.w('shapes.txt is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'shapes.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
-
-  return [
-    for (var i = 1; i < rows.length; i++)
-      Shape.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'shapes.txt',
+    shouldParseNumbers: false,
+    parseRow: Shape.fromCsv,
+  );
 }
 
 List<Note> parseNotesCsv(String csv) {
-  final rows = _csvToRows(csv, shouldParseNumbers: false);
+  return _parseCsvRecords(
+    csv,
+    fileLabel: 'notes.txt',
+    shouldParseNumbers: false,
+    parseRow: Note.fromCsv,
+  );
+}
+
+List<T> _parseCsvRecords<T>(
+  String csv, {
+  required String fileLabel,
+  required bool shouldParseNumbers,
+  required T Function(List<String> header, List<String> row) parseRow,
+}) {
+  final rows = _csvToRows(csv, shouldParseNumbers: shouldParseNumbers);
   if (rows.isEmpty) {
-    logger.w('notes.txt is empty');
+    _safeLogW('$fileLabel is empty');
     return [];
   }
   if (rows.length < 2) {
     final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    logger.w(
-      'notes.txt contains less than 2 rows; using fallback empty list; sample="$sample"',
+    _safeLogW(
+      '$fileLabel contains less than 2 rows; using fallback empty list; sample="$sample"',
     );
     return [];
   }
 
-  // Use header-based parsing for better compatibility
-  final header = _rowToStrings(rows[0], stripLeadingBom: true);
+  final rowIterator = rows.iterator;
+  if (!rowIterator.moveNext()) {
+    _safeLogW('$fileLabel did not expose a readable header row');
+    return [];
+  }
 
-  return [
-    for (var i = 1; i < rows.length; i++)
-      Note.fromCsv(header, _rowToStrings(rows[i])),
-  ];
+  final List<String> header;
+  try {
+    header = _rowToStrings(rowIterator.current, stripLeadingBom: true);
+  } catch (e, st) {
+    _safeLogW('Failed to parse $fileLabel header row: $e\n$st');
+    return [];
+  }
+
+  final records = <T>[];
+  var rowIndex = 1;
+  for (final row in rows.skip(1)) {
+    try {
+      records.add(parseRow(header, _rowToStrings(row)));
+    } catch (e, st) {
+      _safeLogW('Skipping malformed $fileLabel row #$rowIndex: $e\n$st');
+    }
+    rowIndex++;
+  }
+  return records;
 }
 
 // Note: custom CSV line parser removed in favor of package:csv
@@ -496,7 +420,7 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
       shouldParseNumbers: shouldParseNumbers,
     ).convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
   } catch (e) {
-    logger.w(
+    _safeLogW(
       'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e',
     );
     // Fallback: try with a simple LF eol
@@ -505,17 +429,20 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
         shouldParseNumbers: shouldParseNumbers,
       ).convert(csv, eol: '\n');
     } catch (e2) {
-      logger.w('CSV parsing fallback failed: $e2');
+      _safeLogW('CSV parsing fallback failed: $e2');
       return [];
     }
   }
 }
 
 List<String> _rowToStrings(List<dynamic> row, {bool stripLeadingBom = false}) {
-  return [
-    for (var i = 0; i < row.length; i++)
-      _cellToString(row[i], stripBom: stripLeadingBom && i == 0),
-  ];
+  final values = <String>[];
+  var isFirstCell = true;
+  for (final cell in row) {
+    values.add(_cellToString(cell, stripBom: stripLeadingBom && isFirstCell));
+    isFirstCell = false;
+  }
+  return values;
 }
 
 String _cellToString(dynamic cell, {bool stripBom = false}) {
@@ -529,18 +456,18 @@ String _cellToString(dynamic cell, {bool stripBom = false}) {
 }
 
 GtfsData parseGtfsFiles(Map<String, String> files) {
-  if (files['stops.txt'] == null) {
-    logger.e('Stops.txt is missing');
+  final agencyFile = _lookupTextFile(files, 'agency.txt');
+  final calendarFile = _lookupTextFile(files, 'calendar.txt');
+  final calendarDatesFile = _lookupTextFile(files, 'calendar_dates.txt');
+  final routesFile = _lookupTextFile(files, 'routes.txt');
+  final stopsFile = _lookupTextFile(files, 'stops.txt');
+  final stopTimesFile = _lookupTextFile(files, 'stop_times.txt');
+  final tripsFile = _lookupTextFile(files, 'trips.txt');
+  final shapesFile = _lookupTextFile(files, 'shapes.txt');
+  final notesFile = _lookupTextFile(files, 'notes.txt');
+  if (stopsFile == null) {
+    _safeLogE('Stops.txt is missing');
   }
-  final agencyFile = files['agency.txt'];
-  final calendarFile = files['calendar.txt'];
-  final calendarDatesFile = files['calendar_dates.txt'];
-  final routesFile = files['routes.txt'];
-  final stopsFile = files['stops.txt'];
-  final stopTimesFile = files['stop_times.txt'];
-  final tripsFile = files['trips.txt'];
-  final shapesFile = files['shapes.txt'];
-  final notesFile = files['notes.txt'];
   return GtfsData(
     agencies: agencyFile != null ? parseAgencyCsv(agencyFile) : [],
     calendars: calendarFile != null ? parseCalendarCsv(calendarFile) : [],
@@ -565,9 +492,41 @@ List<Stop> parseStopsOnlyFromZipBytes(Uint8List bytes) {
   final archive = ZipDecoder().decodeBytes(bytes);
   for (final file in archive) {
     if (file.isFile && file.name == 'stops.txt') {
-      final csv = utf8.decode(file.content as List<int>);
-      return parseStopsCsv(csv);
+      try {
+        final csv = utf8.decode(file.content as List<int>);
+        return parseStopsCsv(csv);
+      } catch (e, st) {
+        _safeLogW('Failed to decode stops.txt from ZIP: $e\n$st');
+        return [];
+      }
     }
   }
   return [];
+}
+
+String? _lookupTextFile(Map<String, String> files, String fileName) {
+  try {
+    return files[fileName];
+  } catch (e, st) {
+    _safeLogW('Failed to look up $fileName: $e\n$st');
+    return null;
+  }
+}
+
+void _safeLogI(Object? message) {
+  try {
+    logger.i(message);
+  } catch (_) {}
+}
+
+void _safeLogW(Object? message) {
+  try {
+    logger.w(message);
+  } catch (_) {}
+}
+
+void _safeLogE(Object? message) {
+  try {
+    logger.e(message);
+  } catch (_) {}
 }

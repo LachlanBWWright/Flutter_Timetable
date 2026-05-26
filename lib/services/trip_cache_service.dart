@@ -5,7 +5,7 @@ import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/prefetch_scheduler.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:option_result/option_result.dart';
 
@@ -28,13 +28,95 @@ class TripCacheService {
   static final Map<String, Future<Result<GetTripsResponse, String>>> _inflight =
       {};
 
+  static V? _mapValueOrNull<K, V>(Map<K, V> map, K key) {
+    try {
+      for (final entry in map.entries) {
+        if (entry.key == key) {
+          return entry.value;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static void _putValue<K, V>(Map<K, V> map, K key, V value) {
+    try {
+      map.remove(key);
+      map.addAll({key: value});
+    } catch (_) {}
+  }
+
+  static void _safeLogDebug(Object? message) {
+    try {
+      logger.d(message);
+    } catch (_) {}
+  }
+
+  static void _safeLogWarning(Object? message) {
+    try {
+      logger.w(message);
+    } catch (_) {}
+  }
+
+  static bool _isCachedSafe(String originId, String destinationId) {
+    try {
+      return isCached(originId, destinationId);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<Result<GetTripsResponse, String>> _fetchTripsSafe({
+    required String originId,
+    required String destinationId,
+  }) async {
+    try {
+      return await getCachedOrFetch(
+        originId: originId,
+        destinationId: destinationId,
+      );
+    } catch (error) {
+      return Err(error.toString());
+    }
+  }
+
+  static Future<Result<GetTripsResponse, String>> _requestTripsAndPersist({
+    required String originId,
+    required String destinationId,
+  }) async {
+    final result = await TransportApiService.getTrips(
+      originId: originId,
+      destinationId: destinationId,
+    );
+    if (result case Ok(:final v)) {
+      _store(originId, destinationId, v);
+    } else if (result case Err(:final e)) {
+      await db.AppDatabase().markTripPlannerCacheError(
+        originId: originId,
+        destinationId: destinationId,
+        fetchedAt: DateTime.now(),
+        error: e,
+      );
+    }
+    return result;
+  }
+
+  static void _enqueueTripPlannerSafe({
+    required String key,
+    required Future<void> Function() job,
+  }) {
+    try {
+      PrefetchScheduler.instance.enqueueTripPlanner(key: key, job: job);
+    } catch (_) {}
+  }
+
   /// Returns a cache key for the given origin/destination pair.
   static String _key(String originId, String destinationId) =>
       '$originId|$destinationId';
 
   /// Returns true when a cache entry exists and is still fresh.
   static bool isCached(String originId, String destinationId) {
-    final entry = _cache[_key(originId, destinationId)];
+    final entry = _mapValueOrNull(_cache, _key(originId, destinationId));
     if (entry == null) return false;
     return DateTime.now().difference(entry.fetchedAt) < _ttl;
   }
@@ -46,9 +128,10 @@ class TripCacheService {
     GetTripsResponse response,
   ) {
     final fetchedAt = DateTime.now();
-    _cache[_key(originId, destinationId)] = _CachedTrip(
-      response: response,
-      fetchedAt: fetchedAt,
+    _putValue(
+      _cache,
+      _key(originId, destinationId),
+      _CachedTrip(response: response, fetchedAt: fetchedAt),
     );
     db.AppDatabase()
         .upsertTripPlannerCache(
@@ -67,9 +150,9 @@ class TripCacheService {
     required String destinationId,
   }) async {
     final key = _key(originId, destinationId);
-    final entry = _cache[key];
+    final entry = _mapValueOrNull(_cache, key);
     if (entry != null && DateTime.now().difference(entry.fetchedAt) < _ttl) {
-      logger.d('TripCacheService: cache hit for $key');
+      _safeLogDebug('TripCacheService: cache hit for $key');
       return Ok(entry.response);
     }
 
@@ -87,55 +170,47 @@ class TripCacheService {
           );
           if (response != null) {
             final fetchedAt = persisted.fetchedAt;
-            _cache[key] = _CachedTrip(response: response, fetchedAt: fetchedAt);
+            _putValue(
+              _cache,
+              key,
+              _CachedTrip(response: response, fetchedAt: fetchedAt),
+            );
             final age = DateTime.now().difference(fetchedAt);
             if (age >= _ttl) {
               _refreshInBackground(originId, destinationId);
             }
             if (age <= _renderableTtl) {
-              logger.d('TripCacheService: drift cache hit for $key');
+              _safeLogDebug('TripCacheService: drift cache hit for $key');
             } else {
-              logger.w('TripCacheService: stale drift cache hit for $key');
+              _safeLogWarning(
+                'TripCacheService: stale drift cache hit for $key',
+              );
             }
             return Ok(response);
           }
         } catch (e) {
-          logger.w(
+          _safeLogWarning(
             'TripCacheService: failed to parse drift cache for $key: $e',
           );
         }
       }
     }
 
-    final inflight = _inflight[key];
+    final inflight = _mapValueOrNull(_inflight, key);
     if (inflight != null) {
       return inflight;
     }
 
-    logger.d('TripCacheService: cache miss for $key — fetching from API');
-    final request = () async {
-      try {
-        final result = await TransportApiService.getTrips(
+    _safeLogDebug('TripCacheService: cache miss for $key — fetching from API');
+    final Future<Result<GetTripsResponse, String>> request =
+        _requestTripsAndPersist(
           originId: originId,
           destinationId: destinationId,
-        );
-        if (result case Ok(:final v)) {
-          _store(originId, destinationId, v);
-        } else if (result case Err(:final e)) {
-          await db.AppDatabase().markTripPlannerCacheError(
-            originId: originId,
-            destinationId: destinationId,
-            fetchedAt: DateTime.now(),
-            error: e,
-          );
-        }
-        return result;
-      } finally {
-        _inflight.remove(key);
-      }
-    }();
+        ).whenComplete(() {
+          _inflight.remove(key);
+        });
 
-    _inflight[key] = request;
+    _putValue(_inflight, key, request);
     return request;
   }
 
@@ -144,28 +219,14 @@ class TripCacheService {
     if (_inflight.containsKey(key)) {
       return;
     }
-    final request = () async {
-      try {
-        final result = await TransportApiService.getTrips(
+    final Future<Result<GetTripsResponse, String>> request =
+        _requestTripsAndPersist(
           originId: originId,
           destinationId: destinationId,
-        );
-        if (result case Ok(:final v)) {
-          _store(originId, destinationId, v);
-        } else if (result case Err(:final e)) {
-          await db.AppDatabase().markTripPlannerCacheError(
-            originId: originId,
-            destinationId: destinationId,
-            fetchedAt: DateTime.now(),
-            error: e,
-          );
-        }
-        return result;
-      } finally {
-        _inflight.remove(key);
-      }
-    }();
-    _inflight[key] = request;
+        ).whenComplete(() {
+          _inflight.remove(key);
+        });
+    _putValue(_inflight, key, request);
     request.ignore();
   }
 
@@ -173,13 +234,13 @@ class TripCacheService {
     if (journey.isManualMultiLeg) {
       return;
     }
-    if (isCached(journey.originId, journey.destinationId)) {
+    if (_isCachedSafe(journey.originId, journey.destinationId)) {
       return;
     }
-    PrefetchScheduler.instance.enqueueTripPlanner(
+    _enqueueTripPlannerSafe(
       key: _key(journey.originId, journey.destinationId),
       job: () async {
-        await getCachedOrFetch(
+        await _fetchTripsSafe(
           originId: journey.originId,
           destinationId: journey.destinationId,
         );
@@ -191,13 +252,13 @@ class TripCacheService {
     if (journey.isManualMultiLeg) {
       return;
     }
-    if (isCached(journey.destinationId, journey.originId)) {
+    if (_isCachedSafe(journey.destinationId, journey.originId)) {
       return;
     }
-    PrefetchScheduler.instance.enqueueTripPlanner(
+    _enqueueTripPlannerSafe(
       key: _key(journey.destinationId, journey.originId),
       job: () async {
-        await getCachedOrFetch(
+        await _fetchTripsSafe(
           originId: journey.destinationId,
           destinationId: journey.originId,
         );

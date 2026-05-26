@@ -118,6 +118,24 @@ class StopSequenceSection extends StatelessWidget {
     }
   }
 
+  void _addInterchangeAt(int insertIndex) {
+    try {
+      onAddInterchange(insertIndex);
+    } catch (_) {}
+  }
+
+  void _removeInterchangeAt(int interchangeIndex) {
+    try {
+      onRemoveInterchange(interchangeIndex);
+    } catch (_) {}
+  }
+
+  void _moveInterchangeBy(int interchangeIndex, int delta) {
+    try {
+      onMoveInterchange(interchangeIndex, delta);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     if (descriptors.isEmpty) {
@@ -126,8 +144,7 @@ class StopSequenceSection extends StatelessWidget {
 
     final widgets = <Widget>[];
 
-    for (var index = 0; index < descriptors.length; index++) {
-      final descriptor = descriptors[index];
+    for (final (index, descriptor) in descriptors.indexed) {
       widgets.add(
         Container(
           margin: const EdgeInsets.only(bottom: 8.0),
@@ -165,8 +182,8 @@ class StopSequenceSection extends StatelessWidget {
                     interchangeIndex: descriptor.interchangeIndex ?? 0,
                     canMoveUp: descriptor.canMoveUp,
                     canMoveDown: descriptor.canMoveDown,
-                    onMoveInterchange: onMoveInterchange,
-                    onRemoveInterchange: onRemoveInterchange,
+                    onMoveInterchange: _moveInterchangeBy,
+                    onRemoveInterchange: _removeInterchangeAt,
                   ),
                 ),
             ],
@@ -182,7 +199,7 @@ class StopSequenceSection extends StatelessWidget {
             insertIndex: insertIndex,
             label: 'Add leg here',
             isPending: isPending,
-            onAddInterchange: onAddInterchange,
+            onAddInterchange: _addInterchangeAt,
           ),
         );
       }
@@ -205,6 +222,12 @@ class _AddStopButton extends StatelessWidget {
   final bool isPending;
   final void Function(int insertIndex) onAddInterchange;
 
+  void _handlePressed() {
+    try {
+      onAddInterchange(insertIndex);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -212,7 +235,7 @@ class _AddStopButton extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
-          onPressed: () => onAddInterchange(insertIndex),
+          onPressed: _handlePressed,
           icon: Icon(
             isPending ? Icons.radio_button_checked : Icons.add_circle_outline,
           ),
@@ -238,6 +261,24 @@ class _InterchangeActions extends StatelessWidget {
   final void Function(int interchangeIndex, int delta) onMoveInterchange;
   final void Function(int interchangeIndex) onRemoveInterchange;
 
+  void _moveUp() {
+    try {
+      onMoveInterchange(interchangeIndex, -1);
+    } catch (_) {}
+  }
+
+  void _moveDown() {
+    try {
+      onMoveInterchange(interchangeIndex, 1);
+    } catch (_) {}
+  }
+
+  void _remove() {
+    try {
+      onRemoveInterchange(interchangeIndex);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
@@ -247,23 +288,19 @@ class _InterchangeActions extends StatelessWidget {
         IconButton(
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-          onPressed: canMoveUp
-              ? () => onMoveInterchange(interchangeIndex, -1)
-              : null,
+          onPressed: canMoveUp ? _moveUp : null,
           icon: const Icon(Icons.arrow_upward),
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-          onPressed: canMoveDown
-              ? () => onMoveInterchange(interchangeIndex, 1)
-              : null,
+          onPressed: canMoveDown ? _moveDown : null,
           icon: const Icon(Icons.arrow_downward),
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-          onPressed: () => onRemoveInterchange(interchangeIndex),
+          onPressed: _remove,
           icon: const Icon(Icons.delete_outline),
         ),
       ],

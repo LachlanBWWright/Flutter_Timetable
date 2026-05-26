@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
@@ -58,9 +60,12 @@ void main() {
 
     Future<Map<TransportMode, FeedMessage?>> getAllPositionsOverride() async =>
         {TransportMode.bus: feedBus};
-    Future<List<FeedMessage?>> getRegionBusesOverride() async =>
-        [feedRegion, null];
-    Future<List<FeedMessage?>> getAllFerriesOverride() async => <FeedMessage?>[];
+    Future<List<FeedMessage?>> getRegionBusesOverride() async => [
+      feedRegion,
+      null,
+    ];
+    Future<List<FeedMessage?>> getAllFerriesOverride() async =>
+        <FeedMessage?>[];
     Future<List<FeedMessage?>> getAllLightRailOverride() async =>
         <FeedMessage?>[feedOther];
 

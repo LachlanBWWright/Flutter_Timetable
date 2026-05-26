@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
@@ -36,8 +38,8 @@ void main() {
         home: SettingsScreen(
           debugPageLoader: pageLoader,
           debugListLoader: listLoader,
-          hasUserApiKey: () => false,
-          hasBuiltInApiKey: () => false,
+          hasUserApiKey: false,
+          hasBuiltInApiKey: false,
           stopsManagementWidget: const SizedBox.shrink(),
           stopsSearchWidget: const SizedBox.shrink(),
           realtimeInfoWidget: const SizedBox.shrink(),

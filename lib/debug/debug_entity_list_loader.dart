@@ -1,4 +1,4 @@
-import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:collection/collection.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_list_utils.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
@@ -12,19 +12,15 @@ import 'package:lbww_flutter/services/stops_service.dart';
 
 class DebugEntityListLoader {
   final DebugEntityResolver resolver;
-  final Future<List<db.Stop>> Function() _getAllDbStops;
-  final Future<List<db.Route>> Function() _getAllDbRoutes;
+  final List<db.Stop>? _preloadedDbStops;
+  final List<db.Route>? _preloadedDbRoutes;
 
   DebugEntityListLoader({
     required this.resolver,
-    Future<List<db.Stop>> Function()? getAllDbStops,
-    Future<List<db.Route>> Function()? getAllDbRoutes,
-    Future<Map<TransportMode?, Map<String, int>>> Function()?
-    getStopsCountByEndpoint,
-  }) : _getAllDbStops =
-           getAllDbStops ?? (() => StopsService.database.getAllStops()),
-       _getAllDbRoutes =
-           getAllDbRoutes ?? (() => StopsService.database.getAllRoutes());
+    List<db.Stop>? preloadedDbStops,
+    List<db.Route>? preloadedDbRoutes,
+  }) : _preloadedDbStops = preloadedDbStops,
+       _preloadedDbRoutes = preloadedDbRoutes;
 
   Future<DebugEntityListPageData> load(DebugEntityType entityType) {
     switch (entityType) {
@@ -40,7 +36,7 @@ class DebugEntityListLoader {
   }
 
   Future<DebugEntityListPageData> _loadStopList() async {
-    final rows = await _getAllDbStops();
+    final rows = _preloadedDbStops ?? await StopsService.database.getAllStops();
     final grouped = <String, List<db.Stop>>{};
     for (final row in rows) {
       grouped.putIfAbsent(row.stopId, () => <db.Stop>[]).add(row);
@@ -89,12 +85,8 @@ class DebugEntityListLoader {
             'coverage': [coverage],
             'parent_status': [parentStatus],
           };
-          if (localities.isNotEmpty) {
-            filterValues['locality'] = localities;
-          }
-          if (parentStations.isNotEmpty) {
-            filterValues['parent'] = parentStations;
-          }
+          _putFilterValues(filterValues, 'locality', localities);
+          _putFilterValues(filterValues, 'parent', parentStations);
 
           return DebugEntityListItem(
             entityType: DebugEntityType.stop,
@@ -158,7 +150,8 @@ class DebugEntityListLoader {
 
   Future<DebugEntityListPageData> _loadRouteList() async {
     final catalog = <String, _RouteListEntry>{};
-    final persistedRoutes = await _getAllDbRoutes();
+    final persistedRoutes =
+        _preloadedDbRoutes ?? await StopsService.database.getAllRoutes();
 
     for (final persistedRoute in persistedRoutes) {
       final entry = catalog.putIfAbsent(
@@ -226,13 +219,9 @@ class DebugEntityListLoader {
               entry.endpoints.map((endpoint) => endpoint.key).toList()..sort();
           final modes = entry.modes.toList()..sort();
           final filterValues = <String, List<String>>{};
-          if (modes.isNotEmpty) {
-            filterValues['mode'] = modes;
-          }
-          if (endpoints.isNotEmpty) {
-            filterValues['endpoint'] = endpoints;
-          }
-          filterValues['activity'] = [
+          _putFilterValues(filterValues, 'mode', modes);
+          _putFilterValues(filterValues, 'endpoint', endpoints);
+          _putFilterValues(filterValues, 'activity', [
             routeActivity(
               hasGtfs:
                   entry.sources.contains(DebugDataSource.gtfs) ||
@@ -241,9 +230,12 @@ class DebugEntityListLoader {
               activeTrips: entry.activeTrips,
               activeVehicles: entry.activeVehicles,
             ),
-          ];
-          filterValues['source'] =
-              entry.sources.map((source) => source.label).toList()..sort();
+          ]);
+          _putFilterValues(
+            filterValues,
+            'source',
+            entry.sources.map((source) => source.label).toList()..sort(),
+          );
 
           return DebugEntityListItem(
             entityType: DebugEntityType.route,
@@ -342,7 +334,7 @@ class DebugEntityListLoader {
       final timestamp = update.hasTimestamp()
           ? timestampFromUnixSeconds(update.timestamp.toInt())
           : null;
-      final matchedVehicle = vehiclesByTripId[tripId];
+      final matchedVehicle = _mapValue(vehiclesByTripId, tripId);
       final stopIds =
           update.stopTimeUpdate
               .where(
@@ -364,11 +356,9 @@ class DebugEntityListLoader {
         ],
       };
       if (update.trip.hasStartDate()) {
-        filterValues['service_date'] = [update.trip.startDate];
+        _putFilterValues(filterValues, 'service_date', [update.trip.startDate]);
       }
-      if (stopIds.isNotEmpty) {
-        filterValues['stop'] = stopIds;
-      }
+      _putFilterValues(filterValues, 'stop', stopIds);
 
       items.add(
         DebugEntityListItem(
@@ -468,7 +458,7 @@ class DebugEntityListLoader {
             ],
           };
           if (occupancy != 'unknown') {
-            filterValues['occupancy'] = [occupancy];
+            _putFilterValues(filterValues, 'occupancy', [occupancy]);
           }
 
           return DebugEntityListItem(
@@ -532,12 +522,12 @@ class DebugEntityListLoader {
     for (final entry in labels.entries) {
       final counts = <String, int>{};
       for (final item in items) {
-        final values = item.filterValues[entry.key] ?? const <String>[];
+        final values = _filterValuesForItem(item, entry.key);
         for (final value in values) {
           if (value.isEmpty || value == 'unknown') {
             continue;
           }
-          counts[value] = (counts[value] ?? 0) + 1;
+          _incrementCount(counts, value);
         }
       }
       if (counts.isEmpty) {
@@ -548,7 +538,7 @@ class DebugEntityListLoader {
               .map(
                 (option) => DebugEntityListFilterOption(
                   id: option.key,
-                  label: filterLabel(option.key),
+                  label: _safeFilterLabel(option.key),
                   count: option.value,
                 ),
               )
@@ -592,6 +582,57 @@ class DebugEntityListLoader {
       () => _RouteListEntry(routeId: routeId),
     );
   }
+
+  void _putFilterValues(
+    Map<String, List<String>> filterValues,
+    String key,
+    List<String> values,
+  ) {
+    if (values.isEmpty) {
+      return;
+    }
+    filterValues.addAll({key: values});
+  }
+
+  List<String> _filterValuesForItem(DebugEntityListItem item, String key) {
+    return item.filterValues.entries
+            .firstWhereOrNull((entry) => entry.key == key)
+            ?.value ??
+        const <String>[];
+  }
+
+  T? _mapValue<K, T>(Map<K, T> values, K key) {
+    return values.entries.firstWhereOrNull((entry) => entry.key == key)?.value;
+  }
+
+  void _incrementCount(Map<String, int> counts, String value) {
+    final current = _mapValue(counts, value) ?? 0;
+    counts.addAll({value: current + 1});
+  }
+
+  String _safeFilterLabel(String value) {
+    try {
+      return filterLabel(value);
+    } catch (_) {
+      return value;
+    }
+  }
+}
+
+DebugEntityListPageLoader buildDebugEntityListLoader({
+  DebugGtfsLoader? getGtfsDataForEndpoint,
+  DebugVehicleAggregationLoader? getAllVehiclesAggregated,
+  DebugTripUpdateAggregationLoader? getAllTripUpdatesAggregated,
+  DebugDbStopLoader? getDbStopsById,
+}) {
+  final resolver = DebugEntityResolver(
+    getGtfsDataForEndpoint: getGtfsDataForEndpoint,
+    getAllVehiclesAggregated: getAllVehiclesAggregated,
+    getAllTripUpdatesAggregated: getAllTripUpdatesAggregated,
+    getDbStopsById: getDbStopsById,
+  );
+  final loader = DebugEntityListLoader(resolver: resolver);
+  return loader.load;
 }
 
 class _RouteListEntry {

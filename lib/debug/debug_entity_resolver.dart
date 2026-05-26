@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/debug/debug_extractors.dart';
 import 'package:lbww_flutter/gtfs/agency.dart' as gtfs_agency;
@@ -12,6 +13,13 @@ import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' as api;
+
+typedef DebugGtfsLoader = Future<GtfsData?> Function(StopsEndpoint endpoint);
+typedef DebugVehicleAggregationLoader =
+    Future<VehiclePositionAggregationResult> Function();
+typedef DebugTripUpdateAggregationLoader =
+    Future<TripUpdateAggregationResult> Function();
+typedef DebugDbStopLoader = Future<List<db.Stop>> Function(String stopId);
 
 class DebugResolvedGtfsRoute {
   final gtfs_route.Route route;
@@ -54,10 +62,10 @@ class DebugDerivedVehicleStops {
 }
 
 class DebugEntityResolver {
-  final Future<GtfsData?> Function(StopsEndpoint endpoint) _getGtfsData;
-  final Future<VehiclePositionAggregationResult> Function() _getVehicles;
-  final Future<TripUpdateAggregationResult> Function() _getTripUpdates;
-  final Future<List<db.Stop>> Function(String stopId) _getDbStops;
+  final DebugGtfsLoader _getGtfsData;
+  final DebugVehicleAggregationLoader _getVehicles;
+  final DebugTripUpdateAggregationLoader _getTripUpdates;
+  final DebugDbStopLoader _getDbStops;
 
   final Map<StopsEndpoint, Future<GtfsData?>> _gtfsCache = {};
   final Map<String, Future<List<db.Stop>>> _dbStopsCache = {};
@@ -65,11 +73,10 @@ class DebugEntityResolver {
   Future<TripUpdateAggregationResult>? _tripUpdatesCache;
 
   DebugEntityResolver({
-    Future<GtfsData?> Function(StopsEndpoint endpoint)? getGtfsDataForEndpoint,
-    Future<VehiclePositionAggregationResult> Function()?
-    getAllVehiclesAggregated,
-    Future<TripUpdateAggregationResult> Function()? getAllTripUpdatesAggregated,
-    Future<List<db.Stop>> Function(String stopId)? getDbStopsById,
+    DebugGtfsLoader? getGtfsDataForEndpoint,
+    DebugVehicleAggregationLoader? getAllVehiclesAggregated,
+    DebugTripUpdateAggregationLoader? getAllTripUpdatesAggregated,
+    DebugDbStopLoader? getDbStopsById,
   }) : _getGtfsData =
            getGtfsDataForEndpoint ?? NewTripService.fetchGtfsDataForEndpoint,
        _getVehicles =
@@ -80,20 +87,64 @@ class DebugEntityResolver {
            RealtimeService.getAllTripUpdatesAggregated,
        _getDbStops = getDbStopsById ?? StopsService.database.getStopsById;
 
+  Future<List<db.Stop>> _fetchDbStops(String stopId) async {
+    try {
+      return await _getDbStops(stopId);
+    } catch (_) {
+      return const <db.Stop>[];
+    }
+  }
+
+  Future<VehiclePositionAggregationResult> _fetchVehicles() async {
+    try {
+      return await _getVehicles();
+    } catch (_) {
+      return const VehiclePositionAggregationResult(
+        vehicles: <VehiclePosition>[],
+        breakdown: <String, int>{},
+      );
+    }
+  }
+
+  Future<TripUpdateAggregationResult> _fetchTripUpdates() async {
+    try {
+      return await _getTripUpdates();
+    } catch (_) {
+      return const TripUpdateAggregationResult(
+        tripUpdates: <TripUpdate>[],
+        breakdown: <String, int>{},
+      );
+    }
+  }
+
+  Future<GtfsData?> _fetchGtfs(StopsEndpoint endpoint) async {
+    try {
+      return await _getGtfsData(endpoint);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  StopsEndpoint? _endpointForKey(String key) {
+    return StopsEndpoint.values.firstWhereOrNull(
+      (endpoint) => endpoint.key == key,
+    );
+  }
+
   Future<List<db.Stop>> lookupDbStops(String stopId) {
-    return _dbStopsCache.putIfAbsent(stopId, () => _getDbStops(stopId));
+    return _dbStopsCache.putIfAbsent(stopId, () => _fetchDbStops(stopId));
   }
 
   Future<VehiclePositionAggregationResult> vehicleAggregation() {
-    return _vehiclesCache ??= _getVehicles();
+    return _vehiclesCache ??= _fetchVehicles();
   }
 
   Future<TripUpdateAggregationResult> tripUpdateAggregation() {
-    return _tripUpdatesCache ??= _getTripUpdates();
+    return _tripUpdatesCache ??= _fetchTripUpdates();
   }
 
   Future<GtfsData?> loadGtfsForEndpoint(StopsEndpoint endpoint) {
-    return _gtfsCache.putIfAbsent(endpoint, () => _getGtfsData(endpoint));
+    return _gtfsCache.putIfAbsent(endpoint, () => _fetchGtfs(endpoint));
   }
 
   Future<List<VehiclePosition>> matchVehicles({
@@ -207,13 +258,14 @@ class DebugEntityResolver {
       );
     }
 
-    final matched = candidates.firstWhere(
-      (candidate) =>
-          tripId != null &&
-          candidate.trip.hasTripId() &&
-          candidate.trip.tripId == tripId,
-      orElse: () => candidates.first,
-    );
+    final matched =
+        candidates.firstWhereOrNull(
+          (candidate) =>
+              tripId != null &&
+              candidate.trip.hasTripId() &&
+              candidate.trip.tripId == tripId,
+        ) ??
+        candidates.first;
 
     final updates = matched.stopTimeUpdate.toList()
       ..sort((left, right) => left.stopSequence.compareTo(right.stopSequence));
@@ -242,7 +294,7 @@ class DebugEntityResolver {
     }
 
     currentStop ??= updates.first;
-    nextStop ??= updates.length > 1 ? updates[1] : null;
+    nextStop ??= updates.skip(1).firstOrNull;
 
     final reason = tripId != null && tripId.isNotEmpty
         ? 'Matched by realtime tripId.'
@@ -370,11 +422,8 @@ class DebugEntityResolver {
     orderedHints.addAll(endpointHints);
 
     final dbRows = await lookupDbStops(stopId);
-    final endpointByKey = {
-      for (final endpoint in StopsEndpoint.values) endpoint.key: endpoint,
-    };
     for (final row in dbRows) {
-      final endpoint = endpointByKey[row.endpoint];
+      final endpoint = _endpointForKey(row.endpoint);
       if (endpoint != null) {
         orderedHints.add(endpoint);
       }
@@ -424,13 +473,10 @@ class DebugEntityResolver {
       );
     }
 
-    final endpointByKey = <String, StopsEndpoint>{
-      for (final endpoint in StopsEndpoint.values) endpoint.key: endpoint,
-    };
     for (final stopId in stopIds.where((stopId) => stopId.isNotEmpty)) {
       final rows = await lookupDbStops(stopId);
       for (final row in rows) {
-        final endpoint = endpointByKey[row.endpoint];
+        final endpoint = _endpointForKey(row.endpoint);
         if (endpoint != null) {
           ordered.add(endpoint);
         }

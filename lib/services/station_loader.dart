@@ -12,12 +12,26 @@ import 'package:lbww_flutter/widgets/station_widgets.dart';
 /// the app to pick up the new data.
 final Map<TransportMode, List<Station>> _stationCache = {};
 
+List<Station>? _cachedStationsForMode(TransportMode mode) {
+  try {
+    return _stationCache[mode];
+  } catch (_) {
+    return null;
+  }
+}
+
+void _cacheStationsForMode(TransportMode mode, List<Station> stations) {
+  try {
+    _stationCache[mode] = stations;
+  } catch (_) {}
+}
+
 /// Load stations for a mode from the local database only (no API fetch).
 /// Results are cached in memory so repeated calls are instantaneous.
 ///
 /// This was extracted from `NewTripScreen` to keep DB loading logic reusable.
 Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
-  final cachedStations = _stationCache[mode];
+  final cachedStations = _cachedStationsForMode(mode);
   if (cachedStations != null) {
     return cachedStations;
   }
@@ -26,7 +40,7 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
   final stations = await loadStationsFromDbForEndpoints(endpoints);
 
   // Store in memory cache for future calls
-  _stationCache[mode] = stations;
+  _cacheStationsForMode(mode, stations);
   return stations;
 }
 

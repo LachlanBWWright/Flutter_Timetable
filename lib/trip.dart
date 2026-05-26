@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
@@ -29,8 +30,29 @@ class _TripScreenState extends State<TripScreen> {
 
   String? _rawTripJson;
 
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  void _pushLegDetail(Leg leg, TripJourney tripJourney) {
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              TripLegDetailScreen(leg: leg, trip: tripJourney),
+        ),
+      );
+    } catch (_) {}
+  }
+
   Future<void> getTripData() async {
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
       _error = null;
     });
@@ -42,7 +64,7 @@ class _TripScreenState extends State<TripScreen> {
 
       if (!context.mounted) return;
 
-      setState(() {
+      _safeSetState(() {
         trips = manualJourney == null ? [] : [manualJourney];
         _rawTripJson = prettyPrintRawJson(manualJourney?.rawJson);
         _error = manualJourney == null
@@ -62,7 +84,7 @@ class _TripScreenState extends State<TripScreen> {
 
     switch (result) {
       case Ok(:final v):
-        setState(() {
+        _safeSetState(() {
           trips = sortTripJourneysForDisplay(v.tripJourneys);
           testText = v.toString();
           _rawTripJson = prettyPrintRawJson(v.rawJson);
@@ -73,7 +95,7 @@ class _TripScreenState extends State<TripScreen> {
         // the trip leg detail map loads faster when the user taps a leg.
         RealtimeService.prefetchAggregates().ignore();
       case Err(:final e):
-        setState(() {
+        _safeSetState(() {
           _error = e;
           _isLoading = false;
         });
@@ -217,21 +239,14 @@ class _TripScreenState extends State<TripScreen> {
             : ListView(
                 children: [
                   ...List.generate(trips.length, (index) {
+                    final tripJourney = trips.elementAtOrNull(index);
+                    if (tripJourney == null) {
+                      return const SizedBox.shrink();
+                    }
                     return TripCard(
-                      trip: trips[index],
+                      trip: tripJourney,
                       onVisible: (trip) => _prefetchVisibleTrip(trip, index),
-                      onSelectLeg: (leg) {
-                        final tripJourney = trips[index];
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TripLegDetailScreen(
-                              leg: leg,
-                              trip: tripJourney,
-                            ),
-                          ),
-                        );
-                      },
+                      onSelectLeg: (leg) => _pushLegDetail(leg, tripJourney),
                     );
                   }),
                 ],

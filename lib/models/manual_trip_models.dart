@@ -52,6 +52,42 @@ class ManualTripDecodeFailure {
   String toString() => message;
 }
 
+Object? _jsonValueOrNull(Map<String, dynamic> json, String key) {
+  try {
+    return json[key];
+  } catch (_) {
+    return null;
+  }
+}
+
+String _stringValueOrEmpty(Map<String, dynamic> json, String key) {
+  return _jsonValueOrNull(json, key)?.toString() ?? '';
+}
+
+String? _stringValueOrNull(Map<String, dynamic> json, String key) {
+  return _jsonValueOrNull(json, key)?.toString();
+}
+
+void _safeLogWarning(String message) {
+  try {
+    logger.w(message);
+  } catch (_) {}
+}
+
+String? _reversedLegsJsonOrFallback(
+  ManualTripDefinition? manualDefinition,
+  String? fallbackLegsJson,
+) {
+  if (manualDefinition == null) {
+    return fallbackLegsJson;
+  }
+  try {
+    return manualDefinition.reversed().toLegsJson();
+  } catch (_) {
+    return fallbackLegsJson;
+  }
+}
+
 class ManualTripLeg {
   const ManualTripLeg({
     required this.index,
@@ -94,7 +130,8 @@ class ManualTripLeg {
     TransportMode? fallbackMode,
   }) {
     final parsedMode =
-        transportModeFromStorage(json['mode']?.toString()) ?? fallbackMode;
+        transportModeFromStorage(_jsonValueOrNull(json, 'mode')?.toString()) ??
+        fallbackMode;
     if (parsedMode == null) {
       return const Err(
         ManualTripDecodeFailure('Manual trip leg is missing a valid mode'),
@@ -103,15 +140,15 @@ class ManualTripLeg {
 
     return Ok(
       ManualTripLeg(
-        index: (json['index'] as num?)?.toInt() ?? 0,
-        originName: json['originName']?.toString() ?? '',
-        originId: json['originId']?.toString() ?? '',
-        destinationName: json['destinationName']?.toString() ?? '',
-        destinationId: json['destinationId']?.toString() ?? '',
+        index: tryParseIntValue(_jsonValueOrNull(json, 'index')) ?? 0,
+        originName: _stringValueOrEmpty(json, 'originName'),
+        originId: _stringValueOrEmpty(json, 'originId'),
+        destinationName: _stringValueOrEmpty(json, 'destinationName'),
+        destinationId: _stringValueOrEmpty(json, 'destinationId'),
         mode: parsedMode,
-        lineId: json['lineId']?.toString(),
-        lineName: json['lineName']?.toString(),
-        endpointKey: json['endpointKey']?.toString(),
+        lineId: _stringValueOrNull(json, 'lineId'),
+        lineName: _stringValueOrNull(json, 'lineName'),
+        endpointKey: _stringValueOrNull(json, 'endpointKey'),
       ),
     );
   }
@@ -127,20 +164,23 @@ class ManualTripDefinition {
       return false;
     }
 
-    for (var index = 0; index < legs.length; index++) {
-      final leg = legs[index];
+    var expectedIndex = 0;
+    ManualTripLeg? previousLeg;
+    for (final leg in legs) {
       if (leg.originId.isEmpty || leg.destinationId.isEmpty) {
         return false;
       }
       if (leg.originId == leg.destinationId) {
         return false;
       }
-      if (leg.index != index) {
+      if (leg.index != expectedIndex) {
         return false;
       }
-      if (index > 0 && legs[index - 1].destinationId != leg.originId) {
+      if (previousLeg != null && previousLeg.destinationId != leg.originId) {
         return false;
       }
+      previousLeg = leg;
+      expectedIndex += 1;
     }
 
     return true;
@@ -189,7 +229,7 @@ class ManualTripDefinition {
         );
       }
 
-      final result = ManualTripLeg.tryDecode(legJson, fallbackMode: legacyMode);
+      final result = _tryDecodeLeg(legJson, fallbackMode: legacyMode);
       switch (result) {
         case Ok(:final v):
           var leg = v;
@@ -224,13 +264,19 @@ extension ManualTripDefinitionX on ManualTripDefinition {
       return const ManualTripDefinition(legs: []);
     }
 
-    final reversedLegs = List<ManualTripLeg>.generate(
-      reversedStops.length - 1,
-      (index) {
-        final origin = reversedStops[index];
-        final destination = reversedStops[index + 1];
-        final currentLeg = legs[legs.length - 1 - index];
-        return ManualTripLeg(
+    final reversedLegs = <ManualTripLeg>[];
+    final stopIterator = reversedStops.iterator;
+    final legIterator = legs.reversed.iterator;
+    if (!stopIterator.moveNext()) {
+      return const ManualTripDefinition(legs: []);
+    }
+    var origin = stopIterator.current;
+    var index = 0;
+    while (stopIterator.moveNext() && legIterator.moveNext()) {
+      final destination = stopIterator.current;
+      final currentLeg = legIterator.current;
+      reversedLegs.add(
+        ManualTripLeg(
           index: index,
           originName: origin.name,
           originId: origin.id,
@@ -240,9 +286,11 @@ extension ManualTripDefinitionX on ManualTripDefinition {
           lineId: currentLeg.lineId,
           lineName: currentLeg.lineName,
           endpointKey: currentLeg.endpointKey,
-        );
-      },
-    );
+        ),
+      );
+      origin = destination;
+      index += 1;
+    }
 
     return ManualTripDefinition(legs: reversedLegs);
   }
@@ -272,7 +320,7 @@ extension JourneySavedTripX on Journey {
       return null;
     }
 
-    final result = ManualTripDefinition.tryDecodeFromLegsJson(
+    final result = _tryDecodeManualTripDefinition(
       legsJson: resolvedLegsJson,
       legacyMode: savedMode,
       legacyLineId: lineId,
@@ -282,7 +330,9 @@ extension JourneySavedTripX on Journey {
       case Ok(:final v):
         return v.isValid ? v : null;
       case Err(:final e):
-        logger.w('Failed to decode manual trip definition for journey $id: $e');
+        _safeLogWarning(
+          'Failed to decode manual trip definition for journey $id: $e',
+        );
         return null;
     }
   }
@@ -299,8 +349,40 @@ extension JourneySavedTripX on Journey {
       mode: mode,
       lineId: lineId,
       lineName: lineName,
-      legsJson: manualDefinition?.reversed().toLegsJson() ?? legsJson,
+      legsJson: _reversedLegsJsonOrFallback(manualDefinition, legsJson),
       isPinned: isPinned,
+    );
+  }
+}
+
+Result<ManualTripLeg, ManualTripDecodeFailure> _tryDecodeLeg(
+  Map<String, dynamic> json, {
+  TransportMode? fallbackMode,
+}) {
+  try {
+    return ManualTripLeg.tryDecode(json, fallbackMode: fallbackMode);
+  } catch (e) {
+    return Err(ManualTripDecodeFailure('Failed to decode manual trip leg: $e'));
+  }
+}
+
+Result<ManualTripDefinition, ManualTripDecodeFailure>
+_tryDecodeManualTripDefinition({
+  required String legsJson,
+  TransportMode? legacyMode,
+  String? legacyLineId,
+  String? legacyLineName,
+}) {
+  try {
+    return ManualTripDefinition.tryDecodeFromLegsJson(
+      legsJson: legsJson,
+      legacyMode: legacyMode,
+      legacyLineId: legacyLineId,
+      legacyLineName: legacyLineName,
+    );
+  } catch (e) {
+    return Err(
+      ManualTripDecodeFailure('Failed to decode manual trip definition: $e'),
     );
   }
 }

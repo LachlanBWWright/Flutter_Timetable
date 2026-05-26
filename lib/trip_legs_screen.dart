@@ -12,6 +12,17 @@ class TripLegScreen extends StatefulWidget {
 }
 
 class _TripLegScreenState extends State<TripLegScreen> {
+  Leg? _legAtOrNull(List<Leg> legs, int index) {
+    if (index < 0 || index >= legs.length) {
+      return null;
+    }
+    try {
+      return legs[index];
+    } catch (_) {
+      return null;
+    }
+  }
+
   String _calculateWaitTime(Leg currentLeg, Leg nextLeg) {
     try {
       // Get arrival time of current leg
@@ -58,7 +69,13 @@ class _TripLegScreenState extends State<TripLegScreen> {
       return const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16);
     }
 
-    final waitTime = _calculateWaitTime(legs[index], legs[index + 1]);
+    final currentLeg = _legAtOrNull(legs, index);
+    final nextLeg = _legAtOrNull(legs, index + 1);
+    if (currentLeg == null || nextLeg == null) {
+      return const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16);
+    }
+
+    final waitTime = _calculateWaitTime(currentLeg, nextLeg);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -96,6 +113,14 @@ class _TripLegScreenState extends State<TripLegScreen> {
     );
   }
 
+  Widget _buildSeparatorSafe(int index, List<Leg> legs) {
+    try {
+      return _buildSeparator(index, legs);
+    } catch (_) {
+      return const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final legs = widget.trip.legs;
@@ -104,12 +129,15 @@ class _TripLegScreenState extends State<TripLegScreen> {
       appBar: AppBar(title: const Text('Trip Legs')),
       body: ListView.separated(
         itemBuilder: (context, index) {
-          final legByIdx = legs[index];
+          final legByIdx = _legAtOrNull(legs, index);
+          if (legByIdx == null) {
+            return const SizedBox.shrink();
+          }
 
           return TripLegCard(leg: legByIdx, trip: widget.trip);
         },
         separatorBuilder: (context, index) {
-          return _buildSeparator(index, legs);
+          return _buildSeparatorSafe(index, legs);
         },
         itemCount: legs.length,
       ),

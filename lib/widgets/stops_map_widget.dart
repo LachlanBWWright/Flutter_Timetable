@@ -26,7 +26,7 @@ import '../utils/stops_map_utils.dart';
 class StopsMapWidget extends StatefulWidget {
   final TransportMode transportMode;
   final String modeDisplayName;
-  final Function(String, String) onStopSelected;
+  final void Function(String stopName, String stopId) onStopSelected;
   final List<StopsEndpoint>? endpoints;
   final Set<String>? allowedStopIds;
 
@@ -64,6 +64,52 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   double _currentZoom = 10.0;
   bool _showZoomWarning = false;
   Timer? _zoomDebounce;
+
+  void _safeSetState(VoidCallback update) {
+    if (!mounted) {
+      return;
+    }
+    try {
+      setState(update);
+    } catch (_) {}
+  }
+
+  void _safePop() {
+    if (!mounted) {
+      return;
+    }
+    try {
+      Navigator.of(context).pop();
+    } catch (_) {}
+  }
+
+  void _selectStop(Stop stop) {
+    final onStopSelected = widget.onStopSelected;
+    try {
+      onStopSelected(stop.stopName, stop.stopId);
+    } catch (_) {}
+  }
+
+  void _closeEmbeddedMap() {
+    final onClose = widget.onClose;
+    if (onClose == null) {
+      return;
+    }
+    try {
+      onClose();
+    } catch (_) {}
+  }
+
+  void _runPendingMapAction() {
+    final action = _pendingMapAction;
+    _pendingMapAction = null;
+    if (action == null) {
+      return;
+    }
+    try {
+      action();
+    } catch (_) {}
+  }
 
   @override
   void initState() {
@@ -103,7 +149,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
   }
 
   Future<void> _loadStopsAndLocation() async {
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
       _error = null;
     });
@@ -126,7 +172,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
       }).toList();
       _buildMarkerCache();
 
-      setState(() {
+      _safeSetState(() {
         _isLoading = false;
       });
 
@@ -151,7 +197,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() {
+      _safeSetState(() {
         _error = e.toString();
         _isLoading = false;
       });
@@ -333,7 +379,7 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
               _zoomDebounce?.cancel();
               _zoomDebounce = Timer(const Duration(milliseconds: 150), () {
                 if (!mounted) return;
-                setState(() {
+                _safeSetState(() {
                   _currentZoom = position.zoom;
                   _showZoomWarning = shouldShowBusZoomWarning(
                     mode: widget.transportMode,
@@ -344,14 +390,10 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
             },
             onMapReady: () {
               // Mark map as ready and run any pending map action
-              setState(() {
+              _safeSetState(() {
                 _mapIsReady = true;
               });
-              if (_pendingMapAction != null) {
-                final action = _pendingMapAction;
-                _pendingMapAction = null;
-                action?.call();
-              }
+              _runPendingMapAction();
             },
           ),
           children: [
@@ -549,14 +591,14 @@ class _StopsMapWidgetState extends State<StopsMapWidget> {
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () {
-                        widget.onStopSelected(stop.stopName, stop.stopId);
-                        Navigator.of(context).pop(); // Close the bottom sheet
+                        _selectStop(stop);
+                        _safePop();
                         if (!widget.embedded) {
                           // Also close the map page when not embedded
-                          Navigator.of(context).pop();
+                          _safePop();
                         } else {
                           // In embedded mode notify the parent to dismiss the map view
-                          widget.onClose?.call();
+                          _closeEmbeddedMap();
                         }
                       },
                       child: const Text('Select Stop'),

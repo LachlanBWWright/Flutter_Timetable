@@ -7,7 +7,9 @@ Map<String, int> flattenStopsCountByEndpoint(
   final flattened = <String, int>{};
   for (final group in grouped.values) {
     for (final entry in group.entries) {
-      flattened[entry.key] = entry.value;
+      try {
+        flattened[entry.key] = entry.value;
+      } catch (_) {}
     }
   }
   return flattened;
@@ -42,8 +44,9 @@ String formatEndpointDisplayName(String endpointKey) {
       .replaceAll('_', ' ')
       .split(' ')
       .map(
-        (word) =>
-            word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : word,
+        (word) => word.isNotEmpty
+            ? word.substring(0, 1).toUpperCase() + word.substring(1)
+            : word,
       )
       .join(' ');
 }

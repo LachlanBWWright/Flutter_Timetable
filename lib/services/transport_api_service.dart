@@ -1,10 +1,59 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart' show Logger;
 import 'package:option_result/option_result.dart';
-import '../logs/logger.dart';
+import '../logs/logger.dart' as app_logger;
 import '../utils/safe_value_utils.dart';
 import 'api_key_service.dart';
+
+final logger = _SafeLogger(app_logger.logger);
+
+class _SafeLogger {
+  const _SafeLogger(this._logger);
+
+  final Logger _logger;
+
+  void d(Object? message) {
+    try {
+      _logger.d(message);
+    } catch (_) {}
+  }
+
+  void e(Object? message) {
+    try {
+      _logger.e(message);
+    } catch (_) {}
+  }
+
+  void i(Object? message) {
+    try {
+      _logger.i(message);
+    } catch (_) {}
+  }
+
+  void w(Object? message) {
+    try {
+      _logger.w(message);
+    } catch (_) {}
+  }
+}
+
+bool? _readBoolValue(Map<String, dynamic> json, String key) {
+  final value = tryReadMapValue(json, key);
+  if (value is bool) {
+    return value;
+  }
+  if (value is String) {
+    if (value.toLowerCase() == 'true') {
+      return true;
+    }
+    if (value.toLowerCase() == 'false') {
+      return false;
+    }
+  }
+  return null;
+}
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
@@ -18,21 +67,34 @@ class TransportApiService {
 
   /// Get the effective API key (user override or built-in .env key).
   static Future<String?> _getApiKey() async {
-    final key = ApiKeyService.getEffectiveApiKey();
-    return key.isEmpty ? null : key;
+    try {
+      final key = ApiKeyService.getEffectiveApiKey();
+      if (key.isEmpty) return null;
+      return key;
+    } catch (e, st) {
+      logger.e('ApiKeyService.getEffectiveApiKey failed: $e');
+      logger.e(st);
+      return null;
+    }
   }
 
   static Future<http.Response?> _authorizedGet(
     String path,
     Map<String, String> params,
   ) async {
-    final apiKey = await _getApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
+    try {
+      final apiKey = await _getApiKey();
+      if (apiKey == null || apiKey.isEmpty) {
+        return null;
+      }
+
+      final uri = Uri.https(_baseUrl, path, params);
+      return http.get(uri, headers: {'authorization': 'apikey $apiKey'});
+    } catch (e, st) {
+      logger.w('Transport API request failed for $path: $e');
+      logger.w(st);
       return null;
     }
-
-    final uri = Uri.https(_baseUrl, path, params);
-    return http.get(uri, headers: {'authorization': 'apikey $apiKey'});
   }
 
   /// Test if API key is valid
@@ -84,19 +146,19 @@ class TransportApiService {
           'Failed to search stations: response was not a JSON object',
         );
       }
-      final locationsRaw = data['locations'];
-      final locations = locationsRaw is List ? locationsRaw : const [];
+      final locationsRaw = tryReadListValue(data, 'locations');
+      final locations = locationsRaw ?? const [];
 
       return Ok(
         locations.map((location) {
           final loc = location is Map<String, dynamic> ? location : null;
-          final disassembledName = loc?['disassembledName']?.toString();
-          final fallbackName = loc?['name']?.toString() ?? '';
+          final disassembledName = tryReadStringValue(loc, 'disassembledName');
+          final fallbackName = tryReadStringValue(loc, 'name') ?? '';
           final name = (disassembledName != null && disassembledName.isNotEmpty)
               ? disassembledName
               : fallbackName;
-          final id = loc?['id']?.toString() ?? '';
-          final type = loc?['type']?.toString();
+          final id = tryReadStringValue(loc, 'id') ?? '';
+          final type = tryReadStringValue(loc, 'type');
           return {
             'name': name,
             'displayName': fallbackName,
@@ -105,8 +167,9 @@ class TransportApiService {
           };
         }).toList(),
       );
-    } catch (e) {
+    } catch (e, st) {
       logger.e('Error searching stations: $e');
+      logger.e(st);
       return Err(e.toString());
     }
   }
@@ -149,14 +212,14 @@ class TransportApiService {
       if (data == null) {
         return const Err('Failed to get trips: response was not a JSON object');
       }
-      final journeys = data['journeys'];
-      final journeysCount = journeys is List ? journeys.length : 0;
+      final journeys = tryReadListValue(data, 'journeys');
+      final journeysCount = journeys?.length ?? 0;
       logger.i(
         'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId',
       );
       return Ok(GetTripsResponse.fromJson(data));
     } catch (e, st) {
-      logger.e(e);
+      logger.e('getTrips error: $e');
       logger.e(st);
       return Err(e.toString());
     }
@@ -191,17 +254,14 @@ class GetTripsResponse {
     String? version;
 
     // Parse tripJourneys
-    final journeysJson = json['journeys'];
+    final journeysJson = tryReadListValue(json, 'journeys');
     if (journeysJson == null) {
       logger.w('GetTripsResponse.fromJson: "journeys" key is null or missing');
-    } else if (journeysJson is! List) {
-      logger.w(
-        'GetTripsResponse.fromJson: "journeys" is not a List, type=${journeysJson.runtimeType}',
-      );
     } else {
       tripJourneys = [];
-      for (var idx = 0; idx < journeysJson.length; idx++) {
-        final journey = journeysJson[idx];
+      for (final entry in journeysJson.indexed) {
+        final idx = entry.$1;
+        final journey = entry.$2;
         if (journey is! Map<String, dynamic>) {
           logger.w(
             'GetTripsResponse.fromJson: journey #$idx is not a Map, type=${journey.runtimeType}',
@@ -224,7 +284,7 @@ class GetTripsResponse {
 
     // Parse systemMessages (handle both list and object)
     try {
-      final systemMessagesJson = json['systemMessages'];
+      final systemMessagesJson = tryReadMapValue(json, 'systemMessages');
       if (systemMessagesJson == null) {
         // systemMessages is null or missing
         // systemMessages type: ${systemMessagesJson.runtimeType}
@@ -238,7 +298,7 @@ class GetTripsResponse {
 
     // Parse version
     try {
-      version = json['version'];
+      version = tryReadStringValue(json, 'version');
       // version: $version
       if (version == null) {
         // version is null or missing
@@ -276,21 +336,18 @@ class TripJourney {
 
   factory TripJourney.fromJson(Map<String, dynamic> json) {
     // TripJourney raw json keys logged (removed)
-    final legsJson = json['legs'];
+    final legsJson = tryReadListValue(json, 'legs');
     if (legsJson == null) {
       logger.w(
         'TripJourney.fromJson: "legs" is null or missing for journey keys=${json.keys.toList()}',
       );
-    } else if (legsJson is! List) {
-      logger.w(
-        'TripJourney.fromJson: "legs" is not a List, type=${legsJson.runtimeType}',
-      );
     }
 
     final List<Leg> legsList = [];
-    if (legsJson is List) {
-      for (var i = 0; i < legsJson.length; i++) {
-        final legJson = legsJson[i];
+    if (legsJson != null) {
+      for (final entry in legsJson.indexed) {
+        final i = entry.$1;
+        final legJson = entry.$2;
         if (legJson is! Map<String, dynamic>) {
           logger.w(
             'TripJourney.fromJson: leg #$i is not a Map, type=${legJson.runtimeType}',
@@ -309,9 +366,9 @@ class TripJourney {
       }
     }
     return TripJourney(
-      isAdditional: json['isAdditional'],
+      isAdditional: _readBoolValue(json, 'isAdditional'),
       legs: legsList,
-      rating: json['rating'],
+      rating: tryParseIntValue(tryReadMapValue(json, 'rating')),
       rawJson: json,
     );
   }
@@ -362,22 +419,18 @@ class Leg {
     // --- coords ---
     List<List<double>>? coords;
     try {
-      final rawCoords = json['coords'];
+      final rawCoords = tryReadListValue(json, 'coords');
       if (rawCoords != null) {
-        if (rawCoords is! List) {
-          logger.w(
-            'Leg.fromJson: "coords" is not a List, type=${rawCoords.runtimeType}',
-          );
-        } else {
-          coords = [];
-          for (var ci = 0; ci < rawCoords.length; ci++) {
-            final parsedCoord = tryParseDoubleList(rawCoords[ci], minLength: 2);
-            if (parsedCoord == null) {
-              logger.w('Leg.fromJson: failed to parse coords[$ci]');
-              continue;
-            }
-            coords.add(parsedCoord);
+        coords = [];
+        for (final entry in rawCoords.indexed) {
+          final ci = entry.$1;
+          final rawCoord = entry.$2;
+          final parsedCoord = tryParseDoubleList(rawCoord, minLength: 2);
+          if (parsedCoord == null) {
+            logger.w('Leg.fromJson: failed to parse coords[$ci]');
+            continue;
           }
+          coords.add(parsedCoord);
         }
       }
     } catch (e) {
@@ -457,26 +510,20 @@ class Leg {
     // --- footPathInfo ---
     List<FootPathInfo>? footPathInfo;
     try {
-      final raw = json['footPathInfo'];
+      final raw = tryReadListValue(json, 'footPathInfo');
       if (raw != null) {
-        if (raw is! List) {
-          logger.w(
-            'Leg.fromJson: "footPathInfo" is not a List, type=${raw.runtimeType}',
-          );
-        } else {
-          footPathInfo = [];
-          for (var i = 0; i < raw.length; i++) {
-            try {
-              if (raw[i] is! Map<String, dynamic>) {
-                logger.w(
-                  'Leg.fromJson: footPathInfo[$i] is not a Map; skipping',
-                );
-                continue;
-              }
-              footPathInfo.add(FootPathInfo.fromJson(raw[i]));
-            } catch (e) {
-              logger.w('Leg.fromJson: failed to parse footPathInfo[$i]: $e');
+        footPathInfo = [];
+        for (final entry in raw.indexed) {
+          final i = entry.$1;
+          final rawValue = entry.$2;
+          try {
+            if (rawValue is! Map<String, dynamic>) {
+              logger.w('Leg.fromJson: footPathInfo[$i] is not a Map; skipping');
+              continue;
             }
+            footPathInfo.add(FootPathInfo.fromJson(rawValue));
+          } catch (e) {
+            logger.w('Leg.fromJson: failed to parse footPathInfo[$i]: $e');
           }
         }
       }
@@ -487,24 +534,20 @@ class Leg {
     // --- hints ---
     List<Hint>? hints;
     try {
-      final raw = json['hints'];
+      final raw = tryReadListValue(json, 'hints');
       if (raw != null) {
-        if (raw is! List) {
-          logger.w(
-            'Leg.fromJson: "hints" is not a List, type=${raw.runtimeType}',
-          );
-        } else {
-          hints = [];
-          for (var i = 0; i < raw.length; i++) {
-            try {
-              if (raw[i] is! Map<String, dynamic>) {
-                logger.w('Leg.fromJson: hints[$i] is not a Map; skipping');
-                continue;
-              }
-              hints.add(Hint.fromJson(raw[i]));
-            } catch (e) {
-              logger.w('Leg.fromJson: failed to parse hints[$i]: $e');
+        hints = [];
+        for (final entry in raw.indexed) {
+          final i = entry.$1;
+          final rawValue = entry.$2;
+          try {
+            if (rawValue is! Map<String, dynamic>) {
+              logger.w('Leg.fromJson: hints[$i] is not a Map; skipping');
+              continue;
             }
+            hints.add(Hint.fromJson(rawValue));
+          } catch (e) {
+            logger.w('Leg.fromJson: failed to parse hints[$i]: $e');
           }
         }
       }
@@ -515,24 +558,20 @@ class Leg {
     // --- infos ---
     List<Info>? infos;
     try {
-      final raw = json['infos'];
+      final raw = tryReadListValue(json, 'infos');
       if (raw != null) {
-        if (raw is! List) {
-          logger.w(
-            'Leg.fromJson: "infos" is not a List, type=${raw.runtimeType}',
-          );
-        } else {
-          infos = [];
-          for (var i = 0; i < raw.length; i++) {
-            try {
-              if (raw[i] is! Map<String, dynamic>) {
-                logger.w('Leg.fromJson: infos[$i] is not a Map; skipping');
-                continue;
-              }
-              infos.add(Info.fromJson(raw[i]));
-            } catch (e) {
-              logger.w('Leg.fromJson: failed to parse infos[$i]: $e');
+        infos = [];
+        for (final entry in raw.indexed) {
+          final i = entry.$1;
+          final rawValue = entry.$2;
+          try {
+            if (rawValue is! Map<String, dynamic>) {
+              logger.w('Leg.fromJson: infos[$i] is not a Map; skipping');
+              continue;
             }
+            infos.add(Info.fromJson(rawValue));
+          } catch (e) {
+            logger.w('Leg.fromJson: failed to parse infos[$i]: $e');
           }
         }
       }
@@ -568,28 +607,22 @@ class Leg {
     // --- pathDescriptions ---
     List<PathDescription>? pathDescriptions;
     try {
-      final raw = json['pathDescriptions'];
+      final raw = tryReadListValue(json, 'pathDescriptions');
       if (raw != null) {
-        if (raw is! List) {
-          logger.w(
-            'Leg.fromJson: "pathDescriptions" is not a List, type=${raw.runtimeType}',
-          );
-        } else {
-          pathDescriptions = [];
-          for (var i = 0; i < raw.length; i++) {
-            try {
-              if (raw[i] is! Map<String, dynamic>) {
-                logger.w(
-                  'Leg.fromJson: pathDescriptions[$i] is not a Map; skipping',
-                );
-                continue;
-              }
-              pathDescriptions.add(PathDescription.fromJson(raw[i]));
-            } catch (e) {
+        pathDescriptions = [];
+        for (final entry in raw.indexed) {
+          final i = entry.$1;
+          final rawValue = entry.$2;
+          try {
+            if (rawValue is! Map<String, dynamic>) {
               logger.w(
-                'Leg.fromJson: failed to parse pathDescriptions[$i]: $e',
+                'Leg.fromJson: pathDescriptions[$i] is not a Map; skipping',
               );
+              continue;
             }
+            pathDescriptions.add(PathDescription.fromJson(rawValue));
+          } catch (e) {
+            logger.w('Leg.fromJson: failed to parse pathDescriptions[$i]: $e');
           }
         }
       }
@@ -617,27 +650,22 @@ class Leg {
     // --- stopSequence ---
     List<Stop>? stopSequence;
     try {
-      final raw = json['stopSequence'];
+      final raw = tryReadListValue(json, 'stopSequence');
       if (raw != null) {
-        if (raw is! List) {
-          logger.w(
-            'Leg.fromJson: "stopSequence" is not a List, type=${raw.runtimeType}',
-          );
-        } else {
-          stopSequence = [];
-          for (var i = 0; i < raw.length; i++) {
-            final stopJson = raw[i];
-            if (stopJson is! Map<String, dynamic>) {
-              logger.w(
-                'Leg.fromJson: stopSequence[$i] is not a Map, type=${stopJson.runtimeType}; skipping',
-              );
-              continue;
-            }
-            try {
-              stopSequence.add(Stop.fromJson(stopJson));
-            } catch (e) {
-              logger.w('Leg.fromJson: failed to parse stopSequence[$i]: $e');
-            }
+        stopSequence = [];
+        for (final entry in raw.indexed) {
+          final i = entry.$1;
+          final stopJson = entry.$2;
+          if (stopJson is! Map<String, dynamic>) {
+            logger.w(
+              'Leg.fromJson: stopSequence[$i] is not a Map, type=${stopJson.runtimeType}; skipping',
+            );
+            continue;
+          }
+          try {
+            stopSequence.add(Stop.fromJson(stopJson));
+          } catch (e) {
+            logger.w('Leg.fromJson: failed to parse stopSequence[$i]: $e');
           }
         }
       }
@@ -714,20 +742,21 @@ class Stop {
 
   factory Stop.fromJson(Map<String, dynamic> json) {
     // --- coord (often nullable; some API responses omit it) ---
+    final stopId = tryReadStringValue(json, 'id') ?? '';
     List<double>? coord;
     try {
-      final rawCoord = json['coord'];
+      final rawCoord = tryReadMapValue(json, 'coord');
       if (rawCoord != null) {
         if (rawCoord is! List) {
           logger.w(
             'Stop.fromJson: "coord" is not a List, type=${rawCoord.runtimeType} '
-            'for stop id=${json['id']}',
+            'for stop id=$stopId',
           );
         } else {
           final parsedCoord = tryParseCoordinatePair(rawCoord);
           if (parsedCoord == null) {
             logger.w(
-              'Stop.fromJson: failed to parse coord for stop id=${json['id']}',
+              'Stop.fromJson: failed to parse coord for stop id=$stopId',
             );
           } else {
             coord = parsedCoord;
@@ -736,19 +765,19 @@ class Stop {
       }
     } catch (e) {
       logger.w(
-        'Stop.fromJson: unexpected error parsing "coord": $e for stop id=${json['id']}',
+        'Stop.fromJson: unexpected error parsing "coord": $e for stop id=$stopId',
       );
     }
 
     // --- parent ---
     Parent? parent;
     try {
-      final rawParent = json['parent'];
+      final rawParent = tryReadMapValue(json, 'parent');
       if (rawParent != null) {
         if (rawParent is! Map<String, dynamic>) {
           logger.w(
             'Stop.fromJson: "parent" is not a Map, type=${rawParent.runtimeType} '
-            'for stop id=${json['id']}',
+            'for stop id=$stopId',
           );
         } else {
           parent = Parent.fromJson(rawParent);
@@ -756,19 +785,19 @@ class Stop {
       }
     } catch (e) {
       logger.w(
-        'Stop.fromJson: failed to parse "parent": $e for stop id=${json['id']}',
+        'Stop.fromJson: failed to parse "parent": $e for stop id=$stopId',
       );
     }
 
     // --- properties ---
     StopProperties? properties;
     try {
-      final rawProps = json['properties'];
+      final rawProps = tryReadMapValue(json, 'properties');
       if (rawProps != null) {
         if (rawProps is! Map<String, dynamic>) {
           logger.w(
             'Stop.fromJson: "properties" is not a Map, type=${rawProps.runtimeType} '
-            'for stop id=${json['id']}',
+            'for stop id=$stopId',
           );
         } else {
           properties = StopProperties.fromJson(rawProps);
@@ -776,22 +805,25 @@ class Stop {
       }
     } catch (e) {
       logger.w(
-        'Stop.fromJson: failed to parse "properties": $e for stop id=${json['id']}',
+        'Stop.fromJson: failed to parse "properties": $e for stop id=$stopId',
       );
     }
 
     return Stop(
-      arrivalTimeEstimated: json['arrivalTimeEstimated']?.toString(),
-      arrivalTimePlanned: json['arrivalTimePlanned']?.toString(),
+      arrivalTimeEstimated: tryReadStringValue(json, 'arrivalTimeEstimated'),
+      arrivalTimePlanned: tryReadStringValue(json, 'arrivalTimePlanned'),
       coord: coord,
-      departureTimeEstimated: json['departureTimeEstimated']?.toString(),
-      departureTimePlanned: json['departureTimePlanned']?.toString(),
-      disassembledName: json['disassembledName']?.toString(),
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
+      departureTimeEstimated: tryReadStringValue(
+        json,
+        'departureTimeEstimated',
+      ),
+      departureTimePlanned: tryReadStringValue(json, 'departureTimePlanned'),
+      disassembledName: tryReadStringValue(json, 'disassembledName'),
+      id: stopId,
+      name: tryReadStringValue(json, 'name') ?? '',
       parent: parent,
       properties: properties,
-      type: json['type']?.toString() ?? '',
+      type: tryReadStringValue(json, 'type') ?? '',
       rawJson: json,
     );
   }
@@ -815,7 +847,7 @@ class Parent {
   factory Parent.fromJson(Map<String, dynamic> json) {
     // If it's already a Parent instance, return it
 
-    final rawParent = json['parent'];
+    final rawParent = tryReadMapValue(json, 'parent');
     dynamic parsedParent;
     if (rawParent != null) {
       if (rawParent is Map<String, dynamic>) {
@@ -826,11 +858,11 @@ class Parent {
     }
     // default
     return Parent(
-      disassembledName: json['disassembledName']?.toString(),
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
+      disassembledName: tryReadStringValue(json, 'disassembledName'),
+      id: tryReadStringValue(json, 'id') ?? '',
+      name: tryReadStringValue(json, 'name') ?? '',
       parent: parsedParent,
-      type: json['type']?.toString(),
+      type: tryReadStringValue(json, 'type'),
     );
   }
 }
@@ -842,10 +874,20 @@ class StopProperties {
   StopProperties({this.wheelchairAccess, this.downloads});
 
   factory StopProperties.fromJson(Map<String, dynamic> json) {
+    final downloadsRaw = tryReadListValue(json, 'downloads');
     return StopProperties(
-      wheelchairAccess: json['WheelchairAccess'],
-      downloads: (json['downloads'] as List<dynamic>?)
-          ?.map((download) => Download.fromJson(download))
+      wheelchairAccess: tryReadStringValue(json, 'WheelchairAccess'),
+      downloads: downloadsRaw
+          ?.whereType<Map<String, dynamic>>()
+          .map((download) {
+            try {
+              return Download.fromJson(download);
+            } catch (e) {
+              logger.w('StopProperties.fromJson: failed to parse download: $e');
+              return null;
+            }
+          })
+          .whereType<Download>()
           .toList(),
     );
   }
@@ -858,7 +900,10 @@ class Download {
   Download({required this.type, required this.url});
 
   factory Download.fromJson(Map<String, dynamic> json) {
-    return Download(type: json['type'], url: json['url']);
+    return Download(
+      type: tryReadStringValue(json, 'type') ?? '',
+      url: tryReadStringValue(json, 'url') ?? '',
+    );
   }
 }
 
@@ -870,16 +915,24 @@ class FootPathInfo {
   FootPathInfo({this.duration, this.footPathElem, this.position});
 
   factory FootPathInfo.fromJson(Map<String, dynamic> json) {
+    final footPathElemRaw = tryReadListValue(json, 'footPathElem');
     return FootPathInfo(
-      duration: json['duration'] is int
-          ? json['duration'] as int
-          : (json['duration'] is String
-                ? int.tryParse(json['duration'])
-                : null),
-      footPathElem: (json['footPathElem'] as List<dynamic>?)
-          ?.map((elem) => FootPathElem.fromJson(elem))
+      duration: tryParseIntValue(tryReadMapValue(json, 'duration')),
+      footPathElem: footPathElemRaw
+          ?.whereType<Map<String, dynamic>>()
+          .map((elem) {
+            try {
+              return FootPathElem.fromJson(elem);
+            } catch (e) {
+              logger.w(
+                'FootPathInfo.fromJson: failed to parse footPathElem: $e',
+              );
+              return null;
+            }
+          })
+          .whereType<FootPathElem>()
           .toList(),
-      position: json['position'],
+      position: tryReadStringValue(json, 'position'),
     );
   }
 }
@@ -904,24 +957,32 @@ class FootPathElem {
   });
 
   factory FootPathElem.fromJson(Map<String, dynamic> json) {
+    final destinationJson = tryReadJsonMap(json, 'destination');
+    final originJson = tryReadJsonMap(json, 'origin');
+    FootpathElemDestination? destination;
+    if (destinationJson != null) {
+      try {
+        destination = FootpathElemDestination.fromJson(destinationJson);
+      } catch (e) {
+        logger.w('FootPathElem.fromJson: failed to parse destination: $e');
+      }
+    }
+    FootpathElemOrigin? origin;
+    if (originJson != null) {
+      try {
+        origin = FootpathElemOrigin.fromJson(originJson);
+      } catch (e) {
+        logger.w('FootPathElem.fromJson: failed to parse origin: $e');
+      }
+    }
     return FootPathElem(
-      description: json['description'],
-      destination: json['destination'] != null
-          ? FootpathElemDestination.fromJson(json['destination'])
-          : null,
-      level: json['level'],
-      levelFrom: json['levelFrom'] is int
-          ? json['levelFrom'] as int
-          : (json['levelFrom'] is String
-                ? int.tryParse(json['levelFrom'])
-                : null),
-      levelTo: json['levelTo'] is int
-          ? json['levelTo'] as int
-          : (json['levelTo'] is String ? int.tryParse(json['levelTo']) : null),
-      origin: json['origin'] != null
-          ? FootpathElemOrigin.fromJson(json['origin'])
-          : null,
-      type: json['type'],
+      description: tryReadStringValue(json, 'description'),
+      destination: destination,
+      level: tryReadStringValue(json, 'level'),
+      levelFrom: tryParseIntValue(tryReadMapValue(json, 'levelFrom')),
+      levelTo: tryParseIntValue(tryReadMapValue(json, 'levelTo')),
+      origin: origin,
+      type: tryReadStringValue(json, 'type'),
     );
   }
 }
@@ -940,19 +1001,22 @@ class FootpathElemDestination {
   });
 
   factory FootpathElemDestination.fromJson(Map<String, dynamic> json) {
+    final locationJson = tryReadJsonMap(json, 'location');
+    FootpathElemLocation? location;
+    if (locationJson != null) {
+      try {
+        location = FootpathElemLocation.fromJson(locationJson);
+      } catch (e) {
+        logger.w(
+          'FootpathElemDestination.fromJson: failed to parse location: $e',
+        );
+      }
+    }
     return FootpathElemDestination(
-      area: json['area'] is int
-          ? json['area'] as int
-          : (json['area'] is String ? int.tryParse(json['area']) : null),
-      georef: json['georef'],
-      location: json['location'] != null
-          ? FootpathElemLocation.fromJson(json['location'])
-          : null,
-      platform: json['platform'] is int
-          ? json['platform'] as int
-          : (json['platform'] is String
-                ? int.tryParse(json['platform'])
-                : null),
+      area: tryParseIntValue(tryReadMapValue(json, 'area')),
+      georef: tryReadStringValue(json, 'georef'),
+      location: location,
+      platform: tryParseIntValue(tryReadMapValue(json, 'platform')),
     );
   }
 }
@@ -966,19 +1030,20 @@ class FootpathElemOrigin {
   FootpathElemOrigin({this.area, this.georef, this.location, this.platform});
 
   factory FootpathElemOrigin.fromJson(Map<String, dynamic> json) {
+    final locationJson = tryReadJsonMap(json, 'location');
+    FootpathElemLocation? location;
+    if (locationJson != null) {
+      try {
+        location = FootpathElemLocation.fromJson(locationJson);
+      } catch (e) {
+        logger.w('FootpathElemOrigin.fromJson: failed to parse location: $e');
+      }
+    }
     return FootpathElemOrigin(
-      area: json['area'] is int
-          ? json['area'] as int
-          : (json['area'] is String ? int.tryParse(json['area']) : null),
-      georef: json['georef'],
-      location: json['location'] != null
-          ? FootpathElemLocation.fromJson(json['location'])
-          : null,
-      platform: json['platform'] is int
-          ? json['platform'] as int
-          : (json['platform'] is String
-                ? int.tryParse(json['platform'])
-                : null),
+      area: tryParseIntValue(tryReadMapValue(json, 'area')),
+      georef: tryReadStringValue(json, 'georef'),
+      location: location,
+      platform: tryParseIntValue(tryReadMapValue(json, 'platform')),
     );
   }
 }
@@ -991,10 +1056,16 @@ class FootpathElemLocation {
   FootpathElemLocation({this.coord, this.id, this.type});
 
   factory FootpathElemLocation.fromJson(Map<String, dynamic> json) {
+    List<double>? coord;
+    try {
+      coord = tryParseCoordinatePair(tryReadMapValue(json, 'coord'));
+    } catch (e) {
+      logger.w('FootpathElemLocation.fromJson: failed to parse coord: $e');
+    }
     return FootpathElemLocation(
-      coord: tryParseCoordinatePair(json['coord']),
-      id: json['id'],
-      type: json['type'],
+      coord: coord,
+      id: tryReadStringValue(json, 'id'),
+      type: tryReadStringValue(json, 'type'),
     );
   }
 }
@@ -1005,7 +1076,7 @@ class Hint {
   Hint({this.infoText});
 
   factory Hint.fromJson(Map<String, dynamic> json) {
-    return Hint(infoText: json['infoText']);
+    return Hint(infoText: tryReadStringValue(json, 'infoText'));
   }
 }
 
@@ -1033,38 +1104,48 @@ class Info {
   });
 
   factory Info.fromJson(Map<String, dynamic> json) {
-    // info (removed)
+    final timestampsJson = tryReadJsonMap(json, 'timestamps');
+    Timestamps? timestamps;
+    if (timestampsJson != null) {
+      try {
+        timestamps = Timestamps.fromJson(timestampsJson);
+      } catch (e) {
+        logger.w('Info.fromJson: failed to parse timestamps: $e');
+      }
+    }
     return Info(
-      content: json['content'],
-      id: json['id'],
-      priority: json['priority'],
-      subtitle: json['subtitle'],
-      timestamps: json['timestamps'] != null
-          ? Timestamps.fromJson(json['timestamps'])
-          : null,
-      url: json['url'],
-      urlText: json['urlText'],
-      // Parse version as int when possible. Accept numeric or numeric string.
-      version: (() {
-        final v = json['version'];
-        if (v == null) return null;
-        if (v is int) return v;
-        if (v is String) {
-          final parsed = int.tryParse(v);
-          if (parsed == null) {
-            logger.w(
-              'Info.fromJson: could not parse version string to int: "$v"',
-            );
-          }
-          return parsed;
-        }
-        logger.w(
-          'Info.fromJson: unexpected type for version: ${v.runtimeType}',
-        );
-        return null;
-      })(),
+      content: tryReadStringValue(json, 'content'),
+      id: tryReadStringValue(json, 'id'),
+      priority: tryReadStringValue(json, 'priority'),
+      subtitle: tryReadStringValue(json, 'subtitle'),
+      timestamps: timestamps,
+      url: tryReadStringValue(json, 'url'),
+      urlText: tryReadStringValue(json, 'urlText'),
+      version: _parseInfoVersion(tryReadMapValue(json, 'version')),
     );
   }
+}
+
+int? _parseInfoVersion(Object? rawVersion) {
+  if (rawVersion == null) {
+    return null;
+  }
+  if (rawVersion is int) {
+    return rawVersion;
+  }
+  if (rawVersion is String) {
+    final parsed = int.tryParse(rawVersion);
+    if (parsed == null) {
+      logger.w(
+        'Info.fromJson: could not parse version string to int: "$rawVersion"',
+      );
+    }
+    return parsed;
+  }
+  logger.w(
+    'Info.fromJson: unexpected type for version: ${rawVersion.runtimeType}',
+  );
+  return null;
 }
 
 class Timestamps {
@@ -1081,14 +1162,31 @@ class Timestamps {
   });
 
   factory Timestamps.fromJson(Map<String, dynamic> json) {
+    final validityRaw = tryReadListValue(json, 'validity');
+    final availabilityJson = tryReadJsonMap(json, 'availability');
+    Validity? availability;
+    if (availabilityJson != null) {
+      try {
+        availability = Validity.fromJson(availabilityJson);
+      } catch (e) {
+        logger.w('Timestamps.fromJson: failed to parse availability: $e');
+      }
+    }
     return Timestamps(
-      availability: json['availability'] != null
-          ? Validity.fromJson(json['availability'])
-          : null,
-      creation: json['creation'],
-      lastModification: json['lastModification'],
-      validity: (json['validity'] as List<dynamic>?)
-          ?.map((v) => Validity.fromJson(v))
+      availability: availability,
+      creation: tryReadStringValue(json, 'creation'),
+      lastModification: tryReadStringValue(json, 'lastModification'),
+      validity: validityRaw
+          ?.whereType<Map<String, dynamic>>()
+          .map((v) {
+            try {
+              return Validity.fromJson(v);
+            } catch (e) {
+              logger.w('Timestamps.fromJson: failed to parse validity: $e');
+              return null;
+            }
+          })
+          .whereType<Validity>()
           .toList(),
     );
   }
@@ -1101,7 +1199,10 @@ class Validity {
   Validity({this.from, this.to});
 
   factory Validity.fromJson(Map<String, dynamic> json) {
-    return Validity(from: json['from'], to: json['to']);
+    return Validity(
+      from: tryReadStringValue(json, 'from'),
+      to: tryReadStringValue(json, 'to'),
+    );
   }
 }
 
@@ -1113,10 +1214,19 @@ class Interchange {
   Interchange({this.coords, this.desc, this.type});
 
   factory Interchange.fromJson(Map<String, dynamic> json) {
+    List<List<double>>? coords;
+    try {
+      coords = tryParseDoubleMatrix(
+        tryReadMapValue(json, 'coords'),
+        minLengthPerRow: 2,
+      );
+    } catch (e) {
+      logger.w('Interchange.fromJson: failed to parse coords: $e');
+    }
     return Interchange(
-      coords: tryParseDoubleMatrix(json['coords'], minLengthPerRow: 2),
-      desc: json['desc'],
-      type: json['type'],
+      coords: coords,
+      desc: tryReadStringValue(json, 'desc'),
+      type: tryParseIntValue(tryReadMapValue(json, 'type')),
     );
   }
 }
@@ -1153,20 +1263,28 @@ class PathDescription {
   });
 
   factory PathDescription.fromJson(Map<String, dynamic> json) {
+    List<double>? coord;
+    try {
+      coord = tryParseCoordinatePair(tryReadMapValue(json, 'coord'));
+    } catch (e) {
+      logger.w('PathDescription.fromJson: failed to parse coord: $e');
+    }
     return PathDescription(
-      coord: tryParseCoordinatePair(json['coord']),
-      cumDistance: json['cumDistance'],
-      cumDuration: json['cumDuration'],
-      distance: json['distance'],
-      distanceDown: json['distanceDown'],
-      distanceUp: json['distanceUp'],
-      duration: json['duration'],
-      fromCoordsIndex: json['fromCoordsIndex'],
-      manoeuvre: json['manoeuvre'],
-      name: json['name'],
-      skyDirection: json['skyDirection'],
-      toCoordsIndex: json['toCoordsIndex'],
-      turnDirection: json['turnDirection'],
+      coord: coord,
+      cumDistance: tryParseIntValue(tryReadMapValue(json, 'cumDistance')),
+      cumDuration: tryParseIntValue(tryReadMapValue(json, 'cumDuration')),
+      distance: tryParseIntValue(tryReadMapValue(json, 'distance')),
+      distanceDown: tryParseIntValue(tryReadMapValue(json, 'distanceDown')),
+      distanceUp: tryParseIntValue(tryReadMapValue(json, 'distanceUp')),
+      duration: tryParseIntValue(tryReadMapValue(json, 'duration')),
+      fromCoordsIndex: tryParseIntValue(
+        tryReadMapValue(json, 'fromCoordsIndex'),
+      ),
+      manoeuvre: tryReadStringValue(json, 'manoeuvre'),
+      name: tryReadStringValue(json, 'name'),
+      skyDirection: tryParseIntValue(tryReadMapValue(json, 'skyDirection')),
+      toCoordsIndex: tryParseIntValue(tryReadMapValue(json, 'toCoordsIndex')),
+      turnDirection: tryReadStringValue(json, 'turnDirection'),
     );
   }
 }
@@ -1187,15 +1305,13 @@ class LegProperties {
   });
 
   factory LegProperties.fromJson(Map<String, dynamic> json) {
+    final vehicleAccessRaw = tryReadListValue(json, 'vehicleAccess');
     return LegProperties(
-      differentFares: json['DIFFERENT_FARES'],
-      planLowFloorVehicle: json['PlanLowFloorVehicle'],
-      planWheelChairAccess: json['PlanWheelChairAccess'],
-      //TODO: Fix
-      lineType: json['lineType']?.toString(),
-      vehicleAccess: (json['vehicleAccess'] as List<dynamic>?)
-          ?.map((v) => v.toString())
-          .toList(),
+      differentFares: tryReadStringValue(json, 'DIFFERENT_FARES'),
+      planLowFloorVehicle: tryReadStringValue(json, 'PlanLowFloorVehicle'),
+      planWheelChairAccess: tryReadStringValue(json, 'PlanWheelChairAccess'),
+      lineType: tryReadStringValue(json, 'lineType'),
+      vehicleAccess: vehicleAccessRaw?.map((v) => v.toString()).toList(),
     );
   }
 }
@@ -1230,77 +1346,53 @@ class Transportation {
 
   factory Transportation.fromJson(Map<String, dynamic> json) {
     TransportationDestination? destination;
-    try {
-      final raw = json['destination'];
-      if (raw != null) {
-        if (raw is! Map<String, dynamic>) {
-          logger.w(
-            'Transportation.fromJson: "destination" is not a Map, type=${raw.runtimeType}',
-          );
-        } else {
-          destination = TransportationDestination.fromJson(raw);
-        }
+    final destinationJson = tryReadJsonMap(json, 'destination');
+    if (destinationJson != null) {
+      try {
+        destination = TransportationDestination.fromJson(destinationJson);
+      } catch (e) {
+        logger.w('Transportation.fromJson: failed to parse destination: $e');
       }
-    } catch (e) {
-      logger.w('Transportation.fromJson: failed to parse "destination": $e');
     }
 
     Operator? operator;
-    try {
-      final raw = json['operator'];
-      if (raw != null) {
-        if (raw is! Map<String, dynamic>) {
-          logger.w(
-            'Transportation.fromJson: "operator" is not a Map, type=${raw.runtimeType}',
-          );
-        } else {
-          operator = Operator.fromJson(raw);
-        }
+    final operatorJson = tryReadJsonMap(json, 'operator');
+    if (operatorJson != null) {
+      try {
+        operator = Operator.fromJson(operatorJson);
+      } catch (e) {
+        logger.w('Transportation.fromJson: failed to parse operator: $e');
       }
-    } catch (e) {
-      logger.w('Transportation.fromJson: failed to parse "operator": $e');
     }
 
     Product? product;
-    try {
-      final raw = json['product'];
-      if (raw != null) {
-        if (raw is! Map<String, dynamic>) {
-          logger.w(
-            'Transportation.fromJson: "product" is not a Map, type=${raw.runtimeType}',
-          );
-        } else {
-          product = Product.fromJson(raw);
-        }
+    final productJson = tryReadJsonMap(json, 'product');
+    if (productJson != null) {
+      try {
+        product = Product.fromJson(productJson);
+      } catch (e) {
+        logger.w('Transportation.fromJson: failed to parse product: $e');
       }
-    } catch (e) {
-      logger.w('Transportation.fromJson: failed to parse "product": $e');
     }
 
     TransportationProperties? properties;
-    try {
-      final raw = json['properties'];
-      if (raw != null) {
-        if (raw is! Map<String, dynamic>) {
-          logger.w(
-            'Transportation.fromJson: "properties" is not a Map, type=${raw.runtimeType}',
-          );
-        } else {
-          properties = TransportationProperties.fromJson(raw);
-        }
+    final propertiesJson = tryReadJsonMap(json, 'properties');
+    if (propertiesJson != null) {
+      try {
+        properties = TransportationProperties.fromJson(propertiesJson);
+      } catch (e) {
+        logger.w('Transportation.fromJson: failed to parse properties: $e');
       }
-    } catch (e) {
-      logger.w('Transportation.fromJson: failed to parse "properties": $e');
     }
 
     return Transportation(
-      description: json['description']?.toString(),
+      description: tryReadStringValue(json, 'description'),
       destination: destination,
-      disassembledName: json['disassembledName']?.toString(),
-      iconId: json['iconId'] is int ? json['iconId'] as int : null,
-      id: json['id']?.toString(),
-      name: json['name']?.toString(),
-      number: json['number']?.toString(),
+      disassembledName: tryReadStringValue(json, 'disassembledName'),
+      iconId: tryParseIntValue(tryReadMapValue(json, 'iconId')),
+      id: tryReadStringValue(json, 'id'),
+      name: tryReadStringValue(json, 'name'),
+      number: tryReadStringValue(json, 'number'),
       operator: operator,
       product: product,
       properties: properties,
@@ -1316,7 +1408,10 @@ class TransportationDestination {
   TransportationDestination({this.id, this.name});
 
   factory TransportationDestination.fromJson(Map<String, dynamic> json) {
-    return TransportationDestination(id: json['id'], name: json['name']);
+    return TransportationDestination(
+      id: tryReadStringValue(json, 'id'),
+      name: tryReadStringValue(json, 'name'),
+    );
   }
 }
 
@@ -1327,7 +1422,10 @@ class Operator {
   Operator({this.id, this.name});
 
   factory Operator.fromJson(Map<String, dynamic> json) {
-    return Operator(id: json['id'], name: json['name']);
+    return Operator(
+      id: tryReadStringValue(json, 'id'),
+      name: tryReadStringValue(json, 'name'),
+    );
   }
 }
 
@@ -1340,9 +1438,9 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      classField: json['class'],
-      iconId: json['iconId'],
-      name: json['name'],
+      classField: tryParseIntValue(tryReadMapValue(json, 'class')),
+      iconId: tryParseIntValue(tryReadMapValue(json, 'iconId')),
+      name: tryReadStringValue(json, 'name'),
     );
   }
 }
@@ -1355,8 +1453,8 @@ class TransportationProperties {
 
   factory TransportationProperties.fromJson(Map<String, dynamic> json) {
     return TransportationProperties(
-      isTTB: json['isTTB'],
-      tripCode: json['tripCode'],
+      isTTB: _readBoolValue(json, 'isTTB'),
+      tripCode: tryParseIntValue(tryReadMapValue(json, 'tripCode')),
     );
   }
 }
@@ -1369,31 +1467,55 @@ class SystemMessages {
   factory SystemMessages.fromJson(Object json) {
     // If json is a List, treat it as the list of messages directly
     if (json is List) {
-      // systemMessages is a List, using as responseMessages
       return SystemMessages(
         responseMessages: json
-            .map((msg) => ResponseMessage.fromJson(msg))
+            .whereType<Map<String, dynamic>>()
+            .map((msg) {
+              try {
+                return ResponseMessage.fromJson(msg);
+              } catch (e) {
+                logger.w(
+                  'SystemMessages.fromJson: failed to parse message: $e',
+                );
+                return null;
+              }
+            })
+            .whereType<ResponseMessage>()
             .toList(),
       );
     }
-    // If json is a Map and has responseMessages, use that
     if (json is Map<String, dynamic>) {
       if (json.containsKey('responseMessages')) {
-        // systemMessages is an object with responseMessages
+        final responseMessagesRaw = tryReadListValue(json, 'responseMessages');
         return SystemMessages(
-          responseMessages: (json['responseMessages'] as List<dynamic>?)
-              ?.map((message) => ResponseMessage.fromJson(message))
+          responseMessages: responseMessagesRaw
+              ?.whereType<Map<String, dynamic>>()
+              .map((message) {
+                try {
+                  return ResponseMessage.fromJson(message);
+                } catch (e) {
+                  logger.w(
+                    'SystemMessages.fromJson: failed to parse message: $e',
+                  );
+                  return null;
+                }
+              })
+              .whereType<ResponseMessage>()
               .toList(),
         );
       } else {
-        // Sometimes the API may return a single message as an object
-        // systemMessages is a single object, wrapping in a list
-        return SystemMessages(
-          responseMessages: [ResponseMessage.fromJson(json)],
-        );
+        try {
+          return SystemMessages(
+            responseMessages: [ResponseMessage.fromJson(json)],
+          );
+        } catch (e) {
+          logger.w(
+            'SystemMessages.fromJson: failed to parse single message: $e',
+          );
+          return SystemMessages(responseMessages: []);
+        }
       }
     }
-    // systemMessages is of unexpected type: ${json.runtimeType}
     return SystemMessages(responseMessages: []);
   }
 }
@@ -1419,19 +1541,15 @@ class ResponseMessage {
   });
 
   factory ResponseMessage.fromJson(Map<String, dynamic> json) {
-    // The API sometimes uses 'text' instead of 'error', and 'subType' for
-    // additional categorisation. Use 'error' when present, otherwise fall
-    // back to 'text'. Keep both fields available.
-    final rawText = json['text']?.toString();
-    final rawError = json['error']?.toString();
+    final rawText = tryReadStringValue(json, 'text');
+    final rawError = tryReadStringValue(json, 'error');
     return ResponseMessage(
-      code: json['code'],
-      // prefer explicit 'error' but fall back to 'text' to capture messages
+      code: tryParseIntValue(tryReadMapValue(json, 'code')),
       error: rawError ?? rawText,
-      module: json['module']?.toString(),
-      type: json['type']?.toString(),
+      module: tryReadStringValue(json, 'module'),
+      type: tryReadStringValue(json, 'type'),
       text: rawText,
-      subType: json['subType']?.toString(),
+      subType: tryReadStringValue(json, 'subType'),
     );
   }
 }

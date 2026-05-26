@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_resolver.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
@@ -19,26 +20,43 @@ class RouteDebugPageBuilder {
       leg: request.context.leg,
       trip: request.context.tripJourney,
     );
-    final gtfsMatch = await resolver.resolveGtfsRoute(
-      routeId: routeId,
-      leg: request.context.leg,
-      trip: request.context.tripJourney,
-      transportation: transport,
-      explicitRoute: request.context.gtfsRoute,
-      explicitAgency: request.context.gtfsAgency,
-      explicitData: request.context.gtfsData,
-      explicitEndpoint: request.context.gtfsEndpoint,
-      explicitMatchReason: request.context.gtfsMatchReason,
-    );
+    DebugResolvedGtfsRoute? gtfsMatch;
+    try {
+      gtfsMatch = await resolver.resolveGtfsRoute(
+        routeId: routeId,
+        leg: request.context.leg,
+        trip: request.context.tripJourney,
+        transportation: transport,
+        explicitRoute: request.context.gtfsRoute,
+        explicitAgency: request.context.gtfsAgency,
+        explicitData: request.context.gtfsData,
+        explicitEndpoint: request.context.gtfsEndpoint,
+        explicitMatchReason: request.context.gtfsMatchReason,
+      );
+    } catch (_) {}
 
-    final vehicles = await resolver.matchVehicles(routeIds: {routeId});
-    final tripUpdates = await resolver.matchTripUpdates(routeIds: {routeId});
-    final servedStopRefs = _servedStopReferences(
-      request,
-      gtfsMatch?.data,
-      routeId,
-    );
-    final tripRefs = _tripReferences(request, tripUpdates);
+    var vehicles = const <VehiclePosition>[];
+    try {
+      vehicles = await resolver.matchVehicles(routeIds: {routeId});
+    } catch (_) {}
+
+    var tripUpdates = const <TripUpdate>[];
+    try {
+      tripUpdates = await resolver.matchTripUpdates(routeIds: {routeId});
+    } catch (_) {}
+
+    List<DebugEntityRef> servedStopRefs;
+    try {
+      servedStopRefs = _servedStopReferences(request, gtfsMatch?.data, routeId);
+    } catch (_) {
+      servedStopRefs = const <DebugEntityRef>[];
+    }
+    List<DebugEntityRef> tripRefs;
+    try {
+      tripRefs = _tripReferences(request, tripUpdates);
+    } catch (_) {
+      tripRefs = const <DebugEntityRef>[];
+    }
     final title =
         transport?.name ??
         transport?.disassembledName ??
@@ -295,14 +313,15 @@ class RouteDebugPageBuilder {
       return const [];
     }
 
-    final stopById = {for (final stop in gtfsData.stops) stop.stopId: stop};
     final refs = <DebugEntityRef>[];
     final seen = <String>{};
     for (final stopTime in stopTimes) {
       if (!seen.add(stopTime.stopId)) {
         continue;
       }
-      final stop = stopById[stopTime.stopId];
+      final stop = gtfsData.stops.firstWhereOrNull(
+        (candidate) => candidate.stopId == stopTime.stopId,
+      );
       refs.add(
         DebugEntityRef(
           entityType: DebugEntityType.stop,

@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class Agency {
   final String? agencyId;
   final String agencyName;
@@ -21,22 +23,17 @@ class Agency {
 
   /// Create an Agency from a CSV row using header-based field mapping
   factory Agency.fromCsv(List<String> header, List<String> row) {
-    String? getField(String fieldName) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return null;
-      final value = row[index];
-      return value.isEmpty ? null : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
     return Agency(
-      agencyId: getField('agency_id'),
-      agencyName: getField('agency_name') ?? '',
-      agencyUrl: getField('agency_url') ?? '',
-      agencyTimezone: getField('agency_timezone') ?? '',
-      agencyLang: getField('agency_lang'),
-      agencyPhone: getField('agency_phone'),
-      agencyFareUrl: getField('agency_fare_url'),
-      agencyEmail: getField('agency_email'),
+      agencyId: reader.fieldOrNull('agency_id'),
+      agencyName: reader.fieldOrEmpty('agency_name'),
+      agencyUrl: reader.fieldOrEmpty('agency_url'),
+      agencyTimezone: reader.fieldOrEmpty('agency_timezone'),
+      agencyLang: reader.fieldOrNull('agency_lang'),
+      agencyPhone: reader.fieldOrNull('agency_phone'),
+      agencyFareUrl: reader.fieldOrNull('agency_fare_url'),
+      agencyEmail: reader.fieldOrNull('agency_email'),
     );
   }
 
