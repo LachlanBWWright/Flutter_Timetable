@@ -1,425 +1,201 @@
 //https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update
 //https://opendata.transport.nsw.gov.au/dataset/public-transport-realtime-trip-update-v2
 
-import 'package:http/http.dart' as http;
-import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
-import 'package:lbww_flutter/services/api_key_service.dart';
-Map<String, String> getHeaders() {
-  final apiKey = ApiKeyService.getEffectiveApiKey();
-  return {
-    'Authorization': 'apikey $apiKey',
-    'Accept': 'application/x-protobuf',
-  };
-}
+
+import 'realtime_feed_fetcher.dart';
 
 Future<FeedMessage?> fetchBusesUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/buses',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/buses',
+    logLabel: 'bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchFerriesSydneyFerriesUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/ferries/sydneyferries',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/ferries/sydneyferries',
+    logLabel: 'Sydney Ferries updates',
+  );
 }
 
 Future<FeedMessage?> fetchFerriesMFFUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/ferries/MFF',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/ferries/MFF',
+    logLabel: 'MFF updates',
+  );
 }
 
 Future<FeedMessage?> fetchLightRailCbdAndSoutheastUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/cbdandsoutheast',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/cbdandsoutheast',
+    logLabel: 'CBD and Southeast light rail updates',
+  );
 }
 
 Future<FeedMessage?> fetchLightRailInnerWestUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/innerwest',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/innerwest',
+    logLabel: 'Inner West light rail updates',
+  );
 }
 
 Future<FeedMessage?> fetchLightRailNewcastleUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/newcastle',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/newcastle',
+    logLabel: 'Newcastle light rail updates',
+  );
 }
 
 Future<FeedMessage?> fetchLightRailParramattaUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/parramatta',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/lightrail/parramatta',
+    logLabel: 'Parramatta light rail updates',
+  );
 }
 
 Future<FeedMessage?> fetchNswTrainsUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/nswtrains',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/nswtrains',
+    logLabel: 'NSW Trains updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesCentralWestAndOranaUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/centralwestandorana',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    logger.w('Realtime fetch failed: $e');
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/centralwestandorana',
+    logLabel: 'Central West and Orana bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesCentralWestAndOrana2Updates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/centralwestandorana2',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/centralwestandorana2',
+    logLabel: 'Central West and Orana 2 bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesFarWestUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/farwest',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/farwest',
+    logLabel: 'Far West bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesNewcastleHunterUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/newcastlehunter',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/newcastlehunter',
+    logLabel: 'Newcastle Hunter bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesNewEnglandNorthWestUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/newenglandnorthwest',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/newenglandnorthwest',
+    logLabel: 'New England North West bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesNorthCoastUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast',
+    logLabel: 'North Coast bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesNorthCoast2Updates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast2',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast2',
+    logLabel: 'North Coast 2 bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesNorthCoast3Updates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast3',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/northcoast3',
+    logLabel: 'North Coast 3 bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesRiverinaMurrayUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/riverinamurray',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/riverinamurray',
+    logLabel: 'Riverina Murray bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesRiverinaMurray2Updates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/riverinamurray2',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/riverinamurray2',
+    logLabel: 'Riverina Murray 2 bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesSouthEastTablelandsUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/southeasttablelands',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/southeasttablelands',
+    logLabel: 'South East Tablelands bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesSouthEastTablelands2Updates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/southeasttablelands2',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/southeasttablelands2',
+    logLabel: 'South East Tablelands 2 bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchRegionBusesSydneySurroundsUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/sydneysurrounds',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v1/gtfs/realtime/regionbuses/sydneysurrounds',
+    logLabel: 'Sydney Surrounds bus updates',
+  );
 }
 
 Future<FeedMessage?> fetchSydneyTrainsUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v2/gtfs/realtime/sydneytrains',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v2/gtfs/realtime/sydneytrains',
+    logLabel: 'Sydney Trains updates',
+  );
 }
 
 Future<FeedMessage?> fetchSydneyMetroUpdates() async {
-  try {
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro',
-    );
-    final response = await http.get(url, headers: getHeaders());
-    if (response.statusCode != 200) {
-      // Failed to fetch ${url.toString()}: ${response.statusCode}
-      return null;
-    }
-    return FeedMessage.fromBuffer(response.bodyBytes);
-  } catch (e) {
-    return null;
-  }
+  return fetchRealtimeFeed(
+    'https://api.transport.nsw.gov.au/v2/gtfs/realtime/metro',
+    logLabel: 'Sydney Metro updates',
+  );
 }
 
 Future<List<FeedMessage?>> fetchAllLightRail() async {
   return await Future.wait([
-    fetchLightRailCbdAndSoutheastUpdates(),
-    fetchLightRailInnerWestUpdates(),
-    fetchLightRailNewcastleUpdates(),
-    fetchLightRailParramattaUpdates(),
+    fetchLightRailCbdAndSoutheastUpdates().catchError((_) => null),
+    fetchLightRailInnerWestUpdates().catchError((_) => null),
+    fetchLightRailNewcastleUpdates().catchError((_) => null),
+    fetchLightRailParramattaUpdates().catchError((_) => null),
   ]);
 }
 
 Future<List<FeedMessage?>> fetchAllFerries() async {
   return await Future.wait([
-    fetchFerriesSydneyFerriesUpdates(),
-    fetchFerriesMFFUpdates(),
+    fetchFerriesSydneyFerriesUpdates().catchError((_) => null),
+    fetchFerriesMFFUpdates().catchError((_) => null),
   ]);
 }
 
 Future<List<FeedMessage?>> fetchAllRegionBuses() async {
   return await Future.wait([
-    fetchRegionBusesCentralWestAndOranaUpdates(),
-    fetchRegionBusesCentralWestAndOrana2Updates(),
-    fetchRegionBusesFarWestUpdates(),
-    fetchRegionBusesNewcastleHunterUpdates(),
-    fetchRegionBusesNewEnglandNorthWestUpdates(),
-    fetchRegionBusesNorthCoastUpdates(),
-    fetchRegionBusesNorthCoast2Updates(),
-    fetchRegionBusesNorthCoast3Updates(),
-    fetchRegionBusesRiverinaMurrayUpdates(),
-    fetchRegionBusesRiverinaMurray2Updates(),
-    fetchRegionBusesSouthEastTablelandsUpdates(),
-    fetchRegionBusesSouthEastTablelands2Updates(),
-    fetchRegionBusesSydneySurroundsUpdates(),
+    fetchRegionBusesCentralWestAndOranaUpdates().catchError((_) => null),
+    fetchRegionBusesCentralWestAndOrana2Updates().catchError((_) => null),
+    fetchRegionBusesFarWestUpdates().catchError((_) => null),
+    fetchRegionBusesNewcastleHunterUpdates().catchError((_) => null),
+    fetchRegionBusesNewEnglandNorthWestUpdates().catchError((_) => null),
+    fetchRegionBusesNorthCoastUpdates().catchError((_) => null),
+    fetchRegionBusesNorthCoast2Updates().catchError((_) => null),
+    fetchRegionBusesNorthCoast3Updates().catchError((_) => null),
+    fetchRegionBusesRiverinaMurrayUpdates().catchError((_) => null),
+    fetchRegionBusesRiverinaMurray2Updates().catchError((_) => null),
+    fetchRegionBusesSouthEastTablelandsUpdates().catchError((_) => null),
+    fetchRegionBusesSouthEastTablelands2Updates().catchError((_) => null),
+    fetchRegionBusesSydneySurroundsUpdates().catchError((_) => null),
   ]);
 }

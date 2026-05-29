@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class Route {
   final String routeId;
   final String? agencyId;
@@ -31,27 +33,22 @@ class Route {
 
   /// Create a Route from a CSV row using header-based field mapping
   factory Route.fromCsv(List<String> header, List<String> row) {
-    String? getField(String fieldName) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return null;
-      final value = row[index];
-      return value.isEmpty ? null : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
     return Route(
-      routeId: getField('route_id') ?? '',
-      agencyId: getField('agency_id'),
-      routeShortName: getField('route_short_name') ?? '',
-      routeLongName: getField('route_long_name') ?? '',
-      routeDesc: getField('route_desc'),
-      routeType: getField('route_type') ?? '',
-      routeUrl: getField('route_url'),
-      routeColor: getField('route_color'),
-      routeTextColor: getField('route_text_color'),
-      routeSortOrder: getField('route_sort_order'),
-      continuousPickup: getField('continuous_pickup'),
-      continuousDropOff: getField('continuous_drop_off'),
-      networkId: getField('network_id'),
+      routeId: reader.fieldOrEmpty('route_id'),
+      agencyId: reader.fieldOrNull('agency_id'),
+      routeShortName: reader.fieldOrEmpty('route_short_name'),
+      routeLongName: reader.fieldOrEmpty('route_long_name'),
+      routeDesc: reader.fieldOrNull('route_desc'),
+      routeType: reader.fieldOrEmpty('route_type'),
+      routeUrl: reader.fieldOrNull('route_url'),
+      routeColor: reader.fieldOrNull('route_color'),
+      routeTextColor: reader.fieldOrNull('route_text_color'),
+      routeSortOrder: reader.fieldOrNull('route_sort_order'),
+      continuousPickup: reader.fieldOrNull('continuous_pickup'),
+      continuousDropOff: reader.fieldOrNull('continuous_drop_off'),
+      networkId: reader.fieldOrNull('network_id'),
     );
   }
 
@@ -72,18 +69,13 @@ class Route {
     'network_id',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Require presence of required columns per GTFS spec
-    final required = [
+  static bool validateCsvHeader(List<String> header) {
+    const required = [
       'route_id',
       'route_short_name',
       'route_long_name',
       'route_type',
     ];
-    for (final col in required) {
-      if (!header.contains(col)) {
-        // Missing required column — callers should handle this case
-      }
-    }
+    return required.every(header.contains);
   }
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
@@ -12,11 +14,11 @@ void main() {
       () async {
         final feed = await fetchBusesPositions();
         expect(feed, isNotNull, reason: 'Buses: No data or API error');
-        final f = feed!;
+        final f = feed;
         // logger.d(
         //     'Buses: ${f.header.gtfsRealtimeVersion}, entities: ${f.entity.length}');
-        expect(f.header.hasGtfsRealtimeVersion(), true);
-        expect(f.entity.isNotEmpty, true);
+        expect(f?.header.hasGtfsRealtimeVersion(), true);
+        expect(f?.entity.isNotEmpty, true);
       },
       skip: 'Requires live API key',
     );
@@ -26,11 +28,11 @@ void main() {
       () async {
         final feed = await fetchNswTrainsPositions();
         expect(feed, isNotNull, reason: 'NSW Trains: No data or API error');
-        final f = feed!;
+        final f = feed;
         // logger.d(
         //     'NSW Trains: ${f.header.gtfsRealtimeVersion}, entities: ${f.entity.length}');
-        expect(f.header.hasGtfsRealtimeVersion(), true);
-        expect(f.entity.isNotEmpty, true);
+        expect(f?.header.hasGtfsRealtimeVersion(), true);
+        expect(f?.entity.isNotEmpty, true);
       },
       skip: 'Requires live API key',
     );
@@ -47,10 +49,10 @@ void main() {
           isNotNull,
           reason: 'All Ferries: No data or API error',
         );
-        final f0 = feeds[0]!;
+        final f0 = feeds[0];
         // logger.d(
         //     'All Ferries: ${f0.header.gtfsRealtimeVersion}, entities: ${f0.entity.length}');
-        expect(f0.entity.isNotEmpty, true);
+        expect(f0?.entity.isNotEmpty, true);
       },
       skip: 'Requires live API key',
     );
@@ -65,10 +67,10 @@ void main() {
           isNotNull,
           reason: 'All Light Rail: No data or API error',
         );
-        final f0 = feeds[0]!;
+        final f0 = feeds[0];
         // logger.d(
         //     'All Light Rail: ${f0.header.gtfsRealtimeVersion}, entities: ${f0.entity.length}');
-        expect(f0.entity.isNotEmpty, true);
+        expect(f0?.entity.isNotEmpty, true);
       },
       skip: 'Requires live API key',
     );
@@ -83,10 +85,10 @@ void main() {
           isNotNull,
           reason: 'All Region Buses: No data or API error',
         );
-        final f0 = feeds[0]!;
+        final f0 = feeds[0];
         // logger.d(
         //     'All Region Buses: ${f0.header.gtfsRealtimeVersion}, entities: ${f0.entity.length}');
-        expect(f0.entity.isNotEmpty, true);
+        expect(f0?.entity.isNotEmpty, true);
       },
       skip: 'Requires live API key',
     );
@@ -100,14 +102,14 @@ void main() {
           isNotNull,
           reason: 'FeedMessage was null (API error or bad response)',
         );
-        final f = feed!;
+        final f = feed;
         // logger.d('GTFS version: ${f.header.gtfsRealtimeVersion}');
         // logger.d('Number of entities: ${f.entity.length}');
         // for (var i = 0; i < f.entity.length; i++) {
         //   logger.d('Entity #$i: ${f.entity[i].toString()}');
         // }
-        expect(f.header.hasGtfsRealtimeVersion(), true);
-        expect(f.entity.isNotEmpty, true);
+        expect(f?.header.hasGtfsRealtimeVersion(), true);
+        expect(f?.entity.isNotEmpty, true);
       },
       skip: 'Requires live API key',
     );
@@ -121,14 +123,14 @@ void main() {
           isNotNull,
           reason: 'FeedMessage was null (API error or bad response)',
         );
-        final f = feed!;
+        final f = feed;
         // logger.d('GTFS version: ${f.header.gtfsRealtimeVersion}');
         // logger.d('Number of entities: ${f.entity.length}');
         // for (var i = 0; i < f.entity.length; i++) {
         //   logger.d('Entity #$i: ${f.entity[i].toString()}');
         // }
-        expect(f.header.hasGtfsRealtimeVersion(), true);
-        expect(f.entity.isNotEmpty, true);
+        expect(f?.header.hasGtfsRealtimeVersion(), true);
+        expect(f?.entity.isNotEmpty, true);
       },
       skip: 'Requires live API key',
     );

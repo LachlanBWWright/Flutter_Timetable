@@ -1,54 +1,48 @@
+// ignore_for_file: catch_inferred_throwing_calls
+
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
-import 'package:lbww_flutter/logs/logger.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
-import 'package:lbww_flutter/services/api_key_service.dart';
-import 'package:lbww_flutter/services/debug_service.dart';
+import 'package:lbww_flutter/services/app_bootstrap_service.dart';
+import 'package:lbww_flutter/services/journey_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/services/new_trip_service.dart';
+import 'package:lbww_flutter/services/prefetch_scheduler.dart';
+import 'package:lbww_flutter/services/station_loader.dart';
+import 'package:lbww_flutter/services/stops_service.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
+import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
+import 'package:lbww_flutter/utils/journey_filter_utils.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
-  // Initialize debug service early so widgets can access it synchronously
-  try {
-    await DebugService.init();
-  } catch (_) {
-    // If debug service can't initialize, it's not fatal for the app.
-  }
-  // Load any user-supplied API key override from SharedPreferences.
-  try {
-    await ApiKeyService.init();
-  } catch (_) {
-    // Not fatal if ApiKeyService fails to initialize.
-  }
-
-  // API key is handled by individual services directly from dotenv
+  await AppBootstrapService.initialize();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  ThemeData _safeTheme(Brightness brightness) {
+    return ThemeData(primarySwatch: Colors.blue, brightness: brightness);
+  }
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: AppConstants.appTitle,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.light,
-      ),
-      darkTheme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.dark,
-      ),
+      theme: _safeTheme(Brightness.light),
+      darkTheme: _safeTheme(Brightness.dark),
       themeMode: ThemeMode.dark, // Use dark mode throughout the application
+      onGenerateRoute: DebugNavigation.onGenerateRoute,
       home: const MyHomePage(title: AppConstants.appTitle),
     );
   }
@@ -62,108 +56,170 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+List<StopsEndpoint> _staticPrefetchEndpoints() {
+  return StopsEndpoint.values.toList()..sort(
+    (left, right) =>
+        _staticEndpointPriority(left).compareTo(_staticEndpointPriority(right)),
+  );
+}
+
+int _staticEndpointPriority(StopsEndpoint endpoint) {
+  if (endpoint == StopsEndpoint.sydneytrains) return 0;
+  if (endpoint == StopsEndpoint.metro) return 1;
+  if (endpoint.key.startsWith('lightrail')) return 2;
+  if (endpoint.key.startsWith('ferries')) return 3;
+  if (endpoint.key.startsWith('buses')) return 4;
+  if (endpoint == StopsEndpoint.nswtrains) return 5;
+  return 6;
+}
+
+class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   List<db.Journey> _journeys = [];
   List<db.Journey> _filteredJourneys = [];
   bool _hasApiKey = false;
   bool _isEditingMode = false;
   bool _isSearching = false;
+  bool _isAlphabeticalSorting = true;
+  bool _hasShownLocationSnackBar = false;
   final TextEditingController _searchController = TextEditingController();
   // Single database instance for this stateful widget
   final db.AppDatabase _database = db.AppDatabase();
 
+  void _hideCurrentMessage() {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+  }
+
+  void _pushPage(Widget page, VoidCallback onReturn) {
+    pushPage((context) => page).then((_) => runGuarded(onReturn));
+  }
+
+  void _enqueueStaticPrefetch(StopsEndpoint endpoint) {
+    PrefetchScheduler.instance.enqueueStatic(
+      key: endpoint.key,
+      priority: _staticEndpointPriority(endpoint),
+      job: () async {
+        await for (final _ in NewTripService.updateStaticTransportData(
+          endpoints: [endpoint],
+        )) {}
+      },
+    );
+  }
+
   Future<void> getTrips() async {
-    try {
-      final pinnedJourneys = await _database.getPinnedJourneys();
-      final unpinnedJourneys = await _database.getUnpinnedJourneys();
+    final result = await JourneyService.loadJourneys(_database);
+    final pinnedJourneys = result.pinnedJourneys;
+    final unpinnedJourneys = result.unpinnedJourneys;
 
-      // Show a snackbar while fetching location for distance-based sorting
-      ScaffoldMessengerState? messenger;
-      final isAlphabetical = await LocationService.isAlphabeticalSorting();
-      if (!isAlphabetical && mounted) {
-        messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Getting your location…'),
-            duration: Duration(minutes: 1),
-          ),
-        );
-      }
+    final initialJourneys = result.allJourneys;
+    if (!mounted) return;
+    guardedSetState(() {
+      _journeys = initialJourneys;
+      _filteredJourneys = _applySearchFilter(initialJourneys);
+    });
 
-      // Sort unpinned journeys based on user preference
-      final sortedUnpinned = await LocationService.sortJourneys(
-        unpinnedJourneys,
+    TripCacheService.prefetch(initialJourneys);
+    prefetchAllStations();
+    _prefetchStaticTransportData();
+
+    ScaffoldMessengerState? messenger;
+    final isAlphabetical = await LocationService.isAlphabeticalSorting();
+    if (!isAlphabetical && mounted && !_hasShownLocationSnackBar) {
+      _hasShownLocationSnackBar = true;
+      messenger = ScaffoldMessenger.maybeOf(context);
+      messenger?.showSnackBar(
+        const SnackBar(
+          content: Text('Getting your location…'),
+          duration: Duration(seconds: 3),
+        ),
       );
+    }
 
-      messenger?.hideCurrentSnackBar();
+    final sortedUnpinned = await LocationService.sortJourneys(unpinnedJourneys);
 
-      final allJourneys = [...pinnedJourneys, ...sortedUnpinned];
+    _hideCurrentMessage();
 
-      if (!mounted) return;
-      setState(() {
-        _journeys = allJourneys;
-        _filteredJourneys = allJourneys;
-      });
-    } catch (e) {
-      logger.e('Error loading trips: $e');
+    final sortedJourneys = [...pinnedJourneys, ...sortedUnpinned];
+    if (!mounted) return;
+    guardedSetState(() {
+      _journeys = sortedJourneys;
+      _filteredJourneys = _applySearchFilter(sortedJourneys);
+    });
+  }
+
+  void _prefetchStaticTransportData() {
+    for (final endpoint in _staticPrefetchEndpoints()) {
+      _enqueueStaticPrefetch(endpoint);
     }
   }
 
+  List<db.Journey> _applySearchFilter(List<db.Journey> journeys) {
+    return filterJourneysByQuery(journeys, _searchController.text);
+  }
+
   void _filterJourneys(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredJourneys = _journeys;
-      } else {
-        _filteredJourneys = _journeys.where((journey) {
-          return journey.origin.toLowerCase().contains(query.toLowerCase()) ||
-              journey.destination.toLowerCase().contains(query.toLowerCase());
-        }).toList();
-      }
+    guardedSetState(() {
+      _filteredJourneys = filterJourneysByQuery(_journeys, query);
     });
   }
 
   Future<void> deleteTrip(int tripId) async {
-    try {
-      await _database.deleteJourney(tripId);
+    final deleted = await JourneyService.deleteJourney(_database, tripId);
+    if (deleted) {
       getTrips();
-    } catch (e) {
-      logger.e('Error deleting trip: $e');
     }
   }
 
   Future<void> togglePin(int tripId, bool isPinned) async {
-    try {
-      await _database.toggleJourneyPin(tripId, !isPinned);
+    final toggled = await JourneyService.toggleJourneyPin(
+      _database,
+      tripId,
+      isPinned,
+    );
+    if (toggled) {
       getTrips();
-    } catch (e) {
-      logger.e('Error toggling pin: $e');
     }
   }
 
   Future<void> checkApiKey() async {
-    try {
-      final isValid = await TransportApiService.isApiKeyValid();
-      if (!mounted) return;
-      setState(() {
-        _hasApiKey = isValid;
-      });
-    } catch (err) {
-      if (!mounted) return;
-      setState(() {
-        _hasApiKey = false;
-      });
-    }
+    final isValid = await TransportApiService.isApiKeyValid();
+    if (!mounted) return;
+    guardedSetState(() {
+      _hasApiKey = isValid;
+    });
   }
 
   @override
   void initState() {
     super.initState();
+    _loadInitialSorting();
     getTrips();
     checkApiKey();
   }
 
+  Future<void> _loadInitialSorting() async {
+    final isAlphabetical = await LocationService.isAlphabeticalSorting();
+    if (!mounted) return;
+    guardedSetState(() {
+      _isAlphabeticalSorting = isAlphabetical;
+    });
+  }
+
+  Future<void> _toggleSortMode() async {
+    final newValue = !_isAlphabeticalSorting;
+    await LocationService.setSortingPreference(newValue);
+    if (!mounted) return;
+    guardedSetState(() {
+      _isAlphabeticalSorting = newValue;
+    });
+    // Re-sort with the new preference
+    await getTrips();
+  }
+
   void _toggleSearchMode() {
-    setState(() {
+    guardedSetState(() {
       _isSearching = !_isSearching;
       if (!_isSearching) {
         _searchController.clear();
@@ -173,67 +229,41 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _toggleEditingMode() {
-    setState(() {
+    guardedSetState(() {
       _isEditingMode = !_isEditingMode;
     });
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    disposeChangeNotifierSafely(_searchController);
     super.dispose();
   }
 
   void _navigateToNewTrip() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const NewTripScreen()),
-    ).then((val) {
-      getTrips();
-    });
+    _pushPage(const NewTripScreen(), getTrips);
   }
 
   void _navigateToSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
-    ).then((val) {
-      checkApiKey();
-    });
+    _pushPage(const SettingsScreen(), checkApiKey);
   }
 
   void _navigateToTrip(db.Journey journey) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TripScreen(trip: journey)),
-    );
+    TripCacheService.prefetchJourney(journey);
+    _pushPage(TripScreen(trip: journey), () {});
   }
 
   void _navigateToReverseTrip(db.Journey journey) {
-    // Create a reversed journey
-    final reversedJourney = db.Journey(
-      id: journey.id,
-      origin: journey.destination,
-      originId: journey.destinationId,
-      destination: journey.origin,
-      destinationId: journey.originId,
-      isPinned: journey.isPinned,
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TripScreen(trip: reversedJourney),
-      ),
-    );
+    final reversedJourney = journey.reversedPreviewJourney();
+    TripCacheService.prefetchJourney(reversedJourney);
+    _pushPage(TripScreen(trip: reversedJourney), () {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final pinnedJourneys = _filteredJourneys.where((j) => j.isPinned).toList();
-    final unpinnedJourneys = _filteredJourneys
-        .where((j) => !j.isPinned)
-        .toList();
+    final sections = splitJourneySections(_filteredJourneys);
+    final pinnedJourneys = sections.pinnedJourneys;
+    final unpinnedJourneys = sections.unpinnedJourneys;
 
     return Scaffold(
       appBar: HomeAppBar(
@@ -242,10 +272,12 @@ class _MyHomePageState extends State<MyHomePage> {
         isSearching: _isSearching,
         isEditingMode: _isEditingMode,
         hasTrips: _journeys.isNotEmpty,
+        isAlphabeticalSorting: _isAlphabeticalSorting,
         onAddTrip: _navigateToNewTrip,
         onSettings: _navigateToSettings,
         onToggleSearch: _toggleSearchMode,
         onToggleEdit: _toggleEditingMode,
+        onToggleSort: _toggleSortMode,
         onSearchChanged: _filterJourneys,
         searchController: _searchController,
       ),
@@ -298,6 +330,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       journeys: pinnedJourneys,
                       onJourneyTap: _navigateToTrip,
                       onReverseJourneyTap: _navigateToReverseTrip,
+                      onJourneyVisible: TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,
                       isEditingMode: _isEditingMode,
@@ -317,6 +350,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       journeys: unpinnedJourneys,
                       onJourneyTap: _navigateToTrip,
                       onReverseJourneyTap: _navigateToReverseTrip,
+                      onJourneyVisible: TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,
                       isEditingMode: _isEditingMode,

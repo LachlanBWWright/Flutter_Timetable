@@ -1045,6 +1045,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
+  string_normalizer:
+    dependency: transitive
+    description:
+      name: string_normalizer
+      sha256: "4bc0b4edafe1517fafa79e9e6e163ea078205bcb9399d069377df6bbd6f7c57d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
   string_scanner:
     dependency: transitive
     description:
@@ -1293,6 +1301,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
+  zard:
+    dependency: "direct main"
+    description:
+      name: zard
+      sha256: aeb94314ca0bbeacaba736d86929968db64f811a48a2be78e8ec4007e7545c43
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
 sdks:
   dart: ">=3.10.0 <4.0.0"
   flutter: ">=3.38.0"

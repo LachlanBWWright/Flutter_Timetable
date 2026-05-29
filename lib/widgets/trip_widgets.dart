@@ -1,7 +1,12 @@
+// ignore_for_file: catch_unknown_dynamic_calls
+
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
+import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 
 /// Utility class for transport mode colors and names
 class TransportModeUtils {
@@ -57,44 +62,93 @@ class TransportModeUtils {
 class TripCard extends StatefulWidget {
   final TripJourney trip;
   final void Function(Leg) onSelectLeg;
+  final void Function(TripJourney)? onVisible;
 
-  const TripCard({super.key, required this.trip, required this.onSelectLeg});
+  const TripCard({
+    super.key,
+    required this.trip,
+    required this.onSelectLeg,
+    this.onVisible,
+  });
 
   @override
   State<TripCard> createState() => _TripCardState();
 }
 
-class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
+class _TripCardState extends State<TripCard>
+    with TickerProviderStateMixin, GuardedState<TripCard> {
   bool _expanded = false;
+  bool _didNotifyVisible = false;
+
+  void _notifyVisible() {
+    final onVisible = widget.onVisible;
+    if (onVisible == null) {
+      return;
+    }
+    runGuarded(() => onVisible(widget.trip));
+  }
+
+  void _selectLeg(Leg leg) {
+    final onSelectLeg = widget.onSelectLeg;
+    runGuarded(() => onSelectLeg(leg));
+  }
+
+  @override
+  void didUpdateWidget(covariant TripCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.trip, widget.trip)) {
+      _didNotifyVisible = false;
+    }
+  }
+
+  void _notifyVisibleOnce() {
+    if (_didNotifyVisible) return;
+    _didNotifyVisible = true;
+    addPostFrameCallbackSafely((_) {
+      if (!mounted) return;
+      _notifyVisible();
+    });
+  }
+
+  String _displayStopName(Stop stop) {
+    return stop.disassembledName ?? stop.name;
+  }
 
   String _formatTimeDifference(String? planned, String? estimated) {
-    if (planned == null || estimated == null) {
-      return DateTimeUtils.parseTimeOnly(estimated ?? '');
+    final hasPlanned = planned != null && planned.isNotEmpty;
+    final hasEstimated = estimated != null && estimated.isNotEmpty;
+    final fallbackTime = estimated ?? planned;
+    if (!hasPlanned && !hasEstimated) {
+      return 'TBD';
     }
-    try {
-      final plannedTime = DateTimeUtils.parseTimeToDateTime(planned);
-      final estimatedTime = DateTimeUtils.parseTimeToDateTime(estimated);
-
-      if (plannedTime == null || estimatedTime == null) {
-        return DateTimeUtils.parseTimeOnly(estimated);
-      }
-
-      final difference = estimatedTime.difference(plannedTime).inMinutes;
-
-      if (difference == 0) {
-        return DateTimeUtils.parseTimeOnly(estimated);
-      } else if (difference > 0) {
-        return '${DateTimeUtils.parseTimeOnly(estimated)} (+${difference}m late)';
-      } else {
-        return '${DateTimeUtils.parseTimeOnly(estimated)} (${difference.abs()}m early)';
-      }
-    } catch (e) {
-      return DateTimeUtils.parseTimeOnly(estimated);
+    if (fallbackTime == null) {
+      return 'TBD';
     }
+    if (!hasEstimated) {
+      return DateTimeUtils.parseTimeOnly(fallbackTime);
+    }
+    if (!hasPlanned) {
+      return DateTimeUtils.parseTimeOnly(fallbackTime);
+    }
+    return formatTimeDifference(planned, estimated);
+  }
+
+  String _formatTimeRange(Leg leg) {
+    final departure = _formatTimeDifference(
+      leg.origin.departureTimePlanned,
+      leg.origin.departureTimeEstimated,
+    );
+    final arrival = _formatTimeDifference(
+      leg.destination.arrivalTimePlanned,
+      leg.destination.arrivalTimeEstimated,
+    );
+    return '$departure - $arrival';
   }
 
   @override
   Widget build(BuildContext context) {
+    _notifyVisibleOnce();
+
     final legs = widget.trip.legs;
     if (legs.isEmpty) {
       return const Card(
@@ -110,8 +164,7 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
 
     // Build sequential segments per-leg, inserting grey waiting segments between legs where applicable
     final segments = <Widget>[];
-    for (var i = 0; i < legs.length; i++) {
-      final l = legs[i];
+    for (final (index, l) in legs.indexed) {
       final transportClass = l.transportation?.product?.classField;
       // Convert leg duration (which is seconds in the API) to minutes so the visual
       // proportion between travel time and waiting time makes sense.
@@ -130,9 +183,10 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
       );
 
       // If there's a next leg, compute waiting time (in minutes) and add a grey segment if > 0
-      if (i < legs.length - 1) {
+      final nextLeg = legs.skip(index + 1).firstOrNull;
+      if (nextLeg != null) {
         final curDest = l.destination;
-        final nextOrigin = legs[i + 1].origin;
+        final nextOrigin = nextLeg.origin;
         final curArrival =
             curDest.arrivalTimeEstimated ?? curDest.arrivalTimePlanned;
         final nextDeparture =
@@ -171,14 +225,14 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
           InkWell(
             onTap: () {
               if (legs.length == 1) {
-                widget.onSelectLeg(legs.first);
+                _selectLeg(legs.first);
               } else {
-                setState(() => _expanded = !_expanded);
+                guardedSetState(() => _expanded = !_expanded);
               }
             },
             child: ListTile(
               title: Text(
-                '${firstLeg.origin.disassembledName} to ${lastLeg.destination.disassembledName}',
+                '${_displayStopName(firstLeg.origin)} to ${_displayStopName(lastLeg.destination)}',
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,15 +283,28 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                title: Text(
-                  '${leg.origin.disassembledName} → ${leg.destination.disassembledName}',
+                title: Row(
+                  children: [
+                    // Timestamp left of the leg description
+                    Text(
+                      _formatTimeRange(leg),
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${_displayStopName(leg.origin)} → ${_displayStopName(leg.destination)}',
+                      ),
+                    ),
+                  ],
                 ),
+                subtitle: _buildLegSubtitle(leg),
                 dense: true,
                 trailing: const Padding(
                   padding: EdgeInsets.only(right: 24.0),
                   child: Icon(Icons.chevron_right, size: 20),
                 ),
-                onTap: () => widget.onSelectLeg(leg),
+                onTap: () => _selectLeg(leg),
               ),
             const Divider(height: 1),
           ],
@@ -256,6 +323,23 @@ class _TripCardState extends State<TripCard> with TickerProviderStateMixin {
             ),
         ],
       ),
+    );
+  }
+
+  Widget? _buildLegSubtitle(Leg leg) {
+    final details = <String>[];
+    final routeNumber = leg.transportation?.number;
+
+    if (routeNumber != null && routeNumber.isNotEmpty) {
+      details.add('Route $routeNumber');
+    }
+
+    if (details.isEmpty) return null;
+    return Text(
+      details.join(' • '),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 12),
     );
   }
 }

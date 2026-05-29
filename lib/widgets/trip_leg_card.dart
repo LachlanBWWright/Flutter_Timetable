@@ -1,9 +1,12 @@
+// ignore_for_file: catch_inferred_throwing_calls
+
 import 'package:flutter/material.dart';
 // logger removed
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 
-import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
+import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 /// Widget for displaying trip leg information
@@ -14,37 +17,27 @@ class TripLegCard extends StatelessWidget {
 
   const TripLegCard({super.key, required this.leg, this.trip});
 
-  String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
-    if (estimatedTime == null) {
-      return plannedTime != null
-          ? DateTimeUtils.parseTimeOnly(plannedTime)
-          : 'TBD';
-    }
+  bool _isTruthy(String? value) {
+    if (value == null) return false;
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'yes' || normalized == 'true' || normalized == '1';
+  }
 
-    if (plannedTime == null) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
-
-    try {
-      final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
-      final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
-
-      if (planned == null || estimated == null) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
+  List<String> _notices() {
+    final messages = <String>{};
+    for (final info in leg.infos ?? const <Info>[]) {
+      final text = trimmedOrNull(info.subtitle) ?? trimmedOrNull(info.content);
+      if (text != null && text.isNotEmpty) {
+        messages.add(text);
       }
-
-      final difference = estimated.difference(planned).inMinutes;
-
-      if (difference == 0) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      } else if (difference > 0) {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)';
-      } else {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
-      }
-    } catch (e) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
     }
+    for (final hint in leg.hints ?? const <Hint>[]) {
+      final text = hint.infoText?.trim();
+      if (text != null && text.isNotEmpty) {
+        messages.add(text);
+      }
+    }
+    return messages.toList(growable: false);
   }
 
   Widget _buildTimingInfo() {
@@ -68,7 +61,7 @@ class TripLegCard extends StatelessWidget {
               const Icon(Icons.departure_board, size: 16, color: Colors.green),
               const SizedBox(width: 4),
               Text(
-                'Depart: ${_formatTimeDifference(originDeparturePlanned, originDepartureEstimated)}',
+                'Depart: ${formatTimeDifference(originDeparturePlanned, originDepartureEstimated)}',
                 style: const TextStyle(fontSize: 12),
               ),
             ],
@@ -80,12 +73,20 @@ class TripLegCard extends StatelessWidget {
               const Icon(Icons.schedule, size: 16, color: Colors.red),
               const SizedBox(width: 4),
               Text(
-                'Arrive: ${_formatTimeDifference(destinationArrivalPlanned, destinationArrivalEstimated)}',
+                'Arrive: ${formatTimeDifference(destinationArrivalPlanned, destinationArrivalEstimated)}',
                 style: const TextStyle(fontSize: 12),
               ),
             ],
           ),
       ],
+    );
+  }
+
+  void _pushDetails(BuildContext context) {
+    Navigator.maybeOf(context)?.push(
+      MaterialPageRoute(
+        builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
+      ),
     );
   }
 
@@ -101,6 +102,15 @@ class TripLegCard extends StatelessWidget {
     final destinationName = destination.disassembledName ?? destination.name;
     final transportName =
         transportation?.name ?? transportation?.disassembledName ?? '';
+    final routeNumber = transportation?.number;
+    final headsign = transportation?.destination?.name;
+    final operator = transportation?.operator?.name;
+    final notices = _notices();
+    final accessibilityNotes = <String>[
+      if (_isTruthy(leg.properties?.planWheelChairAccess)) 'Wheelchair access',
+      if (_isTruthy(leg.properties?.planLowFloorVehicle)) 'Low-floor vehicle',
+      ...?(leg.properties?.vehicleAccess),
+    ];
 
     if (transportClass == null) {
       // Missing transport class
@@ -112,14 +122,7 @@ class TripLegCard extends StatelessWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(8.0),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
-            ),
-          );
-        },
+        onTap: () => _pushDetails(context),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.0),
@@ -147,6 +150,68 @@ class TripLegCard extends StatelessWidget {
                     style: TextStyle(
                       color: modeColor,
                       fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (routeNumber != null && routeNumber.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Route $routeNumber',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (headsign != null && headsign.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Towards $headsign',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (operator != null && operator.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Operator: $operator',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (accessibilityNotes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: accessibilityNotes.take(3).map((note) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            note,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                if (notices.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Alert: ${notices.first}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.deepOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 4),

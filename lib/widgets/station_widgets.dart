@@ -1,11 +1,74 @@
+// ignore_for_file: catch_unknown_dynamic_calls
+
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import '../constants/transport_colors.dart';
+import '../services/debug_service.dart';
+import '../utils/station_subtitle_utils.dart';
+
+typedef StationSelectionCallback =
+    void Function(String stationName, String stationId, TransportMode? mode);
+
+T _valueOr<T>(T? value, T fallback) {
+  if (value != null) {
+    return value;
+  }
+  return fallback;
+}
+
+String _nearbyBadgeLabelFor(Station station) {
+  return _valueOr(station.nearbyBadgeLabel, 'Best nearby');
+}
+
+double? _preferredDistanceFor(Station station) {
+  return _valueOr(station.nearbyAnchorDistance, station.distance);
+}
+
+List<Tab> _tabsOrDefault(List<Tab>? tabs) {
+  if (tabs != null) {
+    return tabs;
+  }
+  return _defaultStationTabs;
+}
+
+const List<Tab> _defaultStationTabs = <Tab>[
+  Tab(
+    icon: Icon(Icons.directions_train, color: Color.fromARGB(255, 255, 97, 35)),
+  ),
+  Tab(icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82))),
+  Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
+  Tab(
+    icon: Icon(Icons.directions_bus, color: Color.fromARGB(255, 82, 186, 255)),
+  ),
+  Tab(
+    icon: Icon(Icons.directions_ferry, color: Color.fromARGB(255, 68, 240, 91)),
+  ),
+];
 
 /// A model class for station data
 class Station {
   final String name;
   final String id;
+  final TransportMode? mode;
+  final String? lineId;
+  final String? lineName;
+  final bool isPreferredNearby;
+  final String? nearbyBadgeLabel;
+  final double? nearbyAnchorDistance;
+  final int? lineStopOrder;
+
+  // Optional metadata from GTFS/stop endpoints
+  final String? stopCode;
+  final String? stopDesc;
+  final String? zoneId;
+  final String? stopUrl;
+  final String? stopTimezone;
+  final String? levelId;
+  final String? parentStation;
+  final int? wheelchairBoarding;
+  final String? platformCode;
+
   final double? latitude;
   final double? longitude;
   final double? distance; // Distance from user location in km
@@ -13,6 +76,22 @@ class Station {
   Station({
     required this.name,
     required this.id,
+    this.mode,
+    this.lineId,
+    this.lineName,
+    this.isPreferredNearby = false,
+    this.nearbyBadgeLabel,
+    this.nearbyAnchorDistance,
+    this.lineStopOrder,
+    this.stopCode,
+    this.stopDesc,
+    this.zoneId,
+    this.stopUrl,
+    this.stopTimezone,
+    this.levelId,
+    this.parentStation,
+    this.wheelchairBoarding,
+    this.platformCode,
     this.latitude,
     this.longitude,
     this.distance,
@@ -22,16 +101,51 @@ class Station {
   Station copyWith({
     String? name,
     String? id,
+    TransportMode? mode,
+    String? lineId,
+    String? lineName,
+    bool? isPreferredNearby,
+    String? nearbyBadgeLabel,
+    double? nearbyAnchorDistance,
+    int? lineStopOrder,
+    String? stopCode,
+    String? stopDesc,
+    String? zoneId,
+    String? stopUrl,
+    String? stopTimezone,
+    String? levelId,
+    String? parentStation,
+    int? wheelchairBoarding,
+    String? platformCode,
     double? latitude,
     double? longitude,
     double? distance,
   }) {
     return Station(
-      name: name ?? this.name,
-      id: id ?? this.id,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      distance: distance ?? this.distance,
+      name: _valueOr(name, this.name),
+      id: _valueOr(id, this.id),
+      mode: _valueOr(mode, this.mode),
+      lineId: _valueOr(lineId, this.lineId),
+      lineName: _valueOr(lineName, this.lineName),
+      isPreferredNearby: _valueOr(isPreferredNearby, this.isPreferredNearby),
+      nearbyBadgeLabel: _valueOr(nearbyBadgeLabel, this.nearbyBadgeLabel),
+      nearbyAnchorDistance: _valueOr(
+        nearbyAnchorDistance,
+        this.nearbyAnchorDistance,
+      ),
+      lineStopOrder: _valueOr(lineStopOrder, this.lineStopOrder),
+      stopCode: _valueOr(stopCode, this.stopCode),
+      stopDesc: _valueOr(stopDesc, this.stopDesc),
+      zoneId: _valueOr(zoneId, this.zoneId),
+      stopUrl: _valueOr(stopUrl, this.stopUrl),
+      stopTimezone: _valueOr(stopTimezone, this.stopTimezone),
+      levelId: _valueOr(levelId, this.levelId),
+      parentStation: _valueOr(parentStation, this.parentStation),
+      wheelchairBoarding: _valueOr(wheelchairBoarding, this.wheelchairBoarding),
+      platformCode: _valueOr(platformCode, this.platformCode),
+      latitude: _valueOr(latitude, this.latitude),
+      longitude: _valueOr(longitude, this.longitude),
+      distance: _valueOr(distance, this.distance),
     );
   }
 }
@@ -39,7 +153,7 @@ class Station {
 /// Widget for displaying a single station item with optional distance
 class StationView extends StatelessWidget {
   final Station station;
-  final Function(String, String) setStation;
+  final StationSelectionCallback setStation;
   final SortMode sortMode;
   final TransportMode? mode;
 
@@ -50,6 +164,10 @@ class StationView extends StatelessWidget {
     required this.sortMode,
     this.mode,
   });
+
+  void _selectStation() {
+    setStation(station.name, station.id, mode);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +180,7 @@ class StationView extends StatelessWidget {
       child: Card(
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: InkWell(
-          onTap: () {
-            setStation(station.name, station.id);
-          },
+          onTap: _selectStation,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -78,24 +194,81 @@ class StationView extends StatelessWidget {
   }
 
   Widget _buildSubtitle() {
-    // Only show distance if available
-    final dist = station.distance;
-    if (dist != null) {
-      return Text(
-        '${dist.toStringAsFixed(1)} km away',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-      );
-    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: DebugService.showDebugData,
+      builder: (context, showDebug, _) {
+        final items = <Widget>[];
 
-    // Don't show anything if distance is not available
-    return const SizedBox.shrink();
+        if (station.isPreferredNearby) {
+          items.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Chip(
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  label: Text(
+                    _nearbyBadgeLabelFor(station),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final standardDistanceLine = formatStationDistanceLine(
+          _preferredDistanceFor(station),
+          debugFormat: false,
+        );
+        if (standardDistanceLine != null && !showDebug) {
+          items.add(
+            Text(
+              standardDistanceLine,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          );
+        }
+
+        if (showDebug) {
+          items.addAll(
+            buildStationDebugLines(station).map(
+              (line) => Text(
+                line,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+          );
+
+          final debugDistanceLine = formatStationDistanceLine(
+            _preferredDistanceFor(station),
+            debugFormat: true,
+          );
+          if (debugDistanceLine != null) {
+            items.add(
+              Text(
+                debugDistanceLine,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            );
+          }
+        }
+
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items,
+        );
+      },
+    );
   }
 }
 
 /// Enhanced widget for displaying a list of stations with distance support
 class EnhancedStationList extends StatelessWidget {
   final List<Station> listItems;
-  final Function(String, String) setStation;
+  final StationSelectionCallback setStation;
   final SortMode sortMode;
   final TransportMode? mode;
 
@@ -112,8 +285,12 @@ class EnhancedStationList extends StatelessWidget {
     return ListView.builder(
       itemCount: listItems.length,
       itemBuilder: (context, index) {
+        final station = listItems.elementAtOrNull(index);
+        if (station == null) {
+          return const SizedBox.shrink();
+        }
         return StationView(
-          station: listItems[index],
+          station: station,
           setStation: setStation,
           sortMode: sortMode,
           mode: mode,
@@ -126,7 +303,7 @@ class EnhancedStationList extends StatelessWidget {
 /// Widget for displaying a list of stations
 class StationList extends StatelessWidget {
   final List<Station> listItems;
-  final Function(String, String) setStation;
+  final StationSelectionCallback setStation;
 
   const StationList({
     super.key,
@@ -140,8 +317,12 @@ class StationList extends StatelessWidget {
       itemCount: listItems.length,
       itemBuilder: (context, index) {
         // Default to alphabetical if not specified
+        final station = listItems.elementAtOrNull(index);
+        if (station == null) {
+          return const SizedBox.shrink();
+        }
         return StationView(
-          station: listItems[index],
+          station: station,
           setStation: setStation,
           sortMode: SortMode.alphabetical,
         );
@@ -195,7 +376,9 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onOpenMap;
   final VoidCallback onToggleSort;
   final SortMode sortMode;
+  final bool showMapView;
   final TabController? tabController;
+  final List<Tab>? tabs;
 
   const NewTripAppBar({
     super.key,
@@ -209,7 +392,9 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onOpenMap,
     required this.onToggleSort,
     required this.sortMode,
+    this.showMapView = false,
     this.tabController,
+    this.tabs,
   });
 
   @override
@@ -229,8 +414,8 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
           : const Text('Add New Trip'),
       actions: [
         if (!canSave) ...[
-          // Sort button (only show when not searching and not ready to save)
-          if (!isSearching)
+          // Sort button (only show when not searching, not in map view, and not ready to save)
+          if (!isSearching && !showMapView)
             IconButton(
               onPressed: onToggleSort,
               icon: Icon(
@@ -242,55 +427,38 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ? 'Sort by distance'
                   : 'Sort alphabetically',
             ),
-          // Map button (only show when not searching)
+          // Map/list toggle button (only show when not searching)
           if (!isSearching)
             IconButton(
               onPressed: onOpenMap,
-              icon: const Icon(Icons.map),
-              tooltip: 'Open stops map',
+              icon: Icon(showMapView ? Icons.list : Icons.map),
+              tooltip: showMapView ? 'Show list' : 'Open stops map',
             ),
-          // Search/cancel button
-          if (isSearching)
-            IconButton(
-              onPressed: onToggleSearch,
-              icon: const Icon(Icons.cancel),
-            )
-          else
-            IconButton(
-              onPressed: onToggleSearch,
-              icon: const Icon(Icons.search),
-            ),
+          // Search/cancel button (only visible when not in map view)
+          if (!showMapView) ...[
+            if (isSearching)
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.cancel),
+              )
+            else
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.search),
+              ),
+          ],
         ],
       ],
-      bottom: TabBar(
-        controller: tabController,
-        tabs: const [
-          Tab(
-            icon: Icon(
-              Icons.directions_train,
-              color: Color.fromARGB(255, 255, 97, 35),
-            ),
-          ),
-          Tab(icon: Icon(Icons.tram, color: Color.fromARGB(255, 255, 82, 82))),
-          Tab(icon: Icon(Icons.subway, color: TransportColors.metro)),
-          Tab(
-            icon: Icon(
-              Icons.directions_bus,
-              color: Color.fromARGB(255, 82, 186, 255),
-            ),
-          ),
-          Tab(
-            icon: Icon(
-              Icons.directions_ferry,
-              color: Color.fromARGB(255, 68, 240, 91),
-            ),
-          ),
-        ],
-      ),
+      bottom: TabBar(controller: tabController, tabs: _tabsOrDefault(tabs)),
     );
   }
 
   @override
-  Size get preferredSize =>
-      const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
+  Size get preferredSize {
+    final resolvedTabs = tabs;
+    final hasTextTabs =
+        resolvedTabs != null && resolvedTabs.any((tab) => tab.text != null);
+    final tabBarHeight = hasTextTabs ? 72.0 : kTextTabBarHeight;
+    return Size.fromHeight(kToolbarHeight + tabBarHeight);
+  }
 }

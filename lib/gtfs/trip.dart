@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class Trip {
   final String routeId;
   final String serviceId;
@@ -30,26 +32,21 @@ class Trip {
 
   /// Create a Trip from a CSV row using header-based field mapping
   factory Trip.fromCsv(List<String> header, List<String> row) {
-    String? getField(String fieldName) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return null;
-      final value = row[index];
-      return value.isEmpty ? null : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
     return Trip(
-      routeId: getField('route_id') ?? '',
-      serviceId: getField('service_id') ?? '',
-      tripId: getField('trip_id') ?? '',
-      shapeId: getField('shape_id'),
-      tripHeadsign: getField('trip_headsign'),
-      tripShortName: getField('trip_short_name'),
-      directionId: getField('direction_id'),
-      blockId: getField('block_id'),
-      wheelchairAccessible: getField('wheelchair_accessible'),
-      bikesAllowed: getField('bikes_allowed'),
-      tripNote: getField('trip_note'),
-      routeDirection: getField('route_direction'),
+      routeId: reader.fieldOrEmpty('route_id'),
+      serviceId: reader.fieldOrEmpty('service_id'),
+      tripId: reader.fieldOrEmpty('trip_id'),
+      shapeId: reader.fieldOrNull('shape_id'),
+      tripHeadsign: reader.fieldOrNull('trip_headsign'),
+      tripShortName: reader.fieldOrNull('trip_short_name'),
+      directionId: reader.fieldOrNull('direction_id'),
+      blockId: reader.fieldOrNull('block_id'),
+      wheelchairAccessible: reader.fieldOrNull('wheelchair_accessible'),
+      bikesAllowed: reader.fieldOrNull('bikes_allowed'),
+      tripNote: reader.fieldOrNull('trip_note'),
+      routeDirection: reader.fieldOrNull('route_direction'),
     );
   }
 
@@ -67,13 +64,8 @@ class Trip {
     'bikes_allowed',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Require presence of required columns per GTFS spec
-    final required = ['route_id', 'service_id', 'trip_id'];
-    for (final col in required) {
-      if (!header.contains(col)) {
-        // Missing required column — callers should handle this case
-      }
-    }
+  static bool validateCsvHeader(List<String> header) {
+    const required = ['route_id', 'service_id', 'trip_id'];
+    return required.every(header.contains);
   }
 }

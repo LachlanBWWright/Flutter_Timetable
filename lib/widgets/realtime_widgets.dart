@@ -4,6 +4,8 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
+import '../utils/guarded_state.dart';
+import '../utils/safe_value_utils.dart';
 import '../utils/transport_display.dart';
 
 /// Widget displaying realtime transport information
@@ -14,10 +16,20 @@ class RealtimeInfoWidget extends StatefulWidget {
   State<RealtimeInfoWidget> createState() => _RealtimeInfoWidgetState();
 }
 
-class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
-  Map<TransportMode, Map<String, dynamic>>? _statusSummary;
+class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
+    with GuardedState<RealtimeInfoWidget> {
+  Map<TransportMode, Map<String, Object?>>? _statusSummary;
   bool _isLoading = false;
   String? _error;
+
+  Object? _entryValue(Map<String, Object?> data, String key) {
+    for (final entry in data.entries) {
+      if (entry.key == key) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -26,17 +38,26 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   }
 
   Future<void> _loadRealtimeStatus() async {
-    setState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    final summary = await RealtimeService.getRealtimeStatusSummary();
-    if (!mounted) return;
-    setState(() {
-      _statusSummary = summary;
-      _isLoading = false;
-    });
+    await runAsyncGuarded(
+      () async {
+        final summary = await RealtimeService.getRealtimeStatusSummary();
+        guardedSetState(() {
+          _statusSummary = summary;
+          _isLoading = false;
+        });
+      },
+      onError: (error, _) {
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   @override
@@ -79,77 +100,84 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   List<Widget> _buildStatusList() {
     final summary = _statusSummary;
     if (summary == null) return const [];
-    return summary.entries.map((entry) {
-      final modeKey = entry.key;
-      final data = entry.value;
-      final vehicleCount = data['vehicles'] as int;
-      final updateCount = data['updates'] as int;
+    return summary.entries
+        .map<Widget>((entry) {
+          final modeKey = entry.key;
+          final data = entry.value;
+          final vehicleCount =
+              tryParseIntValue(_entryValue(data, 'vehicles')) ?? 0;
+          final updateCount =
+              tryParseIntValue(_entryValue(data, 'updates')) ?? 0;
 
-      // modeKey is a TransportMode enum per service contract. Use it
-      // directly for display and color. Keep a modeString for any
-      // legacy string-based fallbacks (not expected here).
-      final TransportMode parsedMode = modeKey;
+          // modeKey is a TransportMode enum per service contract. Use it
+          // directly for display and color. Keep a modeString for any
+          // legacy string-based fallbacks (not expected here).
+          final TransportMode parsedMode = modeKey;
 
-      // Resolve display name: prefer typed TransportMode helper, otherwise
-      // fall back to a generic formatted fallback.
-      final displayName = getDisplayNameForTransportMode(parsedMode);
+          // Resolve display name: prefer typed TransportMode helper, otherwise
+          // fall back to a generic formatted fallback.
+          final displayName = getDisplayNameForTransportMode(parsedMode);
 
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: (() {
-            return TransportColors.getColorByTransportMode(
-              parsedMode,
-            ).withValues(alpha: 0.1);
-          })(),
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(
-            color: (() {
-              return TransportColors.getColorByTransportMode(
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 4.0),
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: TransportColors.getColorByTransportMode(
                 parsedMode,
-              ).withValues(alpha: 0.3);
-            })(),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 4,
-              height: 40,
-              decoration: BoxDecoration(
-                color: TransportColors.getColorByTransportMode(parsedMode),
-                borderRadius: BorderRadius.circular(2),
+              ).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(
+                color: TransportColors.getColorByTransportMode(
+                  parsedMode,
+                ).withValues(alpha: 0.3),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: TransportColors.getColorByTransportMode(parsedMode),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$vehicleCount vehicles • $updateCount updates',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$vehicleCount vehicles • $updateCount updates',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                if (vehicleCount > 0 || updateCount > 0)
+                  const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                else
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+              ],
             ),
-            if (vehicleCount > 0 || updateCount > 0)
-              const Icon(Icons.check_circle, color: Colors.green, size: 20)
-            else
-              const Icon(Icons.error_outline, color: Colors.orange, size: 20),
-          ],
-        ),
-      );
-    }).toList();
+          );
+        })
+        .toList(growable: false);
   }
 
   // Color selection is performed inline where feed keys or group keys are
@@ -177,7 +205,8 @@ class TransportPositionsWidget extends StatefulWidget {
       _TransportPositionsWidgetState();
 }
 
-class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
+class _TransportPositionsWidgetState extends State<TransportPositionsWidget>
+    with GuardedState<TransportPositionsWidget> {
   List<VehiclePosition> _positions = [];
   bool _isLoading = false;
   String? _error;
@@ -189,35 +218,38 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
   }
 
   Future<void> _loadPositions() async {
-    setState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      FeedMessage? feed;
-      final transportMode = widget.transportMode;
-      final mode = widget.mode;
-      if (transportMode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(transportMode);
-      } else if (mode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(mode);
-      } else {
-        feed = null;
-      }
-      final positions = RealtimeService.extractVehiclePositions(feed);
-      if (!mounted) return;
-      setState(() {
-        _positions = positions;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+    await runAsyncGuarded(
+      () async {
+        FeedMessage? feed;
+        final transportMode = widget.transportMode;
+        final mode = widget.mode;
+        if (transportMode != null) {
+          feed = await RealtimeService.getPositionsForTransportMode(
+            transportMode,
+          );
+        } else if (mode != null) {
+          feed = await RealtimeService.getPositionsForTransportMode(mode);
+        } else {
+          feed = null;
+        }
+        final positions = RealtimeService.extractVehiclePositions(feed);
+        guardedSetState(() {
+          _positions = positions;
+          _isLoading = false;
+        });
+      },
+      onError: (error, _) {
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   @override
@@ -261,76 +293,76 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
   }
 
   List<Widget> _buildPositionsList() {
-    return _positions.take(10).map((position) {
-      final vehicle = position.vehicle;
-      final trip = position.trip;
-      final pos = position.position;
+    final mode = widget.mode;
+    return _positions
+        .take(10)
+        .map<Widget>((position) {
+          final vehicle = position.vehicle;
+          final trip = position.trip;
+          final pos = position.position;
 
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey[300] ?? Colors.grey),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 4.0),
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  vehicle.hasId() ? 'Vehicle ${vehicle.id}' : 'Unknown Vehicle',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                if (trip.hasRouteId())
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      vehicle.hasId()
+                          ? 'Vehicle ${vehicle.id}'
+                          : 'Unknown Vehicle',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    decoration: BoxDecoration(
-                      color: (() {
-                        final parsed = widget.mode;
-                        if (parsed != null) {
-                          return TransportColors.getColorByTransportMode(
-                            parsed,
-                          );
-                        }
-                        return Colors.grey;
-                      })(),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      trip.routeId,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    if (trip.hasRouteId())
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: mode != null
+                              ? TransportColors.getColorByTransportMode(mode)
+                              : Colors.grey,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          trip.routeId,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                  ],
+                ),
+                if (trip.hasTripId())
+                  Text(
+                    'Trip: ${trip.tripId}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                if (pos.hasLatitude() && pos.hasLongitude())
+                  Text(
+                    'Position: ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                if (position.hasTimestamp())
+                  Text(
+                    'Updated: ${DateTime.fromMillisecondsSinceEpoch(position.timestamp.toInt() * 1000)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
               ],
             ),
-            if (trip.hasTripId())
-              Text(
-                'Trip: ${trip.tripId}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            if (pos.hasLatitude() && pos.hasLongitude())
-              Text(
-                'Position: ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            if (position.hasTimestamp())
-              Text(
-                'Updated: ${DateTime.fromMillisecondsSinceEpoch(position.timestamp.toInt() * 1000)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-          ],
-        ),
-      );
-    }).toList();
+          );
+        })
+        .toList(growable: false);
   }
 }

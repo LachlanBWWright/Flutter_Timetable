@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class CalendarDate {
   final String serviceId;
   final String date;
@@ -11,17 +13,12 @@ class CalendarDate {
 
   /// Create a CalendarDate from a CSV row using header-based field mapping
   factory CalendarDate.fromCsv(List<String> header, List<String> row) {
-    String getField(String fieldName, {String defaultValue = ''}) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return defaultValue;
-      final value = row[index];
-      return value.isEmpty ? defaultValue : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
     return CalendarDate(
-      serviceId: getField('service_id'),
-      date: getField('date'),
-      exceptionType: getField('exception_type'),
+      serviceId: reader.fieldOrEmpty('service_id'),
+      date: reader.fieldOrEmpty('date'),
+      exceptionType: reader.fieldOrEmpty('exception_type'),
     );
   }
 

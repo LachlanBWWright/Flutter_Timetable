@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 /// Note: This is a non-standard extension used by NSW Transport API
 class Note {
   final String noteId;
@@ -7,14 +9,12 @@ class Note {
 
   /// Create a Note from a CSV row using header-based field mapping
   factory Note.fromCsv(List<String> header, List<String> row) {
-    String getField(String fieldName, {String defaultValue = ''}) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return defaultValue;
-      final value = row[index];
-      return value.isEmpty ? defaultValue : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
-    return Note(noteId: getField('note_id'), noteText: getField('note_text'));
+    return Note(
+      noteId: reader.fieldOrEmpty('note_id'),
+      noteText: reader.fieldOrEmpty('note_text'),
+    );
   }
 
   /// Expected CSV header for notes.txt (non-standard NSW Transport API extension)

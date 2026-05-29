@@ -1,28 +1,100 @@
+// ignore_for_file: catch_unknown_dynamic_calls, catch_inferred_throwing_calls
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_type.dart';
+import 'package:lbww_flutter/debug/debug_navigation.dart';
+import 'package:lbww_flutter/debug/debug_page_loader.dart';
 
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
+import '../services/new_trip_service.dart';
 import '../services/stops_service.dart';
 import '../utils/button_styles.dart';
-import '../utils/transport_display.dart';
+import '../utils/guarded_state.dart';
+import '../utils/stops_widget_utils.dart';
 
 /// Widget for managing and displaying GTFS stops data
 class StopsManagementWidget extends StatefulWidget {
-  const StopsManagementWidget({super.key});
+  final Future<int> Function()? getTotalStopsCount;
+  final Future<Map<TransportMode?, Map<String, int>>> Function()?
+  getStopsCountByEndpoint;
+  final DebugEntityPageLoader? debugPageLoader;
+  final DebugEntityListPageLoader? debugListLoader;
+
+  const StopsManagementWidget({
+    super.key,
+    this.getTotalStopsCount,
+    this.getStopsCountByEndpoint,
+    this.debugPageLoader,
+    this.debugListLoader,
+  });
 
   @override
   State<StopsManagementWidget> createState() => _StopsManagementWidgetState();
 }
 
-class _StopsManagementWidgetState extends State<StopsManagementWidget> {
+class _StopsManagementWidgetState extends State<StopsManagementWidget>
+    with GuardedState<StopsManagementWidget> {
   Map<String, int> _stopsCount = {};
   Map<TransportMode?, Map<String, int>> _stopsByMode = {};
   int _totalStops = 0;
   bool _isLoading = false;
   String? _error;
+  late final DebugEntityPageLoader _debugPageLoader =
+      widget.debugPageLoader ?? buildDebugEntityPageLoader();
+  late final DebugEntityListPageLoader _debugListLoader =
+      widget.debugListLoader ?? buildDebugEntityListLoader();
+
+  Future<int> _getTotalStopsCount() async {
+    final loader = widget.getTotalStopsCount;
+    if (loader != null) {
+      return runAsyncGuardedWithFallback(() => loader(), 0);
+    }
+    return StopsService.getTotalStopsCount();
+  }
+
+  Future<Map<TransportMode?, Map<String, int>>>
+  _getStopsCountByEndpoint() async {
+    final loader = widget.getStopsCountByEndpoint;
+    if (loader != null) {
+      return runAsyncGuardedWithFallback(
+        () => loader(),
+        const <TransportMode?, Map<String, int>>{},
+      );
+    }
+    return StopsService.getStopsCountByEndpoint();
+  }
+
+  Future<T?> _showSafeDialog<T>({
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+  }) async {
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: builder,
+    );
+  }
+
+  void _safePop<T>([T? result, bool rootNavigator = false]) {
+    final navigator = Navigator.maybeOf(context, rootNavigator: rootNavigator);
+    if (navigator?.canPop() ?? false) {
+      navigator?.pop(result);
+    }
+  }
+
+  void _updateDialogState(StateSetter? setDialogState, VoidCallback update) {
+    if (setDialogState == null) {
+      return;
+    }
+    setDialogState(update);
+  }
 
   @override
   void initState() {
@@ -31,171 +103,159 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
   }
 
   Future<void> _loadStopsData() async {
-    setState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      final count = await StopsService.getTotalStopsCount();
-      final grouped = await StopsService.getStopsCountByEndpoint();
-
-      if (!mounted) return;
-
-      // Flatten grouped map for any places that still expect endpoint->count
-      final flattened = <String, int>{};
-      for (final grp in grouped.values) {
-        for (final e in grp.entries) {
-          flattened[e.key] = e.value;
-        }
-      }
-
-      setState(() {
-        _totalStops = count;
-        _stopsByMode = grouped;
-        _stopsCount = flattened;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _updateFromApi() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // Show warning dialog first
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Update from API'),
-          content: const Text(
-            'This will fetch real stops data from all API endpoints and may take several minutes. '
-            'This operation requires a valid API key. Continue?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Continue'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed == true) {
-        // Show the progress dialog first, then start the stream once the
-        // dialog's setState is available — this ensures no progress events
-        // are silently dropped while dialogSetState is still null.
-        String dialogMessage = 'Preparing update...';
-        void Function(void Function())? dialogSetState;
-        StreamSubscription<StopsUpdateProgress>? subscription;
+    await runAsyncGuarded(
+      () async {
+        final count = await _getTotalStopsCount();
+        final grouped = await _getStopsCountByEndpoint();
 
         if (!mounted) return;
 
-        // Show modal progress dialog (not dismissible)
-        final dialogFuture = showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) {
-            return StatefulBuilder(
-              builder: (context, setDialogState) {
-                dialogSetState = setDialogState;
-                return AlertDialog(
-                  title: const Text('Updating stops from API'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 8),
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(dialogMessage),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
+        final flattened = flattenStopsCountByEndpoint(grouped);
 
-        // Wait one frame so the dialog is built and dialogSetState is populated
-        // before starting the stream.
-        await Future.microtask(() {});
-
-        subscription = StopsService.updateAllStopsFromApi().listen(
-          (progress) {
-            final epLabel = progress.endpoint?.key ?? '';
-            final text =
-                '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
-            dialogSetState?.call(() {
-              dialogMessage = text;
-            });
-          },
-          onError: (e) {
-            dialogSetState?.call(() {
-              dialogMessage = 'Error: $e';
-            });
-          },
-          onDone: () async {
-            try {
-              if (mounted) Navigator.of(context, rootNavigator: true).pop();
-            } catch (_) {}
-            await subscription?.cancel();
-          },
-        );
-
-        await dialogFuture;
-
-        // After dialog closes, refresh counts
-        await _loadStopsData();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Stops data updated from API successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        setState(() {
+        guardedSetState(() {
+          _totalStops = count;
+          _stopsByMode = grouped;
+          _stopsCount = flattened;
           _isLoading = false;
         });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      },
+      onError: (error, _) {
+        if (!mounted) return;
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
+  }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating from API: $e'),
-            backgroundColor: Colors.red,
+  Future<void> _updateFromApi() async {
+    guardedSetState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    await runAsyncGuarded(
+      () async {
+        final confirmed = await _showSafeDialog<bool>(
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Update from API'),
+            content: const Text(
+              'This will fetch static transport data from all API endpoints and may take several minutes. '
+              'This operation requires a valid API key. Continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => _safePop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => _safePop(true),
+                child: const Text('Continue'),
+              ),
+            ],
           ),
         );
-      }
-    }
+
+        if (confirmed == true) {
+          // Show the progress dialog first, then start the stream once the
+          // dialog's setState is available — this ensures no progress events
+          // are silently dropped while dialogSetState is still null.
+          String dialogMessage = 'Preparing update...';
+          StateSetter? dialogSetState;
+          StreamSubscription<StaticTransportUpdateProgress>? subscription;
+
+          if (!mounted) return;
+
+          // Show modal progress dialog (not dismissible)
+          final dialogFuture = _showSafeDialog<void>(
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              return StatefulBuilder(
+                builder: (context, setDialogState) {
+                  dialogSetState = setDialogState;
+                  return AlertDialog(
+                    title: const Text('Updating static transport data'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(dialogMessage),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          );
+
+          // Wait one frame so the dialog is built and dialogSetState is populated
+          // before starting the stream.
+          await Future.microtask(() {});
+
+          subscription = NewTripService.updateStaticTransportData(force: true)
+              .listen(
+                (progress) {
+                  final epLabel = progress.endpoint?.key ?? '';
+                  final text =
+                      '${progress.completed}/${progress.total}: ${progress.message ?? epLabel}';
+                  _updateDialogState(dialogSetState, () {
+                    dialogMessage = text;
+                  });
+                },
+                onError: (e) {
+                  _updateDialogState(dialogSetState, () {
+                    dialogMessage = 'Error: $e';
+                  });
+                },
+                onDone: () async {
+                  _safePop(null, true);
+                  await subscription?.cancel();
+                },
+              );
+
+          await dialogFuture;
+
+          // After dialog closes, refresh counts
+          await _loadStopsData();
+
+          if (mounted) {
+            showSnackBarMessage(
+              'Static transport data updated from API successfully',
+              backgroundColor: Colors.green,
+            );
+          }
+        } else {
+          guardedSetState(() {
+            _isLoading = false;
+          });
+        }
+      },
+      onError: (error, _) {
+        if (!mounted) return;
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+        showSnackBarMessage(
+          'Error updating from API: $error',
+          backgroundColor: Colors.red,
+        );
+      },
+    );
   }
 
   Future<void> _wipeStopsData() async {
     // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+    final confirmed = await _showSafeDialog<bool>(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Wipe Stops Data'),
         content: const Text(
           'This will permanently delete all stops data from the local database. '
@@ -204,11 +264,11 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => _safePop(false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => _safePop(true),
             style: ButtonStyles.elevatedSmall(Colors.red),
             child: const Text('Delete All'),
           ),
@@ -217,39 +277,35 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
     );
 
     if (confirmed == true) {
-      setState(() {
+      guardedSetState(() {
         _isLoading = true;
         _error = null;
       });
 
-      try {
-        await StopsService.wipeAllStopsData();
-        await _loadStopsData(); // Refresh the counts
+      await runAsyncGuarded(
+        () async {
+          await StopsService.wipeAllStopsData();
+          await _loadStopsData(); // Refresh the counts
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('All stops data wiped successfully'),
+          if (mounted) {
+            showSnackBarMessage(
+              'All stops data wiped successfully',
               backgroundColor: Colors.orange,
-            ),
+            );
+          }
+        },
+        onError: (error, _) {
+          if (!mounted) return;
+          guardedSetState(() {
+            _error = error.toString();
+            _isLoading = false;
+          });
+          showSnackBarMessage(
+            'Error wiping stops data: $error',
+            backgroundColor: Colors.red,
           );
-        }
-      } catch (e) {
-        if (!mounted) return;
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error wiping stops data: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+        },
+      );
     }
   }
 
@@ -330,26 +386,36 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _updateFromApi,
                     icon: const Icon(Icons.cloud_download),
-                    label: const Text('Update from API'),
+                    label: const Text('Update static transport data'),
                     style: ButtonStyles.elevated(Colors.orange),
                   ),
                 ),
                 const SizedBox(height: 8),
-                // refresh button moved to title row above
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => DebugNavigation.pushBrowser(
+                      context,
+                      entityType: DebugEntityType.stop,
+                      listLoader: _debugListLoader,
+                      pageLoader: _debugPageLoader,
+                    ),
+                    icon: const Icon(Icons.bug_report),
+                    label: const Text('Browse stop debug pages'),
+                    style: ButtonStyles.elevated(Colors.blueGrey),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _wipeStopsData,
+                    icon: const Icon(Icons.delete_sweep),
+                    label: const Text('Wipe All Stops Data'),
+                    style: ButtonStyles.elevated(Colors.red),
+                  ),
+                ),
               ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Wipe data button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _wipeStopsData,
-                icon: const Icon(Icons.delete_sweep),
-                label: const Text('Wipe All Stops Data'),
-                style: ButtonStyles.elevated(Colors.red),
-              ),
             ),
 
             const SizedBox(height: 16),
@@ -360,9 +426,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               Container(
                 padding: const EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
+                  color: Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8.0),
-                  border: Border.all(color: Colors.red[200] ?? Colors.red),
+                  border: Border.all(color: Colors.red.shade200),
                 ),
                 child: Row(
                   children: [
@@ -408,36 +474,17 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
             (sum, count) => sum + count,
           );
 
-          final displayName = (() {
-            if (modeKey != null) {
-              // For buses we preserve the distinction between city and regional
-              // when the endpoints are exclusively one or the other.
-              if (modeKey == TransportMode.bus) {
-                final hasRegion = endpoints.keys.any(
-                  (k) => k.startsWith('regionbuses'),
-                );
-                final hasCity = endpoints.keys.any(
-                  (k) => k.startsWith('buses'),
-                );
-                if (hasRegion && !hasCity) return 'Regional Buses';
-                if (hasCity && !hasRegion) return 'City Buses';
-              }
-              return getDisplayNameForTransportMode(modeKey);
-            }
-            return 'Other';
-          })();
+          final displayName = displayNameForStopsModeGroup(modeKey, endpoints);
+          final modeColor = modeKey == null
+              ? Colors.grey
+              : TransportColors.getColorByTransportMode(modeKey);
 
           return ExpansionTile(
             leading: Container(
               width: 4,
               height: 30,
               decoration: BoxDecoration(
-                color: (() {
-                  if (modeKey != null) {
-                    return TransportColors.getColorByTransportMode(modeKey);
-                  }
-                  return Colors.grey;
-                })(),
+                color: modeColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -449,15 +496,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
               return ListTile(
                 contentPadding: const EdgeInsets.only(left: 32, right: 16),
                 title: Text(
-                  endpoint.key
-                      .replaceAll('_', ' ')
-                      .split(' ')
-                      .map(
-                        (word) => word.isNotEmpty
-                            ? word[0].toUpperCase() + word.substring(1)
-                            : word,
-                      )
-                      .join(' '),
+                  formatEndpointDisplayName(endpoint.key),
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Container(
@@ -466,7 +505,7 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -494,36 +533,49 @@ class StopsSearchWidget extends StatefulWidget {
   State<StopsSearchWidget> createState() => _StopsSearchWidgetState();
 }
 
-class _StopsSearchWidgetState extends State<StopsSearchWidget> {
+class _StopsSearchWidgetState extends State<StopsSearchWidget>
+    with GuardedState<StopsSearchWidget> {
   final TextEditingController _searchController = TextEditingController();
   List<Stop> _searchResults = [];
   bool _isSearching = false;
 
+  void _startSearch(String query) {
+    unawaited(_searchStops(query));
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _startSearch('');
+  }
+
   Future<void> _searchStops(String query) async {
     if (query.trim().isEmpty) {
-      setState(() {
+      guardedSetState(() {
         _searchResults = [];
       });
       return;
     }
 
-    setState(() {
+    guardedSetState(() {
       _isSearching = true;
     });
 
-    try {
-      final results = await StopsService.searchStops(query);
-      if (!mounted) return;
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    } catch (e) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-    }
+    await runAsyncGuarded(
+      () async {
+        final results = await StopsService.searchStops(query);
+        if (!mounted) return;
+        guardedSetState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+      },
+      onError: (_, _) {
+        guardedSetState(() {
+          _searchResults = [];
+          _isSearching = false;
+        });
+      },
+    );
   }
 
   @override
@@ -551,14 +603,11 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchStops('');
-                        },
+                        onPressed: _clearSearch,
                       )
                     : null,
               ),
-              onChanged: _searchStops,
+              onChanged: _startSearch,
             ),
             const SizedBox(height: 16),
             if (_isSearching)
@@ -585,9 +634,9 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey[300] ?? Colors.grey),
+          border: Border.all(color: Colors.grey.shade300),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,17 +648,17 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
             const SizedBox(height: 4),
             Text(
               'ID: ${stop.stopId}',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
             if (stop.stopLat != 0.0 && stop.stopLon != 0.0)
               Text(
                 'Location: ${stop.stopLat.toStringAsFixed(6)}, ${stop.stopLon.toStringAsFixed(6)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             if (stop.platformCode?.isNotEmpty == true)
               Text(
                 'Platform: ${stop.platformCode}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
           ],
         ),
@@ -619,7 +668,7 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    disposeChangeNotifierSafely(_searchController);
     super.dispose();
   }
 }
