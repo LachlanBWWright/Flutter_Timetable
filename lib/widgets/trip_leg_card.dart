@@ -1,5 +1,3 @@
-// ignore_for_file: catch_inferred_throwing_calls
-
 import 'package:flutter/material.dart';
 // logger removed
 import 'package:lbww_flutter/services/transport_api_service.dart';
@@ -83,11 +81,13 @@ class TripLegCard extends StatelessWidget {
   }
 
   void _pushDetails(BuildContext context) {
-    Navigator.maybeOf(context)?.push(
-      MaterialPageRoute(
-        builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
-      ),
-    );
+    try {
+      Navigator.maybeOf(context)?.push(
+        MaterialPageRoute(
+          builder: (context) => TripLegDetailScreen(leg: leg, trip: trip),
+        ),
+      );
+    } catch (_) {}
   }
 
   @override

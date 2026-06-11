@@ -1,9 +1,8 @@
-// ignore_for_file: catch_unknown_dynamic_calls, catch_inferred_throwing_calls
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/widgets/journey/journey_accent_strip.dart';
 
 /// A reusable card widget for displaying journey information with two-column layout
@@ -31,7 +30,8 @@ class JourneyCard extends StatefulWidget {
   State<JourneyCard> createState() => _JourneyCardState();
 }
 
-class _JourneyCardState extends State<JourneyCard> {
+class _JourneyCardState extends State<JourneyCard>
+  with GuardedState<JourneyCard> {
   bool _didNotifyVisible = false;
 
   void _emitJourneyVisible() {
@@ -39,7 +39,9 @@ class _JourneyCardState extends State<JourneyCard> {
     if (onJourneyVisible == null) {
       return;
     }
-    onJourneyVisible(widget.journey);
+    try {
+      onJourneyVisible.call(widget.journey);
+    } catch (_) {}
   }
 
   @override
@@ -53,7 +55,7 @@ class _JourneyCardState extends State<JourneyCard> {
   void _notifyVisible() {
     if (_didNotifyVisible) return;
     _didNotifyVisible = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    addPostFrameCallbackSafely((_) {
       if (!mounted) return;
       _emitJourneyVisible();
     });
@@ -183,19 +185,27 @@ class JourneyList extends StatelessWidget {
   });
 
   void _handleJourneyTap(Journey journey) {
-    onJourneyTap(journey);
+    try {
+      onJourneyTap.call(journey);
+    } catch (_) {}
   }
 
   void _handleReverseJourneyTap(Journey journey) {
-    onReverseJourneyTap(journey);
+    try {
+      onReverseJourneyTap.call(journey);
+    } catch (_) {}
   }
 
   void _handleDeleteJourney(Journey journey) {
-    onDeleteJourney(journey.id);
+    try {
+      onDeleteJourney.call(journey.id);
+    } catch (_) {}
   }
 
   void _handleTogglePin(Journey journey) {
-    onTogglePin(journey.id, journey.isPinned);
+    try {
+      onTogglePin.call(journey.id, journey.isPinned);
+    } catch (_) {}
   }
 
   @override
@@ -260,7 +270,9 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (isAlphabetical == isAlphabeticalSorting) {
       return;
     }
-    onToggleSort();
+    try {
+      onToggleSort.call();
+    } catch (_) {}
   }
 
   @override

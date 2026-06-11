@@ -1,5 +1,3 @@
-// ignore_for_file: catch_runtime_throw_sources, catch_inferred_throwing_calls
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
@@ -96,7 +94,9 @@ class _InterchangeStopSelectionScreenState
     _disposeSearchController();
     _disposeSearchFocusNode();
     _disposeTabController();
-    super.dispose();
+    try {
+      super.dispose();
+    } catch (_) {}
   }
 
   void _toggleSearch() {

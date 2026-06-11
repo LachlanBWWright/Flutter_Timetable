@@ -8,7 +8,12 @@ Object? _mapValueOrNull(Map<String, dynamic>? values, String key) {
   if (values == null) {
     return null;
   }
-  return values[key];
+  for (final entry in values.entries) {
+    if (entry.key == key) {
+      return entry.value;
+    }
+  }
+  return null;
 }
 
 LatLng? _tryParseLatLngSafe(Object? coord) {

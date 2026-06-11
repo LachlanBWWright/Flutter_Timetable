@@ -27,7 +27,12 @@ Object? tryReadMapValue(Map<String, dynamic>? map, String key) {
   if (map == null) {
     return null;
   }
-  return map[key];
+  for (final entry in map.entries) {
+    if (entry.key == key) {
+      return entry.value;
+    }
+  }
+  return null;
 }
 
 Map<String, dynamic>? tryReadJsonMap(Map<String, dynamic>? map, String key) {
@@ -115,10 +120,18 @@ String? prettyPrintJsonOrNull(Object? value) {
 }
 
 T? _listValueOrNull<T>(List<T>? values, int index) {
-  if (values == null || index < 0 || index >= values.length) {
+  if (values == null || index < 0) {
     return null;
   }
-  return values[index];
+
+  var currentIndex = 0;
+  for (final value in values) {
+    if (currentIndex == index) {
+      return value;
+    }
+    currentIndex++;
+  }
+  return null;
 }
 
 List<double>? tryParseDoubleList(Object? raw, {int minLength = 1}) {

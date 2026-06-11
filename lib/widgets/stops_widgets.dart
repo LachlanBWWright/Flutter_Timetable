@@ -1,5 +1,3 @@
-// ignore_for_file: catch_unknown_dynamic_calls, catch_inferred_throwing_calls
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -54,7 +52,11 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget>
   Future<int> _getTotalStopsCount() async {
     final loader = widget.getTotalStopsCount;
     if (loader != null) {
-      return runAsyncGuardedWithFallback(() => loader(), 0);
+      try {
+        return await loader.call();
+      } catch (_) {
+        return 0;
+      }
     }
     return StopsService.getTotalStopsCount();
   }
@@ -63,10 +65,11 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget>
   _getStopsCountByEndpoint() async {
     final loader = widget.getStopsCountByEndpoint;
     if (loader != null) {
-      return runAsyncGuardedWithFallback(
-        () => loader(),
-        const <TransportMode?, Map<String, int>>{},
-      );
+      try {
+        return await loader.call();
+      } catch (_) {
+        return const <TransportMode?, Map<String, int>>{};
+      }
     }
     return StopsService.getStopsCountByEndpoint();
   }
@@ -75,17 +78,23 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget>
     required WidgetBuilder builder,
     bool barrierDismissible = true,
   }) async {
-    return showDialog<T>(
-      context: context,
-      barrierDismissible: barrierDismissible,
-      builder: builder,
-    );
+    try {
+      return await showDialog<T>(
+        context: context,
+        barrierDismissible: barrierDismissible,
+        builder: builder,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   void _safePop<T>([T? result, bool rootNavigator = false]) {
     final navigator = Navigator.maybeOf(context, rootNavigator: rootNavigator);
     if (navigator?.canPop() ?? false) {
-      navigator?.pop(result);
+      try {
+        navigator?.pop(result);
+      } catch (_) {}
     }
   }
 
@@ -93,7 +102,9 @@ class _StopsManagementWidgetState extends State<StopsManagementWidget>
     if (setDialogState == null) {
       return;
     }
-    setDialogState(update);
+    try {
+      setDialogState.call(update);
+    } catch (_) {}
   }
 
   @override

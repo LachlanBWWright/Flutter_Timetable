@@ -1,5 +1,3 @@
-// ignore_for_file: catch_unknown_dynamic_calls
-
 import 'package:flutter/material.dart';
 
 import '../../constants/transport_modes.dart';
@@ -121,15 +119,21 @@ class StopSequenceSection extends StatelessWidget {
   }
 
   void _addInterchangeAt(int insertIndex) {
-    onAddInterchange(insertIndex);
+    try {
+      onAddInterchange.call(insertIndex);
+    } catch (_) {}
   }
 
   void _removeInterchangeAt(int interchangeIndex) {
-    onRemoveInterchange(interchangeIndex);
+    try {
+      onRemoveInterchange.call(interchangeIndex);
+    } catch (_) {}
   }
 
   void _moveInterchangeBy(int interchangeIndex, int delta) {
-    onMoveInterchange(interchangeIndex, delta);
+    try {
+      onMoveInterchange.call(interchangeIndex, delta);
+    } catch (_) {}
   }
 
   @override
@@ -219,7 +223,9 @@ class _AddStopButton extends StatelessWidget {
   final void Function(int insertIndex) onAddInterchange;
 
   void _handlePressed() {
-    onAddInterchange(insertIndex);
+    try {
+      onAddInterchange.call(insertIndex);
+    } catch (_) {}
   }
 
   @override
@@ -256,15 +262,21 @@ class _InterchangeActions extends StatelessWidget {
   final void Function(int interchangeIndex) onRemoveInterchange;
 
   void _moveUp() {
-    onMoveInterchange(interchangeIndex, -1);
+    try {
+      onMoveInterchange.call(interchangeIndex, -1);
+    } catch (_) {}
   }
 
   void _moveDown() {
-    onMoveInterchange(interchangeIndex, 1);
+    try {
+      onMoveInterchange.call(interchangeIndex, 1);
+    } catch (_) {}
   }
 
   void _remove() {
-    onRemoveInterchange(interchangeIndex);
+    try {
+      onRemoveInterchange.call(interchangeIndex);
+    } catch (_) {}
   }
 
   @override

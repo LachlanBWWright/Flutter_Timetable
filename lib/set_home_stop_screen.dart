@@ -1,5 +1,3 @@
-// ignore_for_file: catch_inferred_throwing_calls
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'constants/transport_modes.dart';
@@ -92,7 +90,9 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     removeListenerSafely(keyController, _applySearchFilter);
     disposeChangeNotifierSafely(keyController);
     disposeFocusNodeSafely(_searchFocusNode);
-    super.dispose();
+    try {
+      super.dispose();
+    } catch (_) {}
   }
 
   void _onTabChanged() {

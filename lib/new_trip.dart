@@ -1,5 +1,3 @@
-// ignore_for_file: catch_inferred_throwing_calls, catch_async_error_sources, catch_runtime_throw_sources
-
 import 'dart:async';
 
 import 'package:drift/drift.dart' as drift;
@@ -165,7 +163,9 @@ class _NewTripScreenState extends State<NewTripScreen>
     removeListenerSafely(keyController, _applySearchFilter);
     disposeChangeNotifierSafely(keyController);
     disposeFocusNodeSafely(_searchFocusNode);
-    super.dispose();
+    try {
+      super.dispose();
+    } catch (_) {}
   }
 
   void _onTabChanged() {
@@ -609,7 +609,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     if (inserted) {
       _clearAllSelections();
       showSnackBar(SnackBar(content: Text(successMessage)));
-      Navigator.of(context).popUntil((route) => route.isFirst);
+        popUntilFirstPage();
       return;
     }
     showSnackBar(const SnackBar(content: Text('Error saving trip')));

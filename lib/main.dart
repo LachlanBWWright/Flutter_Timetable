@@ -1,5 +1,3 @@
-// ignore_for_file: catch_inferred_throwing_calls
-
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
@@ -31,7 +29,11 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   ThemeData _safeTheme(Brightness brightness) {
-    return ThemeData(primarySwatch: Colors.blue, brightness: brightness);
+    try {
+      return ThemeData(primarySwatch: Colors.blue, brightness: brightness);
+    } catch (_) {
+      return ThemeData.fallback();
+    }
   }
 
   // This widget is the root of your application.
@@ -124,12 +126,10 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
     prefetchAllStations();
     _prefetchStaticTransportData();
 
-    ScaffoldMessengerState? messenger;
     final isAlphabetical = await LocationService.isAlphabeticalSorting();
     if (!isAlphabetical && mounted && !_hasShownLocationSnackBar) {
       _hasShownLocationSnackBar = true;
-      messenger = ScaffoldMessenger.maybeOf(context);
-      messenger?.showSnackBar(
+      showSnackBar(
         const SnackBar(
           content: Text('Getting your location…'),
           duration: Duration(seconds: 3),

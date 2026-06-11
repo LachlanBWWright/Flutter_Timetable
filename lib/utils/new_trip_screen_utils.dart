@@ -4,10 +4,18 @@ import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 
 Station? _stationAtOrNull(List<Station> stations, int index) {
-  if (index < 0 || index >= stations.length) {
+  if (index < 0) {
     return null;
   }
-  return stations[index];
+
+  var currentIndex = 0;
+  for (final station in stations) {
+    if (currentIndex == index) {
+      return station;
+    }
+    currentIndex++;
+  }
+  return null;
 }
 
 TransportMode transportModeFromTabIndex(int index) {

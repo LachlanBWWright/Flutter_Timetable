@@ -1,5 +1,3 @@
-// ignore_for_file: catch_unknown_dynamic_calls
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -93,7 +91,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
   Leg? _updatedLeg;
   late final DebugEntityPageLoader _debugPageLoader;
   late final DebugEntityListPageLoader _debugListLoader;
-  bool _isLoading = false;
   String? _error;
   List<VehiclePosition> _vehicles = [];
   Map<String, int> _vehicleBreakdown = {};
@@ -725,16 +722,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     _vehicleAggregateFuture = null;
     _tripUpdateAggregateFuture = null;
     guardedSetState(() {
-      _isLoading = true;
       _error = null;
     });
 
     await runAsyncGuarded(
       () async {
         if (!mounted) return;
-        guardedSetState(() {
-          _isLoading = false;
-        });
         final activeLeg = _activeLeg;
         if (_supportsRealtimeForLeg(activeLeg)) {
           await Future.wait([
@@ -762,7 +755,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
       onError: (error, _) {
         guardedSetState(() {
           _error = error.toString();
-          _isLoading = false;
         });
       },
     );
@@ -779,7 +771,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
       final getAllVehiclesAggregated = widget.getAllVehiclesAggregated;
       if (getAllVehiclesAggregated != null) {
         return runAsyncGuardedWithFallback(
-          () => getAllVehiclesAggregated(),
+          () async {
+            try {
+              return await getAllVehiclesAggregated.call();
+            } catch (_) {
+              return const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              );
+            }
+          },
           const VehiclePositionAggregationResult(
             vehicles: <VehiclePosition>[],
             breakdown: <String, int>{},
@@ -810,7 +811,16 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
       final getAllTripUpdatesAggregated = widget.getAllTripUpdatesAggregated;
       if (getAllTripUpdatesAggregated != null) {
         return runAsyncGuardedWithFallback(
-          () => getAllTripUpdatesAggregated(),
+          () async {
+            try {
+              return await getAllTripUpdatesAggregated.call();
+            } catch (_) {
+              return const TripUpdateAggregationResult(
+                tripUpdates: <TripUpdate>[],
+                breakdown: <String, int>{},
+              );
+            }
+          },
           const TripUpdateAggregationResult(
             tripUpdates: <TripUpdate>[],
             breakdown: <String, int>{},
@@ -868,7 +878,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
         final injectedGtfsLoader = widget.getGtfsDataForEndpoint;
         if (injectedGtfsLoader != null) {
           for (final endpoint in endpoints) {
-            final data = await injectedGtfsLoader(endpoint);
+            GtfsData? data;
+            try {
+              data = await injectedGtfsLoader.call(endpoint);
+            } catch (_) {
+              data = null;
+            }
             if (data == null) {
               continue;
             }
@@ -1576,8 +1591,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
   }
 
   Widget _buildInfoCard(
-    String? transportName,
-    int? transportClass,
     String originName,
     String destinationName,
     Color modeColor,
@@ -1585,93 +1598,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     Stop destination,
     Leg leg,
   ) {
-    final routeNumber = _transportNumber(leg.transportation);
-    final headsign = _transportDestinationName(leg.transportation);
-    final operator = _transportOperatorName(leg.transportation);
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mode badge + service name
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 4.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: modeColor,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Text(
-                    transportClass != null
-                        ? TransportModeUtils.getModeName(transportClass)
-                        : 'Unknown',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (transportName != null && transportName.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      transportName,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: modeColor,
-                      ),
-                    ),
-                  ),
-                ],
-                // Status indicator
-                const SizedBox(width: 8),
-                if (_isLoading)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  const Icon(Icons.check_circle, color: Colors.green, size: 18),
-              ],
-            ),
-            if (routeNumber != null && routeNumber.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  'Route $routeNumber',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            if (headsign != null && headsign.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  'Towards $headsign',
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-            if (operator != null && operator.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  'Operated by $operator',
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
             // From / To with departure / arrival times
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1760,159 +1692,159 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
               const SizedBox(height: 8),
               Text('Error: $_error', style: const TextStyle(color: Colors.red)),
             ],
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            _buildStopListSection(leg, modeColor),
           ],
         ),
       ),
     );
   }
 
-  /// Builds a card listing every stop in the leg's stop sequence with
+  /// Builds a section listing every stop in the leg's stop sequence with
   /// its planned/estimated departure and arrival times.
-  Widget _buildStopList(Leg leg, Color modeColor) {
+  Widget _buildStopListSection(Leg leg, Color modeColor) {
     final tripStops = leg.stopSequence;
     if (tripStops == null || tripStops.isEmpty) return const SizedBox.shrink();
 
     final supportsRealtime = _supportsRealtimeForLeg(leg);
     final tripRows = _buildTripStopRows(tripStops);
     final useVehicleStops = _showAllVehicleStops && _vehicleStops.isNotEmpty;
-    final rows = useVehicleStops ? _vehicleStops : tripRows;
+    final rows = useVehicleStops ? _vehicleStops : _scheduledStopRows(tripRows);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      useVehicleStops
-                          ? 'All stops (${rows.length})'
-                          : 'Trip stops (${rows.length})',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    useVehicleStops
+                        ? 'All stops (${rows.length})'
+                        : 'Trip stops (${rows.length})',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
                     ),
                   ),
-                  if (_isLoadingVehicleStops)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
+                ),
+                if (_isLoadingVehicleStops)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                  if (supportsRealtime)
-                    TextButton.icon(
-                      onPressed: () async {
-                        if (_showAllVehicleStops) {
-                          guardedSetState(() {
-                            _showAllVehicleStops = false;
-                          });
-                          return;
-                        }
-
+                  ),
+                if (supportsRealtime)
+                  TextButton.icon(
+                    onPressed: () async {
+                      if (_showAllVehicleStops) {
                         guardedSetState(() {
-                          _showAllVehicleStops = true;
+                          _showAllVehicleStops = false;
                         });
-                        await _loadVehicleStopsForLeg();
-                      },
-                      icon: Icon(
-                        _showAllVehicleStops
-                            ? Icons.view_list_outlined
-                            : Icons.directions_bus,
-                      ),
-                      label: Text(
-                        _showAllVehicleStops
-                            ? 'Show scheduled stops'
-                            : 'Show all stops',
-                      ),
+                        return;
+                      }
+
+                      guardedSetState(() {
+                        _showAllVehicleStops = true;
+                      });
+                      await _loadVehicleStopsForLeg();
+                    },
+                    icon: Icon(
+                      _showAllVehicleStops
+                          ? Icons.view_list_outlined
+                          : Icons.directions_bus,
                     ),
-                ],
+                    label: Text(
+                      _showAllVehicleStops
+                          ? 'Show scheduled stops'
+                          : 'Show all stops',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (_vehicleStopsError != null && _showAllVehicleStops) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Vehicle stop view unavailable: $_vehicleStopsError',
+                style: const TextStyle(color: Colors.red, fontSize: 12),
               ),
             ),
-            if (_vehicleStopsError != null && _showAllVehicleStops) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(
-                  'Vehicle stop view unavailable: $_vehicleStopsError',
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
-                ),
-              ),
-            ],
-            const Divider(height: 1),
-            ...rows.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final stop = entry.value;
-              final isFirst = idx == 0;
-              final isLast = idx == rows.length - 1;
+          ],
+          const Divider(height: 1),
+          ...rows.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final stop = entry.value;
+            final isFirst = idx == 0;
+            final isLast = idx == rows.length - 1;
 
-              final depPlanned = stop.departureTimePlanned;
-              final depEstimated = stop.departureTimeEstimated;
-              final arrPlanned = stop.arrivalTimePlanned;
-              final arrEstimated = stop.arrivalTimeEstimated;
-              final mainTimePlanned = depPlanned ?? arrPlanned;
-              final mainTimeEstimated = depEstimated ?? arrEstimated;
+            final depPlanned = stop.departureTimePlanned;
+            final depEstimated = stop.departureTimeEstimated;
+            final arrPlanned = stop.arrivalTimePlanned;
+            final arrEstimated = stop.arrivalTimeEstimated;
+            final mainTimePlanned = depPlanned ?? arrPlanned;
+            final mainTimeEstimated = depEstimated ?? arrEstimated;
 
-              return Container(
-                decoration: (isFirst || isLast)
-                    ? BoxDecoration(
-                        border: Border(
-                          left: BorderSide(color: modeColor, width: 4),
-                        ),
-                      )
-                    : null,
-                child: ListTile(
-                  dense: true,
-                  leading: SizedBox(
-                    width: 28,
-                    child: Center(
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: (isFirst || isLast)
-                              ? modeColor
-                              : modeColor.withValues(alpha: 0.4),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
+            return Container(
+              decoration: (isFirst || isLast)
+                  ? BoxDecoration(
+                      border: Border(
+                        left: BorderSide(color: modeColor, width: 4),
+                      ),
+                    )
+                  : null,
+              child: ListTile(
+                dense: true,
+                leading: SizedBox(
+                  width: 28,
+                  child: Center(
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: (isFirst || isLast)
+                            ? modeColor
+                            : modeColor.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
                       ),
                     ),
                   ),
-                  title: Text(
-                    stop.label,
-                    style: TextStyle(
-                      fontWeight: (isFirst || isLast)
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      fontSize: 14,
-                    ),
-                  ),
-                  subtitle: stop.skipped
-                      ? const Text(
-                          'Skipped',
-                          style: TextStyle(fontSize: 12, color: Colors.red),
-                        )
-                      : _buildStopMetaSubtitle(stop),
-                  trailing: mainTimePlanned != null
-                      ? _buildStopTimeWidget(
-                          mainTimePlanned,
-                          mainTimeEstimated,
-                          isArrival: depPlanned == null && arrPlanned != null,
-                        )
-                      : null,
                 ),
-              );
-            }),
-          ],
-        ),
+                title: Text(
+                  stop.label,
+                  style: TextStyle(
+                    fontWeight: (isFirst || isLast)
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    fontSize: 14,
+                  ),
+                ),
+                subtitle: stop.skipped
+                    ? const Text(
+                        'Skipped',
+                        style: TextStyle(fontSize: 12, color: Colors.red),
+                      )
+                    : _buildStopMetaSubtitle(stop),
+                trailing: mainTimePlanned != null
+                    ? _buildStopTimeWidget(
+                        mainTimePlanned,
+                        mainTimeEstimated,
+                        isArrival: depPlanned == null && arrPlanned != null,
+                      )
+                    : null,
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -1936,23 +1868,47 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     return rows;
   }
 
+  List<_VehicleStopRow> _scheduledStopRows(List<_VehicleStopRow> rows) {
+    return rows.where(_hasStopTime).toList(growable: false);
+  }
+
+  bool _hasStopTime(_VehicleStopRow row) {
+    return row.arrivalTimePlanned != null ||
+        row.arrivalTimeEstimated != null ||
+        row.departureTimePlanned != null ||
+        row.departureTimeEstimated != null;
+  }
+
   Widget? _buildStopMetaSubtitle(_VehicleStopRow stop) {
-    final metadata = <String>[];
+    final children = <Widget>[];
     final platform = trimmedOrNull(stop.platform);
     if (platform != null) {
-      metadata.add('Platform $platform');
+      children.add(
+        Text('Platform $platform', style: const TextStyle(fontSize: 12)),
+      );
     }
-    final wheelchairAccess = trimmedOrNull(stop.wheelchairAccess);
-    if (wheelchairAccess != null) {
-      metadata.add('Wheelchair: $wheelchairAccess');
+    if (_isWheelchairAccessible(stop.wheelchairAccess)) {
+      if (children.isNotEmpty) {
+        children.add(const Text(' • ', style: TextStyle(fontSize: 12)));
+      }
+      children.add(
+        const Icon(
+          Icons.accessible_forward,
+          size: 15,
+          semanticLabel: 'Wheelchair accessible',
+        ),
+      );
     }
-    if (metadata.isEmpty) return null;
-    return Text(
-      metadata.join(' • '),
-      style: const TextStyle(fontSize: 12),
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
+    if (children.isEmpty) return null;
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: children,
     );
+  }
+
+  bool _isWheelchairAccessible(String? value) {
+    final normalized = trimmedOrNull(value)?.toLowerCase();
+    return normalized == 'true' || normalized == 'yes' || normalized == '1';
   }
 
   String? _extractPlatformLabel(Stop stop) {
@@ -2556,7 +2512,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     final destination = leg.destination;
     final originName = origin.disassembledName ?? origin.name;
     final destinationName = destination.disassembledName ?? destination.name;
-    final transportName = _transportLabel(transportation) ?? '';
     final String? transportId = _legRouteIdFor(leg);
 
     final modeColor = transportClass != null
@@ -2677,8 +2632,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
                 children: [
                   _buildMapCard(transportId, mode, leg, modeColor, otherLegs),
                   _buildInfoCard(
-                    transportName,
-                    transportClass,
                     originName,
                     destinationName,
                     modeColor,
@@ -2687,7 +2640,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
                     leg,
                   ),
                   const SizedBox(height: 8),
-                  _buildStopList(leg, modeColor),
                   _buildDebugCards(leg, transportId, modeColor),
                 ],
               ),

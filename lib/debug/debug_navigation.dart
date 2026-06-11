@@ -10,6 +10,14 @@ class DebugNavigationArgs {
   final DebugEntityPageLoader loader;
 
   const DebugNavigationArgs({required this.request, required this.loader});
+
+  Future<DebugPageData?> loadPageDataSafely() async {
+    try {
+      return await loader.call(request);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 class DebugBrowserNavigationArgs {
@@ -37,7 +45,16 @@ class DebugNavigation {
     String name, {
     Object? arguments,
   }) {
-    return Navigator.of(context).pushNamed<T>(name, arguments: arguments);
+    final navigator = Navigator.maybeOf(context);
+    if (navigator == null) {
+      return Future<T?>.value(null);
+    }
+
+    try {
+      return navigator.pushNamed<T>(name, arguments: arguments);
+    } catch (_) {
+      return Future<T?>.value(null);
+    }
   }
 
   static Future<T?> pushEntity<T>(

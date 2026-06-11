@@ -102,24 +102,49 @@ class DebugEntityDataSource {
        _getTripUpdates = getAllTripUpdatesAggregated,
        _getDbStops = getDbStopsById;
 
+  static V? _mapValueOrNull<K, V>(Map<K, V> values, K key) {
+    for (final entry in values.entries) {
+      if (entry.key == key) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  static void _putValue<K, V>(Map<K, V> values, K key, V value) {
+    values.remove(key);
+    values.addAll(<K, V>{key: value});
+  }
+
+  static Future<T?> _awaitOrNull<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<DebugSourceResult<GtfsData>> loadGtfsForEndpointResult(
     StopsEndpoint endpoint,
   ) async {
     if (_gtfsByEndpoint.containsKey(endpoint)) {
       return DebugSourceResult<GtfsData>(
-        value: _gtfsByEndpoint[endpoint],
+        value: _mapValueOrNull<StopsEndpoint, GtfsData?>(
+          _gtfsByEndpoint,
+          endpoint,
+        ),
         source: DebugDataSource.gtfs,
       );
     }
     try {
       final data = await _getGtfsData(endpoint);
-      _gtfsByEndpoint[endpoint] = data;
+      _putValue(_gtfsByEndpoint, endpoint, data);
       return DebugSourceResult<GtfsData>(
         value: data,
         source: DebugDataSource.gtfs,
       );
     } catch (error, stackTrace) {
-      _gtfsByEndpoint[endpoint] = null;
+      _putValue(_gtfsByEndpoint, endpoint, null);
       return DebugSourceResult<GtfsData>(
         value: null,
         source: DebugDataSource.gtfs,
@@ -130,7 +155,10 @@ class DebugEntityDataSource {
   }
 
   Future<GtfsData?> loadGtfsForEndpoint(StopsEndpoint endpoint) async {
-    return (await loadGtfsForEndpointResult(endpoint)).value;
+    final result = await _awaitOrNull<DebugSourceResult<GtfsData>>(
+      () => loadGtfsForEndpointResult(endpoint),
+    );
+    return result?.value;
   }
 
   Future<DebugSourceResult<VehiclePositionAggregationResult>>
@@ -226,19 +254,19 @@ class DebugEntityDataSource {
   ) async {
     if (_dbStopsById.containsKey(stopId)) {
       return DebugSourceResult<List<db.Stop>>(
-        value: _dbStopsById[stopId],
+        value: _mapValueOrNull(_dbStopsById, stopId),
         source: DebugDataSource.localDb,
       );
     }
     try {
       final rows = await _getDbStops(stopId);
-      _dbStopsById[stopId] = rows;
+      _putValue(_dbStopsById, stopId, rows);
       return DebugSourceResult<List<db.Stop>>(
         value: rows,
         source: DebugDataSource.localDb,
       );
     } catch (error, stackTrace) {
-      _dbStopsById[stopId] = const <db.Stop>[];
+      _putValue(_dbStopsById, stopId, const <db.Stop>[]);
       return DebugSourceResult<List<db.Stop>>(
         value: const <db.Stop>[],
         source: DebugDataSource.localDb,
@@ -249,7 +277,10 @@ class DebugEntityDataSource {
   }
 
   Future<List<db.Stop>> lookupDbStops(String stopId) async {
-    return (await lookupDbStopsResult(stopId)).value ?? const <db.Stop>[];
+    final result = await _awaitOrNull<DebugSourceResult<List<db.Stop>>>(
+      () => lookupDbStopsResult(stopId),
+    );
+    return result?.value ?? const <db.Stop>[];
   }
 }
 
@@ -309,7 +340,9 @@ class DebugEndpointResolver {
     }
 
     if (modeHint != null) {
-      ordered.addAll(_endpointsForMode(modeHint));
+      try {
+        ordered.addAll(_endpointsForMode.call(modeHint));
+      } catch (_) {}
     }
     return ordered.toList(growable: false);
   }

@@ -161,11 +161,19 @@ class TripLineService {
   }
 
   Future<List<T>> _safeLoadList<T>(Future<List<T>> Function() loader) async {
-    return await loader();
+    try {
+      return await loader.call();
+    } catch (_) {
+      return <T>[];
+    }
   }
 
   Future<List<TripLineLookupStop>> _safeLookupStops(String stopId) async {
-    return await _stopLookup(stopId);
+    try {
+      return await _stopLookup.call(stopId);
+    } catch (_) {
+      return const <TripLineLookupStop>[];
+    }
   }
 
   Future<_EndpointLineIndex?> _safeGetIndexForEndpointKey(

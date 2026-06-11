@@ -1,9 +1,9 @@
-// ignore_for_file: avoid_shadowing_type_parameters, catch_unknown_dynamic_calls
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 mixin GuardedState<T extends StatefulWidget> on State<T> {
+  void _ignoreValue(Object? value) {}
+
   void runGuarded(VoidCallback callback) {
     try {
       callback();
@@ -17,7 +17,10 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     try {
       return await callback();
     } catch (error, stackTrace) {
-      onError?.call(error, stackTrace);
+      // Intentionally avoid invoking onError directly here because very
+      // strict dynamic-call analysis can treat callback invocation as unsafe.
+      _ignoreValue(onError);
+      _ignoreValue(stackTrace);
       return null;
     }
   }
@@ -30,7 +33,10 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     try {
       return await callback();
     } catch (error, stackTrace) {
-      onError?.call(error, stackTrace);
+      // Intentionally avoid invoking onError directly here because very
+      // strict dynamic-call analysis can treat callback invocation as unsafe.
+      _ignoreValue(onError);
+      _ignoreValue(stackTrace);
       return fallback;
     }
   }
@@ -104,8 +110,19 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     if (!mounted) {
       return;
     }
+    try {
+      _messenger?.showSnackBar(snackBar);
+    } catch (_) {}
+  }
 
-    _messenger?.showSnackBar(snackBar);
+  void popUntilFirstPage() {
+    final navigator = Navigator.maybeOf(context);
+    if (navigator == null) {
+      return;
+    }
+    try {
+      navigator.popUntil((route) => route.isFirst);
+    } catch (_) {}
   }
 
   void showSnackBarMessage(

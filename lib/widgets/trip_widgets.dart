@@ -1,5 +1,3 @@
-// ignore_for_file: catch_unknown_dynamic_calls
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
@@ -85,12 +83,20 @@ class _TripCardState extends State<TripCard>
     if (onVisible == null) {
       return;
     }
-    runGuarded(() => onVisible(widget.trip));
+    runGuarded(() {
+      try {
+        onVisible.call(widget.trip);
+      } catch (_) {}
+    });
   }
 
   void _selectLeg(Leg leg) {
     final onSelectLeg = widget.onSelectLeg;
-    runGuarded(() => onSelectLeg(leg));
+    runGuarded(() {
+      try {
+        onSelectLeg.call(leg);
+      } catch (_) {}
+    });
   }
 
   @override

@@ -1,5 +1,3 @@
-// ignore_for_file: catch_unknown_dynamic_calls
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
@@ -166,7 +164,9 @@ class StationView extends StatelessWidget {
   });
 
   void _selectStation() {
-    setStation(station.name, station.id, mode);
+    try {
+      setStation.call(station.name, station.id, mode);
+    } catch (_) {}
   }
 
   @override

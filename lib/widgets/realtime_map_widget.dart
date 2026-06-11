@@ -1,5 +1,3 @@
-// ignore_for_file: catch_runtime_throw_sources, catch_inferred_throwing_calls, catch_unknown_dynamic_calls
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -122,11 +120,37 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
     return points.elementAtOrNull(index);
   }
 
-  void _closeBottomSheet() {
-    final navigator = Navigator.maybeOf(context);
-    if (navigator?.canPop() ?? false) {
-      navigator?.pop();
+  TransportMode? _modeForAggregatedVehicle(VehiclePosition vehicle) {
+    final explicitMode = widget.transportMode ?? widget.mode;
+    if (explicitMode != null) {
+      return explicitMode;
     }
+
+    if (!vehicle.trip.hasRouteId()) {
+      return null;
+    }
+
+    final routeId = vehicle.trip.routeId.trim().toUpperCase();
+    if (routeId.isEmpty) {
+      return null;
+    }
+    if (routeId.startsWith('M')) {
+      return TransportMode.metro;
+    }
+    if (routeId.startsWith('T') || routeId.startsWith('CCN')) {
+      return TransportMode.train;
+    }
+    if (routeId.startsWith('L')) {
+      return TransportMode.lightrail;
+    }
+    if (routeId.startsWith('F')) {
+      return TransportMode.ferry;
+    }
+    return TransportMode.bus;
+  }
+
+  void _closeBottomSheet() {
+    popPage();
   }
 
   // Available transport modes and whether they're enabled in the UI filter.
@@ -187,24 +211,34 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
   @override
   void didUpdateWidget(RealtimeMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final filterChanged =
+        oldWidget.routeFilter != widget.routeFilter ||
+        oldWidget.transportMode != widget.transportMode ||
+        oldWidget.mode != widget.mode ||
+        oldWidget.filterByLegTrip != widget.filterByLegTrip ||
+        !const SetEquality<String>().equals(
+          oldWidget.tripIds,
+          widget.tripIds,
+        ) ||
+        oldWidget.vehicleId != widget.vehicleId;
     // When the active leg changes, fit the camera to the new leg's stops
     // without recreating the whole widget (avoids visible flash/reload).
-    if ((oldWidget.leg != widget.leg ||
-            oldWidget.additionalLegs != widget.additionalLegs) &&
-        widget.leg != null) {
+    final legChanged =
+        oldWidget.leg != widget.leg ||
+        oldWidget.additionalLegs != widget.additionalLegs;
+    if (legChanged || filterChanged) {
       final newLeg = widget.leg;
-      if (newLeg == null) {
-        return;
-      }
-      final points = _visibleTripPoints();
-      if (points.length >= 2) {
-        final fit = CameraFit.bounds(
-          bounds: LatLngBounds.fromPoints(points),
-          padding: const EdgeInsets.all(50.0),
-        );
-        final fitted = tryFitMapCamera(_mapController, fit);
-        if (!fitted) {
-          _pendingFit = fit;
+      if (legChanged && newLeg != null) {
+        final points = _visibleTripPoints();
+        if (points.length >= 2) {
+          final fit = CameraFit.bounds(
+            bounds: LatLngBounds.fromPoints(points),
+            padding: const EdgeInsets.all(50.0),
+          );
+          final fitted = tryFitMapCamera(_mapController, fit);
+          if (!fitted) {
+            _pendingFit = fit;
+          }
         }
       }
       // Also reload vehicle positions for the new leg
@@ -263,6 +297,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
     guardedSetState(() {
       _isLoading = true;
       _error = null;
+      _vehicles = [];
     });
 
     await runAsyncGuarded(
@@ -272,10 +307,18 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
         final getAllVehiclesAggregated = widget.getAllVehiclesAggregated;
         final getPositions = widget.getPositions;
         if (getAllVehiclesAggregated != null) {
-          final agg = await getAllVehiclesAggregated();
-          aggregatedVehicles = agg.vehicles;
+          try {
+            final agg = await getAllVehiclesAggregated.call();
+            aggregatedVehicles = agg.vehicles;
+          } catch (_) {
+            aggregatedVehicles = const <VehiclePosition>[];
+          }
         } else if (getPositions != null) {
-          mapPositions = await getPositions();
+          try {
+            mapPositions = await getPositions.call();
+          } catch (_) {
+            mapPositions = const <TransportMode, FeedMessage?>{};
+          }
         } else {
           mapPositions = await RealtimeService.getAllRealtimePositions();
         }
@@ -302,7 +345,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
           }
         } else if (aggregatedVehicles != null) {
           vehicles.addAll(
-            aggregatedVehicles.map((v) => _VehicleWithMode(v, null)),
+            aggregatedVehicles.map(
+              (v) => _VehicleWithMode(v, _modeForAggregatedVehicle(v)),
+            ),
           );
         }
 

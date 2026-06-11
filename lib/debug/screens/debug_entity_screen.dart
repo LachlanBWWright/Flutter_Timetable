@@ -12,7 +12,7 @@ class DebugEntityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DebugPageData?>(
-      future: args.loader(args.request),
+      future: args.loadPageDataSafely(),
       builder: (context, snapshot) {
         final title = args.request.entityType.label;
         final pageData = snapshot.data;

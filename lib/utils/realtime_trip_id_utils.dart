@@ -26,14 +26,13 @@ Set<String> collectTripIdsForVehicleFiltering({
   required Map<String, dynamic>? legRawJson,
 }) {
   final ids = <String>{};
-  ids.addAll(collectTripIdsFromRawJson(tripRawJson));
   ids.addAll(collectTripIdsFromRawJson(legRawJson));
 
-  final legsJson = tryReadListValue(tripRawJson, 'legs');
-  if (legsJson is List) {
-    for (final legJson in legsJson.whereType<Map<String, dynamic>>()) {
-      ids.addAll(collectTripIdsFromRawJson(legJson));
-    }
+  // Vehicle filtering must stay scoped to the active leg. Journey raw JSON may
+  // contain every leg, so only use top-level trip IDs as a fallback when the
+  // active leg itself carries no realtime trip ID.
+  if (ids.isEmpty) {
+    ids.addAll(collectTripIdsFromRawJson(tripRawJson));
   }
 
   return ids;

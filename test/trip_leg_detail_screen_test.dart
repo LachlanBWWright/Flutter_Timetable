@@ -591,8 +591,19 @@ void main() {
       ),
       transportation: transportation,
       stopSequence: [
-        Stop(id: 'LEG1', name: 'Leg Stop 1', type: 'stop'),
-        Stop(id: 'LEG2', name: 'Leg Stop 2', type: 'stop'),
+        Stop(
+          id: 'LEG1',
+          name: 'Leg Stop 1',
+          type: 'stop',
+          properties: StopProperties(wheelchairAccess: 'true'),
+          departureTimePlanned: '2024-01-01T10:00:00Z',
+        ),
+        Stop(
+          id: 'LEG2',
+          name: 'Leg Stop 2',
+          type: 'stop',
+          arrivalTimePlanned: '2024-01-01T10:10:00Z',
+        ),
       ],
       rawJson: {
         'transportation': {
@@ -676,6 +687,8 @@ void main() {
     expect(find.text('Trip stops (2)'), findsOneWidget);
     expect(find.text('Show all stops'), findsOneWidget);
     expect(find.text('Leg Stop 1'), findsOneWidget);
+    expect(find.textContaining('Wheelchair:'), findsNothing);
+    expect(find.byIcon(Icons.accessible_forward), findsOneWidget);
     expect(find.text('RT1'), findsNothing);
 
     await tester.tap(find.text('Show all stops'));
@@ -689,6 +702,90 @@ void main() {
     expect(find.text('RT1'), findsNothing);
     expect(find.text('RT2'), findsNothing);
     expect(find.text('RT3'), findsOneWidget);
+  });
+
+  testWidgets('Trip stops hide untimed stops until all stops are shown', (
+    tester,
+  ) async {
+    final transportation = Transportation(
+      id: 'ROUTE1',
+      name: 'Line 1',
+      product: Product(classField: 5),
+    );
+    final leg = Leg(
+      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
+      destination: Stop(
+        id: 'D1',
+        name: 'Destination',
+        type: 'stop',
+        coord: [0.3, 0.3],
+      ),
+      transportation: transportation,
+      stopSequence: [
+        Stop(
+          id: 'TIMED',
+          name: 'Timed Stop',
+          type: 'stop',
+          departureTimePlanned: '2024-01-01T10:00:00Z',
+        ),
+        Stop(id: 'SKIPPED', name: 'Skipped Stop', type: 'stop'),
+      ],
+      rawJson: {
+        'transportation': {
+          'id': 'ROUTE1',
+          'properties': {'RealtimeTripId': 'MATCH123'},
+        },
+      },
+    );
+    final trip = TripJourney(isAdditional: false, legs: [leg], rating: 0);
+
+    final tripDescriptor = TripDescriptor();
+    tripDescriptor.tripId = 'MATCH123';
+    tripDescriptor.routeId = 'ROUTE1';
+
+    final skippedUpdate = TripUpdate_StopTimeUpdate();
+    skippedUpdate.stopSequence = 2;
+    skippedUpdate.stopId = 'SKIPPED';
+    skippedUpdate.scheduleRelationship =
+        TripUpdate_StopTimeUpdate_ScheduleRelationship.SKIPPED;
+
+    final tripUpdate = TripUpdate();
+    tripUpdate.trip = tripDescriptor;
+    tripUpdate.stopTimeUpdate.add(skippedUpdate);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TripLegDetailScreen(
+          leg: leg,
+          trip: trip,
+          getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
+          skipInitialLoadDelay: true,
+          getAllVehiclesAggregated: () async =>
+              const VehiclePositionAggregationResult(
+                vehicles: <VehiclePosition>[],
+                breakdown: <String, int>{},
+              ),
+          getAllTripUpdatesAggregated: () async => TripUpdateAggregationResult(
+            tripUpdates: <TripUpdate>[tripUpdate],
+            breakdown: const <String, int>{},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Trip stops (1)'), findsOneWidget);
+    expect(find.text('Timed Stop'), findsOneWidget);
+    expect(find.text('Skipped Stop'), findsNothing);
+
+    await tester.tap(find.text('Show all stops'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('All stops (1)'), findsOneWidget);
+    expect(find.text('Skipped Stop'), findsOneWidget);
+    expect(find.text('Skipped'), findsOneWidget);
   });
 
   testWidgets('TripLegDetailScreen shows a no-match state for vehicle stops', (

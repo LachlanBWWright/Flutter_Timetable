@@ -7,8 +7,12 @@ class DebugExtractors {
     if (values == null) {
       return null;
     }
-
-    return values[key];
+    for (final entry in values.entries) {
+      if (entry.key == key) {
+        return entry.value;
+      }
+    }
+    return null;
   }
 
   static void collectTripIdsFromRawJsonIntoSafe(

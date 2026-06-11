@@ -1,5 +1,3 @@
-// ignore_for_file: catch_inferred_throwing_calls, catch_unknown_dynamic_calls
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -70,15 +68,14 @@ class _StopsMapWidgetState extends State<StopsMapWidget>
   Timer? _zoomDebounce;
 
   void _safePop() {
-    final navigator = Navigator.maybeOf(context);
-    if (navigator?.canPop() ?? false) {
-      navigator?.pop();
-    }
+    popPage();
   }
 
   void _selectStop(Stop stop) {
     final onStopSelected = widget.onStopSelected;
-    onStopSelected(stop.stopName, stop.stopId);
+    try {
+      onStopSelected.call(stop.stopName, stop.stopId);
+    } catch (_) {}
   }
 
   void _closeEmbeddedMap() {
@@ -86,7 +83,9 @@ class _StopsMapWidgetState extends State<StopsMapWidget>
     if (onClose == null) {
       return;
     }
-    onClose();
+    try {
+      onClose.call();
+    } catch (_) {}
   }
 
   void _runPendingMapAction() {

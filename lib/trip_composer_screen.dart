@@ -1,5 +1,3 @@
-// ignore_for_file: catch_unknown_dynamic_calls
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_colors.dart';
@@ -67,19 +65,29 @@ class _TripComposerScreenState extends State<TripComposerScreen>
   }
 
   Future<List<Station>> _loadInterchangeCandidates(int insertIndex) async {
-    return widget.onLoadInterchangeCandidates(insertIndex);
+    try {
+      return await widget.onLoadInterchangeCandidates.call(insertIndex);
+    } catch (_) {
+      return const <Station>[];
+    }
   }
 
   void _insertInterchange(int insertIndex, Station station) {
-    widget.onInsertInterchange(insertIndex, station);
+    try {
+      widget.onInsertInterchange.call(insertIndex, station);
+    } catch (_) {}
   }
 
   void _notifyRemoveInterchange(int interchangeIndex) {
-    widget.onRemoveInterchange(interchangeIndex);
+    try {
+      widget.onRemoveInterchange.call(interchangeIndex);
+    } catch (_) {}
   }
 
   void _notifyMoveInterchange(int interchangeIndex, int delta) {
-    widget.onMoveInterchange(interchangeIndex, delta);
+    try {
+      widget.onMoveInterchange.call(interchangeIndex, delta);
+    } catch (_) {}
   }
 
   Station? _stationAtOrNull(List<Station> stations, int index) {

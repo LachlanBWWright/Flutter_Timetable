@@ -89,7 +89,7 @@ void main() {
       expect(ids, {'trip-1', 'trip-2', 'trip-3', 'trip-4'});
     });
 
-    test('collectTripIdsForVehicleFiltering merges trip and leg ids', () {
+    test('collectTripIdsForVehicleFiltering uses active leg ids first', () {
       final ids = collectTripIdsForVehicleFiltering(
         tripRawJson: {
           'legs': [
@@ -103,8 +103,20 @@ void main() {
         },
       );
 
-      expect(ids, {'trip-a', 'trip-b'});
+      expect(ids, {'trip-b'});
     });
+
+    test(
+      'collectTripIdsForVehicleFiltering falls back to top-level trip ids',
+      () {
+        final ids = collectTripIdsForVehicleFiltering(
+          tripRawJson: {'tripId': 'trip-a'},
+          legRawJson: const <String, dynamic>{},
+        );
+
+        expect(ids, {'trip-a'});
+      },
+    );
   });
 
   group('station_subtitle_utils', () {

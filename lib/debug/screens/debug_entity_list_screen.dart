@@ -21,7 +21,17 @@ class _DebugEntityListScreenState extends State<DebugEntityListScreen> {
 
   Future<DebugEntityListPageData> _loadPage() async {
     final DebugEntityListPageLoader listLoader = widget.args.listLoader;
-    return listLoader(widget.args.entityType);
+    try {
+      return await listLoader.call(widget.args.entityType);
+    } catch (_) {
+      return DebugEntityListPageData(
+        entityType: widget.args.entityType,
+        title: '${widget.args.entityType.label} Browser',
+        description: 'Failed to load debug browser data.',
+        emptyMessage: 'No debug list data available.',
+        items: const <DebugEntityListItem>[],
+      );
+    }
   }
 
   @override
@@ -88,14 +98,37 @@ class _DebugEntityListViewState extends State<_DebugEntityListView>
   List<DebugEntityListItem> _visibleItems() =>
       _applyFilters(widget.pageData.items);
 
-  String? _selectedFilterValueFor(String key) => _selectedFilters[key];
+  String? _selectedFilterValueFor(String key) =>
+      _stringValueForKey(_selectedFilters, key);
 
   void _updateSelectedFilter(String key, String? value) {
-    _selectedFilters[key] = value;
+    _selectedFilters.remove(key);
+    _selectedFilters.addAll(<String, String?>{key: value});
   }
 
   List<String> _filterValuesForItem(DebugEntityListItem item, String key) {
-    return item.filterValues[key] ?? const <String>[];
+    return _stringListValueForKey(item.filterValues, key) ?? const <String>[];
+  }
+
+  static String? _stringValueForKey(Map<String, String?> values, String key) {
+    for (final entry in values.entries) {
+      if (entry.key == key) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  static List<String>? _stringListValueForKey(
+    Map<String, List<String>> values,
+    String key,
+  ) {
+    for (final entry in values.entries) {
+      if (entry.key == key) {
+        return entry.value;
+      }
+    }
+    return null;
   }
 
   @override
@@ -121,7 +154,12 @@ class _DebugEntityListViewState extends State<_DebugEntityListView>
   }
 
   String? _selectedFilterValueOrNull(Map<String, String> values, String key) {
-    return values[key];
+    for (final entry in values.entries) {
+      if (entry.key == key) {
+        return entry.value;
+      }
+    }
+    return null;
   }
 
   @override
