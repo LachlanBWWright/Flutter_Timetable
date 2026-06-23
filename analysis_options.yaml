@@ -20,7 +20,6 @@ plugins:
       catch_async_error_sources: true
       catch_inferred_throwing_calls: true
       catch_unknown_dynamic_calls: true
-    #DO NOT JUST DISABLE EVERYTHING TO 'FIX' LINT ERRORS
     exception_analysis:
       analyze_test_files: false
       report:
