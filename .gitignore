@@ -41,6 +41,7 @@ app.*.symbols
 
 # Local environment variables
 .env
+.codex
 
 # Obfuscation related
 app.*.map.json

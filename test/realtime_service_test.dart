@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
@@ -56,11 +58,14 @@ void main() {
     eO.vehicle = vpO;
     feedOther.entity.add(eO);
 
-    Future<Map<TransportMode, FeedMessage>> getAllPositionsOverride() async =>
+    Future<Map<TransportMode, FeedMessage?>> getAllPositionsOverride() async =>
         {TransportMode.bus: feedBus};
-    Future<List<FeedMessage?>> getRegionBusesOverride() async =>
-        [feedRegion, null];
-    Future<List<FeedMessage?>> getAllFerriesOverride() async => <FeedMessage?>[];
+    Future<List<FeedMessage?>> getRegionBusesOverride() async => [
+      feedRegion,
+      null,
+    ];
+    Future<List<FeedMessage?>> getAllFerriesOverride() async =>
+        <FeedMessage?>[];
     Future<List<FeedMessage?>> getAllLightRailOverride() async =>
         <FeedMessage?>[feedOther];
 
@@ -71,8 +76,8 @@ void main() {
       getAllLightRailOverride: getAllLightRailOverride,
     );
 
-    final vehicles = result['vehicles'] as List<VehiclePosition>;
-    final breakdown = result['breakdown'] as Map<String, int>;
+    final vehicles = result.vehicles;
+    final breakdown = result.breakdown;
 
     // Vehicles should include V1 once (deduped) and V2
     final ids = vehicles

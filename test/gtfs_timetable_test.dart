@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/timetable_data.dart';
@@ -49,8 +51,9 @@ void main() {
     () async {
       final data = await fetchBusesGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       expect(
         data.stops.length,
         greaterThanOrEqualTo(5),
@@ -66,25 +69,31 @@ void main() {
     skip: 'Requires live API key',
   );
 
-  test('fetchFerriesSydneyFerriesGtfsData returns a GtfsData object', () async {
-    final data = await fetchFerriesSydneyFerriesGtfsData();
-    expect(data, isNotNull);
-    expect(data, isA<GtfsData>());
-    expect(data!.routes, isA<List>());
-    if (data.stops.isNotEmpty) {
-      logStopsSummary(data, 'ferries', 10);
-    } else {
-      // print('\n--- ferries feed returned 0 stops ---');
-    }
-  }, skip: 'Requires live API key');
+  test(
+    'fetchFerriesSydneyFerriesGtfsData returns a GtfsData object',
+    () async {
+      final data = await fetchFerriesSydneyFerriesGtfsData();
+      expect(data, isNotNull);
+      if (data == null) return;
+      expect(data, isA<GtfsData>());
+      expect(data.routes, isA<List>());
+      if (data.stops.isNotEmpty) {
+        logStopsSummary(data, 'ferries', 10);
+      } else {
+        // print('\n--- ferries feed returned 0 stops ---');
+      }
+    },
+    skip: 'Requires live API key',
+  );
 
   test(
     'fetchMetroGtfsData returns a GtfsData object and logs stops',
     () async {
       final data = await fetchMetroGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       expect(
         data.stops.length,
         greaterThanOrEqualTo(5),
@@ -100,23 +109,28 @@ void main() {
     skip: 'Requires live API key',
   );
 
-  test('fetchLightRailInnerWestGtfsData returns a GtfsData object', () async {
-    final data = await fetchLightRailInnerWestGtfsData();
-    expect(data, isNotNull);
-    expect(data, isA<GtfsData>());
-    expect(data!.trips, isA<List>());
-    if (data.stops.isNotEmpty) {
-      logStopsSummary(data, 'lightrail', 10);
-    } else {
-      // print('\n--- lightrail feed returned 0 stops ---');
-    }
-  }, skip: 'Requires live API key');
+  test(
+    'fetchLightRailInnerWestGtfsData returns a GtfsData object',
+    () async {
+      final data = await fetchLightRailInnerWestGtfsData();
+      expect(data, isNotNull);
+      if (data == null) return;
+      expect(data, isA<GtfsData>());
+      expect(data.trips, isA<List>());
+      if (data.stops.isNotEmpty) {
+        logStopsSummary(data, 'lightrail', 10);
+      } else {
+        // print('\n--- lightrail feed returned 0 stops ---');
+      }
+    },
+    skip: 'Requires live API key',
+  );
 
   /*   test('fetchNswTrainsGtfsData returns a GtfsData object', () async {
     final data = await fetchNswTrainsGtfsData();
     expect(data, isNotNull);
     expect(data, isA<GtfsData>());
-    expect(data!.agencies, isA<List>());
+    expect(data?.agencies, isA<List>());
     // Require at least 5 stops for this feed to be considered valid
     expect(data.stops.length, greaterThanOrEqualTo(5),
         reason: 'Expected at least 5 stops for nswtrains feed');
@@ -132,8 +146,9 @@ void main() {
     () async {
       final data = await fetchSydneyTrainsGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       expect(
         data.stops.length,
         greaterThanOrEqualTo(5),
@@ -154,8 +169,9 @@ void main() {
       // Metro is exposed under the v2 schedule surface — use the v2 fetcher
       final data = await fetchMetroGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       if (data.stops.isNotEmpty) {
         logStopsSummary(data, 'metro', 100);
       } else {

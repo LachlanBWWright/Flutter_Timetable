@@ -5,8 +5,10 @@ class DateTimeUtils {
   /// Input format: 2022-08-28T19:55:54Z
   /// Output format: 7:55PM (28/8) or 12:30AM (29/8)
   static String parseTime(String time) {
-    // String is in UTC time, with format 2022-08-28T19:55:54Z
-    final DateTime dt = DateTime.parse(time).toLocal();
+    final DateTime? dt = parseTimeToDateTime(time);
+    if (dt == null) {
+      return time;
+    }
 
     // 24-Hour time to 12-hour
     if (dt.hour == 0) {
@@ -23,11 +25,7 @@ class DateTimeUtils {
 
   /// Parses UTC time string and returns DateTime object for comparison
   static DateTime? parseTimeToDateTime(String time) {
-    try {
-      return DateTime.parse(time).toLocal();
-    } catch (e) {
-      return null;
-    }
+    return DateTime.tryParse(time)?.toLocal();
   }
 
   /// Parses UTC time string and converts to local time in 12-hour format without date
@@ -35,8 +33,10 @@ class DateTimeUtils {
   /// Input format: 2022-08-28T19:55:54Z
   /// Output format: 7:55PM or 12:30AM
   static String parseTimeOnly(String time) {
-    // String is in UTC time, with format 2022-08-28T19:55:54Z
-    final DateTime dt = DateTime.parse(time).toLocal();
+    final DateTime? dt = parseTimeToDateTime(time);
+    if (dt == null) {
+      return time;
+    }
 
     // 24-Hour time to 12-hour
     if (dt.hour == 0) {

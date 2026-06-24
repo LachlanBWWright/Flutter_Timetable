@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,115 +12,147 @@ void main() {
     await dotenv.load();
   });
 
-  test('fetchSydneyTrainsPositions returns valid FeedMessage or null', () async {
-    final feed = await fetchSydneyTrainsPositions();
-    if (feed == null) {
-      // logger.d('Sydney Trains: No data or API error');
-    } else {
-      // logger.d(
-      //     'Sydney Trains: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
-      expect(feed.header.hasGtfsRealtimeVersion(), true);
-      expect(feed.entity.isNotEmpty, true);
-    }
-  }, skip: 'Requires live API key');
-
-  test('fetchSydneyMetroPositions returns valid FeedMessage or null', () async {
-    final feed = await fetchSydneyMetroPositions();
-    if (feed == null) {
-      // logger.d('Sydney Metro: No data or API error');
-    } else {
-      // logger.d(
-      //     'Sydney Metro: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
-      expect(feed.header.hasGtfsRealtimeVersion(), true);
-      expect(feed.entity.isNotEmpty, true);
-    }
-  }, skip: 'Requires live API key');
-
-  test('fetchBusesPositions returns valid FeedMessage or null', () async {
-    final feed = await fetchBusesPositions();
-    if (feed == null) {
-      // logger.d('Buses: No data or API error');
-    } else {
-      // logger.d(
-      //     'Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
-      expect(feed.header.hasGtfsRealtimeVersion(), true);
-      expect(feed.entity.isNotEmpty, true);
-    }
-  }, skip: 'Requires live API key');
-
-  test('fetchNswTrainsPositions returns valid FeedMessage or null', () async {
-    final feed = await fetchNswTrainsPositions();
-    if (feed == null) {
-      // logger.d('NSW Trains: No data or API error');
-    } else {
-      // logger.d(
-      //     'NSW Trains: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
-      expect(feed.header.hasGtfsRealtimeVersion(), true);
-      expect(feed.entity.isNotEmpty, true);
-    }
-  }, skip: 'Requires live API key');
-
-  test('fetchRegionBusesPositions returns valid FeedMessage or null', () async {
-    final feeds = await fetchRegionBusesPositions();
-    expect(feeds.isNotEmpty, true);
-    for (final feed in feeds) {
+  test(
+    'fetchSydneyTrainsPositions returns valid FeedMessage or null',
+    () async {
+      final feed = await fetchSydneyTrainsPositions();
       if (feed == null) {
-        // logger.d('Region Buses: No data or API error');
+        // logger.d('Sydney Trains: No data or API error');
       } else {
         // logger.d(
-        //     'Region Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+        //     'Sydney Trains: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);
       }
-    }
-  }, skip: 'Requires live API key');
+    },
+    skip: 'Requires live API key',
+  );
 
-  test('getAllFerries returns list with valid FeedMessage or null', () async {
-    final feeds = await getAllFerries();
-    expect(feeds.isNotEmpty, true);
-    for (final feed in feeds) {
+  test(
+    'fetchSydneyMetroPositions returns valid FeedMessage or null',
+    () async {
+      final feed = await fetchSydneyMetroPositions();
       if (feed == null) {
-        // logger.d('All Ferries: No data or API error');
+        // logger.d('Sydney Metro: No data or API error');
       } else {
         // logger.d(
-        //     'All Ferries: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+        //     'Sydney Metro: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);
       }
-    }
-  }, skip: 'Requires live API key');
+    },
+    skip: 'Requires live API key',
+  );
 
-  test('getAllLightRail returns list with valid FeedMessage or null', () async {
-    final feeds = await getAllLightRail();
-    expect(feeds.isNotEmpty, true);
-    for (final feed in feeds) {
+  test(
+    'fetchBusesPositions returns valid FeedMessage or null',
+    () async {
+      final feed = await fetchBusesPositions();
       if (feed == null) {
-        // logger.d('All Light Rail: No data or API error');
+        // logger.d('Buses: No data or API error');
       } else {
         // logger.d(
-        //     'All Light Rail: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+        //     'Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);
       }
-    }
-  }, skip: 'Requires live API key');
+    },
+    skip: 'Requires live API key',
+  );
 
-  test('getAllRegionBuses returns list with valid FeedMessage or null', () async {
-    final regionBusesFeeds = await getAllRegionBuses();
-    expect(regionBusesFeeds.isNotEmpty, true);
-    // Flatten if any element is a list
-    final flatFeeds = regionBusesFeeds
-        .expand((e) => e is List ? e as List<FeedMessage?> : [e])
-        .cast<FeedMessage?>();
-    for (final feed in flatFeeds) {
+  test(
+    'fetchNswTrainsPositions returns valid FeedMessage or null',
+    () async {
+      final feed = await fetchNswTrainsPositions();
       if (feed == null) {
-        // logger.d('All Region Buses: No data or API error');
+        // logger.d('NSW Trains: No data or API error');
       } else {
         // logger.d(
-        //     'All Region Buses: \\${feed.header.gtfsRealtimeVersion}, entities: \\${feed.entity.length}');
+        //     'NSW Trains: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
         expect(feed.header.hasGtfsRealtimeVersion(), true);
         expect(feed.entity.isNotEmpty, true);
       }
-    }
-  }, skip: 'Requires live API key');
+    },
+    skip: 'Requires live API key',
+  );
+
+  test(
+    'fetchRegionBusesPositions returns valid FeedMessage or null',
+    () async {
+      final feeds = await fetchRegionBusesPositions();
+      expect(feeds.isNotEmpty, true);
+      for (final feed in feeds) {
+        if (feed == null) {
+          // logger.d('Region Buses: No data or API error');
+        } else {
+          // logger.d(
+          //     'Region Buses: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+          expect(feed.header.hasGtfsRealtimeVersion(), true);
+          expect(feed.entity.isNotEmpty, true);
+        }
+      }
+    },
+    skip: 'Requires live API key',
+  );
+
+  test(
+    'getAllFerries returns list with valid FeedMessage or null',
+    () async {
+      final feeds = await getAllFerries();
+      expect(feeds.isNotEmpty, true);
+      for (final feed in feeds) {
+        if (feed == null) {
+          // logger.d('All Ferries: No data or API error');
+        } else {
+          // logger.d(
+          //     'All Ferries: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+          expect(feed.header.hasGtfsRealtimeVersion(), true);
+          expect(feed.entity.isNotEmpty, true);
+        }
+      }
+    },
+    skip: 'Requires live API key',
+  );
+
+  test(
+    'getAllLightRail returns list with valid FeedMessage or null',
+    () async {
+      final feeds = await getAllLightRail();
+      expect(feeds.isNotEmpty, true);
+      for (final feed in feeds) {
+        if (feed == null) {
+          // logger.d('All Light Rail: No data or API error');
+        } else {
+          // logger.d(
+          //     'All Light Rail: ${feed.header.gtfsRealtimeVersion}, entities: ${feed.entity.length}');
+          expect(feed.header.hasGtfsRealtimeVersion(), true);
+          expect(feed.entity.isNotEmpty, true);
+        }
+      }
+    },
+    skip: 'Requires live API key',
+  );
+
+  test(
+    'getAllRegionBuses returns list with valid FeedMessage or null',
+    () async {
+      final regionBusesFeeds = await getAllRegionBuses();
+      expect(regionBusesFeeds.isNotEmpty, true);
+      // Flatten if any element is a list
+      final flatFeeds = regionBusesFeeds
+          .expand((e) => e is List ? e as List<FeedMessage?> : [e])
+          .cast<FeedMessage?>();
+      for (final feed in flatFeeds) {
+        if (feed == null) {
+          // logger.d('All Region Buses: No data or API error');
+        } else {
+          // logger.d(
+          //     'All Region Buses: \\${feed.header.gtfsRealtimeVersion}, entities: \\${feed.entity.length}');
+          expect(feed.header.hasGtfsRealtimeVersion(), true);
+          expect(feed.entity.isNotEmpty, true);
+        }
+      }
+    },
+    skip: 'Requires live API key',
+  );
 }

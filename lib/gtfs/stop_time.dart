@@ -1,3 +1,5 @@
+import 'csv_field_reader.dart';
+
 class StopTime {
   final String tripId;
   final String arrivalTime;
@@ -32,27 +34,22 @@ class StopTime {
 
   /// Create a StopTime from a CSV row using header-based field mapping
   factory StopTime.fromCsv(List<String> header, List<String> row) {
-    String? getField(String fieldName) {
-      final index = header.indexOf(fieldName);
-      if (index == -1 || index >= row.length) return null;
-      final value = row[index];
-      return value.isEmpty ? null : value;
-    }
+    final reader = CsvFieldReader(header, row);
 
     return StopTime(
-      tripId: getField('trip_id') ?? '',
-      arrivalTime: getField('arrival_time') ?? '',
-      departureTime: getField('departure_time') ?? '',
-      stopId: getField('stop_id') ?? '',
-      stopSequence: getField('stop_sequence') ?? '',
-      stopHeadsign: getField('stop_headsign'),
-      pickupType: getField('pickup_type'),
-      dropOffType: getField('drop_off_type'),
-      continuousPickup: getField('continuous_pickup'),
-      continuousDropOff: getField('continuous_drop_off'),
-      shapeDistTraveled: getField('shape_dist_traveled'),
-      timepoint: getField('timepoint'),
-      stopNote: getField('stop_note'),
+      tripId: reader.fieldOrEmpty('trip_id'),
+      arrivalTime: reader.fieldOrEmpty('arrival_time'),
+      departureTime: reader.fieldOrEmpty('departure_time'),
+      stopId: reader.fieldOrEmpty('stop_id'),
+      stopSequence: reader.fieldOrEmpty('stop_sequence'),
+      stopHeadsign: reader.fieldOrNull('stop_headsign'),
+      pickupType: reader.fieldOrNull('pickup_type'),
+      dropOffType: reader.fieldOrNull('drop_off_type'),
+      continuousPickup: reader.fieldOrNull('continuous_pickup'),
+      continuousDropOff: reader.fieldOrNull('continuous_drop_off'),
+      shapeDistTraveled: reader.fieldOrNull('shape_dist_traveled'),
+      timepoint: reader.fieldOrNull('timepoint'),
+      stopNote: reader.fieldOrNull('stop_note'),
     );
   }
 
@@ -72,19 +69,14 @@ class StopTime {
     'timepoint',
   ];
 
-  static void validateCsvHeader(List<String> header) {
-    // Require presence of required columns per GTFS spec
-    final required = [
+  static bool validateCsvHeader(List<String> header) {
+    const required = [
       'trip_id',
       'arrival_time',
       'departure_time',
       'stop_id',
       'stop_sequence',
     ];
-    for (final col in required) {
-      if (!header.contains(col)) {
-        // Missing required column — callers should handle this case
-      }
-    }
+    return required.every(header.contains);
   }
 }

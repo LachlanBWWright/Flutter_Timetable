@@ -1,7 +1,6 @@
-import 'dart:convert';
-
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_key_service.dart';
+import '../services/app_http_client.dart';
+import '../utils/safe_value_utils.dart';
 // logger removed
 
 /// Fetches the complete GTFS timetable as JSON from Transport for NSW Open Data.
@@ -9,24 +8,22 @@ import 'package:http/http.dart' as http;
 /// Requires API key in .env as API_KEY.
 /// Returns the parsed JSON as a Map, or null on error.
 Future<Map<String, dynamic>?> fetchTimetable() async {
-  try {
-    final apiKey = dotenv.env['API_KEY'] ?? 'YOUR_API_KEY';
-    final url = Uri.parse(
-      'https://api.transport.nsw.gov.au/v1/publictransport/timetables/complete/gtfs',
-    );
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'apikey $apiKey',
-        'Accept': 'application/json',
-      },
-    );
-    if (response.statusCode != 200) {
-      // Failed to fetch timetable
-      return null;
-    }
-    return json.decode(response.body) as Map<String, dynamic>;
-  } catch (e) {
+  final resolvedApiKey = ApiKeyService.getEffectiveApiKey();
+  final apiKey = resolvedApiKey.isNotEmpty ? resolvedApiKey : 'YOUR_API_KEY';
+  final url = tryParseUriValue(
+    'https://api.transport.nsw.gov.au/v1/publictransport/timetables/complete/gtfs',
+  );
+  if (url == null) {
     return null;
   }
+
+  final response = await AppHttpClient.get(
+    url,
+    headers: {'Authorization': 'apikey $apiKey', 'Accept': 'application/json'},
+  );
+  if (response == null || response.statusCode != 200) {
+    return null;
+  }
+
+  return tryDecodeJsonMap(response.body);
 }

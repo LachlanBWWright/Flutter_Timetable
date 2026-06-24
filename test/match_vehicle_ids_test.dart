@@ -1,3 +1,5 @@
+// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
@@ -104,11 +106,17 @@ void main() {
         // Cross-match Updates and Positions directly
         int mismatchCount = 0;
         for (var tripId in updateMap.keys) {
-          final update = updateMap[tripId]!;
+          final update = updateMap[tripId];
+          if (update == null) {
+            continue;
+          }
 
           if (positionMap.containsKey(tripId)) {
             matchesFound++;
-            final position = positionMap[tripId]!;
+            final position = positionMap[tripId];
+            if (position == null) {
+              continue;
+            }
 
             final updateVehicleId = update.tripUpdate.hasVehicle()
                 ? update.tripUpdate.vehicle.id

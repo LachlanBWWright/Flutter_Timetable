@@ -1,0 +1,8 @@
+apis:
+  - package: http
+    library: package:http/http.dart
+    function: get
+  - package: dio
+    library: package:dio/dio.dart
+    class: Dio
+    method: get
