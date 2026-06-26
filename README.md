@@ -18,7 +18,26 @@ samples, guidance on mobile development, and a full API reference.
 ## API Code Generation
 
 This project uses `swagger_dart_code_generator` to generate Dart models
-and API clients from Swagger/OpenAPI schemas placed in `lib/swaggers`.
+and API clients from Swagger/OpenAPI schemas.
+
+The active Swagger codegen target is Victoria/PTV:
+
+- Source URL: `https://timetableapi.ptv.vic.gov.au/swagger/docs/v3`
+- Checked-in normalized spec: `lib/victoria/swaggers/ptv_timetable_v3.json`
+- Generated client: `lib/victoria/swagger_generated/`
+
+The checked-in PTV spec keeps the upstream API shape but normalizes numeric enum
+values to strings and replaces two missing upstream `$ref`s (`V3.Operator` and
+`V3.Period`) with generic object arrays so `swagger_dart_code_generator` can
+parse it.
+
+NSW/TfNSW generated files remain under `lib/nsw/swagger_generated`, with old
+top-level paths kept as compatibility exports. NSW generation is intentionally
+not the active `build.yaml` target because that integration has manual fixes.
+
+Queensland/TransLink does not publish a Swagger/OpenAPI contract through the
+Queensland open data GTFS page. Static GTFS and GTFS-Realtime feed definitions
+live under `lib/queensland/translink/`.
 
 To generate code, ensure you have installed dependencies and then run:
 
@@ -32,4 +51,5 @@ You can also run the helper script:
 ./scripts/generate_api.sh
 ```
 
-Generated files will be emitted to `lib/swagger_generated` per `build.yaml`.
+Generated Victoria files will be emitted to `lib/victoria/swagger_generated`
+per `build.yaml`.

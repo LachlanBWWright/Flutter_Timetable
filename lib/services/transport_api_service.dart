@@ -1,1 +1,1 @@
-export '../wrappers/transport_api_service_impl.dart';
+export '../nsw/wrappers/transport_api_service_impl.dart';
