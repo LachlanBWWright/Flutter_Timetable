@@ -12,6 +12,7 @@ import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_preferences_service.dart';
+import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/new_trip_screen_utils.dart';
@@ -876,6 +877,39 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   @override
   Widget build(BuildContext context) {
+    final services = AppTransitContext.instance.currentServices;
+    if (services.region != TransitRegion.nsw ||
+        !services.supportsJourneyPlanning) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('New Trip')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.public_off, size: 56, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'Journey planning is unavailable for ${services.region.label}.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Stop search, departures, realtime, and data import remain available where the selected provider supports them.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: NewTripAppBar(
         isSearching: _isSearching,

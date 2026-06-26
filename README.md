@@ -39,6 +39,17 @@ Queensland/TransLink does not publish a Swagger/OpenAPI contract through the
 Queensland open data GTFS page. Static GTFS and GTFS-Realtime feed definitions
 live under `lib/queensland/translink/`.
 
+## Multi-region credentials
+
+The multi-region transit layer reads provider credentials and optional feed URLs
+from `.env`:
+
+- `API_KEY` for TfNSW
+- `PTV_DEV_ID` and `PTV_API_KEY` for PTV signed API access
+- `VICTORIA_STATIC_GTFS_URL` for optional Victoria static import
+- `VICTORIA_GTFS_RT_VEHICLES_URL`, `VICTORIA_GTFS_RT_TRIP_UPDATES_URL`, and
+  `VICTORIA_GTFS_RT_ALERTS_URL` for optional Victoria GTFS-Realtime feeds
+
 To generate code, ensure you have installed dependencies and then run:
 
 ```

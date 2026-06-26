@@ -15,6 +15,7 @@ import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
+import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/journey_filter_utils.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
@@ -122,9 +123,11 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
       _filteredJourneys = _applySearchFilter(initialJourneys);
     });
 
-    TripCacheService.prefetch(initialJourneys);
-    prefetchAllStations();
-    _prefetchStaticTransportData();
+    if (AppTransitContext.instance.selectedRegion == TransitRegion.nsw) {
+      TripCacheService.prefetch(initialJourneys);
+      prefetchAllStations();
+      _prefetchStaticTransportData();
+    }
 
     final isAlphabetical = await LocationService.isAlphabeticalSorting();
     if (!isAlphabetical && mounted && !_hasShownLocationSnackBar) {
@@ -150,6 +153,9 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   }
 
   void _prefetchStaticTransportData() {
+    if (AppTransitContext.instance.selectedRegion != TransitRegion.nsw) {
+      return;
+    }
     for (final endpoint in _staticPrefetchEndpoints()) {
       _enqueueStaticPrefetch(endpoint);
     }
@@ -184,6 +190,14 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   }
 
   Future<void> checkApiKey() async {
+    final services = AppTransitContext.instance.currentServices;
+    if (!services.supportsJourneyPlanning) {
+      if (!mounted) return;
+      guardedSetState(() {
+        _hasApiKey = false;
+      });
+      return;
+    }
     final isValid = await TransportApiService.isApiKeyValid();
     if (!mounted) return;
     guardedSetState(() {
@@ -241,6 +255,16 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   }
 
   void _navigateToNewTrip() {
+    if (!AppTransitContext.instance.currentServices.supportsJourneyPlanning) {
+      showSnackBar(
+        SnackBar(
+          content: Text(
+            'Journey planning is unavailable in ${AppTransitContext.instance.selectedRegion.label}.',
+          ),
+        ),
+      );
+      return;
+    }
     _pushPage(const NewTripScreen(), getTrips);
   }
 
@@ -267,7 +291,8 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
 
     return Scaffold(
       appBar: HomeAppBar(
-        title: widget.title,
+        title:
+            '${widget.title} • ${AppTransitContext.instance.selectedRegion.shortLabel}',
         hasApiKey: _hasApiKey,
         isSearching: _isSearching,
         isEditingMode: _isEditingMode,

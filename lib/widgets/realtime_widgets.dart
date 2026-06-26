@@ -4,6 +4,7 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
+import '../transit/transit.dart';
 import '../utils/guarded_state.dart';
 import '../utils/safe_value_utils.dart';
 import '../utils/transport_display.dart';
@@ -18,18 +19,13 @@ class RealtimeInfoWidget extends StatefulWidget {
 
 class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
     with GuardedState<RealtimeInfoWidget> {
-  Map<TransportMode, Map<String, Object?>>? _statusSummary;
+  int _vehicleCount = 0;
+  int _updateCount = 0;
+  int _alertCount = 0;
+  String? _providerLabel;
+  String? _unavailableMessage;
   bool _isLoading = false;
   String? _error;
-
-  Object? _entryValue(Map<String, Object?> data, String key) {
-    for (final entry in data.entries) {
-      if (entry.key == key) {
-        return entry.value;
-      }
-    }
-    return null;
-  }
 
   @override
   void initState() {
@@ -45,9 +41,29 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
 
     await runAsyncGuarded(
       () async {
-        final summary = await RealtimeService.getRealtimeStatusSummary();
+        final services = AppTransitContext.instance.currentServices;
+        final realtime = services.realtime;
+        if (realtime == null) {
+          guardedSetState(() {
+            _providerLabel = services.attribution.name;
+            _unavailableMessage =
+                'Realtime is unavailable for ${services.region.label}.';
+            _vehicleCount = 0;
+            _updateCount = 0;
+            _alertCount = 0;
+            _isLoading = false;
+          });
+          return;
+        }
+        final vehicles = await realtime.getVehiclePositions(const RealtimeRequest());
+        final updates = await realtime.getTripUpdates(const RealtimeRequest());
+        final alerts = await realtime.getAlerts(const RealtimeRequest());
         guardedSetState(() {
-          _statusSummary = summary;
+          _providerLabel = services.attribution.name;
+          _unavailableMessage = null;
+          _vehicleCount = vehicles.items.length;
+          _updateCount = updates.items.length;
+          _alertCount = alerts.items.length;
           _isLoading = false;
         });
       },
@@ -87,10 +103,13 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
               Text('Error: $_error', style: const TextStyle(color: Colors.red))
-            else if (_statusSummary != null)
-              ..._buildStatusList()
+            else if (_unavailableMessage != null)
+              Text(
+                _unavailableMessage!,
+                style: const TextStyle(color: Colors.grey),
+              )
             else
-              const Text('No data available'),
+              ..._buildStatusList(),
           ],
         ),
       ),
@@ -98,93 +117,68 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
   }
 
   List<Widget> _buildStatusList() {
-    final summary = _statusSummary;
-    if (summary == null) return const [];
-    return summary.entries
-        .map<Widget>((entry) {
-          final modeKey = entry.key;
-          final data = entry.value;
-          final vehicleCount =
-              tryParseIntValue(_entryValue(data, 'vehicles')) ?? 0;
-          final updateCount =
-              tryParseIntValue(_entryValue(data, 'updates')) ?? 0;
-
-          // modeKey is a TransportMode enum per service contract. Use it
-          // directly for display and color. Keep a modeString for any
-          // legacy string-based fallbacks (not expected here).
-          final TransportMode parsedMode = modeKey;
-
-          // Resolve display name: prefer typed TransportMode helper, otherwise
-          // fall back to a generic formatted fallback.
-          final displayName = getDisplayNameForTransportMode(parsedMode);
-
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 4.0),
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: TransportColors.getColorByTransportMode(
-                parsedMode,
-              ).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8.0),
-              border: Border.all(
-                color: TransportColors.getColorByTransportMode(
-                  parsedMode,
-                ).withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: TransportColors.getColorByTransportMode(parsedMode),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$vehicleCount vehicles • $updateCount updates',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (vehicleCount > 0 || updateCount > 0)
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20)
-                else
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.orange,
-                    size: 20,
-                  ),
-              ],
-            ),
-          );
-        })
-        .toList(growable: false);
+    return [
+      if (_providerLabel != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            _providerLabel!,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
+        ),
+      _buildMetricTile(
+        icon: Icons.directions_bus,
+        label: 'Tracked vehicles',
+        count: _vehicleCount,
+        color: TransportColors.getColorByTransportMode(TransportMode.bus),
+      ),
+      _buildMetricTile(
+        icon: Icons.update,
+        label: 'Trip updates',
+        count: _updateCount,
+        color: TransportColors.getColorByTransportMode(TransportMode.train),
+      ),
+      _buildMetricTile(
+        icon: Icons.warning_amber_rounded,
+        label: 'Alerts',
+        count: _alertCount,
+        color: Colors.orange,
+      ),
+    ];
   }
 
-  // Color selection is performed inline where feed keys or group keys are
-  // available so that transport modes are always represented by the
-  // `TransportMode` enum when possible.
-
-  // _getDisplayName removed — display name resolution is inlined where needed
+  Widget _buildMetricTile({
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+          ),
+          Text(
+            '$count',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Widget for displaying specific transport mode positions

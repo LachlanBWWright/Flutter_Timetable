@@ -13,6 +13,7 @@ import '../constants/transport_modes.dart';
 import '../gtfs/stop.dart';
 import '../services/new_trip_service.dart';
 import '../services/stops_service.dart';
+import '../transit/transit.dart';
 import '../utils/button_styles.dart';
 import '../utils/guarded_state.dart';
 import '../utils/stops_widget_utils.dart';
@@ -547,7 +548,7 @@ class StopsSearchWidget extends StatefulWidget {
 class _StopsSearchWidgetState extends State<StopsSearchWidget>
     with GuardedState<StopsSearchWidget> {
   final TextEditingController _searchController = TextEditingController();
-  List<Stop> _searchResults = [];
+  List<TransitStop> _searchResults = [];
   bool _isSearching = false;
 
   void _startSearch(String query) {
@@ -573,7 +574,8 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget>
 
     await runAsyncGuarded(
       () async {
-        final results = await StopsService.searchStops(query);
+        final results = await AppTransitContext.instance.currentServices.stops
+            .searchStops(StopSearchRequest(query: query));
         if (!mounted) return;
         guardedSetState(() {
           _searchResults = results;
@@ -653,17 +655,21 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              stop.stopName,
+              stop.name,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             const SizedBox(height: 4),
             Text(
-              'ID: ${stop.stopId}',
+              'ID: ${stop.ref.stopId}',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
-            if (stop.stopLat != 0.0 && stop.stopLon != 0.0)
+            Text(
+              'Source: ${stop.ref.sourceId.value}',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+            if (stop.latitude != null && stop.longitude != null)
               Text(
-                'Location: ${stop.stopLat.toStringAsFixed(6)}, ${stop.stopLon.toStringAsFixed(6)}',
+                'Location: ${stop.latitude!.toStringAsFixed(6)}, ${stop.longitude!.toStringAsFixed(6)}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             if (stop.platformCode?.isNotEmpty == true)
