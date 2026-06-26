@@ -13,6 +13,7 @@ import 'services/database_admin_service.dart';
 import 'services/debug_service.dart';
 import 'services/new_trip_service.dart';
 import 'services/transport_preferences_service.dart';
+import 'transit/transit.dart';
 import 'set_home_stop_screen.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
@@ -48,9 +49,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen>
     with GuardedState<SettingsScreen> {
-  static const String _devGuideUrl =
-      'https://opendata.transport.nsw.gov.au/developers/userguide';
-
   bool _isUpdating = false;
   String? _updateStatus;
   int _staticEndpointsUpdated = 0;
@@ -117,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _openDevGuide() async {
-    final uri = Uri.tryParse(_devGuideUrl);
+    final uri = Uri.tryParse(_developerGuideUrl);
     if (uri == null) {
       showSnackBar(
         const SnackBar(content: Text('Could not open developer guide URL')),
@@ -126,47 +124,65 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
     final launched = await AppUrlLauncher.launchExternalUrl(
       uri,
-      label: _devGuideUrl,
+      label: _developerGuideUrl,
     );
     if (!launched) {
       showSnackBar(
-        const SnackBar(content: Text('Could not open $_devGuideUrl')),
+        SnackBar(content: Text('Could not open $_developerGuideUrl')),
       );
     }
   }
 
   Future<void> _performUpdate({bool force = false}) async {
+    final staticGtfs = _currentServices.staticGtfs;
+    if (staticGtfs == null) {
+      showSnackBar(
+        SnackBar(
+          content: Text(
+            'Static data import is unavailable for ${_selectedRegion.label}.',
+          ),
+        ),
+      );
+      return;
+    }
     guardedSetState(() {
       _isUpdating = true;
-      _updateStatus = 'Starting static transport data update...';
+      _updateStatus =
+          'Starting ${_currentServices.attribution.name} static data update...';
       _staticEndpointsUpdated = 0;
       _staticEndpointErrors.clear();
     });
 
-    await for (final progress in NewTripService.updateStaticTransportData(
-      force: force,
-    )) {
-      if (!mounted) return;
-      final endpoint = progress.endpoint?.key ?? 'all endpoints';
-      final error = progress.error;
-      final progressEndpoint = progress.endpoint;
+    try {
+      await for (final progress in staticGtfs.refreshStaticData(
+        StaticImportRequest(force: force),
+      )) {
+        if (!mounted) return;
+        final endpoint = progress.sourceId?.value ?? 'all sources';
+        final error = progress.error;
+        guardedSetState(() {
+          _staticEndpointsUpdated = progress.completed;
+          if (error != null && progress.sourceId != null) {
+            _staticEndpointErrors.addAll({progress.sourceId!.value: error});
+          }
+          _updateStatus =
+              '${progress.message.isNotEmpty ? progress.message : endpoint} '
+              '(${progress.completed}/${progress.total})';
+        });
+      }
       guardedSetState(() {
-        _staticEndpointsUpdated = progress.completed;
-        if (error != null && progressEndpoint != null) {
-          _staticEndpointErrors.addAll({progressEndpoint.key: error});
-        }
-        _updateStatus =
-            '${progress.message ?? endpoint} '
-            '(${progress.completed}/${progress.total})';
+        _updateStatus = _staticEndpointErrors.isEmpty
+            ? 'Static transport data update completed successfully'
+            : 'Static transport data update completed with '
+                  '${_staticEndpointErrors.length} error(s)';
+        _isUpdating = false;
+      });
+    } catch (error) {
+      guardedSetState(() {
+        _updateStatus = 'Update failed: $error';
+        _isUpdating = false;
       });
     }
-    guardedSetState(() {
-      _updateStatus = _staticEndpointErrors.isEmpty
-          ? 'Static transport data update completed successfully'
-          : 'Static transport data update completed with '
-                '${_staticEndpointErrors.length} error(s)';
-      _isUpdating = false;
-    });
   }
 
   Future<void> _toggleDebugData(bool value) async {
@@ -228,6 +244,16 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _navigateToRealtimeMap() async {
+    if (_selectedRegion != TransitRegion.nsw) {
+      showSnackBar(
+        const SnackBar(
+          content: Text(
+            'The detailed realtime map is currently available only for NSW.',
+          ),
+        ),
+      );
+      return;
+    }
     await pushPage((context) => const RealtimeMapWidget());
   }
 
@@ -237,6 +263,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final selectedRegion = _selectedRegion;
+    final currentServices = _currentServices;
     final hasBuiltInApiKey = _resolveHasBuiltInApiKey();
 
     return Scaffold(
@@ -250,6 +278,93 @@ class _SettingsScreenState extends State<SettingsScreen>
       body: SingleChildScrollView(
         child: Column(
           children: [
+            Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Transit Region',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<TransitRegion>(
+                      value: selectedRegion,
+                      items: TransitRegion.values
+                          .map(
+                            (region) => DropdownMenuItem(
+                              value: region,
+                              child: Text(region.label),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (region) async {
+                        if (region == null) {
+                          return;
+                        }
+                        await AppTransitContext.instance.setSelectedRegion(
+                          region,
+                        );
+                        _loadApiKeyState();
+                        guardedSetState(() {});
+                      },
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Provider: ${currentServices.attribution.name}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _capabilitySummary(currentServices),
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Provider Attribution',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(currentServices.attribution.name),
+                    const SizedBox(height: 4),
+                    Text(
+                      currentServices.attribution.licenseName,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _openDevGuide,
+                        icon: const Icon(Icons.open_in_new),
+                        label: const Text('Open provider docs'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             // Map access card
             Card(
               margin: const EdgeInsets.all(8.0),
@@ -285,7 +400,8 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
             ),
             // API key card
-            Card(
+            if (selectedRegion == TransitRegion.nsw)
+              Card(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -386,7 +502,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ],
                 ),
               ),
-            ),
+              ),
             // Home Stop Card
             Card(
               margin: const EdgeInsets.all(8.0),
@@ -422,7 +538,8 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
             ),
             // Transport options card
-            Card(
+            if (selectedRegion == TransitRegion.nsw)
+              Card(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -434,7 +551,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                      ),
+                        ),
                     ),
                     const SizedBox(height: 8),
                     SwitchListTile(
@@ -545,7 +662,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Update Data from API',
+                      'Update Provider Data',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -578,9 +695,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () => _performUpdate(),
+                              onPressed: currentServices.supportsStaticImport
+                                  ? () => _performUpdate()
+                                  : null,
                               icon: const Icon(Icons.download),
-                              label: const Text('Update static transport data'),
+                              label: Text(
+                                'Update ${currentServices.region.shortLabel} static data',
+                              ),
                               style: ButtonStyles.elevated(Colors.green),
                             ),
                           ),
@@ -588,7 +709,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () => _performUpdate(force: true),
+                              onPressed: currentServices.supportsStaticImport
+                                  ? () => _performUpdate(force: true)
+                                  : null,
                               icon: const Icon(Icons.refresh),
                               label: const Text('Force refresh'),
                               style: ButtonStyles.elevated(Colors.orange),
@@ -647,6 +770,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   bool _resolveHasUserApiKey() {
+    if (_selectedRegion != TransitRegion.nsw) {
+      return false;
+    }
     final override = widget.hasUserApiKey;
     if (override != null) {
       return override;
@@ -655,10 +781,42 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   bool _resolveHasBuiltInApiKey() {
+    if (_selectedRegion != TransitRegion.nsw) {
+      return false;
+    }
     final override = widget.hasBuiltInApiKey;
     if (override != null) {
       return override;
     }
     return ApiKeyService.hasBuiltInApiKey();
+  }
+
+  TransitRegion get _selectedRegion =>
+      TransportPreferencesService.selectedRegion.value;
+
+  TransitRegionServices get _currentServices =>
+      AppTransitContext.instance.currentServices;
+
+  String get _developerGuideUrl {
+    switch (_selectedRegion) {
+      case TransitRegion.nsw:
+        return 'https://opendata.transport.nsw.gov.au/developers/userguide';
+      case TransitRegion.victoria:
+        return 'https://www.ptv.vic.gov.au/footer/data-and-reporting/datasets/ptv-timetable-api/';
+      case TransitRegion.queensland:
+        return 'https://www.data.qld.gov.au/organization/transport-and-main-roads?q=GTFS';
+    }
+  }
+
+  String _capabilitySummary(TransitRegionServices services) {
+    final capabilities = <String>[
+      'Stops',
+      if (services.supportsStaticImport) 'Static GTFS',
+      if (services.supportsRealtime) 'Realtime',
+      if (services.supportsDepartures) 'Departures',
+      if (services.supportsJourneyPlanning) 'Journey planning',
+      if (services.supportsDisruptions) 'Disruptions',
+    ];
+    return capabilities.join(' • ');
   }
 }
