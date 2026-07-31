@@ -1,7 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
+
+import 'database_errors.dart';
 
 part 'tables/journeys.dart';
 part 'tables/routes.dart';
@@ -156,6 +159,7 @@ abstract class SafeTable extends Table {
 class AppDatabase extends _$AppDatabase {
   // Singleton instance
   static AppDatabase? _instance;
+  bool _isClosed = false;
 
   // Single QueryExecutor reused across the app to avoid multiple database
   // instances. Uses drift_flutter which picks the right backend per platform
@@ -172,44 +176,65 @@ class AppDatabase extends _$AppDatabase {
   /// Useful for tests where an in-memory or temporary file database is required.
   AppDatabase.connect(super.executor);
 
+  @override
+  Future<void> close() async {
+    _isClosed = true;
+    await super.close();
+  }
+
   Future<void> _createAllSafe(Migrator migrator) async {
-    try {
-      await migrator.createAll();
-    } catch (_) {}
+    await _runDatabaseOperation<void>(
+      'create_all_tables',
+      () async => migrator.createAll(),
+    );
   }
 
-  T? _readValueOrNull<T extends Object>(
-    TypedResult row,
-    Expression<T> expression,
-  ) {
-    try {
-      return row.read(expression);
-    } catch (_) {
-      return null;
+  Future<T> _runDatabaseOperation<T>(
+    String operation,
+    Future<T> Function() action,
+  ) async {
+    if (_isClosed) {
+      final error = StateError('Database is closed.');
+      final stackTrace = StackTrace.current;
+      safeLogError(
+        'Database operation failed during $operation',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseOperationFailure(
+        operation: operation,
+        cause: error,
+        stackTrace: stackTrace,
+      );
     }
-  }
 
-  Future<List<T>> _getSafe<T>(Selectable<T> query) async {
-    try {
-      return await query.get();
-    } catch (_) {
-      return <T>[];
-    }
-  }
-
-  Future<T?> _insertSafe<T>(Future<T> Function() action) async {
     try {
       return await action();
-    } catch (_) {
-      return null;
+    } catch (error, stackTrace) {
+      safeLogError(
+        'Database operation failed during $operation',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseOperationFailure(
+        operation: operation,
+        cause: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
-  Future<void> _transactionSafe(Future<void> Function() action) async {
-    try {
-      await transaction(action);
-    } catch (_) {}
-  }
+  Future<T> _runDatabaseRead<T>(
+    String operation,
+    Future<T> Function() action,
+  ) => _runDatabaseOperation(operation, action);
+
+  Future<void> _runDatabaseTransaction(
+    String operation,
+    Future<void> Function() action,
+  ) => _runDatabaseOperation(operation, () async {
+    await transaction(action);
+  });
 
   @override
   int get schemaVersion => 8;
@@ -259,63 +284,91 @@ class AppDatabase extends _$AppDatabase {
   );
 
   // Journey operations
-  Future<int> insertJourney(JourneysCompanion journey) =>
-      into(journeys).insert(journey);
+  Future<int> insertJourney(JourneysCompanion journey) => _runDatabaseOperation(
+    'insertJourney',
+    () => into(journeys).insert(journey),
+  );
 
-  Future<List<Journey>> getAllJourneys() => select(journeys).get();
+  Future<List<Journey>> getAllJourneys() =>
+      _runDatabaseRead('getAllJourneys', () => select(journeys).get());
 
-  Future<List<Journey>> getPinnedJourneys() =>
-      (select(journeys)..where((tbl) => tbl.isPinned.equals(true))).get();
+  Future<List<Journey>> getPinnedJourneys() => _runDatabaseRead(
+    'getPinnedJourneys',
+    () => (select(journeys)..where((tbl) => tbl.isPinned.equals(true))).get(),
+  );
 
-  Future<List<Journey>> getUnpinnedJourneys() =>
-      (select(journeys)..where((tbl) => tbl.isPinned.equals(false))).get();
+  Future<List<Journey>> getUnpinnedJourneys() => _runDatabaseRead(
+    'getUnpinnedJourneys',
+    () => (select(journeys)..where((tbl) => tbl.isPinned.equals(false))).get(),
+  );
 
-  Future<int> toggleJourneyPin(int id, bool isPinned) =>
-      (update(journeys)..where((tbl) => tbl.id.equals(id))).write(
-        JourneysCompanion(isPinned: Value(isPinned)),
-      );
+  Future<int> toggleJourneyPin(int id, bool isPinned) => _runDatabaseOperation(
+    'toggleJourneyPin',
+    () => (update(journeys)..where((tbl) => tbl.id.equals(id))).write(
+      JourneysCompanion(isPinned: Value(isPinned)),
+    ),
+  );
 
-  Future<int> deleteJourney(int id) =>
-      (delete(journeys)..where((tbl) => tbl.id.equals(id))).go();
+  Future<int> deleteJourney(int id) => _runDatabaseOperation(
+    'deleteJourney',
+    () => (delete(journeys)..where((tbl) => tbl.id.equals(id))).go(),
+  );
 
   // Stop operations
-  Future<int> insertStop(StopsCompanion stop) =>
-      into(stops).insert(stop, mode: InsertMode.replace);
+  Future<int> insertStop(StopsCompanion stop) => _runDatabaseOperation(
+    'insertStop',
+    () => into(stops).insert(stop, mode: InsertMode.replace),
+  );
 
   Future<List<Stop>> getAllStopsForEndpoint(String endpoint) =>
-      (select(stops)
-            ..where((tbl) => tbl.endpoint.equals(endpoint))
-            ..orderBy([(t) => OrderingTerm(expression: t.stopName)]))
-          .get();
+      _runDatabaseRead(
+        'getAllStopsForEndpoint',
+        () =>
+            (select(stops)
+                  ..where((tbl) => tbl.endpoint.equals(endpoint))
+                  ..orderBy([(t) => OrderingTerm(expression: t.stopName)]))
+                .get(),
+      );
 
-  Future<List<Stop>> getAllStops({int? limit}) {
+  Future<List<Stop>> getAllStops({int? limit}) async {
     final query = select(stops)
       ..orderBy([(t) => OrderingTerm(expression: t.stopName)]);
     if (limit != null) {
       query.limit(limit);
     }
-    return query.get();
+    return _runDatabaseRead('getAllStops', () => query.get());
   }
 
   Future<List<Stop>> searchStops(String query, {int limit = 50}) =>
-      (select(stops)
-            ..where((tbl) => tbl.stopName.like('%$query%'))
-            ..orderBy([(t) => OrderingTerm(expression: t.stopName)])
-            ..limit(limit))
-          .get();
+      _runDatabaseRead(
+        'searchStops',
+        () =>
+            (select(stops)
+                  ..where((tbl) => tbl.stopName.like('%$query%'))
+                  ..orderBy([(t) => OrderingTerm(expression: t.stopName)])
+                  ..limit(limit))
+                .get(),
+      );
 
   /// Get all stop rows matching the provided stopId across endpoints
-  Future<List<Stop>> getStopsById(String stopId) =>
-      (select(stops)..where((tbl) => tbl.stopId.equals(stopId))).get();
+  Future<List<Stop>> getStopsById(String stopId) => _runDatabaseRead(
+    'getStopsById',
+    () => (select(stops)..where((tbl) => tbl.stopId.equals(stopId))).get(),
+  );
 
-  Future<int> deleteStopsForEndpoint(String endpoint) =>
-      (delete(stops)..where((tbl) => tbl.endpoint.equals(endpoint))).go();
+  Future<int> deleteStopsForEndpoint(String endpoint) => _runDatabaseOperation(
+    'deleteStopsForEndpoint',
+    () => (delete(stops)..where((tbl) => tbl.endpoint.equals(endpoint))).go(),
+  );
 
   Future<int> getTotalStopsCount() async {
     final countExp = stops.stopId.count();
     final query = selectOnly(stops)..addColumns([countExp]);
-    final result = await query.getSingle();
-    return _readValueOrNull(result, countExp) ?? 0;
+    final result = await _runDatabaseRead(
+      'getTotalStopsCount',
+      () => query.getSingle(),
+    );
+    return result.read(countExp) ?? 0;
   }
 
   Future<Map<String, int>> getStopsCountByEndpoint() async {
@@ -325,12 +378,15 @@ class AppDatabase extends _$AppDatabase {
       ..groupBy([stops.endpoint])
       ..orderBy([OrderingTerm(expression: stops.endpoint)]);
 
-    final results = await _getSafe(query);
+    final results = await _runDatabaseRead(
+      'getStopsCountByEndpoint',
+      () => query.get(),
+    );
     return Map.fromEntries(
       results.expand((row) {
-        final endpoint = _readValueOrNull(row, stops.endpoint);
+        final endpoint = row.read(stops.endpoint);
         if (endpoint == null) return const <MapEntry<String, int>>[];
-        return [MapEntry(endpoint, _readValueOrNull(row, countExp) ?? 0)];
+        return [MapEntry(endpoint, row.read(countExp) ?? 0)];
       }),
     );
   }
@@ -339,47 +395,51 @@ class AppDatabase extends _$AppDatabase {
     String endpoint,
     List<StopLineMembershipsCompanion> memberships,
   ) async {
-    await _transactionSafe(() async {
-      await (delete(
-        stopLineMemberships,
-      )..where((tbl) => tbl.endpoint.equals(endpoint))).go();
-      await batch((batch) {
-        for (final membership in memberships) {
-          batch.insert(
-            stopLineMemberships,
-            membership,
-            mode: InsertMode.replace,
-          );
-        }
-      });
-    });
-  }
-
-  Future<void> markStaticCacheBuildStarted(String endpoint) {
-    final now = DateTime.now();
-    return into(staticCacheStatuses).insert(
-      StaticCacheStatusesCompanion.insert(
-        endpoint: endpoint,
-        lastBuildStartedAt: Value(now),
-        lastError: const Value(null),
-        isBuilding: const Value(true),
-      ),
-      onConflict: DoUpdate(
-        (_) => StaticCacheStatusesCompanion(
-          lastBuildStartedAt: Value(now),
-          lastError: const Value(null),
-          isBuilding: const Value(true),
-        ),
-      ),
+    await _runDatabaseTransaction(
+      'replaceStopLineMembershipsForEndpoint',
+      () async {
+        await (delete(
+          stopLineMemberships,
+        )..where((tbl) => tbl.endpoint.equals(endpoint))).go();
+        await batch((batch) {
+          for (final membership in memberships) {
+            batch.insert(
+              stopLineMemberships,
+              membership,
+              mode: InsertMode.replace,
+            );
+          }
+        });
+      },
     );
   }
+
+  Future<void> markStaticCacheBuildStarted(String endpoint) =>
+      _runDatabaseOperation('markStaticCacheBuildStarted', () {
+        final now = DateTime.now();
+        return into(staticCacheStatuses).insert(
+          StaticCacheStatusesCompanion.insert(
+            endpoint: endpoint,
+            lastBuildStartedAt: Value(now),
+            lastError: const Value(null),
+            isBuilding: const Value(true),
+          ),
+          onConflict: DoUpdate(
+            (_) => StaticCacheStatusesCompanion(
+              lastBuildStartedAt: Value(now),
+              lastError: const Value(null),
+              isBuilding: const Value(true),
+            ),
+          ),
+        );
+      });
 
   Future<void> markStaticCacheBuildFinished(
     String endpoint, {
     required bool stopsUpdated,
     required bool lineMembershipsUpdated,
     String? error,
-  }) {
+  }) => _runDatabaseOperation('markStaticCacheBuildFinished', () {
     final now = DateTime.now();
     return into(staticCacheStatuses).insert(
       StaticCacheStatusesCompanion.insert(
@@ -404,19 +464,23 @@ class AppDatabase extends _$AppDatabase {
         ),
       ),
     );
-  }
+  });
 
-  Future<StaticCacheStatuse?> getStaticCacheStatus(String endpoint) {
-    return (select(
-      staticCacheStatuses,
-    )..where((tbl) => tbl.endpoint.equals(endpoint))).getSingleOrNull();
-  }
+  Future<StaticCacheStatuse?> getStaticCacheStatus(String endpoint) =>
+      _runDatabaseRead(
+        'getStaticCacheStatus',
+        () => (select(
+          staticCacheStatuses,
+        )..where((tbl) => tbl.endpoint.equals(endpoint))).getSingleOrNull(),
+      );
 
-  Future<List<StaticCacheStatuse>> getAllStaticCacheStatuses() {
-    return (select(
-      staticCacheStatuses,
-    )..orderBy([(tbl) => OrderingTerm(expression: tbl.endpoint)])).get();
-  }
+  Future<List<StaticCacheStatuse>> getAllStaticCacheStatuses() =>
+      _runDatabaseRead(
+        'getAllStaticCacheStatuses',
+        () => (select(
+          staticCacheStatuses,
+        )..orderBy([(tbl) => OrderingTerm(expression: tbl.endpoint)])).get(),
+      );
 
   Future<void> upsertTripPlannerCache({
     required String originId,
@@ -424,8 +488,9 @@ class AppDatabase extends _$AppDatabase {
     required DateTime fetchedAt,
     String? responseJson,
     String? error,
-  }) {
-    return into(tripPlannerCache).insertOnConflictUpdate(
+  }) => _runDatabaseOperation(
+    'upsertTripPlannerCache',
+    () => into(tripPlannerCache).insertOnConflictUpdate(
       TripPlannerCacheCompanion.insert(
         originId: originId,
         destinationId: destinationId,
@@ -433,8 +498,8 @@ class AppDatabase extends _$AppDatabase {
         responseJson: Value(responseJson),
         error: Value(error),
       ),
-    );
-  }
+    ),
+  );
 
   Future<void> markTripPlannerCacheError({
     required String originId,
@@ -442,53 +507,70 @@ class AppDatabase extends _$AppDatabase {
     required DateTime fetchedAt,
     required String error,
   }) async {
-    final existing = await getTripPlannerCache(originId, destinationId);
+    final existing = await _runDatabaseRead<TripPlannerCacheData?>(
+      'getTripPlannerCache',
+      () =>
+          (select(tripPlannerCache)
+                ..where((tbl) => tbl.originId.equals(originId))
+                ..where((tbl) => tbl.destinationId.equals(destinationId)))
+              .getSingleOrNull(),
+    );
     if (existing == null) {
-      await _insertSafe(() {
-        return into(tripPlannerCache).insert(
+      await _runDatabaseOperation<void>(
+        'insertTripPlannerCacheError',
+        () => into(tripPlannerCache).insert(
           TripPlannerCacheCompanion.insert(
             originId: originId,
             destinationId: destinationId,
             fetchedAt: fetchedAt,
             error: Value(error),
           ),
-        );
-      });
+        ),
+      );
       return;
     }
-    await (update(tripPlannerCache)
-          ..where((tbl) => tbl.originId.equals(originId))
-          ..where((tbl) => tbl.destinationId.equals(destinationId)))
-        .write(
-          TripPlannerCacheCompanion(
-            fetchedAt: Value(fetchedAt),
-            error: Value(error),
-          ),
-        );
+    await _runDatabaseOperation<void>(
+      'updateTripPlannerCacheError',
+      () =>
+          (update(tripPlannerCache)
+                ..where((tbl) => tbl.originId.equals(originId))
+                ..where((tbl) => tbl.destinationId.equals(destinationId)))
+              .write(
+                TripPlannerCacheCompanion(
+                  fetchedAt: Value(fetchedAt),
+                  error: Value(error),
+                ),
+              ),
+    );
   }
 
   Future<TripPlannerCacheData?> getTripPlannerCache(
     String originId,
     String destinationId,
-  ) {
-    return (select(tripPlannerCache)
-          ..where((tbl) => tbl.originId.equals(originId))
-          ..where((tbl) => tbl.destinationId.equals(destinationId)))
-        .getSingleOrNull();
-  }
+  ) => _runDatabaseRead(
+    'getTripPlannerCache',
+    () =>
+        (select(tripPlannerCache)
+              ..where((tbl) => tbl.originId.equals(originId))
+              ..where((tbl) => tbl.destinationId.equals(destinationId)))
+            .getSingleOrNull(),
+  );
 
-  Future<int> deleteTripPlannerCache(String originId, String destinationId) {
-    return (delete(tripPlannerCache)
-          ..where((tbl) => tbl.originId.equals(originId))
-          ..where((tbl) => tbl.destinationId.equals(destinationId)))
-        .go();
-  }
+  Future<int> deleteTripPlannerCache(String originId, String destinationId) =>
+      _runDatabaseOperation(
+        'deleteTripPlannerCache',
+        () =>
+            (delete(tripPlannerCache)
+                  ..where((tbl) => tbl.originId.equals(originId))
+                  ..where((tbl) => tbl.destinationId.equals(destinationId)))
+                .go(),
+      );
 
   Future<void> replaceRoutesForEndpoint(
     String endpoint,
     List<RoutesCompanion> routeRows,
   ) async {
-    await _transactionSafe(() async {
+    await _runDatabaseTransaction('replaceRoutesForEndpoint', () async {
       await (delete(
         routes,
       )..where((tbl) => tbl.endpoint.equals(endpoint))).go();
@@ -500,60 +582,72 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<List<Route>> getAllRoutes() {
-    return (select(routes)..orderBy([
-          (tbl) => OrderingTerm(expression: tbl.routeShortName),
-          (tbl) => OrderingTerm(expression: tbl.routeLongName),
-          (tbl) => OrderingTerm(expression: tbl.routeId),
-        ]))
-        .get();
-  }
+  Future<List<Route>> getAllRoutes() => _runDatabaseRead(
+    'getAllRoutes',
+    () =>
+        (select(routes)..orderBy([
+              (tbl) => OrderingTerm(expression: tbl.routeShortName),
+              (tbl) => OrderingTerm(expression: tbl.routeLongName),
+              (tbl) => OrderingTerm(expression: tbl.routeId),
+            ]))
+            .get(),
+  );
 
-  Future<List<Route>> getRoutesForEndpoint(String endpoint) {
-    return (select(routes)
-          ..where((tbl) => tbl.endpoint.equals(endpoint))
-          ..orderBy([
-            (tbl) => OrderingTerm(expression: tbl.routeShortName),
-            (tbl) => OrderingTerm(expression: tbl.routeLongName),
-            (tbl) => OrderingTerm(expression: tbl.routeId),
-          ]))
-        .get();
-  }
+  Future<List<Route>> getRoutesForEndpoint(String endpoint) => _runDatabaseRead(
+    'getRoutesForEndpoint',
+    () =>
+        (select(routes)
+              ..where((tbl) => tbl.endpoint.equals(endpoint))
+              ..orderBy([
+                (tbl) => OrderingTerm(expression: tbl.routeShortName),
+                (tbl) => OrderingTerm(expression: tbl.routeLongName),
+                (tbl) => OrderingTerm(expression: tbl.routeId),
+              ]))
+            .get(),
+  );
 
-  Future<Route?> getRouteByLineId(String lineId) {
-    return (select(
+  Future<Route?> getRouteByLineId(String lineId) => _runDatabaseRead(
+    'getRouteByLineId',
+    () => (select(
       routes,
-    )..where((tbl) => tbl.lineId.equals(lineId))).getSingleOrNull();
-  }
+    )..where((tbl) => tbl.lineId.equals(lineId))).getSingleOrNull(),
+  );
 
   Future<List<StopLineMembership>> getStopLineMembershipsForStop(
     String stopId,
-  ) {
-    return (select(stopLineMemberships)
-          ..where((tbl) => tbl.stopId.equals(stopId))
-          ..orderBy([(tbl) => OrderingTerm(expression: tbl.lineName)]))
-        .get();
-  }
+  ) => _runDatabaseRead(
+    'getStopLineMembershipsForStop',
+    () =>
+        (select(stopLineMemberships)
+              ..where((tbl) => tbl.stopId.equals(stopId))
+              ..orderBy([(tbl) => OrderingTerm(expression: tbl.lineName)]))
+            .get(),
+  );
 
   Future<List<StopLineMembership>> getStopLineMembershipsForLine(
     String lineId,
-  ) {
-    return (select(stopLineMemberships)
-          ..where((tbl) => tbl.lineId.equals(lineId))
-          ..orderBy([
-            (tbl) => OrderingTerm(expression: tbl.stopOrder),
-            (tbl) => OrderingTerm(expression: tbl.stopName),
-          ]))
-        .get();
-  }
+  ) => _runDatabaseRead(
+    'getStopLineMembershipsForLine',
+    () =>
+        (select(stopLineMemberships)
+              ..where((tbl) => tbl.lineId.equals(lineId))
+              ..orderBy([
+                (tbl) => OrderingTerm(expression: tbl.stopOrder),
+                (tbl) => OrderingTerm(expression: tbl.stopName),
+              ]))
+            .get(),
+  );
 
   Future<int> getStopLineMembershipCountForEndpoint(String endpoint) async {
     final countExp = stopLineMemberships.stopId.count();
     final query = selectOnly(stopLineMemberships)
       ..addColumns([countExp])
       ..where(stopLineMemberships.endpoint.equals(endpoint));
-    final result = await query.getSingle();
-    return _readValueOrNull(result, countExp) ?? 0;
+    final result = await _runDatabaseRead(
+      'getStopLineMembershipCountForEndpoint',
+      () => query.getSingle(),
+    );
+    return result.read(countExp) ?? 0;
   }
 
   // Batch insert stops with transaction
@@ -561,7 +655,7 @@ class AppDatabase extends _$AppDatabase {
     List<StopsCompanion> stopsList,
     String endpoint,
   ) async {
-    await _transactionSafe(() async {
+    await _runDatabaseTransaction('insertStopsForEndpoint', () async {
       // Clear existing stops for this endpoint
       await deleteStopsForEndpoint(endpoint);
 
@@ -582,11 +676,18 @@ class AppDatabase extends _$AppDatabase {
   /// instance (if any), delete the database file from the application's
   /// documents directory and create a fresh DB instance.
   static Future<void> resetDatabase() async {
-    // Close existing instance if open
+    // Close existing instance if open.
     try {
       await _instance?.close();
-    } catch (_) {
-      // ignore errors during close
+    } catch (error, stackTrace) {
+      safeLogWarning(
+        'Failed to close the existing database instance during reset',
+      );
+      safeLogError(
+        'Database reset close failure',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
 
     _instance = null;

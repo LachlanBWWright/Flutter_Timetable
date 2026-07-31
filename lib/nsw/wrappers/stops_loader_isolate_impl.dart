@@ -1,9 +1,11 @@
 import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
-import '../fetch_data/timetable_data.dart';
+
 import '../../gtfs/gtfs_data.dart';
 // stop type is available via GtfsData import
 import '../../services/stops_service.dart';
+import '../fetch_data/timetable_data.dart';
 
 /// Message types for communication between isolate and main thread
 typedef LoadStopsProgressCallback = void Function(LoadStopsProgress progress);

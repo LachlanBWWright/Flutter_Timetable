@@ -1,53 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-mixin GuardedState<T extends StatefulWidget> on State<T> {
-  void _ignoreValue(Object? value) {}
+import 'package:lbww_flutter/logs/logger.dart';
 
-  void runGuarded(VoidCallback callback) {
-    try {
-      callback();
-    } catch (_) {}
+mixin GuardedState<T extends StatefulWidget> on State<T> {
+  void _reportError(
+    String operation,
+    Object error,
+    StackTrace stackTrace, {
+    void Function(Object error, StackTrace stackTrace)? onError,
+  }) {
+    if (onError != null) {
+      onError(error, stackTrace);
+    } else {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'GuardedState',
+          context: ErrorDescription(operation),
+        ),
+      );
+    }
+    safeLogError(
+      'Unexpected guarded-state error during $operation',
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
-  Future<T?> runAsyncGuarded<T>(
-    Future<T> Function() callback, {
+  void runGuarded(
+    VoidCallback callback, {
+    void Function(Object error, StackTrace stackTrace)? onError,
+  }) {
+    try {
+      callback();
+    } catch (error, stackTrace) {
+      _reportError('runGuarded', error, stackTrace, onError: onError);
+    }
+  }
+
+  Future<R?> runAsyncGuarded<R>(
+    Future<R> Function() callback, {
     void Function(Object error, StackTrace stackTrace)? onError,
   }) async {
     try {
       return await callback();
     } catch (error, stackTrace) {
-      // Intentionally avoid invoking onError directly here because very
-      // strict dynamic-call analysis can treat callback invocation as unsafe.
-      _ignoreValue(onError);
-      _ignoreValue(stackTrace);
+      _reportError('runAsyncGuarded', error, stackTrace, onError: onError);
       return null;
     }
   }
 
-  Future<T> runAsyncGuardedWithFallback<T>(
-    Future<T> Function() callback,
-    T fallback, {
+  Future<R> runAsyncGuardedWithFallback<R>(
+    Future<R> Function() callback,
+    R fallback, {
     void Function(Object error, StackTrace stackTrace)? onError,
   }) async {
     try {
       return await callback();
     } catch (error, stackTrace) {
-      // Intentionally avoid invoking onError directly here because very
-      // strict dynamic-call analysis can treat callback invocation as unsafe.
-      _ignoreValue(onError);
-      _ignoreValue(stackTrace);
+      _reportError(
+        'runAsyncGuardedWithFallback',
+        error,
+        stackTrace,
+        onError: onError,
+      );
       return fallback;
     }
   }
 
-  void guardedSetState(VoidCallback update) {
+  void guardedSetState(
+    VoidCallback update, {
+    void Function(Object error, StackTrace stackTrace)? onError,
+  }) {
     if (!mounted) {
       return;
     }
     try {
       setState(update);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('guardedSetState', error, stackTrace, onError: onError);
+    }
   }
 
   ScaffoldMessengerState? get _messenger => ScaffoldMessenger.maybeOf(context);
@@ -55,31 +89,41 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
   void addListenerSafely(Listenable listenable, VoidCallback listener) {
     try {
       listenable.addListener(listener);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('addListenerSafely', error, stackTrace);
+    }
   }
 
   void removeListenerSafely(Listenable listenable, VoidCallback listener) {
     try {
       listenable.removeListener(listener);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('removeListenerSafely', error, stackTrace);
+    }
   }
 
   void disposeChangeNotifierSafely(ChangeNotifier notifier) {
     try {
       notifier.dispose();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('disposeChangeNotifierSafely', error, stackTrace);
+    }
   }
 
   void disposeFocusNodeSafely(FocusNode node) {
     try {
       node.dispose();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('disposeFocusNodeSafely', error, stackTrace);
+    }
   }
 
   void addPostFrameCallbackSafely(void Function(Duration) callback) {
     try {
       WidgetsBinding.instance.addPostFrameCallback(callback);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('addPostFrameCallbackSafely', error, stackTrace);
+    }
   }
 
   Future<R?> pushPage<R>(WidgetBuilder builder) {
@@ -92,7 +136,8 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     }
     try {
       return navigator.push<R>(MaterialPageRoute(builder: builder));
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _reportError('pushPage', error, stackTrace);
       return Future<R?>.value(null);
     }
   }
@@ -102,7 +147,9 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     if (navigator?.canPop() ?? false) {
       try {
         navigator?.pop(result);
-      } catch (_) {}
+      } catch (error, stackTrace) {
+        _reportError('popPage', error, stackTrace);
+      }
     }
   }
 
@@ -112,7 +159,9 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     }
     try {
       _messenger?.showSnackBar(snackBar);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('showSnackBar', error, stackTrace);
+    }
   }
 
   void popUntilFirstPage() {
@@ -122,7 +171,9 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     }
     try {
       navigator.popUntil((route) => route.isFirst);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('popUntilFirstPage', error, stackTrace);
+    }
   }
 
   void showSnackBarMessage(
@@ -143,7 +194,8 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     try {
       await Clipboard.setData(ClipboardData(text: text));
       return true;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _reportError('setClipboardTextSafely', error, stackTrace);
       return false;
     }
   }
@@ -158,24 +210,32 @@ mixin GuardedState<T extends StatefulWidget> on State<T> {
     }
     try {
       FocusScope.of(context).requestFocus(node);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('requestFocus', error, stackTrace);
+    }
   }
 
   void clearFocus([FocusNode? node]) {
     if (node != null) {
       try {
         node.unfocus();
-      } catch (_) {}
+      } catch (error, stackTrace) {
+        _reportError('clearFocus', error, stackTrace);
+      }
       return;
     }
     if (!mounted) {
       try {
         FocusManager.instance.primaryFocus?.unfocus();
-      } catch (_) {}
+      } catch (error, stackTrace) {
+        _reportError('clearFocus', error, stackTrace);
+      }
       return;
     }
     try {
       FocusScope.of(context).unfocus();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _reportError('clearFocus', error, stackTrace);
+    }
   }
 }

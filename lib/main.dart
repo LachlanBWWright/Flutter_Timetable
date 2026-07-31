@@ -14,8 +14,8 @@ import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
 import 'package:lbww_flutter/services/trip_cache_service.dart';
 import 'package:lbww_flutter/settings.dart';
-import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/transit/transit.dart';
+import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/journey_filter_utils.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
       title: AppConstants.appTitle,
       theme: _safeTheme(Brightness.light),
       darkTheme: _safeTheme(Brightness.dark),
-      themeMode: ThemeMode.dark, // Use dark mode throughout the application
+      themeMode: ThemeMode.system,
       onGenerateRoute: DebugNavigation.onGenerateRoute,
       home: const MyHomePage(title: AppConstants.appTitle),
     );

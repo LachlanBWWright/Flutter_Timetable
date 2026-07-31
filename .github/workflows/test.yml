@@ -3,20 +3,21 @@ name: Test Suite
 on:
   pull_request:
     branches:
-      - master
+      - main
       - dev
   push:
     branches:
-      - master
+      - main
       - dev
+  workflow_dispatch:
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
-
-    # Allow tests to fail without blocking the workflow for now
-    # To re-enable blocking on test failures, remove the 'continue-on-error: true' line below
-    continue-on-error: true
+    env:
+      API_KEY: ${{ secrets.API_KEY }}
+      PTV_DEV_ID: ${{ secrets.PTV_DEV_ID }}
+      PTV_API_KEY: ${{ secrets.PTV_API_KEY }}
 
     steps:
       - name: Checkout code
@@ -25,26 +26,27 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
+          cache: true
+
+      - name: Create .env file
+        run: |
+          printf 'API_KEY=%s\n' "$API_KEY" > .env
+          printf 'PTV_DEV_ID=%s\n' "$PTV_DEV_ID" >> .env
+          printf 'PTV_API_KEY=%s\n' "$PTV_API_KEY" >> .env
 
       - name: Get dependencies
         run: flutter pub get
 
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
-        # To make formatting checks blocking, remove 'continue-on-error: true' from the job level
 
       - name: Analyze project source
         run: flutter analyze
-        # To make analysis checks blocking, remove 'continue-on-error: true' from the job level
 
-      - name: Run tests
-        run: flutter test
-        # To make test failures blocking, remove 'continue-on-error: true' from the job level
+      - name: Run deterministic tests
+        run: flutter test --exclude-tags integration
 
-      - name: Test results summary
-        if: always()
-        run: |
-          echo "Test suite completed. Check the logs above for any failures."
-          echo "NOTE: Tests are currently set to not block CI. To enable blocking:"
-          echo "Remove 'continue-on-error: true' from the test job in .github/workflows/test.yml"
+      - name: Run integration smoke tests
+        if: ${{ env.API_KEY != '' && env.PTV_DEV_ID != '' && env.PTV_API_KEY != '' }}
+        run: flutter test --tags integration

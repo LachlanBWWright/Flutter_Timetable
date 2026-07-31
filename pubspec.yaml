@@ -1,5 +1,5 @@
 name: lbww_flutter
-description: A new Flutter project.
+description: Multi-region public transport journey planner for NSW, Victoria, and Queensland.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

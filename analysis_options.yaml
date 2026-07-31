@@ -73,6 +73,8 @@ analyzer:
     - lib/protobuf/**
     - lib/swagger_clients/**
     - lib/swagger_generated/**
+    - lib/victoria/swagger_generated/**
+    - lib/nsw/swagger_generated/**
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

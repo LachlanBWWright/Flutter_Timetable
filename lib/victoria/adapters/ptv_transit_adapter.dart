@@ -1,7 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:archive/archive.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
@@ -35,34 +31,36 @@ class PtvStopRepository implements StopRepository {
     if (routeType == null || stopId == null) {
       return null;
     }
-    final response = await _signedClient.client.v3StopsStopIdRouteTypeRouteTypeGet(
-      stopId: stopId,
-      routeType: _stopRouteTypeEnum(routeType),
-      stopLocation: true,
-      stopAccessibility: true,
-      stopDisruptions: true,
-      devid: _signedClient.developerId,
-      signature: _signedClient.signatureForPath(
-        '/v3/stops/$stopId/route_type/$routeType',
-        {
-          'stop_location': 'true',
-          'stop_accessibility': 'true',
-          'stop_disruptions': 'true',
-        },
-      ),
-    );
+    final response = await _signedClient.client
+        .v3StopsStopIdRouteTypeRouteTypeGet(
+          stopId: stopId,
+          routeType: _stopRouteTypeEnum(routeType),
+          stopLocation: true,
+          stopAccessibility: true,
+          stopDisruptions: true,
+          devid: _signedClient.developerId,
+          signature: _signedClient
+              .signatureForPath('/v3/stops/$stopId/route_type/$routeType', {
+                'stop_location': 'true',
+                'stop_accessibility': 'true',
+                'stop_disruptions': 'true',
+              }),
+        );
     final body = response.body;
     final stopBody = body?.stop;
     if (!response.isSuccessful || stopBody == null) {
-      throw ProviderUnavailable(message: 'Failed to load PTV stop details.');
+      throw const ProviderUnavailable(
+        message: 'Failed to load PTV stop details.',
+      );
     }
+    final gps = stopBody.stopLocation?.gps;
     return TransitStop(
       ref: stop,
       name: stopBody.stopName ?? stop.stopId,
       mode: _transportModeForRouteType(routeType),
-      latitude: stopBody.stopLatitude,
-      longitude: stopBody.stopLongitude,
-      description: stopBody.stopSuburb,
+      latitude: gps?.latitude,
+      longitude: gps?.longitude,
+      description: stopBody.stopLandmark ?? stopBody.stationDescription,
     );
   }
 
@@ -87,7 +85,7 @@ class PtvStopRepository implements StopRepository {
     );
     final body = response.body;
     if (!response.isSuccessful || body == null) {
-      throw ProviderUnavailable(message: 'Failed to search PTV stops.');
+      throw const ProviderUnavailable(message: 'Failed to search PTV stops.');
     }
     return (body.stops ?? const <V3ResultStop>[])
         .take(request.limit)
@@ -96,7 +94,9 @@ class PtvStopRepository implements StopRepository {
             ref: TransitStopRef(
               region: TransitRegion.victoria,
               provider: TransitProviderId.ptv,
-              sourceId: TransitSourceId('ptv:route_type:${stop.routeType ?? 0}'),
+              sourceId: TransitSourceId(
+                'ptv:route_type:${stop.routeType ?? 0}',
+              ),
               stopId: '${stop.stopId ?? ''}',
             ),
             name: stop.stopName ?? 'PTV stop',
@@ -114,7 +114,8 @@ class PtvStopRepository implements StopRepository {
   void _requireCredentials() {
     if (!_signedClient.isConfigured) {
       throw const InvalidCredentials(
-        message: 'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
+        message:
+            'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
       );
     }
   }
@@ -130,7 +131,8 @@ class PtvDepartureRepository implements DepartureRepository {
   Future<List<TransitDeparture>> getDepartures(DepartureRequest request) async {
     if (!_signedClient.isConfigured) {
       throw const InvalidCredentials(
-        message: 'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
+        message:
+            'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
       );
     }
     final routeType = _parseRouteType(request.stop.sourceId.value);
@@ -138,67 +140,87 @@ class PtvDepartureRepository implements DepartureRepository {
     if (routeType == null || stopId == null) {
       return const <TransitDeparture>[];
     }
-    final response = await _signedClient.client.v3DeparturesRouteTypeRouteTypeStopStopIdGet(
-      routeType: _departureRouteTypeEnum(routeType),
-      stopId: stopId,
-      gtfs: true,
-      dateUtc: request.when?.toUtc(),
-      maxResults: 20,
-      includeCancelled: true,
-      devid: _signedClient.developerId,
-      signature: _signedClient.signatureForPath(
-        '/v3/departures/route_type/$routeType/stop/$stopId',
-        {
-          'gtfs': 'true',
-          if (request.when != null) 'date_utc': request.when!.toUtc().toIso8601String(),
-          'max_results': '20',
-          'include_cancelled': 'true',
-        },
-      ),
-    );
+    final response = await _signedClient.client
+        .v3DeparturesRouteTypeRouteTypeStopStopIdGet(
+          routeType: _departureRouteTypeEnum(routeType),
+          stopId: stopId,
+          gtfs: true,
+          dateUtc: request.when?.toUtc(),
+          maxResults: 20,
+          includeCancelled: true,
+          devid: _signedClient.developerId,
+          signature: _signedClient.signatureForPath(
+            '/v3/departures/route_type/$routeType/stop/$stopId',
+            {
+              'gtfs': 'true',
+              if (request.when != null)
+                'date_utc': request.when!.toUtc().toIso8601String(),
+              'max_results': '20',
+              'include_cancelled': 'true',
+            },
+          ),
+        );
     final body = response.body;
     if (!response.isSuccessful || body == null) {
-      throw ProviderUnavailable(message: 'Failed to load PTV departures.');
+      throw const ProviderUnavailable(
+        message: 'Failed to load PTV departures.',
+      );
     }
     final routes = body.routes ?? const <String, dynamic>{};
     final runs = body.runs ?? const <String, dynamic>{};
     final directions = body.directions ?? const <String, dynamic>{};
-    return (body.departures ?? const <V3Departure>[]).map((departure) {
-      final routeJson = tryReadMapValue(routes, '${departure.routeId}') ??
-          tryReadMapValue(routes, departure.routeId?.toString() ?? '');
-      final routeName = tryReadStringValue(routeJson, 'route_name') ??
-          tryReadStringValue(routeJson, 'route_number') ??
-          'Route ${departure.routeId ?? ''}'.trim();
-      final routeNumber = tryReadStringValue(routeJson, 'route_number');
-      final directionJson = tryReadMapValue(directions, '${departure.directionId}') ??
-          tryReadMapValue(directions, departure.directionId?.toString() ?? '');
-      final runJson = tryReadMapValue(runs, '${departure.runId}') ??
-          tryReadMapValue(runs, departure.runId?.toString() ?? '');
-      return TransitDeparture(
-        stop: request.stop,
-        route: departure.routeId == null
-            ? null
-            : TransitRoute(
-                ref: TransitRouteRef(
-                  region: TransitRegion.victoria,
-                  provider: TransitProviderId.ptv,
-                  sourceId: request.stop.sourceId,
-                  routeId: '${departure.routeId}',
-                ),
-                name: routeName,
-                shortName: routeNumber,
-                mode: _transportModeForRouteType(routeType),
-              ),
-        tripId: departure.runId?.toString(),
-        destinationName: tryReadStringValue(directionJson, 'direction_name') ??
-            tryReadStringValue(runJson, 'destination_name'),
-        platform: departure.platformNumber,
-        plannedTime: departure.scheduledDepartureUtc?.toLocal(),
-        estimatedTime: departure.estimatedDepartureUtc?.toLocal(),
-        cancelled: departure.flags?.contains('cancelled') ?? false,
-        statusText: departure.departureNote,
-      );
-    }).toList(growable: false);
+    return (body.departures ?? const <V3Departure>[])
+        .map((departure) {
+          final routeJson =
+              (tryReadMapValue(routes, '${departure.routeId}')
+                  as Map<String, dynamic>?) ??
+              (tryReadMapValue(routes, departure.routeId?.toString() ?? '')
+                  as Map<String, dynamic>?);
+          final routeName =
+              tryReadStringValue(routeJson, 'route_name') ??
+              tryReadStringValue(routeJson, 'route_number') ??
+              'Route ${departure.routeId ?? ''}'.trim();
+          final routeNumber = tryReadStringValue(routeJson, 'route_number');
+          final directionJson =
+              (tryReadMapValue(directions, '${departure.directionId}')
+                  as Map<String, dynamic>?) ??
+              (tryReadMapValue(
+                    directions,
+                    departure.directionId?.toString() ?? '',
+                  )
+                  as Map<String, dynamic>?);
+          final runJson =
+              (tryReadMapValue(runs, '${departure.runId}')
+                  as Map<String, dynamic>?) ??
+              (tryReadMapValue(runs, departure.runId?.toString() ?? '')
+                  as Map<String, dynamic>?);
+          return TransitDeparture(
+            stop: request.stop,
+            route: departure.routeId == null
+                ? null
+                : TransitRoute(
+                    ref: TransitRouteRef(
+                      region: TransitRegion.victoria,
+                      provider: TransitProviderId.ptv,
+                      sourceId: request.stop.sourceId,
+                      routeId: '${departure.routeId}',
+                    ),
+                    name: routeName,
+                    shortName: routeNumber,
+                    mode: _transportModeForRouteType(routeType),
+                  ),
+            tripId: departure.runId?.toString(),
+            destinationName:
+                tryReadStringValue(directionJson, 'direction_name') ??
+                tryReadStringValue(runJson, 'destination_name'),
+            platform: departure.platformNumber,
+            plannedTime: departure.scheduledDepartureUtc?.toLocal(),
+            estimatedTime: departure.estimatedDepartureUtc?.toLocal(),
+            cancelled: departure.flags?.contains('cancelled') ?? false,
+            statusText: departure.departureNote,
+          );
+        })
+        .toList(growable: false);
   }
 }
 
@@ -212,7 +234,8 @@ class PtvDisruptionRepository implements DisruptionRepository {
   Future<List<TransitAlert>> getDisruptions(DisruptionRequest request) async {
     if (!_signedClient.isConfigured) {
       throw const InvalidCredentials(
-        message: 'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
+        message:
+            'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
       );
     }
     if (request.stop != null) {
@@ -228,7 +251,9 @@ class PtvDisruptionRepository implements DisruptionRepository {
       );
       final body = response.body;
       if (!response.isSuccessful || body == null) {
-        throw ProviderUnavailable(message: 'Failed to load PTV disruptions.');
+        throw const ProviderUnavailable(
+          message: 'Failed to load PTV disruptions.',
+        );
       }
       return _flattenDisruptions(body.disruptions);
     }
@@ -238,7 +263,9 @@ class PtvDisruptionRepository implements DisruptionRepository {
     );
     final body = response.body;
     if (!response.isSuccessful || body == null) {
-      throw ProviderUnavailable(message: 'Failed to load PTV disruptions.');
+      throw const ProviderUnavailable(
+        message: 'Failed to load PTV disruptions.',
+      );
     }
     return _flattenDisruptions(body.disruptions);
   }
@@ -281,11 +308,14 @@ class VictoriaStaticGtfsRepository implements StaticGtfsRepository {
   final PtvCredentials _credentials;
 
   @override
-  Stream<StaticImportProgress> refreshStaticData(StaticImportRequest request) async* {
+  Stream<StaticImportProgress> refreshStaticData(
+    StaticImportRequest request,
+  ) async* {
     final url = _readEnv('VICTORIA_STATIC_GTFS_URL');
     if (url.isEmpty) {
       throw const UnsupportedCapability(
-        message: 'Victoria static GTFS import requires VICTORIA_STATIC_GTFS_URL.',
+        message:
+            'Victoria static GTFS import requires VICTORIA_STATIC_GTFS_URL.',
       );
     }
     yield const StaticImportProgress(
@@ -297,7 +327,9 @@ class VictoriaStaticGtfsRepository implements StaticGtfsRepository {
     final uri = tryParseUriValue(url);
     final response = uri == null ? null : await AppHttpClient.get(uri);
     if (response == null || response.statusCode != 200) {
-      throw ProviderUnavailable(message: 'Failed to download Victoria static GTFS.');
+      throw const ProviderUnavailable(
+        message: 'Failed to download Victoria static GTFS.',
+      );
     }
     final stops = _parseStopsOnly(Uint8List.fromList(response.bodyBytes));
     final database = db.AppDatabase();
@@ -312,7 +344,7 @@ class VictoriaStaticGtfsRepository implements StaticGtfsRepository {
           stopLat: Value(stop.stopLat),
           stopLon: Value(stop.stopLon),
           platformCode: Value(stop.platformCode),
-          wheelchairBoarding: Value(_parseInt(stop.wheelchairBoarding)),
+          wheelchairBoarding: Value(stop.wheelchairBoarding),
         ),
       );
     }
@@ -330,7 +362,9 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
   const VictoriaRealtimeRepository();
 
   @override
-  Future<RealtimeSnapshot<TransitAlert>> getAlerts(RealtimeRequest request) async {
+  Future<RealtimeSnapshot<TransitAlert>> getAlerts(
+    RealtimeRequest request,
+  ) async {
     final feed = await _fetchFeed(_readEnv('VICTORIA_GTFS_RT_ALERTS_URL'));
     final alerts = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasAlert())
@@ -350,14 +384,19 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
   }
 
   @override
-  Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(RealtimeRequest request) async {
-    final feed = await _fetchFeed(_readEnv('VICTORIA_GTFS_RT_TRIP_UPDATES_URL'));
+  Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(
+    RealtimeRequest request,
+  ) async {
+    final feed = await _fetchFeed(
+      _readEnv('VICTORIA_GTFS_RT_TRIP_UPDATES_URL'),
+    );
     final updates = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasTripUpdate())
         .map(
           (entity) => TransitTripUpdate(
             tripId: entity.tripUpdate.trip.tripId,
-            stop: entity.tripUpdate.stopTimeUpdate.isNotEmpty &&
+            stop:
+                entity.tripUpdate.stopTimeUpdate.isNotEmpty &&
                     entity.tripUpdate.stopTimeUpdate.first.hasStopId()
                 ? TransitStopRef(
                     region: TransitRegion.victoria,
@@ -373,7 +412,9 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
   }
 
   @override
-  Future<RealtimeSnapshot<TransitVehicle>> getVehiclePositions(RealtimeRequest request) async {
+  Future<RealtimeSnapshot<TransitVehicle>> getVehiclePositions(
+    RealtimeRequest request,
+  ) async {
     final feed = await _fetchFeed(_readEnv('VICTORIA_GTFS_RT_VEHICLES_URL'));
     final vehicles = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasVehicle())
@@ -383,7 +424,9 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
             tripId: entity.vehicle.trip.tripId,
             latitude: entity.vehicle.position.latitude,
             longitude: entity.vehicle.position.longitude,
-            bearing: entity.vehicle.position.hasBearing() ? entity.vehicle.position.bearing : null,
+            bearing: entity.vehicle.position.hasBearing()
+                ? entity.vehicle.position.bearing
+                : null,
           ),
         )
         .toList(growable: false);
@@ -399,7 +442,9 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
     final uri = tryParseUriValue(url);
     final response = uri == null ? null : await AppHttpClient.get(uri);
     if (response == null || response.statusCode != 200) {
-      throw ProviderUnavailable(message: 'Failed to fetch Victoria realtime feed.');
+      throw const ProviderUnavailable(
+        message: 'Failed to fetch Victoria realtime feed.',
+      );
     }
     return FeedMessage.fromBuffer(response.bodyBytes);
   }
@@ -423,7 +468,8 @@ TransitRegionServices buildPtvRegionServices() {
       provider: TransitProviderId.ptv,
       name: 'Public Transport Victoria',
       licenseName: 'PTV API terms',
-      url: 'https://www.ptv.vic.gov.au/footer/data-and-reporting/datasets/ptv-timetable-api/',
+      url:
+          'https://www.ptv.vic.gov.au/footer/data-and-reporting/datasets/ptv-timetable-api/',
     ),
   );
 }
@@ -449,7 +495,9 @@ TransportMode? _transportModeForRouteType(int routeType) {
   return null;
 }
 
-enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType _stopRouteTypeEnum(int routeType) {
+enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType _stopRouteTypeEnum(
+  int routeType,
+) {
   switch (routeType) {
     case 0:
       return enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType.value_0;
@@ -462,11 +510,14 @@ enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType _stopRouteTypeEnum(int routeTy
     case 4:
       return enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType.value_4;
     default:
-      return enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType.swaggerGeneratedUnknown;
+      return enums
+          .V3StopsStopIdRouteTypeRouteTypeGetRouteType
+          .swaggerGeneratedUnknown;
   }
 }
 
-enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType _departureRouteTypeEnum(int routeType) {
+enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType
+_departureRouteTypeEnum(int routeType) {
   switch (routeType) {
     case 0:
       return enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType.value_0;
@@ -479,7 +530,9 @@ enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType _departureRouteTypeEn
     case 4:
       return enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType.value_4;
     default:
-      return enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType.swaggerGeneratedUnknown;
+      return enums
+          .V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType
+          .swaggerGeneratedUnknown;
   }
 }
 
@@ -494,5 +547,3 @@ String _readEnv(String key) {
 List<gtfs.Stop> _parseStopsOnly(Uint8List bytes) {
   return parseStopsOnlyFromZipBytes(bytes);
 }
-
-int? _parseInt(String? value) => value == null ? null : int.tryParse(value);

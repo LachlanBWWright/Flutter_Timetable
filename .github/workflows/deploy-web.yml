@@ -1,34 +1,38 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - Test Suite
+    types:
+      - completed
+  workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
   build-web:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
+          cache: true
 
       - name: Enable Flutter web
         run: flutter config --enable-web
@@ -48,7 +52,6 @@ jobs:
 
       - name: Prepare web artifacts
         run: |
-          # The build output is in build/web
           ls -la build/web/
 
       - name: Upload web artifacts
@@ -67,7 +70,6 @@ jobs:
           path: build/web
 
   deploy-web:
-    # Deploy job runs independently after build completes
     needs: build-web
     runs-on: ubuntu-latest
 

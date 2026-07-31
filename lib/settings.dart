@@ -11,10 +11,9 @@ import 'services/api_key_service.dart';
 import 'services/app_url_launcher.dart';
 import 'services/database_admin_service.dart';
 import 'services/debug_service.dart';
-import 'services/new_trip_service.dart';
 import 'services/transport_preferences_service.dart';
-import 'transit/transit.dart';
 import 'set_home_stop_screen.dart';
+import 'transit/transit.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
 import 'utils/guarded_state.dart';
@@ -294,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<TransitRegion>(
-                      value: selectedRegion,
+                      initialValue: selectedRegion,
                       items: TransitRegion.values
                           .map(
                             (region) => DropdownMenuItem(
@@ -402,106 +401,108 @@ class _SettingsScreenState extends State<SettingsScreen>
             // API key card
             if (selectedRegion == TransitRegion.nsw)
               Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'API Key',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                margin: const EdgeInsets.all(8.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'API Key',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _openDevGuide,
-                          icon: const Icon(Icons.open_in_new, size: 16),
-                          label: const Text('Get a key'),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      apiKeyUsageText(
-                        hasUserApiKey: _hasUserApiKey,
-                        hasBuiltInApiKey: hasBuiltInApiKey,
-                      ),
-                      style: TextStyle(
-                        color: apiKeyUsageColor(
-                          hasUserApiKey: _hasUserApiKey,
-                          hasBuiltInApiKey: hasBuiltInApiKey,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _apiKeyController,
-                      obscureText: _apiKeyObscured,
-                      decoration: InputDecoration(
-                        labelText: 'Custom API key (optional)',
-                        hintText: 'Paste your TfNSW OpenData API key',
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _apiKeyObscured
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          tooltip: _apiKeyObscured ? 'Show key' : 'Hide key',
-                          onPressed: () => guardedSetState(
-                            () => _apiKeyObscured = !_apiKeyObscured,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_apiKeyStatus case final apiKeyStatus?)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Text(
-                          apiKeyStatus,
-                          style: TextStyle(
-                            color: _apiKeyStatusColor(apiKeyStatus),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isSavingApiKey ? null : _saveApiKey,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Save key'),
-                            style: ButtonStyles.elevated(Colors.blueAccent),
-                          ),
-                        ),
-                        if (_hasUserApiKey) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _isSavingApiKey ? null : _clearApiKey,
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text('Clear key'),
-                              style: ButtonStyles.elevated(Colors.redAccent),
+                          TextButton.icon(
+                            onPressed: _openDevGuide,
+                            icon: const Icon(Icons.open_in_new, size: 16),
+                            label: const Text('Get a key'),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        apiKeyUsageText(
+                          hasUserApiKey: _hasUserApiKey,
+                          hasBuiltInApiKey: hasBuiltInApiKey,
+                        ),
+                        style: TextStyle(
+                          color: apiKeyUsageColor(
+                            hasUserApiKey: _hasUserApiKey,
+                            hasBuiltInApiKey: hasBuiltInApiKey,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _apiKeyController,
+                        obscureText: _apiKeyObscured,
+                        decoration: InputDecoration(
+                          labelText: 'Custom API key (optional)',
+                          hintText: 'Paste your TfNSW OpenData API key',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _apiKeyObscured
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            tooltip: _apiKeyObscured ? 'Show key' : 'Hide key',
+                            onPressed: () => guardedSetState(
+                              () => _apiKeyObscured = !_apiKeyObscured,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_apiKeyStatus case final apiKeyStatus?)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            apiKeyStatus,
+                            style: TextStyle(
+                              color: _apiKeyStatusColor(apiKeyStatus),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isSavingApiKey ? null : _saveApiKey,
+                              icon: const Icon(Icons.save),
+                              label: const Text('Save key'),
+                              style: ButtonStyles.elevated(Colors.blueAccent),
+                            ),
+                          ),
+                          if (_hasUserApiKey) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _isSavingApiKey
+                                    ? null
+                                    : _clearApiKey,
+                                icon: const Icon(Icons.delete_outline),
+                                label: const Text('Clear key'),
+                                style: ButtonStyles.elevated(Colors.redAccent),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               ),
             // Home Stop Card
             Card(
@@ -540,33 +541,34 @@ class _SettingsScreenState extends State<SettingsScreen>
             // Transport options card
             if (selectedRegion == TransitRegion.nsw)
               Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Transport Options',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                margin: const EdgeInsets.all(8.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Transport Options',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('NSW TrainLink'),
-                      subtitle: const Text(
-                        'Show booked regional and interstate train services in the trip creator.',
                       ),
-                      value: TransportPreferencesService.showNswTrainLink.value,
-                      onChanged: _toggleNswTrainLink,
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('NSW TrainLink'),
+                        subtitle: const Text(
+                          'Show booked regional and interstate train services in the trip creator.',
+                        ),
+                        value:
+                            TransportPreferencesService.showNswTrainLink.value,
+                        onChanged: _toggleNswTrainLink,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             // Debug toggle (persisted via DebugService)
             Card(
               margin: const EdgeInsets.all(8.0),

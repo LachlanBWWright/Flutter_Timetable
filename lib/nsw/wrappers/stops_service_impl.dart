@@ -6,11 +6,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../constants/transport_modes.dart';
-import '../fetch_data/timetable_data.dart';
 import '../../gtfs/stop.dart';
 import '../../logs/logger.dart';
 import '../../schema/database.dart' hide Stop;
 import '../../services/app_http_client.dart';
+import '../fetch_data/timetable_data.dart';
 
 /// Progress event emitted while updating stops from API
 /// Enumerates all supported GTFS endpoints used by the app. The enum names

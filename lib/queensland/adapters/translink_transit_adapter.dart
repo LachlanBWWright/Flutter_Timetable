@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
@@ -21,12 +20,20 @@ class TranslinkStopRepository implements StopRepository {
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
     final rows = await db.AppDatabase().getStopsById(stop.stopId);
-    final match = rows.where((row) => row.endpoint == stop.sourceId.value).firstOrNull;
+    final match = rows
+        .where((row) => row.endpoint == stop.sourceId.value)
+        .firstOrNull;
     if (match == null) {
       return null;
     }
-    return _mapStop(match.stopId, match.stopName, match.endpoint,
-        latitude: match.stopLat, longitude: match.stopLon, platformCode: match.platformCode);
+    return _mapStop(
+      match.stopId,
+      match.stopName,
+      match.endpoint,
+      latitude: match.stopLat,
+      longitude: match.stopLon,
+      platformCode: match.platformCode,
+    );
   }
 
   @override
@@ -85,8 +92,11 @@ class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
   const TranslinkStaticGtfsRepository();
 
   @override
-  Stream<StaticImportProgress> refreshStaticData(StaticImportRequest request) async* {
-    final selectedFeeds = request.sourceIds == null || request.sourceIds!.isEmpty
+  Stream<StaticImportProgress> refreshStaticData(
+    StaticImportRequest request,
+  ) async* {
+    final selectedFeeds =
+        request.sourceIds == null || request.sourceIds!.isEmpty
         ? translinkStaticGtfsFeeds
         : translinkStaticGtfsFeeds
               .where(
@@ -105,7 +115,9 @@ class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
       );
       final bytes = await fetchTranslinkStaticGtfsZip(feed.id);
       if (bytes == null || bytes.isEmpty) {
-        throw ProviderUnavailable(message: 'Failed to download ${feed.label} GTFS.');
+        throw ProviderUnavailable(
+          message: 'Failed to download ${feed.label} GTFS.',
+        );
       }
       final stops = parseStopsOnlyFromZipBytes(Uint8List.fromList(bytes));
       final database = db.AppDatabase();
@@ -121,7 +133,7 @@ class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
             stopLon: Value(stop.stopLon),
             platformCode: Value(stop.platformCode),
             parentStation: Value(stop.parentStation),
-            wheelchairBoarding: Value(_parseInt(stop.wheelchairBoarding)),
+            wheelchairBoarding: Value(stop.wheelchairBoarding),
           ),
         );
       }
@@ -149,41 +161,55 @@ class TranslinkDepartureRepository implements DepartureRepository {
     final activeServiceIds = _activeServiceIds(data, now);
     final tripsById = {for (final trip in data.trips) trip.tripId: trip};
     final routesById = {for (final route in data.routes) route.routeId: route};
-    final departures = data.stopTimes
-        .where((stopTime) => stopTime.stopId == request.stop.stopId)
-        .where((stopTime) => activeServiceIds.contains(tripsById[stopTime.tripId]?.serviceId))
-        .map((stopTime) {
-          final departureTime = _gtfsTimeToDateTime(now, stopTime.departureTime);
-          final trip = tripsById[stopTime.tripId];
-          final route = trip == null ? null : routesById[trip.routeId];
-          return TransitDeparture(
-            stop: request.stop,
-            route: route == null
-                ? null
-                : TransitRoute(
-                    ref: TransitRouteRef(
-                      region: TransitRegion.queensland,
-                      provider: TransitProviderId.translink,
-                      sourceId: request.stop.sourceId,
-                      routeId: route.routeId,
-                    ),
-                    name: route.routeLongName.isNotEmpty
-                        ? route.routeLongName
-                        : route.routeShortName,
-                    shortName: route.routeShortName,
-                    mode: _modeFromRouteType(route.routeType),
-                  ),
-            tripId: stopTime.tripId,
-            destinationName: trip?.tripHeadsign,
-            plannedTime: departureTime,
-            estimatedTime: departureTime,
-            platform: null,
+    final departures =
+        data.stopTimes
+            .where((stopTime) => stopTime.stopId == request.stop.stopId)
+            .where(
+              (stopTime) => activeServiceIds.contains(
+                tripsById[stopTime.tripId]?.serviceId,
+              ),
+            )
+            .map((stopTime) {
+              final departureTime = _gtfsTimeToDateTime(
+                now,
+                stopTime.departureTime,
+              );
+              final trip = tripsById[stopTime.tripId];
+              final route = trip == null ? null : routesById[trip.routeId];
+              return TransitDeparture(
+                stop: request.stop,
+                route: route == null
+                    ? null
+                    : TransitRoute(
+                        ref: TransitRouteRef(
+                          region: TransitRegion.queensland,
+                          provider: TransitProviderId.translink,
+                          sourceId: request.stop.sourceId,
+                          routeId: route.routeId,
+                        ),
+                        name: route.routeLongName.isNotEmpty
+                            ? route.routeLongName
+                            : route.routeShortName,
+                        shortName: route.routeShortName,
+                        mode: _modeFromRouteType(route.routeType),
+                      ),
+                tripId: stopTime.tripId,
+                destinationName: trip?.tripHeadsign,
+                plannedTime: departureTime,
+                estimatedTime: departureTime,
+                platform: null,
+              );
+            })
+            .where((departure) => departure.plannedTime != null)
+            .where(
+              (departure) => !departure.plannedTime!.isBefore(
+                now.subtract(const Duration(minutes: 1)),
+              ),
+            )
+            .toList(growable: false)
+          ..sort(
+            (left, right) => left.plannedTime!.compareTo(right.plannedTime!),
           );
-        })
-        .where((departure) => departure.plannedTime != null)
-        .where((departure) => !departure.plannedTime!.isBefore(now.subtract(const Duration(minutes: 1))))
-        .toList(growable: false)
-      ..sort((left, right) => left.plannedTime!.compareTo(right.plannedTime!));
     return departures.take(20).toList(growable: false);
   }
 
@@ -194,7 +220,9 @@ class TranslinkDepartureRepository implements DepartureRepository {
     }
     final bytes = await fetchTranslinkStaticGtfsZip(feedId);
     if (bytes == null || bytes.isEmpty) {
-      throw ProviderUnavailable(message: 'Failed to download TransLink static GTFS for $feedId.');
+      throw ProviderUnavailable(
+        message: 'Failed to download TransLink static GTFS for $feedId.',
+      );
     }
     final archive = ZipDecoder().decodeBytes(bytes);
     final files = <String, String>{};
@@ -214,7 +242,9 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
   const TranslinkRealtimeRepository();
 
   @override
-  Future<RealtimeSnapshot<TransitAlert>> getAlerts(RealtimeRequest request) async {
+  Future<RealtimeSnapshot<TransitAlert>> getAlerts(
+    RealtimeRequest request,
+  ) async {
     final feedSetId = _feedIdFromSource(request.sourceId?.value ?? 'qld:SEQ');
     final feed = await fetchTranslinkAlerts(feedSetId);
     final alerts = (feed?.entity ?? const <FeedEntity>[])
@@ -235,7 +265,9 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
   }
 
   @override
-  Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(RealtimeRequest request) async {
+  Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(
+    RealtimeRequest request,
+  ) async {
     final feedSetId = _feedIdFromSource(request.sourceId?.value ?? 'qld:SEQ');
     final feed = await fetchTranslinkTripUpdates(feedSetId);
     final updates = (feed?.entity ?? const <FeedEntity>[])
@@ -243,7 +275,8 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
         .map(
           (entity) => TransitTripUpdate(
             tripId: entity.tripUpdate.trip.tripId,
-            stop: entity.tripUpdate.stopTimeUpdate.isNotEmpty &&
+            stop:
+                entity.tripUpdate.stopTimeUpdate.isNotEmpty &&
                     entity.tripUpdate.stopTimeUpdate.first.hasStopId()
                 ? TransitStopRef(
                     region: TransitRegion.queensland,
@@ -259,7 +292,9 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
   }
 
   @override
-  Future<RealtimeSnapshot<TransitVehicle>> getVehiclePositions(RealtimeRequest request) async {
+  Future<RealtimeSnapshot<TransitVehicle>> getVehiclePositions(
+    RealtimeRequest request,
+  ) async {
     final feedSetId = _feedIdFromSource(request.sourceId?.value ?? 'qld:SEQ');
     final feed = await fetchTranslinkVehiclePositions(feedSetId);
     final vehicles = (feed?.entity ?? const <FeedEntity>[])
@@ -270,7 +305,9 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
             tripId: entity.vehicle.trip.tripId,
             latitude: entity.vehicle.position.latitude,
             longitude: entity.vehicle.position.longitude,
-            bearing: entity.vehicle.position.hasBearing() ? entity.vehicle.position.bearing : null,
+            bearing: entity.vehicle.position.hasBearing()
+                ? entity.vehicle.position.bearing
+                : null,
           ),
         )
         .toList(growable: false);
@@ -290,7 +327,8 @@ TransitRegionServices buildTranslinkRegionServices() {
       provider: TransitProviderId.translink,
       name: 'Queensland TransLink GTFS',
       licenseName: 'Queensland Open Data terms',
-      url: 'https://www.data.qld.gov.au/organization/transport-and-main-roads?q=GTFS',
+      url:
+          'https://www.data.qld.gov.au/organization/transport-and-main-roads?q=GTFS',
     ),
   );
 }
@@ -321,10 +359,12 @@ TransportMode? _modeFromRouteType(String routeType) {
 }
 
 Set<String> _activeServiceIds(GtfsData data, DateTime moment) {
-  final yyyymmdd = '${moment.year.toString().padLeft(4, '0')}${moment.month.toString().padLeft(2, '0')}${moment.day.toString().padLeft(2, '0')}';
+  final yyyymmdd =
+      '${moment.year.toString().padLeft(4, '0')}${moment.month.toString().padLeft(2, '0')}${moment.day.toString().padLeft(2, '0')}';
   final services = <String>{};
   for (final calendar in data.calendars) {
-    if (yyyymmdd.compareTo(calendar.startDate) < 0 || yyyymmdd.compareTo(calendar.endDate) > 0) {
+    if (yyyymmdd.compareTo(calendar.startDate) < 0 ||
+        yyyymmdd.compareTo(calendar.endDate) > 0) {
       continue;
     }
     final enabled = switch (moment.weekday) {
@@ -341,7 +381,9 @@ Set<String> _activeServiceIds(GtfsData data, DateTime moment) {
       services.add(calendar.serviceId);
     }
   }
-  for (final exception in data.calendarDates.where((entry) => entry.date == yyyymmdd)) {
+  for (final exception in data.calendarDates.where(
+    (entry) => entry.date == yyyymmdd,
+  )) {
     if (exception.exceptionType == '1') {
       services.add(exception.serviceId);
     } else if (exception.exceptionType == '2') {
@@ -360,7 +402,12 @@ DateTime? _gtfsTimeToDateTime(DateTime anchor, String value) {
   if (hours == null || minutes == null || seconds == null) return null;
   final dayOffset = hours ~/ 24;
   final normalizedHours = hours % 24;
-  return DateTime(anchor.year, anchor.month, anchor.day + dayOffset, normalizedHours, minutes, seconds);
+  return DateTime(
+    anchor.year,
+    anchor.month,
+    anchor.day + dayOffset,
+    normalizedHours,
+    minutes,
+    seconds,
+  );
 }
-
-int? _parseInt(String? value) => value == null ? null : int.tryParse(value);

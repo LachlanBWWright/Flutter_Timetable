@@ -19,16 +19,21 @@ class AppTransitContext {
 
   TransitRegion get selectedRegion => TransportPreferencesService.selectedRegion.value;
 
-  TransitRegionServices get currentServices => _registry.servicesFor(selectedRegion);
+  TransitRegionServices get currentServices {
+    if (!_initialized) {
+      _registry = InMemoryTransitRegistry([
+        buildTfnswRegionServices(),
+        buildPtvRegionServices(),
+        buildTranslinkRegionServices(),
+      ]);
+      _initialized = true;
+    }
+    return _registry.servicesFor(selectedRegion);
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;
-    _registry = InMemoryTransitRegistry([
-      buildTfnswRegionServices(),
-      buildPtvRegionServices(),
-      buildTranslinkRegionServices(),
-    ]);
-    _initialized = true;
+    currentServices;
   }
 
   TransitRegionServices servicesFor(TransitRegion region) => _registry.servicesFor(region);

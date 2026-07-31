@@ -6,8 +6,6 @@ import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
 import '../transit/transit.dart';
 import '../utils/guarded_state.dart';
-import '../utils/safe_value_utils.dart';
-import '../utils/transport_display.dart';
 
 /// Widget displaying realtime transport information
 class RealtimeInfoWidget extends StatefulWidget {
@@ -55,7 +53,9 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
           });
           return;
         }
-        final vehicles = await realtime.getVehiclePositions(const RealtimeRequest());
+        final vehicles = await realtime.getVehiclePositions(
+          const RealtimeRequest(),
+        );
         final updates = await realtime.getTripUpdates(const RealtimeRequest());
         final alerts = await realtime.getAlerts(const RealtimeRequest());
         guardedSetState(() {

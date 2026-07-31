@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
-import 'package:lbww_flutter/nsw/wrappers/transport_api_service_impl.dart' as tfnsw;
+import 'package:lbww_flutter/nsw/wrappers/transport_api_service_impl.dart'
+    as tfnsw;
 import 'package:lbww_flutter/services/new_trip_service.dart' as legacy_new_trip;
 import 'package:lbww_flutter/services/realtime_service.dart' as legacy_realtime;
 import 'package:lbww_flutter/services/stops_service.dart' as legacy_stops;
@@ -15,20 +16,34 @@ class TfnswStopRepository implements StopRepository {
 
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
-    final rows = await legacy_stops.StopsService.database.getStopsById(stop.stopId);
-    final row = rows.where((candidate) => candidate.endpoint == stop.sourceId.value).firstOrNull;
+    final rows = await legacy_stops.StopsService.database.getStopsById(
+      stop.stopId,
+    );
+    final row = rows
+        .where((candidate) => candidate.endpoint == stop.sourceId.value)
+        .firstOrNull;
     if (row == null) {
       return null;
     }
-    return _mapDbStop(row.stopId, row.stopName, row.endpoint, row.stopLat, row.stopLon,
-        platformCode: row.platformCode, stopCode: row.stopCode, description: row.stopDesc);
+    return _mapDbStop(
+      row.stopId,
+      row.stopName,
+      row.endpoint,
+      row.stopLat,
+      row.stopLon,
+      platformCode: row.platformCode,
+      stopCode: row.stopCode,
+      description: row.stopDesc,
+    );
   }
 
   @override
   Future<List<TransitStop>> searchStops(StopSearchRequest request) async {
-    final results = await legacy_stops.StopsService.searchStops(request.query);
+    final results = await legacy_stops.StopsService.database.searchStops(
+      request.query,
+      limit: request.limit,
+    );
     return results
-        .take(request.limit)
         .map(
           (stop) => _mapDbStop(
             stop.stopId,
@@ -76,19 +91,26 @@ class TfnswStaticGtfsRepository implements StaticGtfsRepository {
   const TfnswStaticGtfsRepository();
 
   @override
-  Stream<StaticImportProgress> refreshStaticData(StaticImportRequest request) async* {
+  Stream<StaticImportProgress> refreshStaticData(
+    StaticImportRequest request,
+  ) async* {
     final endpoints = request.sourceIds
-        ?.map((sourceId) => legacy_stops.StopsEndpoint.values.firstWhere(
-              (endpoint) => endpoint.key == sourceId.value,
-              orElse: () => legacy_stops.StopsEndpoint.sydneytrains,
-            ))
+        ?.map(
+          (sourceId) => legacy_stops.StopsEndpoint.values.firstWhere(
+            (endpoint) => endpoint.key == sourceId.value,
+            orElse: () => legacy_stops.StopsEndpoint.sydneytrains,
+          ),
+        )
         .toList();
-    await for (final progress in legacy_new_trip.NewTripService.updateStaticTransportData(
-      force: request.force,
-      endpoints: endpoints,
-    )) {
+    await for (final progress
+        in legacy_new_trip.NewTripService.updateStaticTransportData(
+          force: request.force,
+          endpoints: endpoints,
+        )) {
       yield StaticImportProgress(
-        sourceId: progress.endpoint == null ? null : TransitSourceId(progress.endpoint!.key),
+        sourceId: progress.endpoint == null
+            ? null
+            : TransitSourceId(progress.endpoint!.key),
         completed: progress.completed,
         total: progress.total,
         message: progress.message ?? progress.stage.name,
@@ -102,18 +124,28 @@ class TfnswRealtimeRepository implements RealtimeRepository {
   const TfnswRealtimeRepository();
 
   @override
-  Future<RealtimeSnapshot<TransitAlert>> getAlerts(RealtimeRequest request) async {
-    return RealtimeSnapshot(items: const <TransitAlert>[], fetchedAt: DateTime.now());
+  Future<RealtimeSnapshot<TransitAlert>> getAlerts(
+    RealtimeRequest request,
+  ) async {
+    return RealtimeSnapshot(
+      items: const <TransitAlert>[],
+      fetchedAt: DateTime.now(),
+    );
   }
 
   @override
-  Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(RealtimeRequest request) async {
-    final aggregate = await legacy_realtime.RealtimeService.getAllTripUpdatesAggregatedSafe();
+  Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(
+    RealtimeRequest request,
+  ) async {
+    final aggregate =
+        await legacy_realtime.RealtimeService.getAllTripUpdatesAggregatedSafe();
     final items = aggregate.tripUpdates
         .map(
           (update) => TransitTripUpdate(
             tripId: update.trip.tripId,
-            stop: update.stopTimeUpdate.isNotEmpty && update.stopTimeUpdate.first.hasStopId()
+            stop:
+                update.stopTimeUpdate.isNotEmpty &&
+                    update.stopTimeUpdate.first.hasStopId()
                 ? TransitStopRef(
                     region: TransitRegion.nsw,
                     provider: TransitProviderId.tfnsw,
@@ -121,13 +153,17 @@ class TfnswRealtimeRepository implements RealtimeRepository {
                     stopId: update.stopTimeUpdate.first.stopId,
                   )
                 : null,
-            plannedTime: update.stopTimeUpdate.isNotEmpty && update.stopTimeUpdate.first.departure.hasTime()
+            plannedTime:
+                update.stopTimeUpdate.isNotEmpty &&
+                    update.stopTimeUpdate.first.departure.hasTime()
                 ? DateTime.fromMillisecondsSinceEpoch(
                     update.stopTimeUpdate.first.departure.time.toInt() * 1000,
                     isUtc: true,
                   )
                 : null,
-            estimatedTime: update.stopTimeUpdate.isNotEmpty && update.stopTimeUpdate.first.arrival.hasTime()
+            estimatedTime:
+                update.stopTimeUpdate.isNotEmpty &&
+                    update.stopTimeUpdate.first.arrival.hasTime()
                 ? DateTime.fromMillisecondsSinceEpoch(
                     update.stopTimeUpdate.first.arrival.time.toInt() * 1000,
                     isUtc: true,
@@ -140,16 +176,23 @@ class TfnswRealtimeRepository implements RealtimeRepository {
   }
 
   @override
-  Future<RealtimeSnapshot<TransitVehicle>> getVehiclePositions(RealtimeRequest request) async {
-    final aggregate = await legacy_realtime.RealtimeService.getAllVehiclePositionsAggregatedSafe();
+  Future<RealtimeSnapshot<TransitVehicle>> getVehiclePositions(
+    RealtimeRequest request,
+  ) async {
+    final aggregate = await legacy_realtime
+        .RealtimeService.getAllVehiclePositionsAggregatedSafe();
     final items = aggregate.vehicles
         .map(
           (vehicle) => TransitVehicle(
-            id: vehicle.vehicle.hasId() ? vehicle.vehicle.id : vehicle.trip.tripId,
+            id: vehicle.vehicle.hasId()
+                ? vehicle.vehicle.id
+                : vehicle.trip.tripId,
             tripId: vehicle.trip.tripId,
             latitude: vehicle.position.latitude,
             longitude: vehicle.position.longitude,
-            bearing: vehicle.position.hasBearing() ? vehicle.position.bearing : null,
+            bearing: vehicle.position.hasBearing()
+                ? vehicle.position.bearing
+                : null,
           ),
         )
         .toList(growable: false);
@@ -162,8 +205,9 @@ class TfnswJourneyPlanner implements JourneyPlanner {
 
   @override
   Future<JourneyPlan> planJourney(JourneyPlanRequest request) async {
-    if (request.origin.region != TransitRegion.nsw || request.destination.region != TransitRegion.nsw) {
-      throw const UnsupportedError('Cross-region journey planning is not supported.');
+    if (request.origin.region != TransitRegion.nsw ||
+        request.destination.region != TransitRegion.nsw) {
+      throw UnsupportedError('Cross-region journey planning is not supported.');
     }
     final result = await tfnsw.TransportApiService.getTrips(
       originId: request.origin.stopId,
@@ -171,9 +215,9 @@ class TfnswJourneyPlanner implements JourneyPlanner {
     );
     return switch (result) {
       Ok(:final v) => JourneyPlan(
-          journeys: v.tripJourneys.map(_mapJourney).toList(growable: false),
-          rawPayload: v.rawJson,
-        ),
+        journeys: v.tripJourneys.map(_mapJourney).toList(growable: false),
+        rawPayload: v.rawJson,
+      ),
       Err(:final e) => throw ProviderUnavailable(message: e),
     };
   }
@@ -220,13 +264,22 @@ class TfnswJourneyPlanner implements JourneyPlanner {
                 sourceId: const TransitSourceId('journey-planner'),
                 routeId: transportation!.id!,
               ),
-              name: transportation.name ?? transportation.number ?? transportation.description ?? 'Route',
+              name:
+                  transportation.name ??
+                  transportation.number ??
+                  transportation.description ??
+                  'Route',
               shortName: transportation.number,
               mode: _modeFromTfnswProduct(product),
             ),
       mode: _modeFromTfnswProduct(product),
-      departureTime: _tryParseDateTime(leg.origin.departureTimeEstimated ?? leg.origin.departureTimePlanned),
-      arrivalTime: _tryParseDateTime(leg.destination.arrivalTimeEstimated ?? leg.destination.arrivalTimePlanned),
+      departureTime: _tryParseDateTime(
+        leg.origin.departureTimeEstimated ?? leg.origin.departureTimePlanned,
+      ),
+      arrivalTime: _tryParseDateTime(
+        leg.destination.arrivalTimeEstimated ??
+            leg.destination.arrivalTimePlanned,
+      ),
       label: transportation?.destination?.name,
       rawPayload: leg.rawJson,
     );

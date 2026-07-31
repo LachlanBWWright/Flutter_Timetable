@@ -10,7 +10,6 @@ import 'package:lbww_flutter/debug/debug_page_loader.dart';
 
 import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
-import '../gtfs/stop.dart';
 import '../services/new_trip_service.dart';
 import '../services/stops_service.dart';
 import '../transit/transit.dart';

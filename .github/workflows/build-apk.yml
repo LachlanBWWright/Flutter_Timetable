@@ -1,33 +1,35 @@
 name: Build APK
 
 on:
-  pull_request:
-    branches:
-      - main
-      - dev
-  push:
-    branches:
-      - main
-      - dev
+  workflow_run:
+    workflows:
+      - Test Suite
+    types:
+      - completed
+  workflow_dispatch:
 
 jobs:
   build-apk:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: zulu
           java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
+          cache: true
 
       - name: Get dependencies
         run: flutter pub get
@@ -49,7 +51,6 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk build/outputs/app-release.apk
           cp build/app/outputs/flutter-apk/app-debug.apk build/outputs/app-debug.apk
 
-          # Add version info to filename
           VERSION=$(grep "version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
           cp build/outputs/app-release.apk build/outputs/lbww_flutter-${VERSION}-release.apk
 

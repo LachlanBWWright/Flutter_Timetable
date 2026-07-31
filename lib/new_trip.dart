@@ -12,8 +12,8 @@ import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_preferences_service.dart';
-import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/services/trip_line_service.dart';
+import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/new_trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
@@ -610,7 +610,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     if (inserted) {
       _clearAllSelections();
       showSnackBar(SnackBar(content: Text(successMessage)));
-        popUntilFirstPage();
+      popUntilFirstPage();
       return;
     }
     showSnackBar(const SnackBar(content: Text('Error saving trip')));

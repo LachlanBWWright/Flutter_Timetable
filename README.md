@@ -1,6 +1,17 @@
 # lbww_flutter
 
-A new Flutter project.
+Multi-region public transport journey planner for NSW, Victoria, and Queensland.
+
+## Toolchain
+
+- Flutter SDK: `3.38.7` (pinned via `.fvmrc`)
+- Dart SDK: `>=3.10.7` (managed by the Flutter SDK in this repository)
+- Local verification commands:
+  - `flutter pub get`
+  - `dart format --output=none --set-exit-if-changed .`
+  - `flutter analyze`
+  - `flutter test --exclude-tags integration`
+  - `flutter test --tags integration` (requires provider credentials in `.env`)
 
 ## Getting Started
 
