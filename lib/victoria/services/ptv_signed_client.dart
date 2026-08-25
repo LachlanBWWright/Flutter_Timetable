@@ -7,10 +7,12 @@ import 'package:lbww_flutter/victoria/services/ptv_timetable_client.dart';
 class PtvSignedClient {
   PtvSignedClient({PtvTimetableV3? client, PtvCredentials? credentials})
     : _client = client ?? PtvTimetableV3.create(),
-      _credentials = credentials ?? loadPtvCredentials();
+      _credentialsOverride = credentials;
 
   final PtvTimetableV3 _client;
-  final PtvCredentials _credentials;
+  final PtvCredentials? _credentialsOverride;
+  PtvCredentials get _credentials =>
+      _credentialsOverride ?? loadPtvCredentials();
 
   bool get isConfigured => _credentials.isConfigured;
   PtvTimetableV3 get client => _client;
@@ -28,12 +30,19 @@ class PtvSignedClient {
     });
     final sortedKeys = merged.keys.toList()..sort();
     final query = sortedKeys
-        .map((key) => '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(merged[key]!)}')
+        .map(
+          (key) =>
+              '${Uri.encodeQueryComponent(key)}=${Uri.encodeQueryComponent(merged[key]!)}',
+        )
         .join('&');
     final payload = '$path?$query';
-    final bytes = Hmac(sha1, utf8.encode(_credentials.apiKey)).convert(
-      utf8.encode(payload),
-    );
-    return bytes.bytes.map((value) => value.toRadixString(16).padLeft(2, '0')).join().toUpperCase();
+    final bytes = Hmac(
+      sha1,
+      utf8.encode(_credentials.apiKey),
+    ).convert(utf8.encode(payload));
+    return bytes.bytes
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join()
+        .toUpperCase();
   }
 }

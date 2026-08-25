@@ -52,8 +52,15 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({
+    super.key,
+    required this.title,
+    this.skipInitialLoad = false,
+    this.initialJourneys = const [],
+  });
   final String title;
+  final bool skipInitialLoad;
+  final List<db.Journey> initialJourneys;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -86,7 +93,7 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   bool _hasShownLocationSnackBar = false;
   final TextEditingController _searchController = TextEditingController();
   // Single database instance for this stateful widget
-  final db.AppDatabase _database = db.AppDatabase();
+  late final db.AppDatabase _database;
 
   void _hideCurrentMessage() {
     if (!mounted) {
@@ -198,6 +205,13 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
       });
       return;
     }
+    if (services.region != TransitRegion.nsw) {
+      if (!mounted) return;
+      guardedSetState(() {
+        _hasApiKey = true;
+      });
+      return;
+    }
     final isValid = await TransportApiService.isApiKeyValid();
     if (!mounted) return;
     guardedSetState(() {
@@ -208,6 +222,12 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _journeys = List<db.Journey>.of(widget.initialJourneys);
+    _filteredJourneys = _applySearchFilter(_journeys);
+    if (widget.skipInitialLoad) {
+      return;
+    }
+    _database = db.AppDatabase();
     _loadInitialSorting();
     getTrips();
     checkApiKey();
@@ -355,7 +375,9 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
                       journeys: pinnedJourneys,
                       onJourneyTap: _navigateToTrip,
                       onReverseJourneyTap: _navigateToReverseTrip,
-                      onJourneyVisible: TripCacheService.prefetchJourney,
+                      onJourneyVisible: widget.skipInitialLoad
+                          ? null
+                          : TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,
                       isEditingMode: _isEditingMode,
@@ -375,7 +397,9 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
                       journeys: unpinnedJourneys,
                       onJourneyTap: _navigateToTrip,
                       onReverseJourneyTap: _navigateToReverseTrip,
-                      onJourneyVisible: TripCacheService.prefetchJourney,
+                      onJourneyVisible: widget.skipInitialLoad
+                          ? null
+                          : TripCacheService.prefetchJourney,
                       onDeleteJourney: deleteTrip,
                       onTogglePin: togglePin,
                       isEditingMode: _isEditingMode,

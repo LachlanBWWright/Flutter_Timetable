@@ -286,13 +286,8 @@ class _InterchangeStopSelectionScreenState
                             listItems: stations,
                             sortMode: _sortMode,
                             mode: tab.mode,
-                            setStation: (stationName, stationId, mode) {
-                              final selected = stations.firstWhereOrNull(
-                                (station) => station.id == stationId,
-                              );
-                              if (selected != null) {
-                                _popSelectedStation(selected);
-                              }
+                            setStation: (station) {
+                              _popSelectedStation(station);
                             },
                           ),
                         ),

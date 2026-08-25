@@ -13,9 +13,16 @@ import 'package:lbww_flutter/widgets/trip_widgets.dart';
 import 'package:option_result/option_result.dart';
 
 class TripScreen extends StatefulWidget {
-  const TripScreen({super.key, required this.trip});
+  const TripScreen({
+    super.key,
+    required this.trip,
+    this.skipInitialLoad = false,
+    this.initialTrips = const [],
+  });
 
   final Journey trip;
+  final bool skipInitialLoad;
+  final List<TripJourney> initialTrips;
 
   @override
   State<TripScreen> createState() => _TripScreenState();
@@ -113,11 +120,18 @@ class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
   @override
   void initState() {
     super.initState();
+    trips = List<TripJourney>.of(widget.initialTrips);
+    if (widget.skipInitialLoad) {
+      return;
+    }
     RealtimeService.prefetchAggregates().ignore();
     getTripData();
   }
 
   void _prefetchVisibleTrip(TripJourney trip, int index) {
+    if (widget.skipInitialLoad) {
+      return;
+    }
     if (_prefetchedVisibleTripIndexes.contains(index)) {
       return;
     }

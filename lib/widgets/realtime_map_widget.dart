@@ -52,6 +52,10 @@ class RealtimeMapWidget extends StatefulWidget {
   /// Defaults to true; set false for embedded maps where it is redundant.
   final bool showVehicleCount;
 
+  /// Whether to load OpenStreetMap tiles. Disable this for offline previews
+  /// and golden tests so captures do not depend on network or host plugins.
+  final bool showTileLayer;
+
   const RealtimeMapWidget({
     super.key,
     this.mode,
@@ -65,6 +69,7 @@ class RealtimeMapWidget extends StatefulWidget {
     this.getPositions,
     this.getAllVehiclesAggregated,
     this.showVehicleCount = true,
+    this.showTileLayer = true,
   });
 
   @override
@@ -714,10 +719,11 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
             },
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.lbww.flutter_timetable',
-            ),
+            if (widget.showTileLayer)
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.lbww.flutter_timetable',
+              ),
             // Draw the route polyline if available
             PolylineLayer(polylines: _buildRoutePolylines()),
             // Show stop markers (if the leg has stops)
@@ -807,6 +813,7 @@ class RealtimeMapPage extends StatelessWidget {
   getAllVehiclesAggregated;
   final bool filterByLegTrip;
   final Set<String>? tripIds;
+  final bool showTileLayer;
 
   const RealtimeMapPage({
     super.key,
@@ -820,6 +827,7 @@ class RealtimeMapPage extends StatelessWidget {
     this.getAllVehiclesAggregated,
     this.filterByLegTrip = false,
     this.tripIds,
+    this.showTileLayer = true,
   });
 
   @override
@@ -847,6 +855,7 @@ class RealtimeMapPage extends StatelessWidget {
         vehicleId: vehicleId,
         getPositions: getPositions,
         getAllVehiclesAggregated: getAllVehiclesAggregated,
+        showTileLayer: showTileLayer,
       ),
     );
   }

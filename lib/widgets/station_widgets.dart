@@ -1,12 +1,12 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/transit/transit.dart';
 import '../constants/transport_colors.dart';
 import '../services/debug_service.dart';
 import '../utils/station_subtitle_utils.dart';
 
-typedef StationSelectionCallback =
-    void Function(String stationName, String stationId, TransportMode? mode);
+typedef StationSelectionCallback = void Function(Station station);
 
 T _valueOr<T>(T? value, T fallback) {
   if (value != null) {
@@ -55,6 +55,7 @@ class Station {
   final String? nearbyBadgeLabel;
   final double? nearbyAnchorDistance;
   final int? lineStopOrder;
+  final TransitStopRef? transitRef;
 
   // Optional metadata from GTFS/stop endpoints
   final String? stopCode;
@@ -71,7 +72,7 @@ class Station {
   final double? longitude;
   final double? distance; // Distance from user location in km
 
-  Station({
+  const Station({
     required this.name,
     required this.id,
     this.mode,
@@ -81,6 +82,7 @@ class Station {
     this.nearbyBadgeLabel,
     this.nearbyAnchorDistance,
     this.lineStopOrder,
+    this.transitRef,
     this.stopCode,
     this.stopDesc,
     this.zoneId,
@@ -106,6 +108,7 @@ class Station {
     String? nearbyBadgeLabel,
     double? nearbyAnchorDistance,
     int? lineStopOrder,
+    TransitStopRef? transitRef,
     String? stopCode,
     String? stopDesc,
     String? zoneId,
@@ -132,6 +135,7 @@ class Station {
         this.nearbyAnchorDistance,
       ),
       lineStopOrder: _valueOr(lineStopOrder, this.lineStopOrder),
+      transitRef: _valueOr(transitRef, this.transitRef),
       stopCode: _valueOr(stopCode, this.stopCode),
       stopDesc: _valueOr(stopDesc, this.stopDesc),
       zoneId: _valueOr(zoneId, this.zoneId),
@@ -165,7 +169,11 @@ class StationView extends StatelessWidget {
 
   void _selectStation() {
     try {
-      setStation.call(station.name, station.id, mode);
+      setStation.call(
+        station.mode == null && mode != null
+            ? station.copyWith(mode: mode)
+            : station,
+      );
     } catch (_) {}
   }
 
@@ -198,6 +206,15 @@ class StationView extends StatelessWidget {
       valueListenable: DebugService.showDebugData,
       builder: (context, showDebug, _) {
         final items = <Widget>[];
+
+        if (station.transitRef case final ref?) {
+          items.add(
+            Text(
+              '${ref.region.shortLabel} • ${ref.provider.label}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          );
+        }
 
         if (station.isPreferredNearby) {
           items.add(

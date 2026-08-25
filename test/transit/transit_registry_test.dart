@@ -46,6 +46,17 @@ void main() {
           url: 'https://example.com',
         ),
       ),
+      const TransitRegionServices(
+        region: TransitRegion.queensland,
+        provider: TransitProviderId.translink,
+        stops: _FakeStops(),
+        attribution: TransitProviderAttribution(
+          provider: TransitProviderId.translink,
+          name: 'TransLink',
+          licenseName: 'terms',
+          url: 'https://example.com',
+        ),
+      ),
     ]);
 
     expect(
@@ -56,5 +67,10 @@ void main() {
       registry.servicesFor(TransitRegion.victoria).supportsJourneyPlanning,
       isFalse,
     );
+    expect(
+      registry.servicesFor(TransitRegion.queensland).supportsJourneyPlanning,
+      isFalse,
+    );
+    expect(registry.allServices, hasLength(3));
   });
 }

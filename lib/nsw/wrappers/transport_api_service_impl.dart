@@ -1,81 +1,51 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:option_result/option_result.dart';
 
 import '../../logs/logger.dart' as app_logger;
 import '../../services/api_key_service.dart';
-import '../../services/app_http_client.dart';
 import '../../utils/safe_value_utils.dart';
+import '../swagger_clients/swagger_backend.dart';
+import '../swagger_generated/trip_planner.enums.swagger.dart' as enums;
+import '../swagger_generated/trip_planner.swagger.dart' as generated;
+import '../swagger_generated/trip_planner.swagger.dart' show TripPlanner;
+import 'trip_planner_generated_mapper.dart';
 
 final logger = app_logger.safeLogger;
 
+// Compatibility helpers used only by the legacy display-model constructors
+// below. Live API responses and persisted cache responses enter through the
+// generated Trip Planner models above.
 bool? _readBoolValue(Map<String, dynamic> json, String key) {
   final value = tryReadMapValue(json, key);
-  if (value is bool) {
-    return value;
-  }
+  if (value is bool) return value;
   if (value is String) {
-    if (value.toLowerCase() == 'true') {
-      return true;
-    }
-    if (value.toLowerCase() == 'false') {
-      return false;
-    }
+    if (value.toLowerCase() == 'true') return true;
+    if (value.toLowerCase() == 'false') return false;
   }
   return null;
 }
 
 String _readStringOrEmpty(Map<String, dynamic>? json, String key) {
-  final value = tryReadStringValue(json, key);
-  if (value == null) {
-    return '';
-  }
-  return value;
-}
-
-int _listLength(Iterable<Object?>? values) {
-  if (values == null) {
-    return 0;
-  }
-  return values.length;
-}
-
-List<dynamic> _listOrEmpty(List<dynamic>? values) {
-  if (values == null) {
-    return const <dynamic>[];
-  }
-  return values;
-}
-
-List<String>? _stringListOrNull(List<dynamic>? values) {
-  if (values == null) {
-    return null;
-  }
-  return values.map((value) => value.toString()).toList();
+  return tryReadStringValue(json, key) ?? '';
 }
 
 List<T> _parseJsonList<T>(
   List<dynamic>? values,
   T? Function(Map<String, dynamic> json) parse,
 ) {
-  if (values == null) {
-    return <T>[];
-  }
-
   return values
-      .whereType<Map<String, dynamic>>()
-      .map(parse)
-      .whereType<T>()
-      .toList();
+          ?.whereType<Map<String, dynamic>>()
+          .map(parse)
+          .whereType<T>()
+          .toList() ??
+      <T>[];
 }
 
-T? _firstNonNull<T>(T? primary, T? fallback) {
-  if (primary != null) {
-    return primary;
-  }
-  return fallback;
-}
+List<String>? _stringListOrNull(List<dynamic>? values) =>
+    values?.map((value) => value.toString()).toList();
+
+T? _firstNonNull<T>(T? primary, T? fallback) => primary ?? fallback;
 
 Stop _unknownStop() {
   return Stop(
@@ -88,45 +58,13 @@ Stop _unknownStop() {
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
-  static const String _baseUrl = 'api.transport.nsw.gov.au';
-
-  static const Map<String, String> _rapidJsonBaseParams = {
-    'outputFormat': 'rapidJSON',
-    'coordOutputFormat': 'EPSG:4326',
-    'version': '10.2.1.42',
-  };
-
-  /// Get the effective API key (user override or built-in .env key).
-  static Future<String?> _getApiKey() async {
+  static Future<TripPlanner?> _client() async {
     try {
       final key = ApiKeyService.getEffectiveApiKey();
-      if (key.isEmpty) return null;
-      return key;
+      return await createTripPlannerClient(apiKey: key);
     } catch (e, st) {
-      logger.e('ApiKeyService.getEffectiveApiKey failed: $e');
+      logger.e('Unable to create generated Trip Planner client: $e');
       logger.e(st);
-      return null;
-    }
-  }
-
-  static Future<http.Response?> _authorizedGet(
-    String path,
-    Map<String, String> params,
-  ) async {
-    try {
-      final apiKey = await _getApiKey();
-      if (apiKey == null || apiKey.isEmpty) {
-        return null;
-      }
-
-      final uri = Uri.https(_baseUrl, path, params);
-      return AppHttpClient.get(
-        uri,
-        headers: {'authorization': 'apikey $apiKey'},
-      );
-    } catch (e, st) {
-      logger.w('Transport API request failed for $path: $e');
-      logger.w(st);
       return null;
     }
   }
@@ -134,17 +72,15 @@ class TransportApiService {
   /// Test if API key is valid
   static Future<bool> isApiKeyValid() async {
     try {
-      final params = {
-        ..._rapidJsonBaseParams,
-        'type_sf': 'stop',
-        'name_sf': '',
-        'TfNSWSF': 'true',
-      };
-
-      final response = await _authorizedGet('/v1/tp/stop_finder/', params);
-      if (response == null) return false;
-
-      return response.statusCode == 200;
+      final client = await _client();
+      if (client == null) return false;
+      final response = await client.stopFinderGet(
+        outputFormat: enums.StopFinderGetOutputFormat.rapidjson,
+        typeSf: enums.StopFinderGetTypeSf.stop,
+        nameSf: '200060',
+        coordOutputFormat: enums.StopFinderGetCoordOutputFormat.epsg4326,
+      );
+      return response.statusCode == 200 && response.body != null;
     } catch (e) {
       // Error validating API key
       return false;
@@ -155,48 +91,33 @@ class TransportApiService {
   static Future<Result<List<Map<String, dynamic>>, String>> searchStations(
     String query,
   ) async {
-    final params = {
-      ..._rapidJsonBaseParams,
-      'type_sf': 'any',
-      'name_sf': query,
-      'TfNSWSF': 'true',
-    };
-
-    final response = await _authorizedGet('/v1/tp/stop_finder/', params);
-    if (response == null) {
-      return const Err('API key not set');
-    }
-
     try {
+      final client = await _client();
+      if (client == null) return const Err('Unable to create API client');
+      final response = await client.stopFinderGet(
+        outputFormat: enums.StopFinderGetOutputFormat.rapidjson,
+        typeSf: enums.StopFinderGetTypeSf.any,
+        nameSf: query,
+        coordOutputFormat: enums.StopFinderGetCoordOutputFormat.epsg4326,
+        tfNSWSF: enums.StopFinderGetTfNSWSF.$true,
+      );
       if (response.statusCode != 200) {
-        return Err(
-          'Failed to search stations: ${response.statusCode}, ${response.body}',
-        );
+        return Err('Failed to search stations: ${response.statusCode}');
       }
-
-      final data = tryDecodeJsonMap(response.body);
-      if (data == null) {
-        return const Err(
-          'Failed to search stations: response was not a JSON object',
-        );
-      }
-      final locations = _listOrEmpty(tryReadListValue(data, 'locations'));
+      final body = response.body;
+      if (body == null) return const Err('Stop Finder returned no body');
 
       return Ok(
-        locations.map((location) {
-          final loc = location is Map<String, dynamic> ? location : null;
-          final disassembledName = tryReadStringValue(loc, 'disassembledName');
-          final fallbackName = _readStringOrEmpty(loc, 'name');
-          final name = (disassembledName != null && disassembledName.isNotEmpty)
-              ? disassembledName
+        (body.locations ?? const []).map((location) {
+          final fallbackName = location.name ?? '';
+          final name = (location.disassembledName?.isNotEmpty ?? false)
+              ? location.disassembledName!
               : fallbackName;
-          final id = _readStringOrEmpty(loc, 'id');
-          final type = tryReadStringValue(loc, 'type');
           return {
             'name': name,
             'displayName': fallbackName,
-            'id': id,
-            'type': type,
+            'id': location.id ?? '',
+            'type': location.type?.value,
           };
         }).toList(),
       );
@@ -212,44 +133,35 @@ class TransportApiService {
     required String originId,
     required String destinationId,
   }) async {
-    final params = {
-      ..._rapidJsonBaseParams,
-      'depArrMacro': 'dep',
-      'type_origin': 'any',
-      'name_origin': originId,
-      'type_destination': 'any',
-      'name_destination': destinationId,
-      'calcNumberOfTrips': '20',
-      'excludedMeans': 'checkbox',
-      'exclMOT_7': '1',
-      'exclMOT_11': '1',
-      'TfNSWTR': 'true',
-      'itOptionsActive': '0',
-    };
-
-    final response = await _authorizedGet('/v1/tp/trip/', params);
-    if (response == null) {
-      return const Err('API key not set');
-    }
-
     try {
+      final client = await _client();
+      if (client == null) return const Err('Unable to create API client');
+      final response = await client.tripGet(
+        outputFormat: enums.TripGetOutputFormat.rapidjson,
+        coordOutputFormat: enums.TripGetCoordOutputFormat.epsg4326,
+        depArrMacro: enums.TripGetDepArrMacro.dep,
+        typeOrigin: enums.TripGetTypeOrigin.any,
+        nameOrigin: originId,
+        typeDestination: enums.TripGetTypeDestination.any,
+        nameDestination: destinationId,
+        calcNumberOfTrips: 20,
+        excludedMeans: enums.TripGetExcludedMeans.checkbox,
+        exclMOT7: enums.TripGetExclMOT7.value_1,
+        exclMOT11: enums.TripGetExclMOT11.value_1,
+        tfNSWTR: enums.TripGetTfNSWTR.$true,
+        itOptionsActive: 0,
+      );
       logger.i('Response code ${response.statusCode}');
 
       if (response.statusCode != 200) {
-        return Err(
-          'Failed to get trips: ${response.statusCode}, ${response.body}',
-        );
+        return Err('Failed to get trips: ${response.statusCode}');
       }
-
-      final data = tryDecodeJsonMap(response.body);
-      if (data == null) {
-        return const Err('Failed to get trips: response was not a JSON object');
-      }
-      final journeysCount = _listLength(tryReadListValue(data, 'journeys'));
+      final body = response.body;
+      if (body == null) return const Err('Trip Planner returned no body');
       logger.i(
-        'TransportApiService.getTrips: received $journeysCount journeys for origin=$originId destination=$destinationId',
+        'TransportApiService.getTrips: received ${body.journeys?.length ?? 0} journeys for origin=$originId destination=$destinationId',
       );
-      return Ok(GetTripsResponse.fromJson(data));
+      return Ok(getTripsResponseFromGenerated(body));
     } catch (e, st) {
       logger.e('getTrips error: $e');
       logger.e(st);
@@ -278,65 +190,11 @@ class GetTripsResponse {
     required this.rawJson,
   });
 
-  factory GetTripsResponse.fromJson(Map<String, dynamic> json) {
-    // GetTripsResponse raw json keys logged (removed)
-
-    final tripJourneys = <TripJourney>[];
-    var systemMessages = const SystemMessages();
-    var version = '';
-
-    // Parse tripJourneys
-    final journeysJson = tryReadListValue(json, 'journeys');
-    if (journeysJson == null) {
-      logger.w('GetTripsResponse.fromJson: "journeys" key is null or missing');
-    } else {
-      for (final entry in journeysJson.indexed) {
-        final idx = entry.$1;
-        final journey = entry.$2;
-        if (journey is! Map<String, dynamic>) {
-          logger.w(
-            'GetTripsResponse.fromJson: journey #$idx is not a Map, type=${journey.runtimeType}',
-          );
-          logger.d('raw journey #$idx: ${jsonEncode(journey)}');
-          continue;
-        }
-        try {
-          final parsed = TripJourney.fromJson(journey);
-          tripJourneys.add(parsed);
-        } catch (e, st) {
-          logger.e(
-            'GetTripsResponse.fromJson: error parsing journey #$idx: $e',
-          );
-          logger.d('Stack: $st');
-          logger.d('raw journey #$idx: ${jsonEncode(journey)}');
-        }
-      }
-    }
-
-    // Parse systemMessages (handle both list and object)
-    final systemMessagesJson = tryReadMapValue(json, 'systemMessages');
-    if (systemMessagesJson == null) {
-      // systemMessages is null or missing
-      // systemMessages type: ${systemMessagesJson.runtimeType}
-    } else {
-      // systemMessages type: ${systemMessagesJson.runtimeType}
-      systemMessages = SystemMessages.fromJson(systemMessagesJson);
-    }
-
-    // Parse version
-    version = _readStringOrEmpty(json, 'version');
-    // version: $version
-    if (version.isEmpty) {
-      // version is null or missing
-    }
-
-    return GetTripsResponse(
-      tripJourneys: tripJourneys,
-      systemMessages: systemMessages,
-      version: version,
-      rawJson: json,
-    );
-  }
+  factory GetTripsResponse.fromJson(Map<String, dynamic> json) =>
+      getTripsResponseFromGenerated(
+        generated.TripRequestResponse.fromJson(json),
+        rawJson: json,
+      );
 }
 
 class TripJourney {
@@ -751,7 +609,7 @@ class Parent {
   final String? disassembledName;
   final String id;
   final String name;
-  final dynamic parent; // can be nested Parent or a simple id/string
+  final Object? parent; // can be nested Parent or a simple id/string
   final String? type;
 
   Parent({
@@ -766,7 +624,7 @@ class Parent {
     // If it's already a Parent instance, return it
 
     final rawParent = tryReadMapValue(json, 'parent');
-    dynamic parsedParent;
+    Object? parsedParent;
     if (rawParent != null) {
       if (rawParent is Map<String, dynamic>) {
         parsedParent = Parent.fromJson(rawParent);

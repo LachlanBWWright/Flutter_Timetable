@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
+import 'package:lbww_flutter/nsw/swagger_generated/trip_planner.swagger.dart'
+    as generated;
+import 'package:lbww_flutter/nsw/wrappers/trip_planner_generated_mapper.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/prefetch_scheduler.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
@@ -259,5 +262,7 @@ GetTripsResponse? _parseTripPlannerCacheJson(String responseJson) {
   if (decoded == null) {
     return null;
   }
-  return GetTripsResponse.fromJson(decoded);
+  return getTripsResponseFromGenerated(
+    generated.TripRequestResponse.fromJson(decoded),
+  );
 }

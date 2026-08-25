@@ -33,6 +33,7 @@ class TransitRegionServices {
 
 abstract interface class TransitRegistry {
   TransitRegionServices servicesFor(TransitRegion region);
+  List<TransitRegionServices> get allServices;
 }
 
 class InMemoryTransitRegistry implements TransitRegistry {
@@ -40,6 +41,10 @@ class InMemoryTransitRegistry implements TransitRegistry {
     : _regions = {for (final region in regions) region.region: region};
 
   final Map<TransitRegion, TransitRegionServices> _regions;
+
+  @override
+  List<TransitRegionServices> get allServices =>
+      List.unmodifiable(_regions.values);
 
   @override
   TransitRegionServices servicesFor(TransitRegion region) {

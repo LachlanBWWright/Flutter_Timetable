@@ -21,7 +21,14 @@ import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
 
 class NewTripScreen extends StatefulWidget {
-  const NewTripScreen({super.key});
+  const NewTripScreen({
+    super.key,
+    this.skipInitialLoad = false,
+    this.initialStations = const [],
+  });
+
+  final bool skipInitialLoad;
+  final List<Station> initialStations;
 
   @override
   State<NewTripScreen> createState() => _NewTripScreenState();
@@ -47,6 +54,9 @@ class _NewTripScreenState extends State<NewTripScreen>
   List<Station> _ferryStationList = [];
   List<Station> _lightRailStationList = [];
   List<Station> _metroStationList = [];
+  List<Station> _regionalSearchResults = [];
+  TransitRegion? _draftRegion;
+  int _searchGeneration = 0;
 
   Station? _originStation;
   TransportMode? _originMode;
@@ -64,7 +74,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
   final keyController = TextEditingController();
   late FocusNode _searchFocusNode;
-  final AppDatabase _db = AppDatabase();
+  late final AppDatabase _db;
   final TripLineService _tripLineService = TripLineService.instance;
   late TabController _tabController;
   late List<_TripCreatorTab> _tabs;
@@ -87,6 +97,14 @@ class _NewTripScreenState extends State<NewTripScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.skipInitialLoad) {
+      _tabs = _buildTabs();
+      _trainStationList = List<Station>.of(widget.initialStations);
+      _tabController = TabController(length: _tabs.length, vsync: this);
+      _searchFocusNode = FocusNode();
+      return;
+    }
+    _db = AppDatabase();
     _tabs = _buildTabs();
     _tabController = TabController(length: _tabs.length, vsync: this);
     addListenerSafely(_tabController, _onTabChanged);
@@ -209,20 +227,33 @@ class _NewTripScreenState extends State<NewTripScreen>
     guardedSetState(() {});
   }
 
-  Future<void> setStation(
-    String stationName,
-    String id,
-    TransportMode? selectedMode,
-  ) async {
-    final mode = await StopsService.resolveModeForStopId(
-      id,
-      preferredMode: selectedMode,
-    );
+  Future<void> setStation(Station selectedStation) async {
+    final selectedRegion =
+        selectedStation.transitRef?.region ?? TransitRegion.nsw;
+    if (_draftRegion != null && selectedRegion != _draftRegion) {
+      showSnackBar(
+        SnackBar(
+          content: Text(
+            'This trip is locked to ${_draftRegion!.label}. Clear all selected stops to choose another region.',
+          ),
+        ),
+      );
+      return;
+    }
+    final id = selectedStation.id;
+    final mode =
+        selectedStation.mode ??
+        await StopsService.resolveModeForStopId(
+          id,
+          preferredMode: selectedStation.mode,
+        );
     if (!mounted || mode == null) {
       return;
     }
 
-    final station = _resolveStation(id, stationName, mode);
+    final station = selectedStation.transitRef != null
+        ? selectedStation.copyWith(mode: mode)
+        : _resolveStation(id, selectedStation.name, mode);
     if (station == null) {
       return;
     }
@@ -234,6 +265,7 @@ class _NewTripScreenState extends State<NewTripScreen>
 
     if (_originStation == null) {
       guardedSetState(() {
+        _draftRegion = selectedRegion;
         _originStation = station;
         _originMode = mode;
         keyController.clear();
@@ -276,6 +308,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     guardedSetState(() {
       _originStation = null;
       _originMode = null;
+      if (_destinationStation == null) _draftRegion = null;
     });
     _resetManualDraft(clearSharedLines: true, keepDestination: false);
   }
@@ -284,6 +317,7 @@ class _NewTripScreenState extends State<NewTripScreen>
     guardedSetState(() {
       _destinationStation = null;
       _destinationMode = null;
+      if (_originStation == null) _draftRegion = null;
     });
     _resetManualDraft(clearSharedLines: true);
   }
@@ -316,6 +350,13 @@ class _NewTripScreenState extends State<NewTripScreen>
     final origin = _originStation;
     final originMode = _originMode;
     if (origin == null || originMode == null) {
+      return;
+    }
+    if (_draftRegion != TransitRegion.nsw) {
+      guardedSetState(() {
+        _originLineCandidates = [];
+        _sameLineDestinationStations = [];
+      });
       return;
     }
 
@@ -407,6 +448,14 @@ class _NewTripScreenState extends State<NewTripScreen>
     final destinationMode = _destinationMode;
 
     if (origin == null || destination == null) {
+      return;
+    }
+    if (_draftRegion != TransitRegion.nsw) {
+      guardedSetState(() {
+        _sharedLines = [];
+        _selectedLine = null;
+        _isResolvingSharedLines = false;
+      });
       return;
     }
 
@@ -507,6 +556,15 @@ class _NewTripScreenState extends State<NewTripScreen>
   }
 
   void _openMap() {
+    if ((_draftRegion ?? AppTransitContext.instance.selectedRegion) !=
+        TransitRegion.nsw) {
+      showSnackBar(
+        const SnackBar(
+          content: Text('The stop map is currently available only for NSW.'),
+        ),
+      );
+      return;
+    }
     if (_manualBuilderEnabled) {
       showSnackBar(
         const SnackBar(
@@ -535,9 +593,9 @@ class _NewTripScreenState extends State<NewTripScreen>
     await _persistJourney(
       JourneysCompanion(
         origin: drift.Value(origin.name),
-        originId: drift.Value(origin.id),
+        originId: drift.Value(_persistedStopId(origin)),
         destination: drift.Value(destination.name),
-        destinationId: drift.Value(destination.id),
+        destinationId: drift.Value(_persistedStopId(destination)),
         tripType: drift.Value(SavedTripType.direct.storageValue),
         mode: sharedMode != null
             ? drift.Value(sharedMode.id)
@@ -578,9 +636,9 @@ class _NewTripScreenState extends State<NewTripScreen>
     await _persistJourney(
       JourneysCompanion(
         origin: drift.Value(origin.name),
-        originId: drift.Value(origin.id),
+        originId: drift.Value(_persistedStopId(origin)),
         destination: drift.Value(destination.name),
-        destinationId: drift.Value(destination.id),
+        destinationId: drift.Value(_persistedStopId(destination)),
         tripType: drift.Value(SavedTripType.manualMultiLeg.storageValue),
         mode: drift.Value(
           firstLeg?.mode.id ?? selectedLine?.mode.id ?? _currentMode.id,
@@ -622,6 +680,8 @@ class _NewTripScreenState extends State<NewTripScreen>
       _originMode = null;
       _destinationStation = null;
       _destinationMode = null;
+      _draftRegion = null;
+      _regionalSearchResults = [];
       _sharedLines = [];
       _originLineCandidates = [];
       _sameLineDestinationStations = [];
@@ -871,45 +931,62 @@ class _NewTripScreenState extends State<NewTripScreen>
     });
   }
 
+  String _persistedStopId(Station station) =>
+      station.transitRef?.storageKey ?? station.id;
+
   void _applySearchFilter() {
+    unawaited(_searchEnabledRegionStops(keyController.text));
     guardedSetState(() {});
+  }
+
+  Future<void> _searchEnabledRegionStops(String rawQuery) async {
+    final query = rawQuery.trim();
+    final generation = ++_searchGeneration;
+    if (query.length < 2) {
+      guardedSetState(() => _regionalSearchResults = []);
+      return;
+    }
+
+    final services = _draftRegion == null
+        ? AppTransitContext.instance.enabledServices
+        : [AppTransitContext.instance.servicesFor(_draftRegion!)];
+    final results = await Future.wait(
+      services.map((services) async {
+        try {
+          return await services.stops.searchStops(
+            StopSearchRequest(query: query, limit: 50),
+          );
+        } catch (_) {
+          return const <TransitStop>[];
+        }
+      }),
+    );
+    if (!mounted || generation != _searchGeneration) return;
+    final seen = <String>{};
+    final stations =
+        results
+            .expand((items) => items)
+            .where((stop) => seen.add(stop.ref.storageKey))
+            .map(
+              (stop) => Station(
+                name: stop.name,
+                id: stop.ref.stopId,
+                transitRef: stop.ref,
+                mode: stop.mode ?? TransportMode.bus,
+                stopCode: stop.stopCode,
+                stopDesc: stop.description,
+                platformCode: stop.platformCode,
+                latitude: stop.latitude,
+                longitude: stop.longitude,
+              ),
+            )
+            .toList(growable: false)
+          ..sort((left, right) => left.name.compareTo(right.name));
+    guardedSetState(() => _regionalSearchResults = stations);
   }
 
   @override
   Widget build(BuildContext context) {
-    final services = AppTransitContext.instance.currentServices;
-    if (services.region != TransitRegion.nsw ||
-        !services.supportsJourneyPlanning) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('New Trip')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.public_off, size: 56, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text(
-                  'Journey planning is unavailable for ${services.region.label}.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Stop search, departures, realtime, and data import remain available where the selected provider supports them.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
     return Scaffold(
       appBar: NewTripAppBar(
         isSearching: _isSearching,
@@ -928,6 +1005,18 @@ class _NewTripScreenState extends State<NewTripScreen>
       ),
       body: Column(
         children: [
+          if (_draftRegion case final region?)
+            MaterialBanner(
+              content: Text('Trip region: ${region.label}'),
+              actions: const [SizedBox.shrink()],
+            )
+          else if (AppTransitContext.instance.enabledRegions.length > 1)
+            const MaterialBanner(
+              content: Text(
+                'Search all enabled regions. Selecting the first stop locks this trip to that region.',
+              ),
+              actions: [SizedBox.shrink()],
+            ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -979,7 +1068,7 @@ class _NewTripScreenState extends State<NewTripScreen>
         endpoints: tab.endpoints,
         embedded: true,
         onStopSelected: (name, id) {
-          setStation(name, id, mode);
+          setStation(Station(name: name, id: id, mode: mode));
         },
         onClose: () {
           guardedSetState(() {
@@ -1008,11 +1097,20 @@ class _NewTripScreenState extends State<NewTripScreen>
         _filterDestinationsToSameLine &&
         _originStation != null &&
         _destinationStation == null;
-    final baseList =
-        _manualBuilderEnabled &&
-            _pendingInterchangeInsertIndex != null &&
-            selectedLine != null &&
-            mode == selectedLine.mode
+    final useRegionalSearch =
+        AppTransitContext.instance.enabledRegions.length > 1 ||
+        (_draftRegion ?? AppTransitContext.instance.selectedRegion) !=
+            TransitRegion.nsw;
+    final baseList = keyController.text.trim().isNotEmpty && useRegionalSearch
+        ? _regionalSearchResults
+              .where((station) => station.mode == mode)
+              .toList()
+        : useRegionalSearch
+        ? const <Station>[]
+        : _manualBuilderEnabled &&
+              _pendingInterchangeInsertIndex != null &&
+              selectedLine != null &&
+              mode == selectedLine.mode
         ? _manualCandidateStations
         : isSelectingSameLineDestination
         ? _sameLineDestinationStations

@@ -8,6 +8,8 @@ import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/settings.dart';
+import 'package:lbww_flutter/services/transport_preferences_service.dart';
+import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/widgets/stops_widgets.dart';
 
 void main() {
@@ -29,6 +31,40 @@ void main() {
     );
   }
 
+  testWidgets(
+    'settings shows credentials and attribution for enabled regions',
+    (tester) async {
+      addTearDown(() {
+        TransportPreferencesService.enabledRegions.value = {TransitRegion.nsw};
+        TransportPreferencesService.selectedRegion.value = TransitRegion.nsw;
+      });
+      TransportPreferencesService.enabledRegions.value = {
+        TransitRegion.nsw,
+        TransitRegion.victoria,
+        TransitRegion.queensland,
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SettingsScreen(
+            stopsManagementWidget: const SizedBox.shrink(),
+            stopsSearchWidget: const SizedBox.shrink(),
+            realtimeInfoWidget: const SizedBox.shrink(),
+          ),
+        ),
+      );
+
+      expect(find.text('Transport for NSW Open Data'), findsWidgets);
+      expect(find.text('Public Transport Victoria'), findsWidgets);
+      expect(find.text('Queensland TransLink GTFS'), findsWidgets);
+      expect(find.text('PTV developer ID'), findsOneWidget);
+      expect(
+        find.textContaining('No API credentials are required'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('settings screen debug buttons open entity browsers', (
     tester,
   ) async {
@@ -48,10 +84,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.fling(
-      find.byType(Scrollable).first,
-      const Offset(0, -1200),
-      1000,
+    await tester.scrollUntilVisible(
+      find.text('Browse route debug pages'),
+      500,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Browse route debug pages').last);

@@ -1,7 +1,15 @@
 import 'package:collection/collection.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 
-enum TransitRegion { nsw, victoria, queensland }
+enum TransitRegion {
+  nsw,
+  victoria,
+  queensland,
+  southAustralia,
+  tasmania,
+  northernTerritory,
+  westernAustralia,
+}
 
 extension TransitRegionX on TransitRegion {
   String get label {
@@ -12,6 +20,14 @@ extension TransitRegionX on TransitRegion {
         return 'Victoria';
       case TransitRegion.queensland:
         return 'Queensland';
+      case TransitRegion.southAustralia:
+        return 'South Australia';
+      case TransitRegion.tasmania:
+        return 'Tasmania';
+      case TransitRegion.northernTerritory:
+        return 'Northern Territory';
+      case TransitRegion.westernAustralia:
+        return 'Western Australia';
     }
   }
 
@@ -23,6 +39,14 @@ extension TransitRegionX on TransitRegion {
         return 'VIC';
       case TransitRegion.queensland:
         return 'QLD';
+      case TransitRegion.southAustralia:
+        return 'SA';
+      case TransitRegion.tasmania:
+        return 'TAS';
+      case TransitRegion.northernTerritory:
+        return 'NT';
+      case TransitRegion.westernAustralia:
+        return 'WA';
     }
   }
 
@@ -32,9 +56,20 @@ extension TransitRegionX on TransitRegion {
       orElse: () => TransitRegion.nsw,
     );
   }
+
+  static TransitRegion? fromStorageOrNull(String value) =>
+      TransitRegion.values.firstWhereOrNull((region) => region.name == value);
 }
 
-enum TransitProviderId { tfnsw, ptv, translink }
+enum TransitProviderId {
+  tfnsw,
+  ptv,
+  translink,
+  adelaideMetro,
+  tasmaniaPublicTransport,
+  ntBus,
+  transperth,
+}
 
 extension TransitProviderIdX on TransitProviderId {
   String get label {
@@ -45,6 +80,14 @@ extension TransitProviderIdX on TransitProviderId {
         return 'Public Transport Victoria';
       case TransitProviderId.translink:
         return 'TransLink';
+      case TransitProviderId.adelaideMetro:
+        return 'Adelaide Metro';
+      case TransitProviderId.tasmaniaPublicTransport:
+        return 'Tasmania Public Transport';
+      case TransitProviderId.ntBus:
+        return 'NT Bus';
+      case TransitProviderId.transperth:
+        return 'Transperth';
     }
   }
 }
@@ -95,7 +138,10 @@ class TransitStopRef {
     final provider = TransitProviderId.values.firstWhereOrNull(
       (candidate) => candidate.name == parts[1],
     );
-    if (region == null || provider == null || parts[2].isEmpty || parts[3].isEmpty) {
+    if (region == null ||
+        provider == null ||
+        parts[2].isEmpty ||
+        parts[3].isEmpty) {
       return null;
     }
     return TransitStopRef(

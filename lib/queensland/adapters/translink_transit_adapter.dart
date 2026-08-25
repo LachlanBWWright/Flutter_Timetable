@@ -5,21 +5,26 @@ import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/nsw/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/queensland/translink/translink.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
-import 'package:lbww_flutter/transit/errors/transit_failure.dart';
+import 'package:lbww_flutter/transit/gtfs/gtfs_journey_planner.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 
 class TranslinkStopRepository implements StopRepository {
-  const TranslinkStopRepository();
+  const TranslinkStopRepository({this.database});
+
+  final db.AppDatabase? database;
+
+  db.AppDatabase get _database => database ?? db.AppDatabase();
 
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
-    final rows = await db.AppDatabase().getStopsById(stop.stopId);
+    final rows = await _database.getStopsById(stop.stopId);
     final match = rows
         .where((row) => row.endpoint == stop.sourceId.value)
         .firstOrNull;
@@ -40,7 +45,7 @@ class TranslinkStopRepository implements StopRepository {
   Future<List<TransitStop>> searchStops(StopSearchRequest request) async {
     final query = request.query.trim().toLowerCase();
     if (query.isEmpty) return const <TransitStop>[];
-    final rows = await db.AppDatabase().getAllStops();
+    final rows = await _database.getAllStops();
     return rows
         .where((row) => row.endpoint.startsWith('qld:'))
         .where((row) => row.stopName.toLowerCase().contains(query))
@@ -89,7 +94,11 @@ class TranslinkStopRepository implements StopRepository {
 }
 
 class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
-  const TranslinkStaticGtfsRepository();
+  const TranslinkStaticGtfsRepository({this.database});
+
+  final db.AppDatabase? database;
+
+  db.AppDatabase get _database => database ?? db.AppDatabase();
 
   @override
   Stream<StaticImportProgress> refreshStaticData(
@@ -113,37 +122,54 @@ class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
         total: selectedFeeds.length,
         message: 'Downloading ${feed.label} static GTFS…',
       );
-      final bytes = await fetchTranslinkStaticGtfsZip(feed.id);
-      if (bytes == null || bytes.isEmpty) {
-        throw ProviderUnavailable(
-          message: 'Failed to download ${feed.label} GTFS.',
+      try {
+        final bytes = await fetchTranslinkStaticGtfsZip(feed.id);
+        if (bytes == null || bytes.isEmpty) {
+          yield StaticImportProgress(
+            sourceId: TransitSourceId('qld:${feed.id}'),
+            completed: completed,
+            total: selectedFeeds.length,
+            message: 'Failed to download ${feed.label} GTFS.',
+            error: 'The public TransLink feed was unavailable.',
+          );
+          continue;
+        }
+        final stops = parseStopsOnlyFromZipBytes(Uint8List.fromList(bytes));
+        for (final stop in stops) {
+          await _database.insertStop(
+            db.StopsCompanion.insert(
+              stopId: stop.stopId,
+              stopName: stop.stopName,
+              endpoint: 'qld:${feed.id}',
+              stopCode: Value(stop.stopCode),
+              stopDesc: Value(stop.stopDesc),
+              stopLat: Value(stop.stopLat),
+              stopLon: Value(stop.stopLon),
+              platformCode: Value(stop.platformCode),
+              parentStation: Value(stop.parentStation),
+              wheelchairBoarding: Value(stop.wheelchairBoarding),
+            ),
+          );
+        }
+        completed += 1;
+        yield StaticImportProgress(
+          sourceId: TransitSourceId('qld:${feed.id}'),
+          completed: completed,
+          total: selectedFeeds.length,
+          message: 'Imported ${stops.length} stops from ${feed.label}.',
+        );
+      } catch (error, stackTrace) {
+        safeLogWarning(
+          'TransLink static import failed for ${feed.id}: $error\n$stackTrace',
+        );
+        yield StaticImportProgress(
+          sourceId: TransitSourceId('qld:${feed.id}'),
+          completed: completed,
+          total: selectedFeeds.length,
+          message: 'Failed to import ${feed.label} GTFS.',
+          error: 'The public TransLink feed could not be parsed.',
         );
       }
-      final stops = parseStopsOnlyFromZipBytes(Uint8List.fromList(bytes));
-      final database = db.AppDatabase();
-      for (final stop in stops) {
-        await database.insertStop(
-          db.StopsCompanion.insert(
-            stopId: stop.stopId,
-            stopName: stop.stopName,
-            endpoint: 'qld:${feed.id}',
-            stopCode: Value(stop.stopCode),
-            stopDesc: Value(stop.stopDesc),
-            stopLat: Value(stop.stopLat),
-            stopLon: Value(stop.stopLon),
-            platformCode: Value(stop.platformCode),
-            parentStation: Value(stop.parentStation),
-            wheelchairBoarding: Value(stop.wheelchairBoarding),
-          ),
-        );
-      }
-      completed += 1;
-      yield StaticImportProgress(
-        sourceId: TransitSourceId('qld:${feed.id}'),
-        completed: completed,
-        total: selectedFeeds.length,
-        message: 'Imported ${stops.length} stops from ${feed.label}.',
-      );
     }
   }
 }
@@ -156,7 +182,7 @@ class TranslinkDepartureRepository implements DepartureRepository {
   @override
   Future<List<TransitDeparture>> getDepartures(DepartureRequest request) async {
     final feedId = _feedIdFromSource(request.stop.sourceId.value);
-    final data = await _loadFeed(feedId);
+    final data = await loadFeed(feedId);
     final now = request.when ?? DateTime.now();
     final activeServiceIds = _activeServiceIds(data, now);
     final tripsById = {for (final trip in data.trips) trip.tripId: trip};
@@ -213,29 +239,54 @@ class TranslinkDepartureRepository implements DepartureRepository {
     return departures.take(20).toList(growable: false);
   }
 
-  Future<GtfsData> _loadFeed(String feedId) async {
+  Future<GtfsData> loadFeed(String feedId) async {
     final cached = _cache[feedId];
     if (cached != null) {
       return cached;
     }
-    final bytes = await fetchTranslinkStaticGtfsZip(feedId);
-    if (bytes == null || bytes.isEmpty) {
-      throw ProviderUnavailable(
-        message: 'Failed to download TransLink static GTFS for $feedId.',
+    try {
+      final bytes = await fetchTranslinkStaticGtfsZip(feedId);
+      if (bytes == null || bytes.isEmpty) {
+        return _emptyGtfsData();
+      }
+      final archive = ZipDecoder().decodeBytes(bytes);
+      final files = <String, String>{};
+      for (final file in archive) {
+        if (!file.isFile) continue;
+        final content = file.content;
+        try {
+          files[file.name] = utf8.decode(content);
+        } catch (error, stackTrace) {
+          safeLogWarning(
+            'TransLink GTFS file decode failed for ${file.name}: '
+            '$error\n$stackTrace',
+          );
+        }
+      }
+      final parsed = parseGtfsFiles(files);
+      _cache[feedId] = parsed;
+      return parsed;
+    } catch (error, stackTrace) {
+      safeLogWarning(
+        'TransLink GTFS parse failed for $feedId: $error\n$stackTrace',
       );
+      return _emptyGtfsData();
     }
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final files = <String, String>{};
-    for (final file in archive) {
-      if (!file.isFile) continue;
-      try {
-        files[file.name] = utf8.decode(file.content as List<int>);
-      } catch (_) {}
-    }
-    final parsed = parseGtfsFiles(files);
-    _cache[feedId] = parsed;
-    return parsed;
   }
+}
+
+GtfsData _emptyGtfsData() {
+  return GtfsData(
+    agencies: const [],
+    calendars: const [],
+    calendarDates: const [],
+    routes: const [],
+    stops: const [],
+    stopTimes: const [],
+    trips: const [],
+    shapes: const [],
+    notes: const [],
+  );
 }
 
 class TranslinkRealtimeRepository implements RealtimeRepository {
@@ -315,14 +366,21 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
   }
 }
 
-TransitRegionServices buildTranslinkRegionServices() {
+TransitRegionServices buildTranslinkRegionServices({db.AppDatabase? database}) {
+  final timetable = TranslinkDepartureRepository();
   return TransitRegionServices(
     region: TransitRegion.queensland,
     provider: TransitProviderId.translink,
-    stops: const TranslinkStopRepository(),
-    staticGtfs: const TranslinkStaticGtfsRepository(),
+    stops: TranslinkStopRepository(database: database),
+    staticGtfs: TranslinkStaticGtfsRepository(database: database),
     realtime: const TranslinkRealtimeRepository(),
-    departures: TranslinkDepartureRepository(),
+    departures: timetable,
+    journeyPlanner: GtfsJourneyPlanner(
+      region: TransitRegion.queensland,
+      provider: TransitProviderId.translink,
+      loadData: (sourceId) =>
+          timetable.loadFeed(_feedIdFromSource(sourceId.value)),
+    ),
     attribution: const TransitProviderAttribution(
       provider: TransitProviderId.translink,
       name: 'Queensland TransLink GTFS',

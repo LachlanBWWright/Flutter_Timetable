@@ -7,7 +7,7 @@ the Flutter version pinned in `.fvmrc`; otherwise they use `flutter` on `PATH`.
 | --- | --- |
 | `./scripts/setup.sh` | Create a local `.env` when needed and install packages |
 | `./scripts/dev.sh [Flutter args]` | Run the app on an available device |
-| `./scripts/dev_web.sh [Flutter args]` | Run the app in Chrome with hot reload |
+| `./scripts/dev_web.sh [Flutter args]` | Start the web development server with hot reload |
 | `./scripts/format.sh` | Apply Dart formatting |
 | `./scripts/lint.sh` | Check formatting and run static analysis |
 | `./scripts/test.sh [test args]` | Run deterministic tests only |
@@ -19,6 +19,16 @@ the Flutter version pinned in `.fvmrc`; otherwise they use `flutter` on `PATH`.
 | `PORT=8000 ./scripts/preview_web.sh` | Build and serve the production web app |
 | `./scripts/generate_api.sh` | Regenerate API clients with build_runner |
 | `./scripts/clean.sh` | Clean Flutter outputs and restore packages |
+
+The development web server listens on port `8080` by default. Override its
+address with environment variables, for example:
+
+```bash
+PORT=3000 ./scripts/dev_web.sh
+```
+
+It binds to `127.0.0.1` so Flutter's browser debugging URLs remain valid. Set
+`WEB_HOSTNAME=0.0.0.0` explicitly when access from other machines is needed.
 
 Integration tests need valid provider credentials in `.env`. Android release
 builds also require an installed Android SDK and a compatible Java toolchain.

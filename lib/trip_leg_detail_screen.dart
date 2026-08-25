@@ -45,6 +45,7 @@ class TripLegDetailScreen extends StatefulWidget {
   getGtfsDataForEndpoint;
   // Allow skipping artificial initial delays in scenarios like widget tests.
   final bool skipInitialLoadDelay;
+  final bool skipInitialLoad;
 
   const TripLegDetailScreen({
     super.key,
@@ -56,6 +57,7 @@ class TripLegDetailScreen extends StatefulWidget {
     this.getAllTripUpdatesAggregated,
     this.getGtfsDataForEndpoint,
     this.skipInitialLoadDelay = false,
+    this.skipInitialLoad = false,
   });
 
   @override
@@ -237,7 +239,10 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     _updatedLeg = widget.leg;
     final idx = _tripLegs.indexOf(widget.leg);
     _currentLegIndex = idx >= 0 ? idx : 0;
-    if (widget.skipInitialLoadDelay) {
+    if (widget.skipInitialLoad) {
+      // Static previews intentionally avoid realtime, database, and network
+      // lookups; the supplied leg remains available for rendering.
+    } else if (widget.skipInitialLoadDelay) {
       if (_supportsRealtimeForLeg(_activeLeg)) {
         _loadVehiclesForLeg();
       }
@@ -1632,12 +1637,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
                             size: 14,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            _formatTimeDifference(
-                              origin.departureTimePlanned,
-                              origin.departureTimeEstimated,
+                          Flexible(
+                            child: Text(
+                              _formatTimeDifference(
+                                origin.departureTimePlanned,
+                                origin.departureTimeEstimated,
+                              ),
+                              style: const TextStyle(fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            style: const TextStyle(fontSize: 13),
                           ),
                         ],
                       ),
@@ -1674,12 +1682,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
                             size: 14,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            _formatTimeDifference(
-                              destination.arrivalTimePlanned,
-                              destination.arrivalTimeEstimated,
+                          Flexible(
+                            child: Text(
+                              _formatTimeDifference(
+                                destination.arrivalTimePlanned,
+                                destination.arrivalTimeEstimated,
+                              ),
+                              style: const TextStyle(fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            style: const TextStyle(fontSize: 13),
                           ),
                         ],
                       ),

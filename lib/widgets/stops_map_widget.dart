@@ -38,6 +38,12 @@ class StopsMapWidget extends StatefulWidget {
   /// list view.  Only used when [embedded] is true.
   final VoidCallback? onClose;
 
+  /// Whether to load OpenStreetMap tiles. Disable this for offline previews
+  /// and golden tests so captures do not depend on network or host plugins.
+  final bool showTileLayer;
+  final bool skipInitialLoad;
+  final List<Stop> initialStops;
+
   const StopsMapWidget({
     super.key,
     required this.transportMode,
@@ -47,6 +53,9 @@ class StopsMapWidget extends StatefulWidget {
     this.allowedStopIds,
     this.embedded = false,
     this.onClose,
+    this.showTileLayer = true,
+    this.skipInitialLoad = false,
+    this.initialStops = const [],
   });
 
   @override
@@ -100,6 +109,12 @@ class _StopsMapWidgetState extends State<StopsMapWidget>
   @override
   void initState() {
     super.initState();
+    if (widget.skipInitialLoad) {
+      _stops = List<Stop>.of(widget.initialStops);
+      _buildMarkerCache();
+      _isLoading = false;
+      return;
+    }
     _loadStopsAndLocation();
   }
 
@@ -378,10 +393,11 @@ class _StopsMapWidgetState extends State<StopsMapWidget>
             },
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.flutter_timetable',
-            ),
+            if (widget.showTileLayer)
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.flutter_timetable',
+              ),
             if (userLoc != null)
               MarkerLayer(
                 markers: [

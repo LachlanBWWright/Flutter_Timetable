@@ -15,6 +15,14 @@ part 'tables/trip_planner_cache.dart';
 
 part 'database.g.dart';
 
+QueryExecutor _openAppDatabase() => driftDatabase(
+  name: 'trip_database',
+  web: DriftWebOptions(
+    sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+    driftWorker: Uri.parse('drift_worker.js'),
+  ),
+);
+
 abstract class SafeTable extends Table {
   TextColumn _fallbackTextColumn({
     required bool nullable,
@@ -162,11 +170,8 @@ class AppDatabase extends _$AppDatabase {
   bool _isClosed = false;
 
   // Single QueryExecutor reused across the app to avoid multiple database
-  // instances. Uses drift_flutter which picks the right backend per platform
-  // (NativeDatabase on mobile/desktop, IndexedDB on web).
-  static final QueryExecutor _sharedExecutor = driftDatabase(
-    name: 'trip_database',
-  );
+  // instances. Uses drift_flutter which picks the right backend per platform.
+  static final QueryExecutor _sharedExecutor = _openAppDatabase();
 
   AppDatabase._internal() : super(_sharedExecutor);
 
@@ -693,7 +698,7 @@ class AppDatabase extends _$AppDatabase {
     _instance = null;
 
     // Create a fresh instance backed by a new executor.
-    _instance = AppDatabase.connect(driftDatabase(name: 'trip_database'));
+    _instance = AppDatabase.connect(_openAppDatabase());
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/services/app_http_client.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 
@@ -18,13 +19,24 @@ Future<List<int>?> fetchTranslinkStaticGtfsZip(String feedId) async {
     return null;
   }
 
-  final response = await AppHttpClient.get(
-    uri,
-    headers: buildTranslinkStaticGtfsHeaders(),
-  );
-  if (response == null || response.statusCode != 200) {
+  try {
+    final response = await AppHttpClient.get(
+      uri,
+      headers: buildTranslinkStaticGtfsHeaders(),
+    );
+    if (response == null || response.statusCode != 200) {
+      safeLogWarning(
+        'TransLink static GTFS request failed for $feedId: '
+        '${response?.statusCode ?? 'network error'}',
+      );
+      return null;
+    }
+
+    return response.bodyBytes;
+  } catch (error, stackTrace) {
+    safeLogWarning(
+      'TransLink static GTFS request failed for $feedId: $error\n$stackTrace',
+    );
     return null;
   }
-
-  return response.bodyBytes;
 }

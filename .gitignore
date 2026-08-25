@@ -27,12 +27,14 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+lib/nsw/swaggers/generated/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
 /build/
+/screenshots/
 
 # Web related
 
@@ -55,3 +57,4 @@ app.*.map.json
 /android/app/.cxx/
 wget-log
 .env
+.widget_preview/

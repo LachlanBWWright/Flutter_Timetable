@@ -455,7 +455,8 @@ List<String> _rowToStrings(List<dynamic> row, {bool stripLeadingBom = false}) {
   final values = <String>[];
   var isFirstCell = true;
   for (final cell in row) {
-    values.add(_cellToString(cell, stripBom: stripLeadingBom && isFirstCell));
+    final value = _cellToString(cell, stripBom: stripLeadingBom && isFirstCell);
+    values.add(stripLeadingBom ? value.trim() : value);
     isFirstCell = false;
   }
   return values;

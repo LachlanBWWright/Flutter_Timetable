@@ -8,7 +8,16 @@ import 'utils/guarded_state.dart';
 import 'widgets/station_widgets.dart';
 
 class SetHomeStopScreen extends StatefulWidget {
-  const SetHomeStopScreen({super.key});
+  const SetHomeStopScreen({
+    super.key,
+    this.skipInitialLoad = false,
+    this.initialStations = const [],
+    this.initialHomeStop,
+  });
+
+  final bool skipInitialLoad;
+  final List<Station> initialStations;
+  final String? initialHomeStop;
 
   @override
   State<SetHomeStopScreen> createState() => _SetHomeStopScreenState();
@@ -45,6 +54,11 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     addListenerSafely(keyController, _applySearchFilter);
 
     _searchFocusNode = FocusNode();
+    if (widget.skipInitialLoad) {
+      _trainStationList = List<Station>.of(widget.initialStations);
+      _currentHomeStop = widget.initialHomeStop;
+      return;
+    }
     _loadAllModes();
     _loadCurrentHomeStop();
   }
@@ -217,15 +231,11 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     }
   }
 
-  void _setStation(
-    String stationName,
-    String stationId,
-    TransportMode? selectedMode,
-  ) {
+  void _setStation(Station station) {
     guardedSetState(() {
-      _selectedStationName = stationName;
-      _selectedStationId = stationId;
-      _selectedStationMode = selectedMode ?? _currentMode;
+      _selectedStationName = station.name;
+      _selectedStationId = station.transitRef?.storageKey ?? station.id;
+      _selectedStationMode = station.mode ?? _currentMode;
     });
   }
 

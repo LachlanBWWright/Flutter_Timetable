@@ -18,6 +18,7 @@ import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
 import 'utils/guarded_state.dart';
 import 'utils/settings_screen_utils.dart';
+import 'victoria/services/ptv_credentials.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
@@ -60,6 +61,9 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   // API key card state
   final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _ptvDeveloperIdController =
+      TextEditingController();
+  final TextEditingController _ptvApiKeyController = TextEditingController();
   bool _hasUserApiKey = false;
   bool _apiKeyObscured = true;
   bool _isSavingApiKey = false;
@@ -74,6 +78,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   void dispose() {
     disposeChangeNotifierSafely(_apiKeyController);
+    disposeChangeNotifierSafely(_ptvDeveloperIdController);
+    disposeChangeNotifierSafely(_ptvApiKeyController);
     super.dispose();
   }
 
@@ -113,22 +119,69 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
-  Future<void> _openDevGuide() async {
-    final uri = Uri.tryParse(_developerGuideUrl);
+  Future<void> _savePtvCredentials() async {
+    final developerId = _ptvDeveloperIdController.text.trim();
+    final apiKey = _ptvApiKeyController.text.trim();
+    if (developerId.isEmpty || apiKey.isEmpty) {
+      guardedSetState(
+        () => _apiKeyStatus = 'Enter both the PTV developer ID and API key.',
+      );
+      return;
+    }
+    guardedSetState(() => _isSavingApiKey = true);
+    await PtvCredentialService.setUserCredentials(
+      developerId: developerId,
+      apiKey: apiKey,
+    );
+    guardedSetState(() {
+      _ptvDeveloperIdController.clear();
+      _ptvApiKeyController.clear();
+      _apiKeyStatus = 'Custom PTV credentials saved successfully.';
+      _isSavingApiKey = false;
+    });
+  }
+
+  Future<void> _clearPtvCredentials() async {
+    guardedSetState(() => _isSavingApiKey = true);
+    await PtvCredentialService.clearUserCredentials();
+    guardedSetState(() {
+      _ptvDeveloperIdController.clear();
+      _ptvApiKeyController.clear();
+      _apiKeyStatus = PtvCredentialService.hasBuiltInCredentials
+          ? 'Custom PTV credentials removed; using built-in credentials.'
+          : 'Custom PTV credentials removed.';
+      _isSavingApiKey = false;
+    });
+  }
+
+  Future<void> _toggleRegion(TransitRegion region, bool enabled) async {
+    final regions = {...AppTransitContext.instance.enabledRegions};
+    if (enabled) {
+      regions.add(region);
+    } else {
+      if (regions.length == 1) {
+        showSnackBar(
+          const SnackBar(content: Text('At least one region must be enabled.')),
+        );
+        return;
+      }
+      regions.remove(region);
+    }
+    await AppTransitContext.instance.setEnabledRegions(regions);
+    guardedSetState(() {});
+  }
+
+  Future<void> _openProviderUrl(String url) async {
+    final uri = Uri.tryParse(url);
     if (uri == null) {
       showSnackBar(
         const SnackBar(content: Text('Could not open developer guide URL')),
       );
       return;
     }
-    final launched = await AppUrlLauncher.launchExternalUrl(
-      uri,
-      label: _developerGuideUrl,
-    );
+    final launched = await AppUrlLauncher.launchExternalUrl(uri, label: url);
     if (!launched) {
-      showSnackBar(
-        SnackBar(content: Text('Could not open $_developerGuideUrl')),
-      );
+      showSnackBar(SnackBar(content: Text('Could not open $url')));
     }
   }
 
@@ -264,6 +317,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget build(BuildContext context) {
     final selectedRegion = _selectedRegion;
     final currentServices = _currentServices;
+    final enabledRegions = AppTransitContext.instance.enabledRegions;
+    final enabledServices = AppTransitContext.instance.enabledServices;
     final hasBuiltInApiKey = _resolveHasBuiltInApiKey();
 
     return Scaffold(
@@ -285,16 +340,33 @@ class _SettingsScreenState extends State<SettingsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Transit Region',
+                      'Transit Regions',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
+                    ...TransitRegion.values.map(
+                      (region) => CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(region.label),
+                        subtitle: Text(
+                          AppTransitContext.instance
+                              .servicesFor(region)
+                              .attribution
+                              .name,
+                        ),
+                        value: enabledRegions.contains(region),
+                        onChanged: (enabled) =>
+                            _toggleRegion(region, enabled ?? false),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     DropdownButtonFormField<TransitRegion>(
+                      key: ValueKey(selectedRegion),
                       initialValue: selectedRegion,
-                      items: TransitRegion.values
+                      items: enabledRegions
                           .map(
                             (region) => DropdownMenuItem(
                               value: region,
@@ -313,6 +385,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         guardedSetState(() {});
                       },
                       decoration: const InputDecoration(
+                        labelText: 'Primary region',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -345,19 +418,17 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(currentServices.attribution.name),
-                    const SizedBox(height: 4),
-                    Text(
-                      currentServices.attribution.licenseName,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _openDevGuide,
-                        icon: const Icon(Icons.open_in_new),
-                        label: const Text('Open provider docs'),
+                    ...enabledServices.map(
+                      (services) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(services.attribution.name),
+                        subtitle: Text(services.attribution.licenseName),
+                        trailing: IconButton(
+                          tooltip: 'Open ${services.attribution.name} docs',
+                          onPressed: () =>
+                              _openProviderUrl(services.attribution.url),
+                          icon: const Icon(Icons.open_in_new),
+                        ),
                       ),
                     ),
                   ],
@@ -398,112 +469,12 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
             ),
-            // API key card
-            if (selectedRegion == TransitRegion.nsw)
-              Card(
-                margin: const EdgeInsets.all(8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'API Key',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          TextButton.icon(
-                            onPressed: _openDevGuide,
-                            icon: const Icon(Icons.open_in_new, size: 16),
-                            label: const Text('Get a key'),
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        apiKeyUsageText(
-                          hasUserApiKey: _hasUserApiKey,
-                          hasBuiltInApiKey: hasBuiltInApiKey,
-                        ),
-                        style: TextStyle(
-                          color: apiKeyUsageColor(
-                            hasUserApiKey: _hasUserApiKey,
-                            hasBuiltInApiKey: hasBuiltInApiKey,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _apiKeyController,
-                        obscureText: _apiKeyObscured,
-                        decoration: InputDecoration(
-                          labelText: 'Custom API key (optional)',
-                          hintText: 'Paste your TfNSW OpenData API key',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _apiKeyObscured
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                            ),
-                            tooltip: _apiKeyObscured ? 'Show key' : 'Hide key',
-                            onPressed: () => guardedSetState(
-                              () => _apiKeyObscured = !_apiKeyObscured,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_apiKeyStatus case final apiKeyStatus?)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Text(
-                            apiKeyStatus,
-                            style: TextStyle(
-                              color: _apiKeyStatusColor(apiKeyStatus),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _isSavingApiKey ? null : _saveApiKey,
-                              icon: const Icon(Icons.save),
-                              label: const Text('Save key'),
-                              style: ButtonStyles.elevated(Colors.blueAccent),
-                            ),
-                          ),
-                          if (_hasUserApiKey) ...[
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _isSavingApiKey
-                                    ? null
-                                    : _clearApiKey,
-                                icon: const Icon(Icons.delete_outline),
-                                label: const Text('Clear key'),
-                                style: ButtonStyles.elevated(Colors.redAccent),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+            ...enabledRegions.map(
+              (region) => _buildProviderCredentialsCard(
+                region,
+                hasBuiltInTfnswKey: hasBuiltInApiKey,
               ),
+            ),
             // Home Stop Card
             Card(
               margin: const EdgeInsets.all(8.0),
@@ -771,10 +742,185 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
+  Widget _buildProviderCredentialsCard(
+    TransitRegion region, {
+    required bool hasBuiltInTfnswKey,
+  }) {
+    final services = AppTransitContext.instance.servicesFor(region);
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${services.attribution.name} credentials',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => _openProviderUrl(services.attribution.url),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('Provider docs'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            if (region == TransitRegion.nsw)
+              ..._buildTfnswCredentialFields(hasBuiltInTfnswKey)
+            else if (region == TransitRegion.victoria)
+              ..._buildPtvCredentialFields()
+            else ...const [
+              Text(
+                'No API credentials are required for the configured Queensland open-data feeds.',
+                style: TextStyle(color: Colors.green),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildTfnswCredentialFields(bool hasBuiltInApiKey) => [
+    Text(
+      apiKeyUsageText(
+        hasUserApiKey: _hasUserApiKey,
+        hasBuiltInApiKey: hasBuiltInApiKey,
+      ),
+      style: TextStyle(
+        color: apiKeyUsageColor(
+          hasUserApiKey: _hasUserApiKey,
+          hasBuiltInApiKey: hasBuiltInApiKey,
+        ),
+      ),
+    ),
+    const SizedBox(height: 12),
+    TextField(
+      controller: _apiKeyController,
+      obscureText: _apiKeyObscured,
+      decoration: _credentialDecoration(
+        label: 'TfNSW OpenData API key',
+        hint: 'Paste your TfNSW API key',
+      ),
+    ),
+    const SizedBox(height: 12),
+    _buildCredentialStatus(),
+    Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _isSavingApiKey ? null : _saveApiKey,
+            icon: const Icon(Icons.save),
+            label: const Text('Save key'),
+          ),
+        ),
+        if (_hasUserApiKey) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _isSavingApiKey ? null : _clearApiKey,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Clear override'),
+            ),
+          ),
+        ],
+      ],
+    ),
+  ];
+
+  List<Widget> _buildPtvCredentialFields() => [
+    Text(
+      PtvCredentialService.hasUserCredentials
+          ? 'Using custom PTV credentials.'
+          : PtvCredentialService.hasBuiltInCredentials
+          ? 'Using built-in PTV credentials.'
+          : 'PTV credentials are not configured.',
+      style: TextStyle(
+        color:
+            PtvCredentialService.hasUserCredentials ||
+                PtvCredentialService.hasBuiltInCredentials
+            ? Colors.green
+            : Colors.orange,
+      ),
+    ),
+    const SizedBox(height: 12),
+    TextField(
+      controller: _ptvDeveloperIdController,
+      decoration: _credentialDecoration(
+        label: 'PTV developer ID',
+        hint: 'Enter your PTV developer ID',
+      ),
+    ),
+    const SizedBox(height: 8),
+    TextField(
+      controller: _ptvApiKeyController,
+      obscureText: _apiKeyObscured,
+      decoration: _credentialDecoration(
+        label: 'PTV API key',
+        hint: 'Paste your PTV API key',
+      ),
+    ),
+    const SizedBox(height: 12),
+    _buildCredentialStatus(),
+    Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _isSavingApiKey ? null : _savePtvCredentials,
+            icon: const Icon(Icons.save),
+            label: const Text('Save credentials'),
+          ),
+        ),
+        if (PtvCredentialService.hasUserCredentials) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _isSavingApiKey ? null : _clearPtvCredentials,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Clear override'),
+            ),
+          ),
+        ],
+      ],
+    ),
+  ];
+
+  InputDecoration _credentialDecoration({
+    required String label,
+    required String hint,
+  }) => InputDecoration(
+    labelText: label,
+    hintText: hint,
+    border: const OutlineInputBorder(),
+    suffixIcon: IconButton(
+      icon: Icon(_apiKeyObscured ? Icons.visibility : Icons.visibility_off),
+      tooltip: _apiKeyObscured ? 'Show credentials' : 'Hide credentials',
+      onPressed: () =>
+          guardedSetState(() => _apiKeyObscured = !_apiKeyObscured),
+    ),
+  );
+
+  Widget _buildCredentialStatus() {
+    final status = _apiKeyStatus;
+    if (status == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        status,
+        style: TextStyle(color: _apiKeyStatusColor(status), fontSize: 13),
+      ),
+    );
+  }
+
   bool _resolveHasUserApiKey() {
-    if (_selectedRegion != TransitRegion.nsw) {
-      return false;
-    }
     final override = widget.hasUserApiKey;
     if (override != null) {
       return override;
@@ -783,9 +929,6 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   bool _resolveHasBuiltInApiKey() {
-    if (_selectedRegion != TransitRegion.nsw) {
-      return false;
-    }
     final override = widget.hasBuiltInApiKey;
     if (override != null) {
       return override;
@@ -798,17 +941,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   TransitRegionServices get _currentServices =>
       AppTransitContext.instance.currentServices;
-
-  String get _developerGuideUrl {
-    switch (_selectedRegion) {
-      case TransitRegion.nsw:
-        return 'https://opendata.transport.nsw.gov.au/developers/userguide';
-      case TransitRegion.victoria:
-        return 'https://www.ptv.vic.gov.au/footer/data-and-reporting/datasets/ptv-timetable-api/';
-      case TransitRegion.queensland:
-        return 'https://www.data.qld.gov.au/organization/transport-and-main-roads?q=GTFS';
-    }
-  }
 
   String _capabilitySummary(TransitRegionServices services) {
     final capabilities = <String>[

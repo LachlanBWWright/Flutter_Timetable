@@ -6,6 +6,7 @@ import '../services/app_preferences.dart';
 import '../services/debug_service.dart';
 import '../services/transport_preferences_service.dart';
 import '../transit/registry/app_transit_context.dart';
+import '../victoria/services/ptv_credentials.dart';
 
 class AppBootstrapService {
   const AppBootstrapService._();
@@ -16,6 +17,7 @@ class AppBootstrapService {
     await DebugService.init();
     await TransportPreferencesService.init();
     await ApiKeyService.init();
+    await PtvCredentialService.init();
     await AppTransitContext.instance.initialize();
   }
 

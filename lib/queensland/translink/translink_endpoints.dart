@@ -156,6 +156,24 @@ const translinkRealtimeFeedSets = <TranslinkRealtimeFeedSet>[
         'https://gtfsrt.api.translink.com.au/api/realtime/CNS/VehiclePositions',
     alertsUrl: 'https://gtfsrt.api.translink.com.au/api/realtime/CNS/Alerts',
   ),
+  TranslinkRealtimeFeedSet(
+    id: 'NSI',
+    label: 'North Stradbroke Island',
+    tripUpdatesUrl:
+        'https://gtfsrt.api.translink.com.au/api/realtime/NSI/TripUpdates',
+    vehiclePositionsUrl:
+        'https://gtfsrt.api.translink.com.au/api/realtime/NSI/VehiclePositions',
+    alertsUrl: 'https://gtfsrt.api.translink.com.au/api/realtime/NSI/Alerts',
+  ),
+  TranslinkRealtimeFeedSet(
+    id: 'MHB',
+    label: 'Maryborough Hervey Bay',
+    tripUpdatesUrl:
+        'https://gtfsrt.api.translink.com.au/api/realtime/MHB/TripUpdates',
+    vehiclePositionsUrl:
+        'https://gtfsrt.api.translink.com.au/api/realtime/MHB/VehiclePositions',
+    alertsUrl: 'https://gtfsrt.api.translink.com.au/api/realtime/MHB/Alerts',
+  ),
 ];
 
 TranslinkStaticGtfsFeed? translinkStaticFeedById(String id) {

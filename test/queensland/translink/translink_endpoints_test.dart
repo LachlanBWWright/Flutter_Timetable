@@ -11,7 +11,7 @@ void main() {
     });
 
     test('contains published GTFS-Realtime feed sets', () {
-      expect(translinkRealtimeFeedSets, hasLength(3));
+      expect(translinkRealtimeFeedSets, hasLength(5));
 
       final seq = translinkRealtimeFeedSetById('SEQ');
       expect(seq, isNotNull);

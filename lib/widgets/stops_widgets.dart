@@ -573,8 +573,22 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget>
 
     await runAsyncGuarded(
       () async {
-        final results = await AppTransitContext.instance.currentServices.stops
-            .searchStops(StopSearchRequest(query: query));
+        final services = AppTransitContext.instance.enabledServices;
+        final regionalResults = await Future.wait(
+          services.map((region) async {
+            try {
+              return await region.stops.searchStops(
+                StopSearchRequest(query: query, limit: 50),
+              );
+            } catch (_) {
+              return const <TransitStop>[];
+            }
+          }),
+        );
+        final results = regionalResults
+            .expand((stops) => stops)
+            .take(50)
+            .toList(growable: false);
         if (!mounted) return;
         guardedSetState(() {
           _searchResults = results;
@@ -658,6 +672,10 @@ class _StopsSearchWidgetState extends State<StopsSearchWidget>
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             const SizedBox(height: 4),
+            Text(
+              '${stop.ref.region.shortLabel} • ${stop.ref.provider.label}',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
             Text(
               'ID: ${stop.ref.stopId}',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
