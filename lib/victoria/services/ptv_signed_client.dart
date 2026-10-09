@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:lbww_flutter/victoria/services/ptv_credentials.dart';
 import 'package:lbww_flutter/victoria/services/ptv_timetable_client.dart';
+import 'package:lbww_flutter/wrappers/app_http_client_impl.dart';
 
 class PtvSignedClient {
   PtvSignedClient({PtvTimetableV3? client, PtvCredentials? credentials})
-    : _client = client ?? PtvTimetableV3.create(),
+    : _client =
+          client ?? PtvTimetableV3.create(httpClient: BoundedHttpClient()),
       _credentialsOverride = credentials;
 
   final PtvTimetableV3 _client;

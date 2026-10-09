@@ -135,22 +135,25 @@ class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
           continue;
         }
         final stops = parseStopsOnlyFromZipBytes(Uint8List.fromList(bytes));
-        for (final stop in stops) {
-          await _database.insertStop(
-            db.StopsCompanion.insert(
-              stopId: stop.stopId,
-              stopName: stop.stopName,
-              endpoint: 'qld:${feed.id}',
-              stopCode: Value(stop.stopCode),
-              stopDesc: Value(stop.stopDesc),
-              stopLat: Value(stop.stopLat),
-              stopLon: Value(stop.stopLon),
-              platformCode: Value(stop.platformCode),
-              parentStation: Value(stop.parentStation),
-              wheelchairBoarding: Value(stop.wheelchairBoarding),
-            ),
-          );
-        }
+        await _database.insertStopsForEndpoint(
+          stops
+              .map(
+                (stop) => db.StopsCompanion.insert(
+                  stopId: stop.stopId,
+                  stopName: stop.stopName,
+                  endpoint: 'qld:${feed.id}',
+                  stopCode: Value(stop.stopCode),
+                  stopDesc: Value(stop.stopDesc),
+                  stopLat: Value(stop.stopLat),
+                  stopLon: Value(stop.stopLon),
+                  platformCode: Value(stop.platformCode),
+                  parentStation: Value(stop.parentStation),
+                  wheelchairBoarding: Value(stop.wheelchairBoarding),
+                ),
+              )
+              .toList(growable: false),
+          'qld:${feed.id}',
+        );
         completed += 1;
         yield StaticImportProgress(
           sourceId: TransitSourceId('qld:${feed.id}'),
@@ -178,6 +181,8 @@ class TranslinkDepartureRepository implements DepartureRepository {
   TranslinkDepartureRepository();
 
   final Map<String, GtfsData> _cache = <String, GtfsData>{};
+  final Map<String, DateTime> _cacheFetchedAt = <String, DateTime>{};
+  static const Duration _cacheTtl = Duration(hours: 6);
 
   @override
   Future<List<TransitDeparture>> getDepartures(DepartureRequest request) async {
@@ -241,7 +246,10 @@ class TranslinkDepartureRepository implements DepartureRepository {
 
   Future<GtfsData> loadFeed(String feedId) async {
     final cached = _cache[feedId];
-    if (cached != null) {
+    final fetchedAt = _cacheFetchedAt[feedId];
+    if (cached != null &&
+        fetchedAt != null &&
+        DateTime.now().difference(fetchedAt) < _cacheTtl) {
       return cached;
     }
     try {
@@ -265,6 +273,7 @@ class TranslinkDepartureRepository implements DepartureRepository {
       }
       final parsed = parseGtfsFiles(files);
       _cache[feedId] = parsed;
+      _cacheFetchedAt[feedId] = DateTime.now();
       return parsed;
     } catch (error, stackTrace) {
       safeLogWarning(

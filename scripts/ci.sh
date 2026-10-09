@@ -7,7 +7,6 @@ ensure_env_file
 "${FLUTTER[@]}" pub get
 "${DART[@]}" format --output=none --set-exit-if-changed .
 "${FLUTTER[@]}" analyze
-"${FLUTTER[@]}" test --exclude-tags integration
+"${FLUTTER[@]}" test --coverage --exclude-tags integration
 
 echo "Local CI checks passed."
-

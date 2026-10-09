@@ -9,6 +9,7 @@ import 'package:lbww_flutter/queensland/translink/translink.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 
+@Tags(['integration'])
 void main() {
   final runLiveTests = Platform.environment['RUN_QLD_API_TESTS'] == 'true';
 

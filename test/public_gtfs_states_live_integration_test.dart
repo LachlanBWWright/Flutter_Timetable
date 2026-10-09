@@ -11,6 +11,7 @@ import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 import 'package:lbww_flutter/western_australia/transperth_gtfs.dart';
 import 'package:test/test.dart';
 
+@Tags(['integration'])
 void main() {
   final runLiveTests =
       Platform.environment['RUN_PUBLIC_STATE_API_TESTS'] == 'true';

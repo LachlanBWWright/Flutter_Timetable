@@ -35,6 +35,7 @@ lib/nsw/swaggers/generated/
 .pub/
 /build/
 /screenshots/
+/test/failures/
 
 # Web related
 
@@ -43,6 +44,9 @@ app.*.symbols
 
 # Local environment variables
 .env
+.key.properties
+android/key.properties
+android/*.jks
 .codex
 
 # Obfuscation related

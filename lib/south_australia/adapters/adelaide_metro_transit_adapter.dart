@@ -99,22 +99,25 @@ class AdelaideMetroStaticGtfsRepository implements StaticGtfsRepository {
       final stops = parseStopsOnlyFromZipBytes(
         Uint8List.fromList(response.bodyBytes),
       );
-      for (final stop in stops) {
-        await _database.insertStop(
-          db.StopsCompanion.insert(
-            stopId: stop.stopId,
-            stopName: stop.stopName,
-            endpoint: 'sa:static',
-            stopCode: Value(stop.stopCode),
-            stopDesc: Value(stop.stopDesc),
-            stopLat: Value(stop.stopLat),
-            stopLon: Value(stop.stopLon),
-            platformCode: Value(stop.platformCode),
-            wheelchairBoarding: Value(stop.wheelchairBoarding),
-            parentStation: Value(stop.parentStation),
-          ),
-        );
-      }
+      await _database.insertStopsForEndpoint(
+        stops
+            .map(
+              (stop) => db.StopsCompanion.insert(
+                stopId: stop.stopId,
+                stopName: stop.stopName,
+                endpoint: 'sa:static',
+                stopCode: Value(stop.stopCode),
+                stopDesc: Value(stop.stopDesc),
+                stopLat: Value(stop.stopLat),
+                stopLon: Value(stop.stopLon),
+                platformCode: Value(stop.platformCode),
+                wheelchairBoarding: Value(stop.wheelchairBoarding),
+                parentStation: Value(stop.parentStation),
+              ),
+            )
+            .toList(growable: false),
+        'sa:static',
+      );
       yield StaticImportProgress(
         sourceId: const TransitSourceId('sa:static'),
         completed: 1,
@@ -272,16 +275,10 @@ class AdelaideMetroRealtimeRepository implements RealtimeRepository {
   }
 
   Future<sa_pb.FeedMessage?> _fetchFeed(String url) async {
-    final response = await AppHttpClient.get(
+    final response = await AppHttpClient.getOrThrow(
       Uri.parse(url),
       headers: const {'Accept': 'application/x-google-protobuf'},
     );
-    if (response == null || response.statusCode != 200) {
-      safeLogWarning(
-        'Adelaide Metro realtime feed unavailable: ${response?.statusCode ?? 'network error'}',
-      );
-      return null;
-    }
     try {
       return sa_pb.FeedMessage.fromBuffer(
         response.bodyBytes,

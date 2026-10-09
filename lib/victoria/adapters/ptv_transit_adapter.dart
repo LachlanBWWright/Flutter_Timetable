@@ -455,21 +455,24 @@ class VictoriaStaticGtfsRepository implements StaticGtfsRepository {
     final stops = parseVictoriaStopsFromZip(
       Uint8List.fromList(response.bodyBytes),
     );
-    for (final stop in stops) {
-      await database.insertStop(
-        db.StopsCompanion.insert(
-          stopId: stop.stopId,
-          stopName: stop.stopName,
-          endpoint: 'ptv:static',
-          stopCode: Value(stop.stopCode),
-          stopDesc: Value(stop.stopDesc),
-          stopLat: Value(stop.stopLat),
-          stopLon: Value(stop.stopLon),
-          platformCode: Value(stop.platformCode),
-          wheelchairBoarding: Value(stop.wheelchairBoarding),
-        ),
-      );
-    }
+    await database.insertStopsForEndpoint(
+      stops
+          .map(
+            (stop) => db.StopsCompanion.insert(
+              stopId: stop.stopId,
+              stopName: stop.stopName,
+              endpoint: 'ptv:static',
+              stopCode: Value(stop.stopCode),
+              stopDesc: Value(stop.stopDesc),
+              stopLat: Value(stop.stopLat),
+              stopLon: Value(stop.stopLon),
+              platformCode: Value(stop.platformCode),
+              wheelchairBoarding: Value(stop.wheelchairBoarding),
+            ),
+          )
+          .toList(growable: false),
+      'ptv:static',
+    );
     yield StaticImportProgress(
       sourceId: const TransitSourceId('ptv:static'),
       completed: 1,

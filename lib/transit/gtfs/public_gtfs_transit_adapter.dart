@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
+import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/logs/logger.dart';
@@ -9,9 +10,15 @@ import 'package:lbww_flutter/nsw/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/app_http_client.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
+import 'package:lbww_flutter/transit/errors/transit_failure.dart';
 import 'package:lbww_flutter/transit/gtfs/gtfs_journey_planner.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
+
+typedef PublicGtfsFetcher = Future<http.Response> Function(Uri uri);
+
+Future<http.Response> _fetchPublicGtfsFeed(Uri uri) =>
+    AppHttpClient.getOrThrow(uri);
 
 class PublicGtfsFeedConfig {
   const PublicGtfsFeedConfig({
@@ -44,13 +51,21 @@ class PublicGtfsProviderConfig {
 TransitRegionServices buildPublicGtfsRegionServices({
   required PublicGtfsProviderConfig config,
   db.AppDatabase? database,
+  PublicGtfsFetcher fetcher = _fetchPublicGtfsFeed,
 }) {
-  final timetable = PublicGtfsDepartureRepository(config: config);
+  final timetable = PublicGtfsDepartureRepository(
+    config: config,
+    fetcher: fetcher,
+  );
   return TransitRegionServices(
     region: config.region,
     provider: config.provider,
     stops: PublicGtfsStopRepository(config: config, database: database),
-    staticGtfs: PublicGtfsStaticRepository(config: config, database: database),
+    staticGtfs: PublicGtfsStaticRepository(
+      config: config,
+      database: database,
+      fetcher: fetcher,
+    ),
     departures: timetable,
     journeyPlanner: GtfsJourneyPlanner(
       region: config.region,
@@ -112,10 +127,15 @@ class PublicGtfsStopRepository implements StopRepository {
 }
 
 class PublicGtfsStaticRepository implements StaticGtfsRepository {
-  const PublicGtfsStaticRepository({required this.config, this.database});
+  const PublicGtfsStaticRepository({
+    required this.config,
+    this.database,
+    this.fetcher = _fetchPublicGtfsFeed,
+  });
 
   final PublicGtfsProviderConfig config;
   final db.AppDatabase? database;
+  final PublicGtfsFetcher fetcher;
 
   db.AppDatabase get _database => database ?? db.AppDatabase();
 
@@ -136,37 +156,33 @@ class PublicGtfsStaticRepository implements StaticGtfsRepository {
         total: feeds.length,
         message: 'Downloading ${feed.label} static GTFS…',
       );
-      final response = await AppHttpClient.get(Uri.parse(feed.url));
-      if (response == null || response.statusCode != 200) {
-        yield StaticImportProgress(
-          sourceId: feed.sourceId,
-          completed: completed,
-          total: feeds.length,
-          message: 'Failed to download ${feed.label} GTFS.',
-          error: 'The public ${feed.label} feed was unavailable.',
-        );
-        continue;
-      }
       try {
+        final response = await fetcher(Uri.parse(feed.url));
         final stops = parseStopsOnlyFromZipBytes(
           Uint8List.fromList(response.bodyBytes),
         );
-        for (final stop in stops) {
-          await _database.insertStop(
-            db.StopsCompanion.insert(
-              stopId: stop.stopId,
-              stopName: stop.stopName,
-              endpoint: feed.sourceId.value,
-              stopCode: Value(stop.stopCode),
-              stopDesc: Value(stop.stopDesc),
-              stopLat: Value(stop.stopLat),
-              stopLon: Value(stop.stopLon),
-              platformCode: Value(stop.platformCode),
-              wheelchairBoarding: Value(stop.wheelchairBoarding),
-              parentStation: Value(stop.parentStation),
-            ),
-          );
+        if (stops.isEmpty) {
+          throw const FormatException('The GTFS feed contains no stops.');
         }
+        await _database.insertStopsForEndpoint(
+          stops
+              .map(
+                (stop) => db.StopsCompanion.insert(
+                  stopId: stop.stopId,
+                  stopName: stop.stopName,
+                  endpoint: feed.sourceId.value,
+                  stopCode: Value(stop.stopCode),
+                  stopDesc: Value(stop.stopDesc),
+                  stopLat: Value(stop.stopLat),
+                  stopLon: Value(stop.stopLon),
+                  platformCode: Value(stop.platformCode),
+                  wheelchairBoarding: Value(stop.wheelchairBoarding),
+                  parentStation: Value(stop.parentStation),
+                ),
+              )
+              .toList(growable: false),
+          feed.sourceId.value,
+        );
         completed += 1;
         yield StaticImportProgress(
           sourceId: feed.sourceId,
@@ -183,7 +199,9 @@ class PublicGtfsStaticRepository implements StaticGtfsRepository {
           completed: completed,
           total: feeds.length,
           message: 'Failed to parse ${feed.label} GTFS.',
-          error: 'The public ${feed.label} feed could not be parsed.',
+          error: error is TransitFailure
+              ? error.message ?? error.toString()
+              : 'The public ${feed.label} feed could not be parsed.',
         );
       }
     }
@@ -191,10 +209,16 @@ class PublicGtfsStaticRepository implements StaticGtfsRepository {
 }
 
 class PublicGtfsDepartureRepository implements DepartureRepository {
-  PublicGtfsDepartureRepository({required this.config});
+  PublicGtfsDepartureRepository({
+    required this.config,
+    this.fetcher = _fetchPublicGtfsFeed,
+  });
 
   final PublicGtfsProviderConfig config;
+  final PublicGtfsFetcher fetcher;
   final Map<String, GtfsData> _cache = <String, GtfsData>{};
+  final Map<String, DateTime> _cacheFetchedAt = <String, DateTime>{};
+  static const Duration _cacheTtl = Duration(hours: 6);
 
   @override
   Future<List<TransitDeparture>> getDepartures(DepartureRequest request) async {
@@ -251,16 +275,18 @@ class PublicGtfsDepartureRepository implements DepartureRepository {
 
   Future<GtfsData> loadFeed(TransitSourceId sourceId) async {
     final cached = _cache[sourceId.value];
-    if (cached != null) return cached;
+    final fetchedAt = _cacheFetchedAt[sourceId.value];
+    if (cached != null &&
+        fetchedAt != null &&
+        DateTime.now().difference(fetchedAt) < _cacheTtl) {
+      return cached;
+    }
     final feed = config.feeds.firstWhereOrNull(
       (candidate) => candidate.sourceId == sourceId,
     );
     if (feed == null) return _emptyGtfsData();
     try {
-      final response = await AppHttpClient.get(Uri.parse(feed.url));
-      if (response == null || response.statusCode != 200) {
-        return _emptyGtfsData();
-      }
+      final response = await fetcher(Uri.parse(feed.url));
       final archive = ZipDecoder().decodeBytes(response.bodyBytes);
       final files = <String, String>{};
       for (final file in archive) {
@@ -270,6 +296,7 @@ class PublicGtfsDepartureRepository implements DepartureRepository {
       }
       final data = parseGtfsFiles(files);
       _cache[sourceId.value] = data;
+      _cacheFetchedAt[sourceId.value] = DateTime.now();
       return data;
     } catch (error, stackTrace) {
       safeLogWarning('${feed.label} GTFS parse failed: $error\n$stackTrace');

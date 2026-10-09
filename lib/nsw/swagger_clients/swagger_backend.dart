@@ -4,11 +4,11 @@ import 'package:chopper/chopper.dart' as chopper;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import '../../wrappers/app_http_client_impl.dart';
 import '../swagger_generated/trip_planner.swagger.dart';
 
 const String _defaultRealtimeBase = 'https://api.transport.nsw.gov.au/';
-const String defaultTripPlannerBase =
-    'https://api.transport.nsw.gov.au/v1/tp';
+const String defaultTripPlannerBase = 'https://api.transport.nsw.gov.au/v1/tp';
 
 Future<String> _resolveApiKey(String? apiKey) async {
   if (apiKey != null) return apiKey;
@@ -34,7 +34,7 @@ Future<chopper.ChopperClient> createChopperClient({
       Platform.environment['API_BASE_URL'] ??
       _defaultRealtimeBase;
 
-  final clientHttp = httpClient ?? http.Client();
+  final clientHttp = httpClient ?? BoundedHttpClient();
 
   final interceptors = <chopper.Interceptor>[];
   if (apiKeyFromEnv.isNotEmpty) {
@@ -77,7 +77,7 @@ Future<TripPlanner> createTripPlannerClient({
   }
 
   return TripPlanner.create(
-    httpClient: httpClient,
+    httpClient: httpClient ?? BoundedHttpClient(),
     baseUrl: Uri.parse(baseUrl ?? defaultTripPlannerBase),
     interceptors: [chopper.HeadersInterceptor(headers)],
   );

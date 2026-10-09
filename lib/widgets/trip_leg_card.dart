@@ -119,7 +119,8 @@ class TripLegCard extends StatelessWidget {
 
     final modeColor = TransportModeUtils.getModeColor(transportClass);
 
-    return Card(
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(8.0),
         onTap: () => _pushDetails(context),

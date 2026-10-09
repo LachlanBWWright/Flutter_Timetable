@@ -7,6 +7,7 @@ import 'package:lbww_flutter/fetch_data/realtime_positions.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart'
     show FeedMessage;
 
+@Tags(['integration'])
 void main() {
   setUpAll(() async {
     await dotenv.load();

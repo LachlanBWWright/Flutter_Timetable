@@ -237,66 +237,61 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
       }
     }
 
-    return Card(
-      elevation: isCurrentStop ? 8 : 2,
-      color: isCurrentStop ? Colors.orange.withValues(alpha: .1) : null,
-      child: Container(
-        decoration: isCurrentStop
-            ? BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange, width: 2),
-              )
-            : null,
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: isCurrentStop ? Colors.orange : Colors.grey,
-            foregroundColor: getContrastingForeground(
-              isCurrentStop ? Colors.orange : Colors.grey,
-            ),
-            child: Text('${index + 1}'),
+    return Container(
+      decoration: BoxDecoration(
+        color: isCurrentStop ? Colors.orange.withValues(alpha: .1) : null,
+        border: isCurrentStop
+            ? Border.all(color: Colors.orange, width: 2)
+            : Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: isCurrentStop ? Colors.orange : Colors.grey,
+          foregroundColor: getContrastingForeground(
+            isCurrentStop ? Colors.orange : Colors.grey,
           ),
-          title: Text(
-            stopName,
-            style: TextStyle(
-              fontWeight: isCurrentStop ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (departureTimePlanned != null ||
-                  departureTimeEstimated != null)
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.departure_board,
-                      size: 16,
-                      color: Colors.green,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Depart: ${formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-              if (arrivalTimePlanned != null || arrivalTimeEstimated != null)
-                Row(
-                  children: [
-                    const Icon(Icons.schedule, size: 16, color: Colors.red),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Arrive: ${formatTimeDifference(arrivalTimePlanned, arrivalTimeEstimated)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          trailing: isCurrentStop
-              ? const Icon(Icons.directions_bus, color: Colors.orange)
-              : null,
+          child: Text('${index + 1}'),
         ),
+        title: Text(
+          stopName,
+          style: TextStyle(
+            fontWeight: isCurrentStop ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (departureTimePlanned != null || departureTimeEstimated != null)
+              Row(
+                children: [
+                  const Icon(
+                    Icons.departure_board,
+                    size: 16,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Depart: ${formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            if (arrivalTimePlanned != null || arrivalTimeEstimated != null)
+              Row(
+                children: [
+                  const Icon(Icons.schedule, size: 16, color: Colors.red),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Arrive: ${formatTimeDifference(arrivalTimePlanned, arrivalTimeEstimated)}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+          ],
+        ),
+        trailing: isCurrentStop
+            ? const Icon(Icons.directions_bus, color: Colors.orange)
+            : null,
       ),
     );
   }
@@ -433,7 +428,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
               ),
             ),
 
-            // Stops list as cards
+            // Stops list as a timeline-style list
             if (stopSequence != null && stopSequence.isNotEmpty)
               ListView.builder(
                 shrinkWrap: true,
@@ -453,24 +448,20 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
                   if (stop == null) {
                     return const SizedBox.shrink();
                   }
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: _buildStopCard(stop, index),
-                  );
+                  return _buildStopCard(stop, index);
                 },
               )
             else
-              Container(
+              Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Card(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.directions_walk,
-                      color: Colors.orange,
-                    ),
-                    title: const Text('Walking'),
-                    subtitle: Text('Walk from $originName to $destinationName'),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.directions_walk,
+                    color: Colors.orange,
                   ),
+                  title: const Text('Walking'),
+                  subtitle: Text('Walk from $originName to $destinationName'),
                 ),
               ),
             // (Debug card removed — moved to Trip Leg Detail screen)

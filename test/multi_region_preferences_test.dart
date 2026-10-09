@@ -39,4 +39,43 @@ void main() {
       contains(TransitRegion.queensland),
     );
   });
+
+  test(
+    'invalid persisted regions fall back and retain the selected region',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'selected_transit_region': 'unknown-region',
+        'enabled_transit_regions': 'bad-region,,victoria',
+      });
+
+      await TransportPreferencesService.init();
+
+      expect(
+        TransportPreferencesService.selectedRegion.value,
+        TransitRegion.nsw,
+      );
+      expect(TransportPreferencesService.enabledRegions.value, {
+        TransitRegion.nsw,
+        TransitRegion.victoria,
+      });
+    },
+  );
+
+  test('changing the enabled set moves selection when needed', () async {
+    await TransportPreferencesService.init();
+
+    await TransportPreferencesService.setEnabledRegions({
+      TransitRegion.victoria,
+      TransitRegion.queensland,
+    });
+
+    expect(TransportPreferencesService.enabledRegions.value, {
+      TransitRegion.victoria,
+      TransitRegion.queensland,
+    });
+    expect(
+      TransportPreferencesService.enabledRegions.value,
+      contains(TransportPreferencesService.selectedRegion.value),
+    );
+  });
 }

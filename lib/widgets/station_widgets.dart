@@ -185,17 +185,19 @@ class StationView extends StatelessWidget {
         : Colors.grey;
     return Container(
       margin: const EdgeInsets.all(1.0),
-      child: Card(
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: InkWell(
-          onTap: _selectStation,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ListTile(title: Text(station.name), subtitle: _buildSubtitle()),
-              Container(height: 6, width: double.infinity, color: accentColor),
-            ],
-          ),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
+      child: InkWell(
+        onTap: _selectStation,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(title: Text(station.name), subtitle: _buildSubtitle()),
+            Container(height: 6, width: double.infinity, color: accentColor),
+          ],
         ),
       ),
     );

@@ -6,6 +6,7 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../logs/logger.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import '../services/api_key_service.dart';
 import '../services/debug_service.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart' hide logger;
@@ -325,7 +326,9 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
             mapPositions = const <TransportMode, FeedMessage?>{};
           }
         } else {
-          mapPositions = await RealtimeService.getAllRealtimePositions();
+          mapPositions = ApiKeyService.getEffectiveApiKey().isEmpty
+              ? const <TransportMode, FeedMessage?>{}
+              : await RealtimeService.getAllRealtimePositions();
         }
         final vehicles = <_VehicleWithMode>[];
 

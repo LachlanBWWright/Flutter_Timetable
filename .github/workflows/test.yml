@@ -1,15 +1,28 @@
-name: Test Suite
+name: Live provider tests
 
 on:
-  pull_request:
-    branches:
-      - main
-      - dev
-  push:
-    branches:
-      - main
-      - dev
   workflow_dispatch:
+    inputs:
+      run_nsw_api_tests:
+        description: Run NSW API checks
+        type: boolean
+        default: false
+      run_vic_api_tests:
+        description: Run Victoria API checks
+        type: boolean
+        default: false
+      run_qld_api_tests:
+        description: Run Queensland API checks
+        type: boolean
+        default: false
+      run_sa_api_tests:
+        description: Run South Australia API checks
+        type: boolean
+        default: false
+      run_public_state_api_tests:
+        description: Run public GTFS checks for Tasmania, NT, and WA
+        type: boolean
+        default: false
 
 jobs:
   quality:
@@ -18,6 +31,11 @@ jobs:
       API_KEY: ${{ secrets.API_KEY }}
       PTV_DEV_ID: ${{ secrets.PTV_DEV_ID }}
       PTV_API_KEY: ${{ secrets.PTV_API_KEY }}
+      RUN_NSW_API_TESTS: ${{ inputs.run_nsw_api_tests && secrets.API_KEY != '' }}
+      RUN_VIC_API_TESTS: ${{ inputs.run_vic_api_tests && secrets.PTV_DEV_ID != '' && secrets.PTV_API_KEY != '' }}
+      RUN_QLD_API_TESTS: ${{ inputs.run_qld_api_tests }}
+      RUN_SA_API_TESTS: ${{ inputs.run_sa_api_tests }}
+      RUN_PUBLIC_STATE_API_TESTS: ${{ inputs.run_public_state_api_tests }}
 
     steps:
       - name: Checkout code
@@ -38,15 +56,6 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-
-      - name: Analyze project source
-        run: flutter analyze
-
-      - name: Run deterministic tests
-        run: flutter test --exclude-tags integration
-
-      - name: Run integration smoke tests
-        if: ${{ env.API_KEY != '' && env.PTV_DEV_ID != '' && env.PTV_API_KEY != '' }}
+      - name: Run selected live provider tests
+        if: ${{ env.API_KEY != '' }}
         run: flutter test --tags integration

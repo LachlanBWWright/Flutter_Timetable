@@ -171,7 +171,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Single QueryExecutor reused across the app to avoid multiple database
   // instances. Uses drift_flutter which picks the right backend per platform.
-  static final QueryExecutor _sharedExecutor = _openAppDatabase();
+  static QueryExecutor _sharedExecutor = _openAppDatabase();
 
   AppDatabase._internal() : super(_sharedExecutor);
 
@@ -185,6 +185,10 @@ class AppDatabase extends _$AppDatabase {
   Future<void> close() async {
     _isClosed = true;
     await super.close();
+    if (identical(_instance, this)) {
+      _instance = null;
+      _sharedExecutor = _openAppDatabase();
+    }
   }
 
   Future<void> _createAllSafe(Migrator migrator) async {
@@ -570,6 +574,11 @@ class AppDatabase extends _$AppDatabase {
                   ..where((tbl) => tbl.destinationId.equals(destinationId)))
                 .go(),
       );
+
+  Future<int> deleteAllTripPlannerCache() => _runDatabaseOperation(
+    'deleteAllTripPlannerCache',
+    () => delete(tripPlannerCache).go(),
+  );
 
   Future<void> replaceRoutesForEndpoint(
     String endpoint,

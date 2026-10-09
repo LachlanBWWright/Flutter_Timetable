@@ -8,6 +8,7 @@ import 'debug/debug_entity_type.dart';
 import 'debug/debug_navigation.dart';
 import 'debug/debug_page_loader.dart';
 import 'services/api_key_service.dart';
+import 'services/app_appearance_service.dart';
 import 'services/app_url_launcher.dart';
 import 'services/database_admin_service.dart';
 import 'services/debug_service.dart';
@@ -306,7 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       );
       return;
     }
-    await pushPage((context) => const RealtimeMapWidget());
+    await pushPage((context) => const RealtimeMapPage());
   }
 
   Future<void> _navigateToSetHomeStop() async {
@@ -332,7 +333,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Card(
+            _settingsSection(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -403,7 +404,57 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
             ),
-            Card(
+            _settingsSection(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Appearance',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ValueListenableBuilder<ThemeMode>(
+                      valueListenable: AppAppearanceService.themeMode,
+                      builder: (context, themeMode, child) {
+                        return DropdownButtonFormField<ThemeMode>(
+                          initialValue: themeMode,
+                          items: const [
+                            DropdownMenuItem(
+                              value: ThemeMode.system,
+                              child: Text('System default'),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.light,
+                              child: Text('Light'),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.dark,
+                              child: Text('Dark'),
+                            ),
+                          ],
+                          onChanged: (mode) {
+                            if (mode != null) {
+                              AppAppearanceService.setThemeMode(mode);
+                            }
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'Theme',
+                            border: OutlineInputBorder(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _settingsSection(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -435,8 +486,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
             ),
-            // Map access card
-            Card(
+            // Map access section
+            _settingsSection(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -475,8 +526,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 hasBuiltInTfnswKey: hasBuiltInApiKey,
               ),
             ),
-            // Home Stop Card
-            Card(
+            // Home Stop section
+            _settingsSection(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -509,9 +560,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
             ),
-            // Transport options card
+            // Transport options section
             if (selectedRegion == TransitRegion.nsw)
-              Card(
+              _settingsSection(
                 margin: const EdgeInsets.all(8.0),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -541,7 +592,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
             // Debug toggle (persisted via DebugService)
-            Card(
+            _settingsSection(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -626,8 +677,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                   debugListLoader: _debugListLoader,
                 ),
             widget.stopsSearchWidget ?? const StopsSearchWidget(),
-            // Data update / management card
-            Card(
+            // Data update / management section
+            _settingsSection(
               margin: const EdgeInsets.all(8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -742,12 +793,19 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
+  Widget _settingsSection({
+    required EdgeInsetsGeometry margin,
+    required Widget child,
+  }) {
+    return Padding(padding: margin, child: child);
+  }
+
   Widget _buildProviderCredentialsCard(
     TransitRegion region, {
     required bool hasBuiltInTfnswKey,
   }) {
     final services = AppTransitContext.instance.servicesFor(region);
-    return Card(
+    return _settingsSection(
       margin: const EdgeInsets.all(8.0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),

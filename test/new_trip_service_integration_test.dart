@@ -5,6 +5,7 @@ import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart' show StopsEndpoint;
 import 'package:test/test.dart';
 
+@Tags(['integration'])
 void main() {
   setUpAll(() async {
     // Load API key from project .env (there is a .env in repo root)

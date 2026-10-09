@@ -26,6 +26,7 @@ class TripCacheService {
 
   static const Duration _ttl = Duration(minutes: 10);
   static const Duration _renderableTtl = Duration(hours: 24);
+  static const int _maxMemoryEntries = 50;
 
   static final Map<String, _CachedTrip> _cache = {};
   static final Map<String, Future<Result<GetTripsResponse, String>>> _inflight =
@@ -46,6 +47,9 @@ class TripCacheService {
     try {
       map.remove(key);
       map.addAll({key: value});
+      while (map.length > _maxMemoryEntries) {
+        map.remove(map.keys.first);
+      }
     } catch (_) {}
   }
 
@@ -247,6 +251,7 @@ class TripCacheService {
   static void invalidateAll() {
     _cache.clear();
     _inflight.clear();
+    db.AppDatabase().deleteAllTripPlannerCache().ignore();
   }
 }
 

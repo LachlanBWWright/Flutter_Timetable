@@ -5,6 +5,7 @@ import 'package:lbww_flutter/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:test/test.dart';
 
+@Tags(['integration'])
 void main() {
   setUpAll(() async {
     await dotenv.load();

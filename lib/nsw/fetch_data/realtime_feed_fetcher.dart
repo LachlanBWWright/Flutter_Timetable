@@ -31,7 +31,7 @@ Future<FeedMessage?> fetchRealtimeFeed(String url, {String? logLabel}) async {
     if (response == null || response.statusCode != 200) {
       if (logLabel != null) {
         safeLogWarning(
-          'Failed to fetch $logLabel: ${response?.statusCode ?? 'network error'}, ${response?.body ?? ''}',
+          'Failed to fetch $logLabel: ${response?.statusCode ?? 'network error'}',
         );
       }
       return null;

@@ -7,6 +7,7 @@ the Flutter version pinned in `.fvmrc`; otherwise they use `flutter` on `PATH`.
 | --- | --- |
 | `./scripts/setup.sh` | Create a local `.env` when needed and install packages |
 | `./scripts/dev.sh [Flutter args]` | Run the app on an available device |
+| `./scripts/dev_linux.sh [Flutter args]` | Run the Linux desktop development build |
 | `./scripts/dev_web.sh [Flutter args]` | Start the web development server with hot reload |
 | `./scripts/format.sh` | Apply Dart formatting |
 | `./scripts/lint.sh` | Check formatting and run static analysis |
@@ -19,6 +20,8 @@ the Flutter version pinned in `.fvmrc`; otherwise they use `flutter` on `PATH`.
 | `PORT=8000 ./scripts/preview_web.sh` | Build and serve the production web app |
 | `./scripts/generate_api.sh` | Regenerate API clients with build_runner |
 | `./scripts/clean.sh` | Clean Flutter outputs and restore packages |
+
+The Linux launcher uses `flutter run`, so hot reload is enabled by default.
 
 The development web server listens on port `8080` by default. Override its
 address with environment variables, for example:

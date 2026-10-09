@@ -31,7 +31,7 @@ class JourneyCard extends StatefulWidget {
 }
 
 class _JourneyCardState extends State<JourneyCard>
-  with GuardedState<JourneyCard> {
+    with GuardedState<JourneyCard> {
   bool _didNotifyVisible = false;
 
   void _emitJourneyVisible() {
@@ -71,10 +71,13 @@ class _JourneyCardState extends State<JourneyCard>
         ? null
         : manualDefinition.legs.length - 1;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-      elevation: 1.5,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -236,7 +239,7 @@ class JourneyList extends StatelessWidget {
 /// Custom app bar for the home screen
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final bool hasApiKey;
+  final bool canAddTrip;
   final bool isSearching;
   final bool isEditingMode;
   final bool hasTrips;
@@ -252,7 +255,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HomeAppBar({
     super.key,
     required this.title,
-    required this.hasApiKey,
+    required this.canAddTrip,
     required this.isSearching,
     required this.isEditingMode,
     required this.hasTrips,
@@ -374,8 +377,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ],
               ),
-            if (hasApiKey)
-              IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),
+            if (canAddTrip)
+              IconButton(
+                onPressed: onAddTrip,
+                tooltip: 'Plan a new trip',
+                icon: const Icon(Icons.add),
+              ),
             IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
           ],
         );

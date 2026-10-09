@@ -157,8 +157,13 @@ class _TripCardState extends State<TripCard>
 
     final legs = widget.trip.legs;
     if (legs.isEmpty) {
-      return const Card(
-        child: ListTile(
+      return Container(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+        ),
+        child: const ListTile(
           title: Text('Unknown trip'),
           subtitle: Text('No legs available'),
         ),
@@ -221,9 +226,12 @@ class _TripCardState extends State<TripCard>
       }
     }
 
-    return Card(
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      clipBehavior: Clip.antiAlias,
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

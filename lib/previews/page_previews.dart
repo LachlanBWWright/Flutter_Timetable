@@ -53,23 +53,17 @@ Widget newTripPagePreview() => const NewTripScreen(
 Widget settingsPagePreview() => const SettingsScreen(
   hasUserApiKey: false,
   hasBuiltInApiKey: true,
-  stopsManagementWidget: Card(
-    child: ListTile(
-      leading: Icon(Icons.storage),
-      title: Text('12,480 cached stops'),
-    ),
+  stopsManagementWidget: ListTile(
+    leading: Icon(Icons.storage),
+    title: Text('12,480 cached stops'),
   ),
-  stopsSearchWidget: Card(
-    child: ListTile(
-      leading: Icon(Icons.search),
-      title: Text('Search provider stops'),
-    ),
+  stopsSearchWidget: ListTile(
+    leading: Icon(Icons.search),
+    title: Text('Search provider stops'),
   ),
-  realtimeInfoWidget: Card(
-    child: ListTile(
-      leading: Icon(Icons.sensors),
-      title: Text('Realtime feeds available'),
-    ),
+  realtimeInfoWidget: ListTile(
+    leading: Icon(Icons.sensors),
+    title: Text('Realtime feeds available'),
   ),
 );
 

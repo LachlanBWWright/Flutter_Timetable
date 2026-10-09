@@ -1549,11 +1549,13 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
       return const SizedBox.shrink();
     }
 
-    return Card(
-      elevation: 4,
-      clipBehavior: Clip.antiAlias,
+    return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
       child: SizedBox(
         height: 300,
         child: Stack(
@@ -1603,111 +1605,105 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     Stop destination,
     Leg leg,
   ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // From / To with departure / arrival times
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'From',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // From / To with departure / arrival times
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'From',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    Text(
+                      originName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      Text(
-                        originName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.departure_board,
+                          color: Colors.green,
+                          size: 14,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.departure_board,
-                            color: Colors.green,
-                            size: 14,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              _formatTimeDifference(
-                                origin.departureTimePlanned,
-                                origin.departureTimeEstimated,
-                              ),
-                              style: const TextStyle(fontSize: 13),
-                              overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            _formatTimeDifference(
+                              origin.departureTimePlanned,
+                              origin.departureTimeEstimated,
                             ),
+                            style: const TextStyle(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Icon(Icons.arrow_forward, color: modeColor),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'To',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        destinationName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
                         ),
-                        textAlign: TextAlign.end,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          const Icon(
-                            Icons.schedule,
-                            color: Colors.red,
-                            size: 14,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              _formatTimeDifference(
-                                destination.arrivalTimePlanned,
-                                destination.arrivalTimeEstimated,
-                              ),
-                              style: const TextStyle(fontSize: 13),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Icon(Icons.arrow_forward, color: modeColor),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'To',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    Text(
+                      destinationName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const Icon(Icons.schedule, color: Colors.red, size: 14),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            _formatTimeDifference(
+                              destination.arrivalTimePlanned,
+                              destination.arrivalTimeEstimated,
+                            ),
+                            style: const TextStyle(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            _buildStopListSection(leg, modeColor),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text('Error: $_error', style: const TextStyle(color: Colors.red)),
           ],
-        ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          _buildStopListSection(leg, modeColor),
+        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:test/test.dart';
 
+@Tags(['integration'])
 void main() {
   setUpAll(() async {
     await dotenv.load();

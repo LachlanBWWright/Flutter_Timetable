@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/constants/app_constants.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
+import 'package:lbww_flutter/services/app_appearance_service.dart';
 import 'package:lbww_flutter/services/app_bootstrap_service.dart';
 import 'package:lbww_flutter/services/journey_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
@@ -27,7 +30,9 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.home});
+
+  final Widget? home;
 
   ThemeData _safeTheme(Brightness brightness) {
     try {
@@ -40,13 +45,16 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appTitle,
-      theme: _safeTheme(Brightness.light),
-      darkTheme: _safeTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
-      onGenerateRoute: DebugNavigation.onGenerateRoute,
-      home: const MyHomePage(title: AppConstants.appTitle),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppAppearanceService.themeMode,
+      builder: (context, themeMode, child) => MaterialApp(
+        title: AppConstants.appTitle,
+        theme: _safeTheme(Brightness.light),
+        darkTheme: _safeTheme(Brightness.dark),
+        themeMode: themeMode,
+        onGenerateRoute: DebugNavigation.onGenerateRoute,
+        home: home ?? const MyHomePage(title: AppConstants.appTitle),
+      ),
     );
   }
 }
@@ -57,10 +65,12 @@ class MyHomePage extends StatefulWidget {
     required this.title,
     this.skipInitialLoad = false,
     this.initialJourneys = const [],
+    this.database,
   });
   final String title;
   final bool skipInitialLoad;
   final List<db.Journey> initialJourneys;
+  final db.AppDatabase? database;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -86,14 +96,14 @@ int _staticEndpointPriority(StopsEndpoint endpoint) {
 class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   List<db.Journey> _journeys = [];
   List<db.Journey> _filteredJourneys = [];
-  bool _hasApiKey = false;
   bool _isEditingMode = false;
   bool _isSearching = false;
   bool _isAlphabeticalSorting = true;
   bool _hasShownLocationSnackBar = false;
+  bool _hasShownApiKeyWarning = false;
   final TextEditingController _searchController = TextEditingController();
   // Single database instance for this stateful widget
-  late final db.AppDatabase _database;
+  late final db.AppDatabase _database = widget.database ?? db.AppDatabase();
 
   void _hideCurrentMessage() {
     if (!mounted) {
@@ -178,6 +188,35 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
     });
   }
 
+  Future<void> _validateApiKey({required bool notifyOnFailure}) async {
+    final services = AppTransitContext.instance.currentServices;
+    if (!services.supportsJourneyPlanning ||
+        services.region != TransitRegion.nsw) {
+      return;
+    }
+
+    final isValid = await TransportApiService.isApiKeyValid();
+    if (!mounted || isValid || !notifyOnFailure || _hasShownApiKeyWarning) {
+      return;
+    }
+
+    _hasShownApiKeyWarning = true;
+    showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Transport API key validation failed. Journey planning may not work.',
+        ),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: 'Settings',
+          textColor: Theme.of(context).colorScheme.onError,
+          onPressed: _navigateToSettings,
+        ),
+      ),
+    );
+  }
+
   Future<void> deleteTrip(int tripId) async {
     final deleted = await JourneyService.deleteJourney(_database, tripId);
     if (deleted) {
@@ -196,29 +235,6 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
     }
   }
 
-  Future<void> checkApiKey() async {
-    final services = AppTransitContext.instance.currentServices;
-    if (!services.supportsJourneyPlanning) {
-      if (!mounted) return;
-      guardedSetState(() {
-        _hasApiKey = false;
-      });
-      return;
-    }
-    if (services.region != TransitRegion.nsw) {
-      if (!mounted) return;
-      guardedSetState(() {
-        _hasApiKey = true;
-      });
-      return;
-    }
-    final isValid = await TransportApiService.isApiKeyValid();
-    if (!mounted) return;
-    guardedSetState(() {
-      _hasApiKey = isValid;
-    });
-  }
-
   @override
   void initState() {
     super.initState();
@@ -227,10 +243,11 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
     if (widget.skipInitialLoad) {
       return;
     }
-    _database = db.AppDatabase();
     _loadInitialSorting();
     getTrips();
-    checkApiKey();
+    addPostFrameCallbackSafely((_) {
+      unawaited(_validateApiKey(notifyOnFailure: true));
+    });
   }
 
   Future<void> _loadInitialSorting() async {
@@ -289,7 +306,9 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   }
 
   void _navigateToSettings() {
-    _pushPage(const SettingsScreen(), checkApiKey);
+    _pushPage(const SettingsScreen(), () {
+      unawaited(_validateApiKey(notifyOnFailure: true));
+    });
   }
 
   void _navigateToTrip(db.Journey journey) {
@@ -313,7 +332,8 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
       appBar: HomeAppBar(
         title:
             '${widget.title} • ${AppTransitContext.instance.selectedRegion.shortLabel}',
-        hasApiKey: _hasApiKey,
+        canAddTrip:
+            AppTransitContext.instance.currentServices.supportsJourneyPlanning,
         isSearching: _isSearching,
         isEditingMode: _isEditingMode,
         hasTrips: _journeys.isNotEmpty,
@@ -329,7 +349,7 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
       body: RefreshIndicator(
         onRefresh: () async {
           await getTrips();
-          await checkApiKey();
+          await _validateApiKey(notifyOnFailure: false);
         },
         child: _filteredJourneys.isEmpty
             ? ListView(

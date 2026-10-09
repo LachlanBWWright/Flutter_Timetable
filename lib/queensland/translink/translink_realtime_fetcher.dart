@@ -1,6 +1,7 @@
 import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/nsw/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/app_http_client.dart';
+import 'package:lbww_flutter/transit/errors/transit_failure.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 
 import 'translink_endpoints.dart';
@@ -22,25 +23,16 @@ Future<FeedMessage?> fetchTranslinkRealtimeFeed(
   }
 
   try {
-    final response = await AppHttpClient.get(
+    final response = await AppHttpClient.getOrThrow(
       uri,
       headers: buildTranslinkRealtimeHeaders(),
     );
-    if (response == null || response.statusCode != 200) {
-      if (logLabel != null) {
-        safeLogWarning(
-          'Failed to fetch TransLink $logLabel: '
-          '${response?.statusCode ?? 'network error'}, ${response?.body ?? ''}',
-        );
-      }
-      return null;
-    }
-
     return FeedMessage.fromBuffer(response.bodyBytes);
   } catch (e, st) {
     if (logLabel != null) {
       safeLogWarning('TransLink realtime fetch failed for $logLabel: $e\n$st');
     }
+    if (e is TransitFailure) rethrow;
     return null;
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/fetch_timetable.dart';
 
+@Tags(['integration'])
 void main() {
   setUpAll(() async {
     await dotenv.load();

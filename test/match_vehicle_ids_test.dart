@@ -8,6 +8,7 @@ import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:option_result/option_result.dart';
 
+@Tags(['integration'])
 void main() {
   test(
     'Match Vehicle IDs between Trip Planner, Realtime Updates, and Vehicle Positions',

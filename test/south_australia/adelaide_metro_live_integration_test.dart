@@ -8,6 +8,7 @@ import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:test/test.dart';
 
+@Tags(['integration'])
 void main() {
   final runLiveTests = Platform.environment['RUN_SA_API_TESTS'] == 'true';
 

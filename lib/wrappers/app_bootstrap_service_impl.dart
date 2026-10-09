@@ -2,6 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../logs/logger.dart';
 import '../services/api_key_service.dart';
+import '../services/app_appearance_service.dart';
 import '../services/app_preferences.dart';
 import '../services/debug_service.dart';
 import '../services/transport_preferences_service.dart';
@@ -14,6 +15,7 @@ class AppBootstrapService {
   static Future<void> initialize() async {
     await _loadDotEnv();
     await AppPreferences.init();
+    await AppAppearanceService.init();
     await DebugService.init();
     await TransportPreferencesService.init();
     await ApiKeyService.init();

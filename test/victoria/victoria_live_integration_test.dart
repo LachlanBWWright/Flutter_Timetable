@@ -12,6 +12,7 @@ import 'package:lbww_flutter/victoria/adapters/ptv_transit_adapter.dart';
 import 'package:lbww_flutter/victoria/services/victoria_gtfs_endpoints.dart';
 import 'package:test/test.dart';
 
+@Tags(['integration'])
 void main() {
   final runLiveTests = Platform.environment['RUN_VIC_API_TESTS'] == 'true';
 
