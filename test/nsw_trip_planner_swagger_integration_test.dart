@@ -1,3 +1,6 @@
+@Tags(['integration'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -11,7 +14,6 @@ import 'package:lbww_flutter/nsw/wrappers/transport_api_service_impl.dart'
 import 'package:option_result/option_result.dart';
 import 'package:test/test.dart';
 
-@Tags(['integration'])
 void main() {
   final runLiveTests = Platform.environment['RUN_NSW_API_TESTS'] == 'true';
   late TripPlanner api;

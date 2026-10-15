@@ -4,6 +4,11 @@ import 'package:lbww_flutter/services/api_key_service.dart';
 import 'package:lbww_flutter/services/app_http_client.dart';
 import 'package:lbww_flutter/utils/safe_value_utils.dart';
 
+import 'realtime_feed_parser.dart';
+import 'realtime_work_limiter.dart';
+
+final _realtimeWork = RealtimeWorkLimiter(4);
+
 String _effectiveApiKeyOrEmpty() => ApiKeyService.getEffectiveApiKey();
 
 Map<String, String> buildRealtimeHeaders() {
@@ -14,7 +19,10 @@ Map<String, String> buildRealtimeHeaders() {
   };
 }
 
-Future<FeedMessage?> fetchRealtimeFeed(String url, {String? logLabel}) async {
+Future<FeedMessage?> fetchRealtimeFeed(String url, {String? logLabel}) =>
+    _realtimeWork.run(() => _fetchRealtimeFeed(url, logLabel: logLabel));
+
+Future<FeedMessage?> _fetchRealtimeFeed(String url, {String? logLabel}) async {
   final uri = tryParseUriValue(url);
   if (uri == null) {
     if (logLabel != null) {
@@ -37,7 +45,7 @@ Future<FeedMessage?> fetchRealtimeFeed(String url, {String? logLabel}) async {
       return null;
     }
 
-    return FeedMessage.fromBuffer(response.bodyBytes);
+    return await decodeRealtimeFeed(response.bodyBytes);
   } catch (e, st) {
     if (logLabel != null) {
       safeLogWarning('Realtime fetch failed for $logLabel: $e\n$st');

@@ -35,10 +35,42 @@ jobs:
     name: Build and publish Android APKs
     runs-on: ubuntu-latest
     steps:
+      - name: Validate release inputs
+        env:
+          BUILD_REF: ${{ inputs.ref }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -Eeuo pipefail
+          for value in "$BUILD_REF" "$RELEASE_TAG"; do
+            if [[ -z "$value" || "$value" == -* ]]; then
+              echo "Build ref and release tag must be nonempty and cannot start with '-'." >&2
+              exit 1
+            fi
+          done
+          git check-ref-format --allow-onelevel "$BUILD_REF"
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+
       - name: Check out source
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Capture built commit and verify existing tag
+        id: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -Eeuo pipefail
+          built_commit="$(git rev-parse --verify 'HEAD^{commit}')"
+          printf 'commit=%s\n' "$built_commit" >> "$GITHUB_OUTPUT"
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            tag_commit="$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")"
+            if [[ "$tag_commit" != "$built_commit" ]]; then
+              echo "Release tag already points to a different commit; refusing to publish." >&2
+              exit 1
+            fi
+          fi
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -78,13 +110,18 @@ jobs:
             printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
           } > android/key.properties
 
+      - name: Configure public deployment credentials
+        env:
+          BUNDLE_PUBLIC_TFNSW_KEY: ${{ vars.BUNDLE_PUBLIC_TFNSW_KEY }}
+          PUBLIC_TFNSW_API_KEY: ${{ secrets.PUBLIC_TFNSW_API_KEY }}
+        run: bash scripts/create_deployment_env.sh
+
       - name: Build split release APKs
         run: |
           set -Eeuo pipefail
-          cp .env.template .env
           flutter pub get
           flutter analyze
-          flutter test --exclude-tags integration --reporter compact
+          flutter test --exclude-tags=integration,golden --concurrency=1 --reporter compact
           flutter build apk --release --split-per-abi --build-number "$GITHUB_RUN_NUMBER"
 
       - name: Verify APK signatures
@@ -110,9 +147,28 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          BUILT_COMMIT: ${{ steps.source.outputs.commit }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          CREATE_DRAFT: ${{ inputs.draft }}
+          CREATE_PRERELEASE: ${{ inputs.prerelease }}
         run: |
           set -Eeuo pipefail
-          args=("${{ inputs.tag }}" build/app/outputs/flutter-apk/*-release.apk build/app/outputs/flutter-apk/SHA256SUMS.txt --title "${{ inputs.tag }}" --generate-notes)
-          if [[ "${{ inputs.draft }}" == "true" ]]; then args+=(--draft); fi
-          if [[ "${{ inputs.prerelease }}" == "true" ]]; then args+=(--prerelease); fi
+          # Check the remote again in case the tag changed during the build.
+          tag_ref="refs/tags/$RELEASE_TAG"
+          if remote_tags="$(git ls-remote --exit-code --tags origin "$tag_ref" "$tag_ref^{}")"; then
+            tag_commit="$(awk '$2 !~ /\^\{\}$/ { direct=$1 } $2 ~ /\^\{\}$/ { peeled=$1 } END { print peeled ? peeled : direct }' <<< "$remote_tags")"
+            if [[ "$tag_commit" != "$BUILT_COMMIT" ]]; then
+              echo "Release tag points to a different commit; refusing to publish." >&2
+              exit 1
+            fi
+          else
+            status=$?
+            if [[ "$status" != 2 ]]; then exit "$status"; fi
+            # An ordinary push atomically fails if another job creates this tag.
+            # Never force, overwrite, or move an existing release tag.
+            git push origin "$BUILT_COMMIT:$tag_ref"
+          fi
+          args=("$RELEASE_TAG" build/app/outputs/flutter-apk/*-release.apk build/app/outputs/flutter-apk/SHA256SUMS.txt --title "$RELEASE_TAG" --generate-notes --target "$BUILT_COMMIT" --verify-tag)
+          if [[ "$CREATE_DRAFT" == "true" ]]; then args+=(--draft); fi
+          if [[ "$CREATE_PRERELEASE" == "true" ]]; then args+=(--prerelease); fi
           gh release create "${args[@]}"

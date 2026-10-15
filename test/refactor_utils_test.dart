@@ -1,5 +1,3 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
@@ -22,9 +20,9 @@ void main() {
     });
 
     test('canSaveDirectTrip requires distinct populated stops', () {
-      final origin = Station(name: 'Origin', id: '1');
-      final destination = Station(name: 'Destination', id: '2');
-      final duplicate = Station(name: 'Duplicate', id: '1');
+      final origin = const Station(name: 'Origin', id: '1');
+      final destination = const Station(name: 'Destination', id: '2');
+      final duplicate = const Station(name: 'Duplicate', id: '1');
 
       expect(
         canSaveDirectTrip(origin: origin, destination: destination),
@@ -39,8 +37,8 @@ void main() {
 
     test('filterStationsByQuery trims and matches case-insensitively', () {
       final stations = [
-        Station(name: 'Central', id: '1'),
-        Station(name: 'Town Hall', id: '2'),
+        const Station(name: 'Central', id: '1'),
+        const Station(name: 'Town Hall', id: '2'),
       ];
 
       final filtered = filterStationsByQuery(stations, '  town ');
@@ -48,8 +46,8 @@ void main() {
     });
 
     test('build status message reports manual builder state', () {
-      final origin = Station(name: 'Central', id: '1');
-      final destination = Station(name: 'Town Hall', id: '2');
+      final origin = const Station(name: 'Central', id: '1');
+      final destination = const Station(name: 'Town Hall', id: '2');
       final line = const StopLineMatch(
         lineId: 'T1',
         lineName: 'T1 North Shore',
@@ -132,7 +130,7 @@ void main() {
     });
 
     test('buildStationDebugLines includes station metadata lines', () {
-      final station = Station(
+      const station = Station(
         name: 'Central',
         id: '200060',
         stopCode: 'CEN',

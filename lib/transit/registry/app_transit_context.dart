@@ -6,6 +6,7 @@ import 'package:lbww_flutter/services/transport_preferences_service.dart';
 import 'package:lbww_flutter/south_australia/adapters/adelaide_metro_transit_adapter.dart';
 import 'package:lbww_flutter/tasmania/tasmania_gtfs.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
+import 'package:lbww_flutter/transit/registry/region_feature_flags.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 import 'package:lbww_flutter/victoria/adapters/ptv_transit_adapter.dart';
 import 'package:lbww_flutter/western_australia/transperth_gtfs.dart';
@@ -27,8 +28,11 @@ class AppTransitContext {
   TransitRegion get selectedRegion =>
       TransportPreferencesService.selectedRegion.value;
 
-  Set<TransitRegion> get enabledRegions =>
-      Set.unmodifiable(TransportPreferencesService.enabledRegions.value);
+  Set<TransitRegion> get enabledRegions => Set.unmodifiable(
+    TransportPreferencesService.enabledRegions.value.intersection(
+      RegionFeatureFlags.enabledRegions,
+    ),
+  );
 
   List<TransitRegionServices> get enabledServices =>
       enabledRegions.map(servicesFor).toList(growable: false);
@@ -41,13 +45,16 @@ class AppTransitContext {
   void _ensureInitialized() {
     if (_initialized) return;
     _registry = InMemoryTransitRegistry([
-      buildTfnswRegionServices(),
-      buildPtvRegionServices(),
-      buildTranslinkRegionServices(),
-      buildAdelaideMetroRegionServices(),
-      buildTasmaniaRegionServices(),
-      buildNorthernTerritoryRegionServices(),
-      buildWesternAustraliaRegionServices(),
+      if (RegionFeatureFlags.isEnabled(TransitRegion.nsw))
+        buildTfnswRegionServices(),
+      if (RegionFeatureFlags.victoria) buildPtvRegionServices(),
+      if (RegionFeatureFlags.queensland) buildTranslinkRegionServices(),
+      if (RegionFeatureFlags.southAustralia) buildAdelaideMetroRegionServices(),
+      if (RegionFeatureFlags.tasmania) buildTasmaniaRegionServices(),
+      if (RegionFeatureFlags.northernTerritory)
+        buildNorthernTerritoryRegionServices(),
+      if (RegionFeatureFlags.westernAustralia)
+        buildWesternAustraliaRegionServices(),
     ]);
     _initialized = true;
   }
@@ -63,10 +70,14 @@ class AppTransitContext {
   }
 
   Future<void> setSelectedRegion(TransitRegion region) async {
+    if (!RegionFeatureFlags.isEnabled(region)) return;
     await TransportPreferencesService.setSelectedRegion(region);
   }
 
   Future<void> setEnabledRegions(Set<TransitRegion> regions) async {
-    await TransportPreferencesService.setEnabledRegions(regions);
+    final allowed = regions.where(RegionFeatureFlags.isEnabled).toSet();
+    await TransportPreferencesService.setEnabledRegions(
+      allowed.isEmpty ? RegionFeatureFlags.enabledRegions : allowed,
+    );
   }
 }

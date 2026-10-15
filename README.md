@@ -6,19 +6,32 @@ Western Australia.
 
 ## Toolchain
 
-- Flutter SDK: `3.38.7` (pinned via `.fvmrc`)
-- Dart SDK: `>=3.10.7` (managed by the Flutter SDK in this repository)
+- Flutter SDK: `3.47.7` (pinned via `.fvmrc`)
+- Dart SDK: `3.13.5` (bundled with the pinned Flutter SDK)
+- `golden_screenshot 12.0.0` requires Flutter `>=3.47.0` and Dart `>=3.13.0`.
 - Local verification commands:
   - `flutter pub get`
   - `dart format --output=none --set-exit-if-changed .`
   - `flutter analyze`
-  - `flutter test --exclude-tags integration`
+  - `./scripts/ci.sh nsw` (format, analyze, deterministic tests with NSW only)
+  - `./scripts/ci.sh all-regions` (same checks with every region enabled)
+  - `./scripts/check_goldens.sh` (compare committed screenshot baselines)
+  - `./scripts/check_goldens.sh --update-goldens` (generate or refresh baselines)
   - `flutter test --tags integration` (requires provider credentials in `.env`)
   - `flutter test integration_test/saved_trip_journey_test.dart -d <device-id>`
 
-The Android emulator CI job runs the saved-trip journey test on each pull
-request. Live provider checks are available from the manual `Live provider
-tests` workflow; select the provider flags and configure the required secrets.
+The CI workflow runs the deterministic suite in both NSW-only and all-regions
+modes. These use explicit Dart defines, exclude integration and golden tests,
+and run test workers serially to keep memory use bounded. Screenshot baselines
+are checked by a separate workflow in the all-regions configuration; run
+`./scripts/check_goldens.sh` locally to compare them. The Android emulator CI
+job runs the saved-trip journey test on each pull request. Live provider checks
+are available from the manual `Live provider tests` workflow; select the
+provider flags and configure the required secrets.
+
+GitHub Pages deploys after a successful CI push to `main` or `master` from this
+repository. Manual web deployment is also available from the Actions tab when
+the selected ref is `main` or `master`.
 
 ## Getting Started
 
@@ -105,8 +118,48 @@ live under `lib/queensland/translink/`.
 
 ## Multi-region credentials
 
-The multi-region transit layer reads provider credentials and optional feed URLs
-from `.env`:
+Region availability is controlled at build time with Dart defines. NSW is
+enabled by default; Victoria, Queensland, South Australia, Tasmania, Northern
+Territory, and Western Australia are disabled by default. Re-enable a region
+with its `ENABLE_*` define, for example
+`flutter run --dart-define=ENABLE_VICTORIA=true`. The flags are
+`ENABLE_NSW`, `ENABLE_VICTORIA`, `ENABLE_QUEENSLAND`,
+`ENABLE_SOUTH_AUSTRALIA`, `ENABLE_TASMANIA`,
+`ENABLE_NORTHERN_TERRITORY`, and `ENABLE_WESTERN_AUSTRALIA`. Disabled regions
+cannot be turned on through Settings or persisted preferences.
+
+### Credentials in distributed builds
+
+Flutter bundles `.env` as a client asset. Its contents can be read from the
+web download or extracted from an APK; a GitHub secret does not stay secret
+once placed in that asset. Only distribute provider keys intended for public
+client use. Credentials that must remain private require a server boundary;
+this repository does not provide a credential proxy.
+
+Pages deployments and Android releases ship **no provider credentials by
+default**. Users can enter their own TfNSW key in Settings; that override
+continues to take priority over any bundled key. Without either key, the app
+can launch and display local/cached data, but authenticated TfNSW requests
+cannot succeed. Other providers still need their documented configuration.
+
+To deliberately distribute a public TfNSW deployment key, configure both in
+repository Settings → Secrets and variables → Actions:
+
+- Variable `BUNDLE_PUBLIC_TFNSW_KEY`: exactly `true` to opt in; unset or `false`
+  builds without a provider key. Other values fail configuration.
+- Secret `PUBLIC_TFNSW_API_KEY`: a dedicated deployment key whose public
+  distribution is acceptable. Opting in without this key fails the build.
+
+Both release workflows call `scripts/create_deployment_env.sh`, which
+replaces `.env` rather than inheriting local credentials. It accepts only a
+single key token (letters, digits, `.`, `_`, `~`, `+`, `/`, `=`, `-`) so dotenv
+cannot interpret comments or expansions. The general `API_KEY` repository
+secret remains for manually invoked provider checks and is never used as the
+deployment key. Builds do not automatically bundle other provider secrets.
+
+For local development, the multi-region transit layer reads provider
+credentials and optional feed URLs from `.env`. Local builds also bundle any
+values you put in this file; review them before sharing an artifact:
 
 - `API_KEY` for TfNSW
 - `PTV_DEV_ID` and `PTV_API_KEY` for PTV signed API access

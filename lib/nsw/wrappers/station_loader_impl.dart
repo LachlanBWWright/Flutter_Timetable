@@ -1,29 +1,19 @@
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/stop.dart' as gtfs_stop;
+import 'package:lbww_flutter/nsw/wrappers/gtfs_endpoint_catalog.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 
-/// In-memory cache for stations keyed by [TransportMode].
-/// Entries persist for the lifetime of the app process (never expire).
-///
-/// **Cache invalidation**: the cache is only cleared when the app process is
-/// killed.  If the underlying stop database is updated (e.g. via the Settings
-/// screen's "Update stops" action), call `_stationCache.clear()` or restart
-/// the app to pick up the new data.
+/// In-memory cache for non-empty station lists keyed by [TransportMode].
 final Map<TransportMode, List<Station>> _stationCache = {};
+int _stationCacheGeneration = 0;
+final Map<TransportMode, int> _modeCacheGenerations = {};
 
-List<Station>? _cachedStationsForMode(TransportMode mode) {
-  try {
-    return _stationCache[mode];
-  } catch (_) {
-    return null;
-  }
-}
+List<Station>? _cachedStationsForMode(TransportMode mode) =>
+    _stationCache[mode];
 
 void _cacheStationsForMode(TransportMode mode, List<Station> stations) {
-  try {
-    _stationCache[mode] = stations;
-  } catch (_) {}
+  _stationCache[mode] = stations;
 }
 
 /// Load stations for a mode from the local database only (no API fetch).
@@ -35,59 +25,40 @@ Future<List<Station>> loadStationsFromDbForMode(TransportMode mode) async {
   if (cachedStations != null) {
     return cachedStations;
   }
+  final generation = _stationCacheGeneration;
+  final modeGeneration = _modeCacheGenerations[mode] ?? 0;
   final endpoints = endpointsForMode(mode);
 
   final stations = await loadStationsFromDbForEndpoints(endpoints);
 
-  // Store in memory cache for future calls
-  _cacheStationsForMode(mode, stations);
+  // Startup can prefetch before GTFS downloads finish. Never cache an empty
+  // result, or it would hide the stops once those downloads populate the DB.
+  if (stations.isNotEmpty &&
+      generation == _stationCacheGeneration &&
+      modeGeneration == (_modeCacheGenerations[mode] ?? 0)) {
+    _cacheStationsForMode(mode, stations);
+  }
   return stations;
 }
 
-List<StopsEndpoint> endpointsForMode(TransportMode mode) {
-  switch (mode) {
-    case TransportMode.train:
-      return [StopsEndpoint.sydneytrains];
-    case TransportMode.metro:
-      return [StopsEndpoint.metro];
-    case TransportMode.lightrail:
-      return [
-        StopsEndpoint.lightrailInnerwest,
-        StopsEndpoint.lightrailNewcastle,
-        StopsEndpoint.lightrailCbdandsoutheast,
-        StopsEndpoint.lightrailParramatta,
-      ];
-    case TransportMode.bus:
-      return [
-        StopsEndpoint.buses,
-        StopsEndpoint.busesSbsc006,
-        StopsEndpoint.busesGbsc001,
-        StopsEndpoint.busesGsbc002,
-        StopsEndpoint.busesGsbc003,
-        StopsEndpoint.busesGsbc004,
-        StopsEndpoint.busesGsbc007,
-        StopsEndpoint.busesGsbc008,
-        StopsEndpoint.busesGsbc009,
-        StopsEndpoint.busesGsbc010,
-        StopsEndpoint.busesGsbc014,
-        StopsEndpoint.busesOsmbsc001,
-        StopsEndpoint.busesOsmbsc002,
-        StopsEndpoint.busesOsmbsc003,
-        StopsEndpoint.busesOsmbsc004,
-        StopsEndpoint.busesOmbsc006,
-        StopsEndpoint.busesOmbsc007,
-        StopsEndpoint.busesOsmbsc008,
-        StopsEndpoint.busesOsmbsc009,
-        StopsEndpoint.busesOsmbsc010,
-        StopsEndpoint.busesOsmbsc011,
-        StopsEndpoint.busesOsmbsc012,
-        StopsEndpoint.busesNisc001,
-        StopsEndpoint.busesReplacementBus,
-      ];
-    case TransportMode.ferry:
-      return [StopsEndpoint.ferriesSydneyFerries, StopsEndpoint.ferriesMff];
+/// Drop a mode's cached stations after its GTFS endpoint has been refreshed.
+void invalidateStationCacheForEndpoint(StopsEndpoint endpoint) {
+  final mode = StopsService.modeForEndpointKey(endpoint.key);
+  if (mode != null) {
+    _modeCacheGenerations.update(mode, (value) => value + 1, ifAbsent: () => 1);
+    _stationCache.remove(mode);
   }
 }
+
+/// Drop all cached station lists after the database is reset.
+void clearStationCache() {
+  _stationCacheGeneration += 1;
+  _stationCache.clear();
+  _modeCacheGenerations.clear();
+}
+
+List<StopsEndpoint> endpointsForMode(TransportMode mode) =>
+    NswGtfsEndpointCatalog.endpointsForMode(mode, includeTrainLink: false);
 
 Future<List<Station>> loadStationsFromDbForEndpoints(
   List<StopsEndpoint> endpoints,

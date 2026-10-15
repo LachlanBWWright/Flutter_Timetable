@@ -3,6 +3,7 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/gtfs/stop.dart' as gtfs;
+import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
@@ -150,16 +151,30 @@ final previewTripJourney = TripJourney.fromJson({
         'id': '200060',
         'name': 'Central Station',
         'coord': [-33.8831, 151.2065],
-        'departureTimePlanned': '2026-08-13T10:00:00+10:00',
-        'departureTimeEstimated': '2026-08-13T10:02:00+10:00',
+        'departureTimePlanned': '2030-06-14T10:00:00+10:00',
+        'departureTimeEstimated': '2030-06-14T10:02:00+10:00',
       },
       'destination': {
         'id': '200070',
         'name': 'Town Hall Station',
         'coord': [-33.8732, 151.2069],
-        'arrivalTimePlanned': '2026-08-13T10:06:00+10:00',
-        'arrivalTimeEstimated': '2026-08-13T10:08:00+10:00',
+        'arrivalTimePlanned': '2030-06-14T10:06:00+10:00',
+        'arrivalTimeEstimated': '2030-06-14T10:08:00+10:00',
       },
+      'stopSequence': [
+        {
+          'id': '200060',
+          'name': 'Central Station',
+          'coord': [-33.8831, 151.2065],
+          'departureTimePlanned': '2030-06-14T10:00:00+10:00',
+        },
+        {
+          'id': '200070',
+          'name': 'Town Hall Station',
+          'coord': [-33.8732, 151.2069],
+          'arrivalTimePlanned': '2030-06-14T10:06:00+10:00',
+        },
+      ],
       'duration': 480,
       'distance': 1900,
       'transportation': {
@@ -172,6 +187,23 @@ final previewTripJourney = TripJourney.fromJson({
     },
   ],
 });
+
+final previewT1VehicleFeed = FeedMessage(
+  entity: [
+    FeedEntity(
+      id: 'preview-t1-vehicle-1',
+      vehicle: VehiclePosition(
+        trip: TripDescriptor(routeId: 'T1', tripId: 'preview-t1-trip'),
+        vehicle: VehicleDescriptor(id: 'Preview T1 train'),
+        position: Position(latitude: -33.878, longitude: 151.204),
+      ),
+    ),
+  ],
+);
+
+Future<Map<TransportMode, FeedMessage?>> previewT1RealtimePositions() async => {
+  TransportMode.train: previewT1VehicleFeed,
+};
 
 Leg get previewLeg => previewTripJourney.legs.first;
 

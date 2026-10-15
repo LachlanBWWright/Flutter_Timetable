@@ -1,5 +1,3 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
-
 import 'dart:async';
 
 import 'package:archive/archive.dart';
@@ -7,6 +5,7 @@ import 'package:chopper/chopper.dart' as chopper;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+
 // import 'package:lbww_flutter/swagger_generated/realtime_timetables_v1.swagger.dart';
 
 class ProtobufConverter implements chopper.Converter {

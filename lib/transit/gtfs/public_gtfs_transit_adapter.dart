@@ -1,7 +1,6 @@
-import 'dart:convert';
-import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
@@ -14,6 +13,8 @@ import 'package:lbww_flutter/transit/errors/transit_failure.dart';
 import 'package:lbww_flutter/transit/gtfs/gtfs_journey_planner.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
+
+part 'public_gtfs_departures.dart';
 
 typedef PublicGtfsFetcher = Future<http.Response> Function(Uri uri);
 
@@ -102,12 +103,11 @@ class PublicGtfsStopRepository implements StopRepository {
     final query = request.query.trim().toLowerCase();
     if (query.isEmpty) return const <TransitStop>[];
     final sourceIds = config.feeds.map((feed) => feed.sourceId.value).toSet();
-    return (await _database.getAllStops())
-        .where((row) => sourceIds.contains(row.endpoint))
-        .where((row) => row.stopName.toLowerCase().contains(query))
-        .take(request.limit)
-        .map(_mapStop)
-        .toList(growable: false);
+    return (await _database.searchStops(
+      query,
+      limit: request.limit,
+      endpoints: sourceIds,
+    )).map(_mapStop).toList(growable: false);
   }
 
   TransitStop _mapStop(db.Stop row) => TransitStop(
@@ -143,6 +143,13 @@ class PublicGtfsStaticRepository implements StaticGtfsRepository {
   Stream<StaticImportProgress> refreshStaticData(
     StaticImportRequest request,
   ) async* {
+    final knownSources = config.feeds.map((feed) => feed.sourceId).toSet();
+    if (request.sourceIds?.any((source) => !knownSources.contains(source)) ==
+        true) {
+      throw const InvalidJourneyRequest(
+        message: 'The requested public GTFS source is not configured.',
+      );
+    }
     final feeds = request.sourceIds == null || request.sourceIds!.isEmpty
         ? config.feeds
         : config.feeds
@@ -158,11 +165,19 @@ class PublicGtfsStaticRepository implements StaticGtfsRepository {
       );
       try {
         final response = await fetcher(Uri.parse(feed.url));
-        final stops = parseStopsOnlyFromZipBytes(
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          throw ProviderUnavailable(
+            message: 'The ${feed.label} timetable is temporarily unavailable.',
+          );
+        }
+        final stops = await compute(
+          parseStopsOnlyFromZipBytes,
           Uint8List.fromList(response.bodyBytes),
         );
         if (stops.isEmpty) {
-          throw const FormatException('The GTFS feed contains no stops.');
+          throw const InvalidProviderResponse(
+            message: 'The GTFS feed contains no stops.',
+          );
         }
         await _database.insertStopsForEndpoint(
           stops
@@ -205,175 +220,5 @@ class PublicGtfsStaticRepository implements StaticGtfsRepository {
         );
       }
     }
-  }
-}
-
-class PublicGtfsDepartureRepository implements DepartureRepository {
-  PublicGtfsDepartureRepository({
-    required this.config,
-    this.fetcher = _fetchPublicGtfsFeed,
-  });
-
-  final PublicGtfsProviderConfig config;
-  final PublicGtfsFetcher fetcher;
-  final Map<String, GtfsData> _cache = <String, GtfsData>{};
-  final Map<String, DateTime> _cacheFetchedAt = <String, DateTime>{};
-  static const Duration _cacheTtl = Duration(hours: 6);
-
-  @override
-  Future<List<TransitDeparture>> getDepartures(DepartureRequest request) async {
-    final data = await loadFeed(request.stop.sourceId);
-    final now = request.when ?? DateTime.now();
-    final activeServices = _activeServiceIds(data, now);
-    final trips = {for (final trip in data.trips) trip.tripId: trip};
-    final routes = {for (final route in data.routes) route.routeId: route};
-    final departures =
-        data.stopTimes
-            .where((time) => time.stopId == request.stop.stopId)
-            .where(
-              (time) => activeServices.contains(trips[time.tripId]?.serviceId),
-            )
-            .map((time) {
-              final trip = trips[time.tripId];
-              final route = trip == null ? null : routes[trip.routeId];
-              final planned = _gtfsTimeToDateTime(now, time.departureTime);
-              return TransitDeparture(
-                stop: request.stop,
-                route: route == null
-                    ? null
-                    : TransitRoute(
-                        ref: TransitRouteRef(
-                          region: config.region,
-                          provider: config.provider,
-                          sourceId: request.stop.sourceId,
-                          routeId: route.routeId,
-                        ),
-                        name: route.routeLongName.isNotEmpty
-                            ? route.routeLongName
-                            : route.routeShortName,
-                        shortName: route.routeShortName,
-                        mode: _modeFromRouteType(route.routeType),
-                      ),
-                tripId: time.tripId,
-                destinationName: trip?.tripHeadsign,
-                plannedTime: planned,
-                estimatedTime: planned,
-              );
-            })
-            .where((departure) => departure.plannedTime != null)
-            .where(
-              (departure) => !departure.plannedTime!.isBefore(
-                now.subtract(const Duration(minutes: 1)),
-              ),
-            )
-            .toList(growable: false)
-          ..sort(
-            (left, right) => left.plannedTime!.compareTo(right.plannedTime!),
-          );
-    return departures.take(20).toList(growable: false);
-  }
-
-  Future<GtfsData> loadFeed(TransitSourceId sourceId) async {
-    final cached = _cache[sourceId.value];
-    final fetchedAt = _cacheFetchedAt[sourceId.value];
-    if (cached != null &&
-        fetchedAt != null &&
-        DateTime.now().difference(fetchedAt) < _cacheTtl) {
-      return cached;
-    }
-    final feed = config.feeds.firstWhereOrNull(
-      (candidate) => candidate.sourceId == sourceId,
-    );
-    if (feed == null) return _emptyGtfsData();
-    try {
-      final response = await fetcher(Uri.parse(feed.url));
-      final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-      final files = <String, String>{};
-      for (final file in archive) {
-        if (file.isFile && file.name.endsWith('.txt')) {
-          files[file.name] = utf8.decode(file.content as List<int>);
-        }
-      }
-      final data = parseGtfsFiles(files);
-      _cache[sourceId.value] = data;
-      _cacheFetchedAt[sourceId.value] = DateTime.now();
-      return data;
-    } catch (error, stackTrace) {
-      safeLogWarning('${feed.label} GTFS parse failed: $error\n$stackTrace');
-      return _emptyGtfsData();
-    }
-  }
-}
-
-GtfsData _emptyGtfsData() => GtfsData(
-  agencies: const [],
-  calendars: const [],
-  calendarDates: const [],
-  routes: const [],
-  stops: const [],
-  stopTimes: const [],
-  trips: const [],
-  shapes: const [],
-  notes: const [],
-);
-
-Set<String> _activeServiceIds(GtfsData data, DateTime moment) {
-  final date =
-      '${moment.year.toString().padLeft(4, '0')}'
-      '${moment.month.toString().padLeft(2, '0')}'
-      '${moment.day.toString().padLeft(2, '0')}';
-  final services = <String>{};
-  for (final calendar in data.calendars) {
-    if (date.compareTo(calendar.startDate) < 0 ||
-        date.compareTo(calendar.endDate) > 0) {
-      continue;
-    }
-    final active = [
-      calendar.monday,
-      calendar.tuesday,
-      calendar.wednesday,
-      calendar.thursday,
-      calendar.friday,
-      calendar.saturday,
-      calendar.sunday,
-    ][moment.weekday - 1];
-    if (active == '1') services.add(calendar.serviceId);
-  }
-  for (final exception in data.calendarDates.where(
-    (item) => item.date == date,
-  )) {
-    if (exception.exceptionType == '1') services.add(exception.serviceId);
-    if (exception.exceptionType == '2') services.remove(exception.serviceId);
-  }
-  return services;
-}
-
-DateTime? _gtfsTimeToDateTime(DateTime date, String value) {
-  final parts = value.split(':').map(int.tryParse).toList();
-  if (parts.length != 3 || parts.any((part) => part == null)) return null;
-  return DateTime(
-    date.year,
-    date.month,
-    date.day,
-    parts[0]! % 24,
-    parts[1]!,
-    parts[2]!,
-  ).add(Duration(days: parts[0]! ~/ 24));
-}
-
-TransportMode? _modeFromRouteType(String routeType) {
-  switch (routeType) {
-    case '0':
-      return TransportMode.lightrail;
-    case '1':
-      return TransportMode.metro;
-    case '2':
-      return TransportMode.train;
-    case '3':
-      return TransportMode.bus;
-    case '4':
-      return TransportMode.ferry;
-    default:
-      return null;
   }
 }

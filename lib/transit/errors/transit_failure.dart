@@ -11,6 +11,10 @@ class UnsupportedCapability extends TransitFailure {
   const UnsupportedCapability({super.message});
 }
 
+class InvalidJourneyRequest extends TransitFailure {
+  const InvalidJourneyRequest({super.message});
+}
+
 class InvalidCredentials extends TransitFailure {
   const InvalidCredentials({super.message});
 }

@@ -34,7 +34,10 @@ lib/nsw/swaggers/generated/
 .pub-cache/
 .pub/
 /build/
-/screenshots/
+/screenshots/*
+!/screenshots/phoneScreenshots/
+/screenshots/phoneScreenshots/*
+!/screenshots/phoneScreenshots/*.png
 /test/failures/
 
 # Web related

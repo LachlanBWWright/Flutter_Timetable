@@ -1,3 +1,6 @@
+@Tags(['integration'])
+library;
+
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -11,7 +14,6 @@ import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 import 'package:lbww_flutter/western_australia/transperth_gtfs.dart';
 import 'package:test/test.dart';
 
-@Tags(['integration'])
 void main() {
   final runLiveTests =
       Platform.environment['RUN_PUBLIC_STATE_API_TESTS'] == 'true';
@@ -111,29 +113,38 @@ void main() {
           }
           expect(stop, isNotNull);
           expect(destination, isNotNull);
+          final selectedStop = stop!;
+          final selectedDestination = destination!;
+          final selectedPlan = plan!;
           expect(departures, isNotEmpty);
           expect(departures.first.tripId, isNotEmpty);
           expect(departures.first.plannedTime, isNotNull);
-          expect(departures.first.stop, selectedStopRef(stop));
-          expect(plan?.journeys, isNotEmpty);
-          expect(plan!.journeys.first.legs, isNotEmpty);
-          expect(plan.journeys.first.legs.first.origin.name, isNotEmpty);
-          expect(plan.journeys.first.legs.first.destination.name, isNotEmpty);
-          expect(await services.stops.getStop(stop!.ref), isNotNull);
+          expect(departures.first.stop, selectedStopRef(selectedStop));
+          expect(selectedPlan.journeys, isNotEmpty);
+          expect(selectedPlan.journeys.first.legs, isNotEmpty);
+          expect(
+            selectedPlan.journeys.first.legs.first.origin.name,
+            isNotEmpty,
+          );
+          expect(
+            selectedPlan.journeys.first.legs.first.destination.name,
+            isNotEmpty,
+          );
+          expect(await services.stops.getStop(selectedStop.ref), isNotNull);
           print(
-            'STATE_SAMPLE ${testCase.name} stop=${stop!.name} '
-            'id=${stop.ref.stopId} destination=${destination!.name} '
-            'id=${destination.ref.stopId} departures=${departures.length} '
-            'journeys=${plan!.journeys.length}',
+            'STATE_SAMPLE ${testCase.name} stop=${selectedStop.name} '
+            'id=${selectedStop.ref.stopId} destination=${selectedDestination.name} '
+            'id=${selectedDestination.ref.stopId} departures=${departures.length} '
+            'journeys=${selectedPlan.journeys.length}',
           );
 
           final saved = await JourneyService.insertJourney(
             database,
             db.JourneysCompanion.insert(
-              origin: stop!.name,
-              originId: stop.ref.storageKey,
-              destination: destination!.name,
-              destinationId: destination.ref.storageKey,
+              origin: selectedStop.name,
+              originId: selectedStop.ref.storageKey,
+              destination: selectedDestination.name,
+              destinationId: selectedDestination.ref.storageKey,
             ),
           );
           expect(saved, isTrue);
@@ -148,4 +159,4 @@ void main() {
   }
 }
 
-TransitStopRef selectedStopRef(TransitStop? stop) => stop!.ref;
+TransitStopRef selectedStopRef(TransitStop stop) => stop.ref;

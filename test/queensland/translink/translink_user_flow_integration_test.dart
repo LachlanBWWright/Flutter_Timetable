@@ -1,16 +1,18 @@
+@Tags(['integration'])
+library;
+
 import 'dart:io';
 
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/queensland/adapters/translink_transit_adapter.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/journey_service.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
-import 'package:lbww_flutter/queensland/adapters/translink_transit_adapter.dart';
 import 'package:test/test.dart';
 
-@Tags(['integration'])
 void main() {
   final runLiveTests = Platform.environment['RUN_QLD_API_TESTS'] == 'true';
 
@@ -79,7 +81,7 @@ void main() {
       print(
         'STATE_SAMPLE QLD stop=${selectedOrigin.name} '
         'id=${selectedOrigin.ref.stopId} destination=${selectedDestination.name} '
-        'id=${selectedDestination.ref.stopId} journeys=${plan!.journeys.length}',
+        'id=${selectedDestination.ref.stopId} journeys=${plan.journeys.length}',
       );
 
       final saved = await JourneyService.insertJourney(

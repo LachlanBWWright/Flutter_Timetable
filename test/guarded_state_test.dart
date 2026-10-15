@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 
 class _GuardedTestWidget extends StatefulWidget {
-  const _GuardedTestWidget({required this.onError, super.key});
+  const _GuardedTestWidget({required this.onError});
 
   final void Function(Object error, StackTrace stackTrace) onError;
 

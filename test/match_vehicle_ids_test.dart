@@ -1,4 +1,5 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+@Tags(['integration'])
+library;
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +9,6 @@ import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:option_result/option_result.dart';
 
-@Tags(['integration'])
 void main() {
   test(
     'Match Vehicle IDs between Trip Planner, Realtime Updates, and Vehicle Positions',

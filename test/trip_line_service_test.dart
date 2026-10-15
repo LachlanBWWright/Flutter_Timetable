@@ -1,5 +1,3 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
@@ -68,6 +66,36 @@ void main() {
         'Town Hall',
         'Redfern',
       ]);
+    });
+
+    test('a transient endpoint failure can be retried', () async {
+      var fetches = 0;
+      final retryable = TripLineService(
+        readPersistedCache: false,
+        gtfsLoader: (_) async {
+          fetches += 1;
+          if (fetches == 1) {
+            throw StateError('Temporary network failure');
+          }
+          return _sampleTrainGtfsData();
+        },
+      );
+
+      expect(
+        await retryable.getStopsForLine(
+          'nswtrains|R1',
+          TransportMode.train,
+          allowBuild: true,
+        ),
+        isEmpty,
+      );
+      final recovered = await retryable.getStopsForLine(
+        'nswtrains|R1',
+        TransportMode.train,
+        allowBuild: true,
+      );
+      expect(recovered.map((stop) => stop.stopId), ['STA', 'STB', 'STC']);
+      expect(fetches, 2);
     });
 
     test('rankStopsForLine prioritises same-line stops within 5 km', () async {

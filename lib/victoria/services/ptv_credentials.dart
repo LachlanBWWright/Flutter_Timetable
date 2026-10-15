@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/services/app_preferences.dart';
 
@@ -13,13 +15,34 @@ class PtvCredentials {
 class PtvCredentialService {
   static const _developerIdKey = 'ptv_user_developer_id';
   static const _apiKeyKey = 'ptv_user_api_key';
+  static const _recordKey = 'ptv_user_credentials';
 
   static String? _developerId;
   static String? _apiKey;
 
   static Future<void> init() async {
-    _developerId = _nonEmpty(await AppPreferences.getString(_developerIdKey));
-    _apiKey = _nonEmpty(await AppPreferences.getString(_apiKeyKey));
+    final record = await AppPreferences.getStringOrThrow(_recordKey);
+    String? developerId;
+    String? apiKey;
+    if (record != null) {
+      try {
+        final decoded = jsonDecode(record) as Map<String, dynamic>;
+        developerId = _nonEmpty(decoded['developerId'] as String?);
+        apiKey = _nonEmpty(decoded['apiKey'] as String?);
+      } on FormatException {
+        // Corrupt records must not resurrect old overrides.
+      } on TypeError {
+        // Treat malformed pairs as unconfigured.
+      }
+    } else if (!await AppPreferences.containsKeyOrThrow(_recordKey)) {
+      developerId = _nonEmpty(
+        await AppPreferences.getStringOrThrow(_developerIdKey),
+      );
+      apiKey = _nonEmpty(await AppPreferences.getStringOrThrow(_apiKeyKey));
+    }
+    final complete = developerId != null && apiKey != null;
+    _developerId = complete ? developerId : null;
+    _apiKey = complete ? apiKey : null;
   }
 
   static PtvCredentials get effectiveCredentials {
@@ -43,15 +66,20 @@ class PtvCredentialService {
     if (normalizedDeveloperId == null || normalizedApiKey == null) {
       throw ArgumentError('Both PTV developer ID and API key are required.');
     }
-    await AppPreferences.setString(_developerIdKey, normalizedDeveloperId);
-    await AppPreferences.setString(_apiKeyKey, normalizedApiKey);
+    await AppPreferences.setStringOrThrow(
+      _recordKey,
+      jsonEncode({
+        'developerId': normalizedDeveloperId,
+        'apiKey': normalizedApiKey,
+      }),
+    );
     _developerId = normalizedDeveloperId;
     _apiKey = normalizedApiKey;
   }
 
   static Future<void> clearUserCredentials() async {
-    await AppPreferences.remove(_developerIdKey);
-    await AppPreferences.remove(_apiKeyKey);
+    // Keep an empty record so legacy keys cannot revive a cleared override.
+    await AppPreferences.setStringOrThrow(_recordKey, '{}');
     _developerId = null;
     _apiKey = null;
   }

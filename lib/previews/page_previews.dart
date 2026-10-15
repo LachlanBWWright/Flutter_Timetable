@@ -146,6 +146,7 @@ Widget realtimeMapPagePreview() => const RealtimeMapPage(
   transportMode: TransportMode.train,
   routeFilter: 'T1',
   showTileLayer: false,
+  getPositions: previewT1RealtimePositions,
 );
 
 @Preview(

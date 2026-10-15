@@ -9,24 +9,14 @@ class DebugService {
   static final ValueNotifier<bool> showDebugData = ValueNotifier<bool>(true);
 
   static Future<void> init() async {
-    bool? stored;
-    try {
-      stored = await AppPreferences.getBool(_prefKey);
-    } catch (_) {
-      stored = null;
-    }
+    final stored = await AppPreferences.getBoolOrThrow(_prefKey);
     if (stored != null) {
       showDebugData.value = stored;
-    } else {
-      // default true
-      showDebugData.value = true;
     }
   }
 
   static Future<void> setShowDebugData(bool value) async {
-    try {
-      await AppPreferences.setBool(_prefKey, value);
-    } catch (_) {}
+    await AppPreferences.setBoolOrThrow(_prefKey, value);
     showDebugData.value = value;
   }
 }

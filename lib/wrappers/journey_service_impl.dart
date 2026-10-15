@@ -6,10 +6,14 @@ class JourneyLoadResult {
   const JourneyLoadResult({
     required this.pinnedJourneys,
     required this.unpinnedJourneys,
+    this.succeeded = true,
   });
 
   final List<db.Journey> pinnedJourneys;
   final List<db.Journey> unpinnedJourneys;
+
+  /// False means storage failed; empty lists can still be a valid empty result.
+  final bool succeeded;
 
   List<db.Journey> get allJourneys => [...pinnedJourneys, ...unpinnedJourneys];
 }
@@ -25,7 +29,7 @@ class JourneyService {
         pinnedJourneys: pinnedJourneys,
         unpinnedJourneys: unpinnedJourneys,
       );
-    } catch (error, stackTrace) {
+    } on Exception catch (error, stackTrace) {
       safeLogError(
         'Failed to load journeys',
         error: error,
@@ -34,6 +38,7 @@ class JourneyService {
       return const JourneyLoadResult(
         pinnedJourneys: <db.Journey>[],
         unpinnedJourneys: <db.Journey>[],
+        succeeded: false,
       );
     }
   }
@@ -42,7 +47,7 @@ class JourneyService {
     try {
       await database.deleteJourney(tripId);
       return true;
-    } catch (error, stackTrace) {
+    } on Exception catch (error, stackTrace) {
       safeLogError(
         'Failed to delete journey $tripId',
         error: error,
@@ -60,7 +65,7 @@ class JourneyService {
     try {
       await database.toggleJourneyPin(tripId, !isPinned);
       return true;
-    } catch (error, stackTrace) {
+    } on Exception catch (error, stackTrace) {
       safeLogError(
         'Failed to toggle journey pin for $tripId',
         error: error,
@@ -77,7 +82,7 @@ class JourneyService {
     try {
       await database.insertJourney(companion);
       return true;
-    } catch (error, stackTrace) {
+    } on Exception catch (error, stackTrace) {
       safeLogError(
         'Failed to insert journey',
         error: error,

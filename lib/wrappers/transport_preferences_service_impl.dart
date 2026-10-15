@@ -1,12 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import '../services/app_preferences.dart';
 import '../transit/domain/transit_types.dart';
+import '../transit/registry/region_feature_flags.dart';
 
 class TransportPreferencesService {
   static const String _showNswTrainLinkKey = 'show_nsw_trainlink';
   static const String _selectedRegionKey = 'selected_transit_region';
   static const String _enabledRegionsKey = 'enabled_transit_regions';
+  static const String _regionsRecordKey = 'transit_regions_record';
+  static Future<void>? _pendingRegionWrite;
 
   static final ValueNotifier<bool> showNswTrainLink = ValueNotifier<bool>(
     false,
@@ -17,65 +22,106 @@ class TransportPreferencesService {
       ValueNotifier<Set<TransitRegion>>({TransitRegion.nsw});
 
   static Future<void> init() async {
-    try {
-      showNswTrainLink.value =
-          await AppPreferences.getBool(_showNswTrainLinkKey) ?? false;
-      selectedRegion.value = TransitRegionX.fromStorage(
-        await AppPreferences.getString(_selectedRegionKey),
-      );
-      final storedRegions = await AppPreferences.getString(_enabledRegionsKey);
-      final parsedRegions = storedRegions
-          ?.split(',')
-          .map(TransitRegionX.fromStorageOrNull)
-          .whereType<TransitRegion>()
-          .toSet();
-      enabledRegions.value = parsedRegions == null || parsedRegions.isEmpty
-          ? {selectedRegion.value}
-          : parsedRegions;
-      if (!enabledRegions.value.contains(selectedRegion.value)) {
-        enabledRegions.value = {...enabledRegions.value, selectedRegion.value};
+    final nextShowNswTrainLink =
+        await AppPreferences.getBoolOrThrow(_showNswTrainLinkKey) ?? false;
+    final record = await AppPreferences.getStringOrThrow(_regionsRecordKey);
+    String? storedSelected;
+    Iterable<String>? storedRegions;
+    if (record != null) {
+      try {
+        final decoded = jsonDecode(record) as Map<String, dynamic>;
+        final selected = decoded['selected'] as String?;
+        final enabled = (decoded['enabled'] as List?)?.cast<String>().toList();
+        storedSelected = selected;
+        storedRegions = enabled;
+      } on FormatException {
+        // A corrupt record uses safe defaults rather than older settings.
+      } on TypeError {
+        // Unknown record shapes also use safe defaults.
       }
-    } catch (_) {
-      showNswTrainLink.value = false;
-      selectedRegion.value = TransitRegion.nsw;
-      enabledRegions.value = {TransitRegion.nsw};
+    } else if (!await AppPreferences.containsKeyOrThrow(_regionsRecordKey)) {
+      storedSelected = await AppPreferences.getStringOrThrow(
+        _selectedRegionKey,
+      );
+      storedRegions = (await AppPreferences.getStringOrThrow(
+        _enabledRegionsKey,
+      ))?.split(',');
     }
+    final parsedSelected = TransitRegionX.fromStorage(storedSelected);
+    final selected = RegionFeatureFlags.isEnabled(parsedSelected)
+        ? parsedSelected
+        : RegionFeatureFlags.enabledRegions.first;
+    final enabled = storedRegions
+        ?.map(TransitRegionX.fromStorageOrNull)
+        .whereType<TransitRegion>()
+        .where(RegionFeatureFlags.isEnabled)
+        .toSet();
+    showNswTrainLink.value = nextShowNswTrainLink;
+    enabledRegions.value = Set.unmodifiable({...?enabled, selected});
+    selectedRegion.value = selected;
   }
 
   static Future<void> setShowNswTrainLink(bool value) async {
-    try {
-      await AppPreferences.setBool(_showNswTrainLinkKey, value);
-    } catch (_) {}
+    await AppPreferences.setBoolOrThrow(_showNswTrainLinkKey, value);
     showNswTrainLink.value = value;
   }
 
-  static Future<void> setSelectedRegion(TransitRegion region) async {
-    if (!enabledRegions.value.contains(region)) {
-      await setEnabledRegions({...enabledRegions.value, region});
-    }
-    try {
-      await AppPreferences.setString(_selectedRegionKey, region.name);
-    } catch (_) {}
-    selectedRegion.value = region;
+  static Future<void> setSelectedRegion(TransitRegion region) {
+    if (!RegionFeatureFlags.isEnabled(region)) return Future<void>.value();
+    return _serializeRegionWrite(
+      () => _saveRegions(region, {...enabledRegions.value, region}),
+    );
   }
 
-  static Future<void> setEnabledRegions(Set<TransitRegion> regions) async {
-    final normalized = regions.isEmpty ? {selectedRegion.value} : {...regions};
-    if (!normalized.contains(selectedRegion.value)) {
-      selectedRegion.value = normalized.first;
-      try {
-        await AppPreferences.setString(
-          _selectedRegionKey,
-          selectedRegion.value.name,
-        );
-      } catch (_) {}
+  static Future<void> setEnabledRegions(Set<TransitRegion> regions) {
+    final allowed = regions.where(RegionFeatureFlags.isEnabled).toSet();
+    final normalized = allowed.isEmpty
+        ? RegionFeatureFlags.enabledRegions
+        : allowed;
+    return _serializeRegionWrite(
+      () => _saveRegions(
+        normalized.contains(selectedRegion.value)
+            ? selectedRegion.value
+            : normalized.first,
+        normalized,
+      ),
+    );
+  }
+
+  static Future<void> _saveRegions(
+    TransitRegion selected,
+    Set<TransitRegion> enabled,
+  ) async {
+    await AppPreferences.setStringOrThrow(
+      _regionsRecordKey,
+      jsonEncode({
+        'selected': selected.name,
+        'enabled': enabled.map((region) => region.name).toList(),
+      }),
+    );
+    enabledRegions.value = Set.unmodifiable(enabled);
+    selectedRegion.value = selected;
+  }
+
+  // Serialize read-modify-write operations so concurrent saves preserve both
+  // the selected region and the complete enabled set. A failure still reaches
+  // its caller, while later saves are allowed to proceed.
+  static Future<void> _serializeRegionWrite(Future<void> Function() write) {
+    final previous = _pendingRegionWrite;
+    final result = previous == null
+        ? Future<void>.sync(write)
+        : previous.then((_) => write());
+    late final Future<void> pending;
+    void release() {
+      // Completed work must not retain a future from an earlier caller's zone.
+      if (identical(_pendingRegionWrite, pending)) _pendingRegionWrite = null;
     }
-    try {
-      await AppPreferences.setString(
-        _enabledRegionsKey,
-        normalized.map((region) => region.name).join(','),
-      );
-    } catch (_) {}
-    enabledRegions.value = normalized;
+
+    pending = result.then<void>(
+      (_) => release(),
+      onError: (Object _, StackTrace _) => release(),
+    );
+    _pendingRegionWrite = pending;
+    return result;
   }
 }

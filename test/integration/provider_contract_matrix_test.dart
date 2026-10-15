@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lbww_flutter/northern_territory/nt_gtfs.dart';
 import 'package:lbww_flutter/nsw/adapters/tfnsw_transit_adapter.dart';
 import 'package:lbww_flutter/queensland/adapters/translink_transit_adapter.dart';
 import 'package:lbww_flutter/south_australia/adapters/adelaide_metro_transit_adapter.dart';
@@ -7,7 +8,6 @@ import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 import 'package:lbww_flutter/victoria/adapters/ptv_transit_adapter.dart';
 import 'package:lbww_flutter/western_australia/transperth_gtfs.dart';
-import 'package:lbww_flutter/northern_territory/nt_gtfs.dart';
 
 void main() {
   test('every registered region exposes a coherent provider contract', () {

@@ -10,16 +10,17 @@ class AppAppearanceService {
   );
 
   static Future<void> init() async {
-    final storedMode = await AppPreferences.getString(_themeModeKey);
-    themeMode.value = switch (storedMode) {
+    final storedMode = await AppPreferences.getStringOrThrow(_themeModeKey);
+    final nextMode = switch (storedMode) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
       _ => ThemeMode.system,
     };
+    themeMode.value = nextMode;
   }
 
   static Future<void> setThemeMode(ThemeMode mode) async {
-    await AppPreferences.setString(_themeModeKey, mode.name);
+    await AppPreferences.setStringOrThrow(_themeModeKey, mode.name);
     themeMode.value = mode;
   }
 }

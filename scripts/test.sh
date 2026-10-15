@@ -4,5 +4,5 @@ source "$(dirname "$0")/_common.sh"
 
 require_flutter
 ensure_env_file
-"${FLUTTER[@]}" test --exclude-tags integration "$@"
+"${FLUTTER[@]}" test --exclude-tags=integration,golden --concurrency=1 "$@"
 

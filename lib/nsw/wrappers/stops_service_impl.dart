@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -9,8 +6,8 @@ import '../../constants/transport_modes.dart';
 import '../../gtfs/stop.dart';
 import '../../logs/logger.dart';
 import '../../schema/database.dart' hide Stop;
-import '../../services/app_http_client.dart';
 import '../fetch_data/timetable_data.dart';
+import 'stop_mode_cache.dart';
 
 /// Progress event emitted while updating stops from API
 /// Enumerates all supported GTFS endpoints used by the app. The enum names
@@ -107,46 +104,14 @@ enum StopsEndpoint {
   const StopsEndpoint(this.key, this.path, {this.isV2 = false});
 }
 
-class StopsUpdateProgress {
-  /// The endpoint associated with this progress event. Null for control
-  /// events such as 'init' and 'complete'. Use `.key` to obtain the
-  /// original string key when needed.
-  final StopsEndpoint? endpoint;
-  final int completed;
-  final int total;
-  final bool success;
-  final String? message;
-  StopsUpdateProgress({
-    required this.endpoint,
-    required this.completed,
-    required this.total,
-    required this.success,
-    this.message,
-  });
-
-  @override
-  String toString() =>
-      'StopsUpdateProgress(endpoint: ${endpoint?.key}, completed: $completed/$total, success: $success, message: $message)';
-}
-
 /// Service for managing GTFS stops data - parsing from assets and API endpoints
 class StopsService {
-  static AppDatabase? _database;
-  static final Map<String, TransportMode?> _stopModeCache =
-      <String, TransportMode?>{};
+  static final _stopModeCache = StopModeCache();
+  static ValueListenable<int> get modeChanges => _stopModeCache.changes;
 
-  static TransportMode? _cachedStopMode(String stopId) {
-    try {
-      return _stopModeCache[stopId];
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static void _storeStopMode(String stopId, TransportMode? mode) {
-    try {
-      _stopModeCache[stopId] = mode;
-    } catch (_) {}
+  /// Invalidate pending lookups as well as cached modes when stops change.
+  static void clearModeCache() {
+    _stopModeCache.clear();
   }
 
   static void _putGroupedCount(
@@ -155,86 +120,7 @@ class StopsService {
     String endpoint,
     int count,
   ) {
-    try {
-      final existing = grouped.entries
-          .where((entry) => entry.key == modeKey)
-          .map((entry) => entry.value)
-          .firstOrNull;
-      final current = <String, int>{...?existing, endpoint: count};
-      grouped.remove(modeKey);
-      grouped.addAll({modeKey: current});
-    } catch (_) {}
-  }
-
-  static Future<void> _runStopsUpdates(
-    StreamController<StopsUpdateProgress> controller,
-    List<StopsEndpoint> endpoints,
-  ) async {
-    final total = endpoints.length;
-    controller.add(
-      StopsUpdateProgress(
-        endpoint: null,
-        completed: 0,
-        total: total,
-        success: true,
-        message: 'Starting update of $total endpoints',
-      ),
-    );
-
-    var completed = 0;
-
-    for (var i = 0; i < endpoints.length; i += _batchSize) {
-      final batch = endpoints.skip(i).take(_batchSize).toList();
-
-      await Future.wait(
-        batch.map((endpoint) async {
-          controller.add(
-            StopsUpdateProgress(
-              endpoint: endpoint,
-              completed: completed,
-              total: total,
-              success: true,
-              message: 'Starting ${endpoint.key}',
-            ),
-          );
-          try {
-            await updateStopsFromEndpoint(endpoint);
-            completed += 1;
-            controller.add(
-              StopsUpdateProgress(
-                endpoint: endpoint,
-                completed: completed,
-                total: total,
-                success: true,
-                message: 'Completed ${endpoint.key}',
-              ),
-            );
-          } catch (e) {
-            safeLogWarning('Failed to update ${endpoint.key}: $e');
-            controller.add(
-              StopsUpdateProgress(
-                endpoint: endpoint,
-                completed: completed,
-                total: total,
-                success: false,
-                message: 'Failed ${endpoint.key}: $e',
-              ),
-            );
-          }
-        }),
-      );
-    }
-
-    controller.add(
-      StopsUpdateProgress(
-        endpoint: null,
-        completed: completed,
-        total: total,
-        success: true,
-        message: 'Finished updating stops ($completed/$total)',
-      ),
-    );
-    await controller.close();
+    grouped.putIfAbsent(modeKey, () => {})[endpoint] = count;
   }
 
   static TransportMode? modeForEndpointKey(String endpoint) {
@@ -257,47 +143,18 @@ class StopsService {
     return null;
   }
 
-  /// Get or create database instance
-  static AppDatabase get database {
-    final db = _database ??= AppDatabase();
-    return db;
-  }
+  /// Resolve the current application database for each operation.
+  static AppDatabase get database => AppDatabase();
 
   /// Parse CSV file from assets and return list of Stop objects
   static Future<List<Stop>> parseStopsFromAsset(String assetPath) async {
     try {
       final csvString = await rootBundle.loadString(assetPath);
-      return _parseStopsFromCsv(csvString);
+      return await compute(parseStopsCsv, csvString);
     } catch (e) {
       safeLogWarning('Error loading stops from asset $assetPath: $e');
       return [];
     }
-  }
-
-  /// Parse CSV string and return list of Stop objects
-  static List<Stop> _parseStopsFromCsv(String csvString) {
-    final List<List<dynamic>> csvData = const CsvToListConverter().convert(
-      csvString,
-    );
-
-    if (csvData.isEmpty || csvData.length < 2) return [];
-
-    // Get header row
-    final header = csvData.first.map((e) => e.toString()).toList();
-
-    // Parse data rows using header-based parsing
-    final stops = <Stop>[];
-    for (final entry in csvData.skip(1).indexed) {
-      final i = entry.$1 + 1;
-      try {
-        final row = entry.$2.map((e) => e.toString()).toList();
-        stops.add(Stop.fromCsv(header, row));
-      } catch (e) {
-        safeLogWarning('Error parsing stop row ${i + 1}: $e');
-      }
-    }
-
-    return stops;
   }
 
   static Future<void> storeStopsToDatabase(
@@ -350,6 +207,7 @@ class StopsService {
 
     // store under the canonical key value (original string key preserved in `key`)
     await db.insertStopsForEndpoint(stopsCompanions, endpoint.key);
+    clearModeCache();
   }
 
   /// Get all stops for a specific endpoint from database
@@ -358,6 +216,35 @@ class StopsService {
     final dbStops = await db.getAllStopsForEndpoint(endpoint.key);
 
     // Convert Drift Stop objects back to our Stop objects
+    return dbStops
+        .map(
+          (dbStop) => Stop(
+            stopId: dbStop.stopId,
+            stopCode: dbStop.stopCode,
+            ttsStopName: dbStop.ttsStopName,
+            stopName: dbStop.stopName,
+            stopDesc: dbStop.stopDesc,
+            stopLat: dbStop.stopLat ?? 0.0,
+            stopLon: dbStop.stopLon ?? 0.0,
+            zoneId: dbStop.zoneId,
+            stopUrl: dbStop.stopUrl,
+            stopTimezone: dbStop.stopTimezone,
+            locationType: dbStop.locationType ?? 0,
+            parentStation: dbStop.parentStation,
+            wheelchairBoarding: dbStop.wheelchairBoarding ?? 0,
+            levelId: dbStop.levelId,
+            platformCode: dbStop.platformCode,
+          ),
+        )
+        .toList();
+  }
+
+  static Future<List<Stop>> getStopsForEndpoints(
+    Iterable<StopsEndpoint> endpoints,
+  ) async {
+    final dbStops = await database.getAllStopsForEndpoints(
+      endpoints.map((endpoint) => endpoint.key),
+    );
     return dbStops
         .map(
           (dbStop) => Stop(
@@ -410,69 +297,6 @@ class StopsService {
         .toList();
   }
 
-  /// Fetch only stops.txt from the GTFS ZIP for [endpoint] and update the DB.
-  ///
-  /// Key improvements over the old approach:
-  /// - Only parses stops.txt — skips stop_times.txt, trips.txt, shapes.txt
-  ///   etc. which can be orders of magnitude larger.
-  /// - ZIP decompression and CSV parsing run in a background isolate via
-  ///   [compute], keeping the UI thread free.
-  static Future<void> updateStopsFromEndpoint(StopsEndpoint endpoint) async {
-    try {
-      final stops = await _fetchStopsOnly(endpoint);
-      if (stops == null) return;
-      await storeStopsToDatabase(stops, endpoint);
-      safeLogInfo('Updated ${stops.length} stops for ${endpoint.key} from API');
-    } catch (e) {
-      safeLogError('Error updating stops from endpoint ${endpoint.key}: $e');
-    }
-  }
-
-  /// HTTP-fetch the GTFS ZIP for [endpoint] and parse only stops.txt in a
-  /// background isolate. Returns null on any network or parse failure.
-  static Future<List<Stop>?> _fetchStopsOnly(StopsEndpoint endpoint) async {
-    final versionPath = endpoint.isV2 ? 'v2' : 'v1';
-    final url = Uri.tryParse(
-      'https://api.transport.nsw.gov.au/$versionPath/gtfs/schedule${endpoint.path}',
-    );
-    if (url == null) {
-      safeLogError('Invalid GTFS URL for endpoint ${endpoint.key}');
-      return null;
-    }
-    try {
-      final response = await AppHttpClient.get(url, headers: getHeaders());
-      if (response == null || response.statusCode != 200) {
-        safeLogError(
-          'Failed to fetch GTFS for ${endpoint.key}: ${response?.statusCode ?? 'network error'}',
-        );
-        return null;
-      }
-      // Offload ZIP decode + CSV parse to a background isolate so the UI
-      // thread is not blocked by the CPU-intensive work.
-      return await compute(parseStopsOnlyFromZipBytes, response.bodyBytes);
-    } catch (e) {
-      safeLogError('Network error fetching ${endpoint.key}: $e');
-      return null;
-    }
-  }
-
-  /// Update all endpoints from API (manual function - not called automatically).
-  ///
-  /// Emits [StopsUpdateProgress] events as each endpoint is processed.
-  /// Endpoints are processed in parallel batches of [_batchSize] to reduce
-  /// total wall-clock time while avoiding excessive memory and connection usage.
-  static const int _batchSize = 5;
-
-  static Stream<StopsUpdateProgress> updateAllStopsFromApi() {
-    final endpoints = StopsEndpoint.values;
-    final controller = StreamController<StopsUpdateProgress>();
-
-    _runStopsUpdates(controller, endpoints).ignore();
-
-    return controller.stream;
-  }
-
-  /// Get total number of stops in database
   static Future<int> getTotalStopsCount() async {
     final db = database;
     return await db.getTotalStopsCount();
@@ -518,12 +342,14 @@ class StopsService {
   }
 
   static Future<TransportMode?> getModeForStopId(String stopId) async {
-    if (_stopModeCache.containsKey(stopId)) {
-      return _cachedStopMode(stopId);
-    }
+    final cachedMode = _stopModeCache.lookup(stopId);
+    if (cachedMode != null) return cachedMode;
 
+    final generation = _stopModeCache.generation;
     final mode = await _readModeForStopId(stopId);
-    _storeStopMode(stopId, mode);
+    if (generation == _stopModeCache.generation) {
+      _stopModeCache.store(stopId, mode);
+    }
     return mode;
   }
 
@@ -537,7 +363,7 @@ class StopsService {
       final endpoint = rows.first.endpoint;
 
       return modeForEndpointKey(endpoint);
-    } catch (_) {
+    } on Exception {
       return null;
     }
   }
@@ -553,5 +379,6 @@ class StopsService {
     for (final endpoint in stopsCount.keys) {
       await db.deleteStopsForEndpoint(endpoint);
     }
+    clearModeCache();
   }
 }

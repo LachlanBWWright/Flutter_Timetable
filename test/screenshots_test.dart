@@ -1,12 +1,13 @@
 /// Golden screenshots for the app's primary pages.
 ///
-/// Generate or refresh the images with:
+/// Generate or refresh the images locally with:
 ///
-///   flutter test --update-goldens test/screenshots_test.dart
+///   ./scripts/check_goldens.sh --update-goldens test/screenshots_test.dart
 ///
 /// Compare the current UI with the checked-in images with:
 ///
-///   flutter test test/screenshots_test.dart
+///   ./scripts/check_goldens.sh test/screenshots_test.dart
+@Tags(['golden'])
 library;
 
 import 'package:flutter/material.dart';
@@ -20,8 +21,10 @@ import 'package:lbww_flutter/previews/preview_fixtures.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
+import 'package:lbww_flutter/widgets/realtime_status_banner.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
+import 'package:lbww_flutter/widgets/trip_cache/trip_cache_banner.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,24 +56,34 @@ void main() {
     _registerScreenshot(page.name, page.builder);
   }
 
-  for (final state in _stateFixtures) {
-    for (final mode in TransportMode.values) {
-      final stateId = state.label.toLowerCase().replaceAll(' ', '_');
-      final modeId = mode.id;
-      _registerScreenshot(
-        '12_stops_map_${stateId}_$modeId',
-        () => _stateStopsMapPreview(state, mode),
-      );
-      _registerScreenshot(
-        '13_realtime_map_${stateId}_$modeId',
-        () => _stateRealtimeMapPreview(state, mode),
-      );
-      _registerScreenshot(
-        '14_stop_list_${stateId}_$modeId',
-        () => _stateStopListPreview(state, mode),
-      );
-    }
+  // Exercise every transport mode in a representative NSW fixture, then
+  // cover each remaining supported region with train map/list data. This
+  // keeps useful region and mode coverage without multiplying every view by
+  // every region/mode combination.
+  final nsw = _stateFixtures.first;
+  for (final mode in TransportMode.values) {
+    _registerStateScreenshots(nsw, mode);
   }
+  for (final state in _stateFixtures.skip(1)) {
+    _registerStateScreenshots(state, TransportMode.train);
+  }
+}
+
+void _registerStateScreenshots(_StateMapFixture state, TransportMode mode) {
+  final stateId = state.label.toLowerCase().replaceAll(' ', '_');
+  final modeId = mode.id;
+  _registerScreenshot(
+    '12_stops_map_${stateId}_$modeId',
+    () => _stateStopsMapPreview(state, mode),
+  );
+  _registerScreenshot(
+    '13_realtime_map_${stateId}_$modeId',
+    () => _stateRealtimeMapPreview(state, mode),
+  );
+  _registerScreenshot(
+    '14_stop_list_${stateId}_$modeId',
+    () => _stateStopListPreview(state, mode),
+  );
 }
 
 void _registerScreenshot(String name, Widget Function() builder) {
@@ -97,6 +110,19 @@ void _registerScreenshot(String name, Widget Function() builder) {
         tester.widget(find.byType(ScreenshotApp)),
         const Duration(seconds: 1),
       );
+      // Updating baselines must never approve the removed trip status chrome.
+      // Keep this assertion before expectScreenshot, including update mode.
+      expect(find.byType(RealtimeStatusBanner), findsNothing);
+      expect(find.byType(TripCacheBanner), findsNothing);
+      if (name == '5_saved_trip' ||
+          name == '6_trip_legs' ||
+          name == '7_trip_leg_detail' ||
+          name == '9_realtime_map' ||
+          name.startsWith('13_realtime_map_')) {
+        expect(find.text('Retry'), findsNothing);
+        expect(find.textContaining('Fetched'), findsNothing);
+        expect(find.textContaining('Updated'), findsNothing);
+      }
       await tester.expectScreenshot(device, name);
     });
   });

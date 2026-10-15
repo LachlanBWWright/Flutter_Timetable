@@ -11,10 +11,19 @@ import '../services/debug_service.dart';
 import '../services/realtime_service.dart';
 import '../services/transport_api_service.dart' hide logger;
 import '../utils/guarded_state.dart';
+import '../utils/realtime_leg_match.dart';
 import '../utils/realtime_map_widget_utils.dart';
 import '../utils/safe_value_utils.dart';
+import '../utils/visible_realtime_refresh.dart';
 import 'realtime_map_helpers.dart';
 import 'trip_widgets.dart' show TransportModeUtils;
+
+part 'realtime_map/route_layers.dart';
+part 'realtime_map/vehicle_loading.dart';
+part 'realtime_map/markers.dart';
+part 'realtime_map/detail_sheets.dart';
+part 'realtime_map/map_content.dart';
+part 'realtime_map/map_page.dart';
 
 /// Widget for displaying GTFS realtime vehicle positions on a map
 class RealtimeMapWidget extends StatefulWidget {
@@ -26,13 +35,14 @@ class RealtimeMapWidget extends StatefulWidget {
   /// Other legs of the same trip to render as deemphasized polylines.
   final List<Leg>? additionalLegs;
 
-  /// If true, attempt to filter vehicles to only those matching the trip ids
-  /// for this trip/leg (fall back to route filtering when no trip ids are
-  /// available). When false, the map shows all vehicles (diagnostic mode).
+  /// If true, show only vehicles with a matching trip ID. An unidentified leg
+  /// shows no vehicles rather than broadening the filter to its entire route.
+  /// When false, the map shows all vehicles (diagnostic mode).
   final bool filterByLegTrip;
 
   /// Trip ids (if known) to match vehicles against when `filterByLegTrip` is true.
   final Set<String>? tripIds;
+  final TripDescriptor? matchedTrip;
 
   /// Optional exact vehicle id filter. If provided, only the vehicle whose
   /// vehicle.id equals this value will be shown on the map.
@@ -48,6 +58,15 @@ class RealtimeMapWidget extends StatefulWidget {
   /// and facilitate tests.
   final Future<VehiclePositionAggregationResult> Function()?
   getAllVehiclesAggregated;
+
+  /// Invalidates caches owned by an injected provider before an explicit refresh.
+  final Future<void> Function()? onRefresh;
+
+  /// Reloads this map when the owning screen starts a new request generation.
+  final int refreshGeneration;
+
+  /// Disable when an owning screen already refreshes the same feeds.
+  final bool autoRefresh;
 
   /// Whether to show the small vehicle count overlay in the top-right.
   /// Defaults to true; set false for embedded maps where it is redundant.
@@ -66,9 +85,13 @@ class RealtimeMapWidget extends StatefulWidget {
     this.additionalLegs,
     this.filterByLegTrip = false,
     this.tripIds,
+    this.matchedTrip,
     this.vehicleId,
     this.getPositions,
     this.getAllVehiclesAggregated,
+    this.onRefresh,
+    this.refreshGeneration = 0,
+    this.autoRefresh = true,
     this.showVehicleCount = true,
     this.showTileLayer = true,
   });
@@ -92,9 +115,15 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
   // colors and icons.
   List<_VehicleWithMode> _vehicles = [];
   bool _isLoading = false;
-  String? _error;
-  // Map readiness and pending actions
-  // map readiness flag removed (not required for current behaviour)
+  int _loadGeneration = 0;
+  late VisibleRealtimeRefresh _visibleRefresh;
+  RealtimeSnapshotMetadata _metadata = const RealtimeSnapshotMetadata();
+  final Map<Leg, List<LatLng>> _legPoints = Map.identity();
+  List<LatLng>? _tripPoints;
+  List<Polyline>? _routePolylines;
+  List<Marker>? _stopMarkers;
+  List<Marker>? _vehicleMarkers;
+  // Camera actions applied once the map is ready.
   CameraFit? _pendingFit;
   LatLng? _pendingCenter;
 
@@ -173,14 +202,27 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
   // Sydney CBD as default center
   late LatLng _mapCenter;
 
+  List<LatLng> _pointsForLeg(Leg leg) => _legPoints.putIfAbsent(
+    leg,
+    () => List.unmodifiable(legPointsForMap(leg)),
+  );
+
+  void _invalidateRouteLayers() {
+    _legPoints.clear();
+    _tripPoints = null;
+    _routePolylines = null;
+    _stopMarkers = null;
+  }
+
   List<LatLng> _visibleTripPoints() {
+    if (_tripPoints case final points?) return points;
     final points = <LatLng>[
       for (final otherLeg in widget.additionalLegs ?? const <Leg>[])
-        ...legPointsForMap(otherLeg),
-      if (widget.leg case final leg?) ...legPointsForMap(leg),
+        ..._pointsForLeg(otherLeg),
+      if (widget.leg case final leg?) ..._pointsForLeg(leg),
     ];
 
-    return points;
+    return _tripPoints = points;
   }
 
   @override
@@ -211,12 +253,36 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
       _mapCenter = const LatLng(-33.8688, 151.2093); // Sydney CBD default
     }
 
-    _loadVehiclePositions();
+    _configureVisibleRefresh();
+    if (!widget.autoRefresh) _loadVehiclePositions();
+  }
+
+  void _configureVisibleRefresh() {
+    var firstRefresh = true;
+    _visibleRefresh = VisibleRealtimeRefresh(
+      onRefresh: () {
+        final forceRefresh = !firstRefresh;
+        firstRefresh = false;
+        return _loadVehiclePositions(forceRefresh: forceRefresh);
+      },
+      enabled: widget.autoRefresh,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _visibleRefresh.updateRoute(context);
   }
 
   @override
   void didUpdateWidget(RealtimeMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.autoRefresh != widget.autoRefresh) {
+      _visibleRefresh.dispose();
+      _configureVisibleRefresh();
+      _visibleRefresh.updateRoute(context);
+    }
     final filterChanged =
         oldWidget.routeFilter != widget.routeFilter ||
         oldWidget.transportMode != widget.transportMode ||
@@ -226,13 +292,24 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
           oldWidget.tripIds,
           widget.tripIds,
         ) ||
-        oldWidget.vehicleId != widget.vehicleId;
+        oldWidget.matchedTrip != widget.matchedTrip ||
+        oldWidget.vehicleId != widget.vehicleId ||
+        oldWidget.getPositions != widget.getPositions ||
+        oldWidget.getAllVehiclesAggregated != widget.getAllVehiclesAggregated;
     // When the active leg changes, fit the camera to the new leg's stops
     // without recreating the whole widget (avoids visible flash/reload).
     final legChanged =
         oldWidget.leg != widget.leg ||
-        oldWidget.additionalLegs != widget.additionalLegs;
-    if (legChanged || filterChanged) {
+        !const ListEquality<Leg>().equals(
+          oldWidget.additionalLegs,
+          widget.additionalLegs,
+        );
+    if (legChanged || oldWidget.transportMode != widget.transportMode) {
+      _invalidateRouteLayers();
+    }
+    final refreshChanged =
+        oldWidget.refreshGeneration != widget.refreshGeneration;
+    if (legChanged || filterChanged || refreshChanged) {
       final newLeg = widget.leg;
       if (legChanged && newLeg != null) {
         final points = _visibleTripPoints();
@@ -248,618 +325,26 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
         }
       }
       // Also reload vehicle positions for the new leg
-      _loadVehiclePositions();
-    }
-  }
-
-  // Build polyline(s) for leg stops if provided (in order)
-  List<Polyline> _buildRoutePolylines() {
-    final polylines = <Polyline>[];
-
-    // Draw additional (other) legs first so they appear below the active leg.
-    for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
-      final points = legPointsForMap(otherLeg);
-      if (points.length >= 2) {
-        polylines.add(
-          Polyline(
-            points: points,
-            strokeWidth: 2.0,
-            color: Colors.grey.withValues(alpha: 0.35),
-          ),
-        );
+      if (_visibleRefresh.isVisible) {
+        _loadVehiclePositions(clearVehicles: legChanged || filterChanged);
+      } else if (legChanged || filterChanged) {
+        _loadGeneration++;
+        _vehicles = [];
+        _vehicleMarkers = null;
+        _metadata = const RealtimeSnapshotMetadata();
+        _isLoading = false;
       }
     }
-
-    final leg = widget.leg;
-    if (leg == null) return polylines;
-
-    final points = legPointsForMap(leg);
-    if (points.length < 2) return polylines;
-
-    final mode = widget.transportMode;
-    if (mode == null) {
-      // Walk or unknown — dashed grey line
-      polylines.add(
-        Polyline(
-          points: points,
-          strokeWidth: 3.0,
-          color: Colors.grey.shade600,
-          pattern: StrokePattern.dashed(segments: const [12, 6]),
-        ),
-      );
-    } else {
-      polylines.add(
-        Polyline(
-          points: points,
-          strokeWidth: 4.0,
-          color: TransportColors.getColorByTransportMode(mode),
-        ),
-      );
-    }
-    return polylines;
-  }
-
-  Future<void> _loadVehiclePositions() async {
-    guardedSetState(() {
-      _isLoading = true;
-      _error = null;
-      _vehicles = [];
-    });
-
-    await runAsyncGuarded(
-      () async {
-        Map<TransportMode, FeedMessage?>? mapPositions;
-        List<VehiclePosition>? aggregatedVehicles;
-        final getAllVehiclesAggregated = widget.getAllVehiclesAggregated;
-        final getPositions = widget.getPositions;
-        if (getAllVehiclesAggregated != null) {
-          try {
-            final agg = await getAllVehiclesAggregated.call();
-            aggregatedVehicles = agg.vehicles;
-          } catch (_) {
-            aggregatedVehicles = const <VehiclePosition>[];
-          }
-        } else if (getPositions != null) {
-          try {
-            mapPositions = await getPositions.call();
-          } catch (_) {
-            mapPositions = const <TransportMode, FeedMessage?>{};
-          }
-        } else {
-          mapPositions = ApiKeyService.getEffectiveApiKey().isEmpty
-              ? const <TransportMode, FeedMessage?>{}
-              : await RealtimeService.getAllRealtimePositions();
-        }
-        final vehicles = <_VehicleWithMode>[];
-
-        if (mapPositions != null) {
-          for (final entry in mapPositions.entries) {
-            final feedMode = entry.key;
-            final mode = widget.mode;
-            if (widget.transportMode != null) {
-              if (feedMode != widget.transportMode) continue;
-            } else if (mode != null) {
-              if (feedMode != mode) continue;
-            }
-            final feedMessage = entry.value;
-            if (feedMessage != null) {
-              final vehiclePositions = RealtimeService.extractVehiclePositions(
-                feedMessage,
-              );
-              vehicles.addAll(
-                vehiclePositions.map((v) => _VehicleWithMode(v, feedMode)),
-              );
-            }
-          }
-        } else if (aggregatedVehicles != null) {
-          vehicles.addAll(
-            aggregatedVehicles.map(
-              (v) => _VehicleWithMode(v, _modeForAggregatedVehicle(v)),
-            ),
-          );
-        }
-
-        if (widget.filterByLegTrip) {
-          final ids = widget.tripIds ?? <String>{};
-          if (ids.isNotEmpty) {
-            vehicles.retainWhere(
-              (vw) =>
-                  vw.vehicle.trip.hasTripId() &&
-                  ids.contains(vw.vehicle.trip.tripId),
-            );
-          } else if (widget.routeFilter?.isNotEmpty == true) {
-            vehicles.removeWhere(
-              (vw) =>
-                  vw.vehicle.trip.hasRouteId() &&
-                  vw.vehicle.trip.routeId != widget.routeFilter,
-            );
-          }
-        }
-
-        if (!mounted) return;
-        final vehicleId = widget.vehicleId;
-        if (vehicleId != null) {
-          final unfiltered = List<_VehicleWithMode>.from(vehicles);
-          vehicles.removeWhere(
-            (vw) =>
-                !vw.vehicle.vehicle.hasId() ||
-                vw.vehicle.vehicle.id != vehicleId,
-          );
-
-          if (vehicles.isEmpty) {
-            final routeMatches = unfiltered.where(
-              (vw) =>
-                  vw.vehicle.trip.hasRouteId() &&
-                  vw.vehicle.trip.routeId == vehicleId,
-            );
-            final routeList = routeMatches.toList();
-            if (routeList.isNotEmpty) {
-              safeLogInfo(
-                'RealtimeMapWidget: vehicle id $vehicleId not found as vehicle id. Falling back to route id and showing ${routeList.length} vehicle(s).',
-              );
-              vehicles
-                ..clear()
-                ..addAll(routeList);
-            } else {
-              safeLogInfo(
-                'RealtimeMapWidget: vehicle id $vehicleId not found in feeds',
-              );
-            }
-          }
-        }
-        guardedSetState(() {
-          _vehicles = vehicles;
-          _isLoading = false;
-        });
-      },
-      onError: (error, stackTrace) {
-        safeLogError(
-          'RealtimeMapWidget: failed to load vehicle positions',
-          error: error,
-          stackTrace: stackTrace,
-        );
-        if (!mounted) return;
-        guardedSetState(() {
-          _error = error.toString();
-          _isLoading = false;
-        });
-      },
-    );
-  }
-
-  List<Marker> _buildVehicleMarkers() {
-    return _vehicles
-        .where(
-          (vw) =>
-              vw.vehicle.hasPosition() &&
-              vw.vehicle.position.hasLatitude() &&
-              vw.vehicle.position.hasLongitude() &&
-              // Only include vehicles whose mode is enabled in the filter
-              _isModeEnabled(vw.mode),
-        )
-        .map((vw) {
-          final vehicle = vw.vehicle;
-          final position = vehicle.position;
-          final mode = vw.mode;
-
-          // Use mode-based color and icon mapping. Prefer typed API when possible.
-          final Color markerColor = mode != null
-              ? TransportColors.getColorByTransportMode(mode)
-              : Colors.grey;
-
-          return Marker(
-            point: LatLng(position.latitude, position.longitude),
-            width: 32,
-            height: 32,
-            child: GestureDetector(
-              onTap: () => _showVehicleInfo(vehicle),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: markerColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  getVehicleIconByTransportMode(mode),
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-            ),
-          );
-        })
-        .toList();
-  }
-
-  /// Build stop markers from a provided `leg` stopSequence
-  List<Marker> _buildStopMarkers() {
-    final markers = <Marker>[];
-
-    // Markers for other-leg stops are deliberately quiet so the active leg
-    // remains the visual anchor while the rest of the trip stays visible.
-    for (final otherLeg in widget.additionalLegs ?? const <Leg>[]) {
-      final stops = otherLeg.stopSequence;
-      if (stops == null) continue;
-
-      // Derive the colour from the other leg's transport class if available.
-      final otherClass = otherLeg.transportation?.product?.classField;
-      final Color otherColor = otherClass != null
-          ? TransportModeUtils.getModeColor(otherClass)
-          : Colors.blueGrey;
-
-      for (final s in stops) {
-        final point = _tryParseLatLngSafe(s.coord);
-        if (point == null) continue;
-        markers.add(
-          Marker(
-            point: point,
-            width: 10.0,
-            height: 10.0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: otherColor.withValues(alpha: 0.45),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.75),
-                  width: 1,
-                ),
-              ),
-            ),
-          ),
-        );
-      }
-    }
-
-    // Active leg stop markers
-    final leg = widget.leg;
-    if (leg == null) return markers;
-    final stops = leg.stopSequence;
-    if (stops == null || stops.isEmpty) return markers;
-    // Determine color/icon from the provided transportMode (or fallback)
-    final mode = widget.transportMode;
-    final markerColor = mode != null
-        ? TransportColors.getColorByTransportMode(mode)
-        : Colors.grey;
-
-    for (final s in stops) {
-      final point = _tryParseLatLngSafe(s.coord);
-      if (point == null) {
-        continue;
-      }
-      markers.add(
-        Marker(
-          point: point,
-          width: 22,
-          height: 22,
-          child: GestureDetector(
-            onTap: () => _showStopDetails(s),
-            child: Container(
-              decoration: BoxDecoration(
-                color: markerColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Center(
-                child: Icon(
-                  mode != null
-                      ? getVehicleIconByTransportMode(mode)
-                      : Icons.place,
-                  color: Colors.white,
-                  size: 12,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return markers;
-  }
-
-  void _showStopDetails(Stop stop) {
-    final latitude = _coordValueAt(stop.coord, 0);
-    final longitude = _coordValueAt(stop.coord, 1);
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => ValueListenableBuilder<bool>(
-        valueListenable: DebugService.showDebugData,
-        builder: (context, showDebug, _) => Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(stop.name, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (showDebug) _buildInfoRow('Stop ID', stop.id),
-              if (stop.disassembledName case final name?)
-                _buildInfoRow('Name', name),
-              if (stop.arrivalTimePlanned case final arrive?)
-                _buildInfoRow('Arrive (planned)', arrive),
-              if (stop.departureTimePlanned case final depart?)
-                _buildInfoRow('Depart (planned)', depart),
-              if (showDebug && latitude != null && longitude != null)
-                _buildInfoRow(
-                  'Coords',
-                  '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
-                ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: _closeBottomSheet,
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Mode filter sheet removed (map no longer exposes a mode filter control).
-
-  // Helper functions moved to `realtime_map_helpers.dart`.
-
-  // Non-nullable overload removed; use the nullable-accepting
-  // _getVehicleIconByTransportMode(TransportMode?) instead.
-
-  void _showVehicleInfo(VehiclePosition vehicle) {
-    final trip = vehicle.trip;
-    final vehicleDesc = vehicle.vehicle;
-    final position = vehicle.position;
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Vehicle Information',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 16),
-            if (vehicleDesc.hasId())
-              _buildInfoRow('Vehicle ID', vehicleDesc.id),
-            if (trip.hasRouteId()) _buildInfoRow('Route', trip.routeId),
-            if (trip.hasTripId()) _buildInfoRow('Trip ID', trip.tripId),
-            if (position.hasLatitude() && position.hasLongitude())
-              _buildInfoRow(
-                'Position',
-                '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}',
-              ),
-            if (position.hasSpeed())
-              _buildInfoRow(
-                'Speed',
-                '${position.speed.toStringAsFixed(1)} m/s',
-              ),
-            if (position.hasBearing())
-              _buildInfoRow(
-                'Bearing',
-                '${position.bearing.toStringAsFixed(0)}°',
-              ),
-            if (vehicle.hasTimestamp())
-              _buildInfoRow(
-                'Last Update',
-                DateTime.fromMillisecondsSinceEpoch(
-                  vehicle.timestamp.toInt() * 1000,
-                ).toString(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Return embeddable map content without top-level scaffold/appbar
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Error: $_error'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadVehiclePositions,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: _mapCenter,
-            initialZoom: 11.0,
-            minZoom: 8.0,
-            maxZoom: 18.0,
-            onMapReady: () {
-              final fit = _pendingFit;
-              final center = _pendingCenter;
-              _pendingFit = null;
-              _pendingCenter = null;
-              if (fit != null) {
-                _mapController.fitCamera(fit);
-              } else if (center != null) {
-                _mapController.move(center, 11.0);
-              }
-            },
-          ),
-          children: [
-            if (widget.showTileLayer)
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.lbww.flutter_timetable',
-              ),
-            // Draw the route polyline if available
-            PolylineLayer(polylines: _buildRoutePolylines()),
-            // Show stop markers (if the leg has stops)
-            MarkerLayer(markers: _buildStopMarkers()),
-            // Show vehicle markers above stops so they remain visible
-            MarkerLayer(markers: _buildVehicleMarkers()),
-          ],
-        ),
-        if (widget.showVehicleCount)
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${_vehicles.length} vehicles',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        if (_isLoading)
-          const Positioned(
-            top: 16,
-            left: 16,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-          ),
-        // Show an overlay if a vehicleId was requested but no vehicle
-        // (by vehicle id or fallback route id) was found in the latest feed.
-        if (!_isLoading && widget.vehicleId != null && _vehicles.isEmpty)
-          Positioned(
-            top: 16,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                vehicleNotFoundMessage(widget.vehicleId ?? ''),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+  void dispose() {
+    _loadGeneration++;
+    _visibleRefresh.dispose();
+    _mapController.dispose();
+    super.dispose();
   }
-
-  // _calculateBounds not needed with current embeddable map view - remove for now.
-}
-
-/// Page wrapper that provides a Scaffold/AppBar for the map when it's
-/// shown as a full page. For embedded uses (e.g., inside a Card) use
-/// `RealtimeMapWidget` directly so the parent can provide navigation chrome.
-class RealtimeMapPage extends StatelessWidget {
-  final TransportMode? mode;
-  final TransportMode? transportMode;
-  final String? routeFilter;
-  final Leg? leg;
-  final List<Leg>? additionalLegs;
-  final String? vehicleId;
-  final Future<Map<TransportMode, FeedMessage?>> Function()? getPositions;
-  final Future<VehiclePositionAggregationResult> Function()?
-  getAllVehiclesAggregated;
-  final bool filterByLegTrip;
-  final Set<String>? tripIds;
-  final bool showTileLayer;
-
-  const RealtimeMapPage({
-    super.key,
-    this.mode,
-    this.transportMode,
-    this.routeFilter,
-    this.leg,
-    this.additionalLegs,
-    this.vehicleId,
-    this.getPositions,
-    this.getAllVehiclesAggregated,
-    this.filterByLegTrip = false,
-    this.tripIds,
-    this.showTileLayer = true,
-  });
 
   @override
-  Widget build(BuildContext context) {
-    final GlobalKey<_RealtimeMapWidgetState> mapKey = GlobalKey();
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(realtimeMapPageTitle(mode: mode, leg: leg)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => mapKey.currentState?._loadVehiclePositions(),
-          ),
-        ],
-      ),
-      body: RealtimeMapWidget(
-        key: mapKey,
-        mode: mode,
-        transportMode: transportMode,
-        routeFilter: routeFilter,
-        leg: leg,
-        additionalLegs: additionalLegs,
-        filterByLegTrip: filterByLegTrip,
-        tripIds: tripIds,
-        vehicleId: vehicleId,
-        getPositions: getPositions,
-        getAllVehiclesAggregated: getAllVehiclesAggregated,
-        showTileLayer: showTileLayer,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildMapContent(context);
 }

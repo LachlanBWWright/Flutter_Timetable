@@ -1,231 +1,110 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:lbww_flutter/logs/logger.dart';
-import 'package:lbww_flutter/models/manual_trip_models.dart';
-import 'package:lbww_flutter/nsw/swagger_generated/trip_planner.swagger.dart'
-    as generated;
-import 'package:lbww_flutter/nsw/wrappers/trip_planner_generated_mapper.dart';
-import 'package:lbww_flutter/schema/database.dart' as db;
-import 'package:lbww_flutter/services/prefetch_scheduler.dart';
-import 'package:lbww_flutter/services/transport_api_service.dart' hide logger;
-import 'package:lbww_flutter/utils/safe_value_utils.dart';
 import 'package:option_result/option_result.dart';
+import '../models/manual_trip_models.dart';
+import '../schema/database.dart' as db;
+import '../services/prefetch_scheduler.dart';
+import '../services/transport_api_service.dart' hide logger;
+import '../transit/domain/transit_types.dart';
+import '../transit/registry/region_feature_flags.dart';
+import 'trip_cache_service/repository.dart';
+import 'trip_cache_service/trip_cache_snapshot.dart';
 
-/// A simple in-memory cache for trip responses with a 10-minute TTL.
-///
-/// Entries are keyed by `"$originId|$destinationId"`. After [_ttl] has
-/// elapsed, the entry is considered stale and the next call will re-fetch
-/// from the API.
-///
-/// **Memory note**: stale entries are not automatically evicted. For a typical
-/// app with a small number of saved journeys this is not a concern, but callers
-/// should use [invalidate] or [invalidateAll] if memory usage becomes an issue.
+export 'trip_cache_service/repository.dart';
+export 'trip_cache_service/trip_cache_snapshot.dart';
+
+/// Compatibility facade over the explicit journey cache policy.
 class TripCacheService {
   TripCacheService._();
-
-  static const Duration _ttl = Duration(minutes: 10);
-  static const Duration _renderableTtl = Duration(hours: 24);
-  static const int _maxMemoryEntries = 50;
-
-  static final Map<String, _CachedTrip> _cache = {};
-  static final Map<String, Future<Result<GetTripsResponse, String>>> _inflight =
-      {};
-
-  static V? _mapValueOrNull<K, V>(Map<K, V> map, K key) {
-    try {
-      for (final entry in map.entries) {
-        if (entry.key == key) {
-          return entry.value;
-        }
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  static void _putValue<K, V>(Map<K, V> map, K key, V value) {
-    try {
-      map.remove(key);
-      map.addAll({key: value});
-      while (map.length > _maxMemoryEntries) {
-        map.remove(map.keys.first);
-      }
-    } catch (_) {}
-  }
-
-  static Future<Result<GetTripsResponse, String>> _requestTripsAndPersist({
-    required String originId,
-    required String destinationId,
-  }) async {
-    final result = await TransportApiService.getTrips(
-      originId: originId,
-      destinationId: destinationId,
-    );
-    if (result case Ok(:final v)) {
-      _store(originId, destinationId, v);
-    } else if (result case Err(:final e)) {
-      await db.AppDatabase().markTripPlannerCacheError(
-        originId: originId,
-        destinationId: destinationId,
-        fetchedAt: DateTime.now(),
-        error: e,
-      );
-    }
-    return result;
-  }
-
-  /// Returns a cache key for the given origin/destination pair.
+  static TripCacheRepository _repository = TripCacheRepository();
   static String _key(String originId, String destinationId) =>
       '$originId|$destinationId';
 
-  /// Returns true when a cache entry exists and is still fresh.
+  @visibleForTesting
+  static void configureForTesting(TripCacheRepository repository) =>
+      _repository = repository;
+
+  @visibleForTesting
+  static void resetForTesting() => _repository = TripCacheRepository();
+
+  static String? _tfnswStopId(String value) {
+    if (!RegionFeatureFlags.nsw) return null;
+    if (value.trim().isEmpty) return null;
+    if (!value.contains('|')) return value;
+    final reference = TransitStopRef.tryParse(value);
+    return reference?.region == TransitRegion.nsw &&
+            reference?.provider == TransitProviderId.tfnsw
+        ? reference!.stopId
+        : null;
+  }
+
   static bool isCached(String originId, String destinationId) {
-    final entry = _mapValueOrNull(_cache, _key(originId, destinationId));
-    if (entry == null) return false;
-    return DateTime.now().difference(entry.fetchedAt) < _ttl;
+    final origin = _tfnswStopId(originId);
+    final destination = _tfnswStopId(destinationId);
+    return origin != null &&
+        destination != null &&
+        _repository.isCached(origin, destination);
   }
 
-  /// Stores a response in the cache.
-  static void _store(
-    String originId,
-    String destinationId,
-    GetTripsResponse response,
-  ) {
-    final fetchedAt = DateTime.now();
-    _putValue(
-      _cache,
-      _key(originId, destinationId),
-      _CachedTrip(response: response, fetchedAt: fetchedAt),
+  static Future<TripCacheSnapshot> getSnapshotOrFetch({
+    required String originId,
+    required String destinationId,
+    bool forceRefresh = false,
+  }) {
+    final origin = _tfnswStopId(originId);
+    final destination = _tfnswStopId(destinationId);
+    if (origin == null || destination == null) {
+      return Future.value(
+        const TripCacheSnapshot(
+          error: 'Journeys for this region cannot be loaded here.',
+        ),
+      );
+    }
+    return _repository.getSnapshotOrFetch(
+      originId: origin,
+      destinationId: destination,
+      forceRefresh: forceRefresh,
     );
-    db.AppDatabase()
-        .upsertTripPlannerCache(
-          originId: originId,
-          destinationId: destinationId,
-          fetchedAt: fetchedAt,
-          responseJson: jsonEncode(response.rawJson),
-        )
-        .ignore();
   }
 
-  /// Returns the cached response if it exists and is still fresh,
-  /// otherwise fetches from the API, caches the result, and returns it.
+  /// Legacy callers still receive only usable, non-expired journey results.
   static Future<Result<GetTripsResponse, String>> getCachedOrFetch({
     required String originId,
     required String destinationId,
   }) async {
-    final key = _key(originId, destinationId);
-    final entry = _mapValueOrNull(_cache, key);
-    if (entry != null && DateTime.now().difference(entry.fetchedAt) < _ttl) {
-      safeLogDebug('TripCacheService: cache hit for $key');
-      return Ok(entry.response);
-    }
-
-    final persisted = await db.AppDatabase().getTripPlannerCache(
-      originId,
-      destinationId,
+    final snapshot = await getSnapshotOrFetch(
+      originId: originId,
+      destinationId: destinationId,
     );
-    if (persisted != null) {
-      final responseJson = persisted.responseJson;
-      if (responseJson != null && responseJson.isNotEmpty) {
-        try {
-          final response = await compute(
-            _parseTripPlannerCacheJson,
-            responseJson,
-          );
-          if (response != null) {
-            final fetchedAt = persisted.fetchedAt;
-            _putValue(
-              _cache,
-              key,
-              _CachedTrip(response: response, fetchedAt: fetchedAt),
-            );
-            final age = DateTime.now().difference(fetchedAt);
-            if (age >= _ttl) {
-              _refreshInBackground(originId, destinationId);
-            }
-            if (age <= _renderableTtl) {
-              safeLogDebug('TripCacheService: drift cache hit for $key');
-            } else {
-              safeLogWarning(
-                'TripCacheService: stale drift cache hit for $key',
-              );
-            }
-            return Ok(response);
-          }
-        } catch (e) {
-          safeLogWarning(
-            'TripCacheService: failed to parse drift cache for $key: $e',
-          );
-        }
-      }
-    }
-
-    final inflight = _mapValueOrNull(_inflight, key);
-    if (inflight != null) {
-      return inflight;
-    }
-
-    safeLogDebug('TripCacheService: cache miss for $key — fetching from API');
-    final Future<Result<GetTripsResponse, String>> request =
-        _requestTripsAndPersist(
-          originId: originId,
-          destinationId: destinationId,
-        ).whenComplete(() {
-          _inflight.remove(key);
-        });
-
-    _putValue(_inflight, key, request);
-    return request;
-  }
-
-  static void _refreshInBackground(String originId, String destinationId) {
-    final key = _key(originId, destinationId);
-    if (_inflight.containsKey(key)) {
-      return;
-    }
-    final Future<Result<GetTripsResponse, String>> request =
-        _requestTripsAndPersist(
-          originId: originId,
-          destinationId: destinationId,
-        ).whenComplete(() {
-          _inflight.remove(key);
-        });
-    _putValue(_inflight, key, request);
-    request.ignore();
+    final response = snapshot.response;
+    if (response != null) return Ok(response);
+    return Err(
+      snapshot.error ??
+          'Saved journeys have expired. Refresh to load current departures.',
+    );
   }
 
   static void prefetchJourney(db.Journey journey) {
-    if (journey.isManualMultiLeg) {
-      return;
-    }
-    if (isCached(journey.originId, journey.destinationId)) {
-      return;
-    }
-    PrefetchScheduler.instance.enqueueTripPlanner(
-      key: _key(journey.originId, journey.destinationId),
-      job: () async {
-        await getCachedOrFetch(
-          originId: journey.originId,
-          destinationId: journey.destinationId,
-        );
-      },
-    );
+    if (journey.isManualMultiLeg) return;
+    _prefetchStops(journey.originId, journey.destinationId);
   }
 
   static void prefetchReverseJourney(db.Journey journey) {
-    if (journey.isManualMultiLeg) {
-      return;
-    }
-    if (isCached(journey.destinationId, journey.originId)) {
+    if (journey.isManualMultiLeg) return;
+    _prefetchStops(journey.destinationId, journey.originId);
+  }
+
+  static void _prefetchStops(String originId, String destinationId) {
+    final origin = _tfnswStopId(originId);
+    final destination = _tfnswStopId(destinationId);
+    if (origin == null ||
+        destination == null ||
+        isCached(origin, destination)) {
       return;
     }
     PrefetchScheduler.instance.enqueueTripPlanner(
-      key: _key(journey.destinationId, journey.originId),
+      key: _key(origin, destination),
       job: () async {
-        await getCachedOrFetch(
-          originId: journey.destinationId,
-          destinationId: journey.originId,
-        );
+        await getCachedOrFetch(originId: origin, destinationId: destination);
       },
     );
   }
@@ -239,35 +118,16 @@ class TripCacheService {
     }
   }
 
-  /// Invalidate a single cache entry (e.g. on manual refresh).
   static void invalidate(String originId, String destinationId) {
-    final key = _key(originId, destinationId);
-    _cache.remove(key);
-    _inflight.remove(key);
-    db.AppDatabase().deleteTripPlannerCache(originId, destinationId).ignore();
+    final origin = _tfnswStopId(originId);
+    final destination = _tfnswStopId(destinationId);
+    if (origin != null && destination != null) {
+      _repository.invalidate(origin, destination);
+    }
   }
 
-  /// Invalidate all cache entries.
-  static void invalidateAll() {
-    _cache.clear();
-    _inflight.clear();
-    db.AppDatabase().deleteAllTripPlannerCache().ignore();
-  }
-}
+  static void invalidateAll() => _repository.invalidateAll();
 
-class _CachedTrip {
-  final GetTripsResponse response;
-  final DateTime fetchedAt;
-
-  const _CachedTrip({required this.response, required this.fetchedAt});
-}
-
-GetTripsResponse? _parseTripPlannerCacheJson(String responseJson) {
-  final decoded = tryDecodeJsonMap(responseJson);
-  if (decoded == null) {
-    return null;
-  }
-  return getTripsResponseFromGenerated(
-    generated.TripRequestResponse.fromJson(decoded),
-  );
+  /// Clear cached journeys without starting persistence work.
+  static Future<void> clearMemoryCache() => _repository.clearMemoryCache();
 }

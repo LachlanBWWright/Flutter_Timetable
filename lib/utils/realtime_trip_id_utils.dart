@@ -12,10 +12,14 @@ Set<String> collectTripIdsFromRawJson(Map<String, dynamic>? rawJson) {
 
   final transport = tryReadJsonMap(rawJson, 'transportation');
   final properties = tryReadJsonMap(transport, 'properties');
-  if (properties != null) {
-    _addNonEmptyValue(ids, tryReadMapValue(properties, 'RealtimeTripId'));
-    _addNonEmptyValue(ids, tryReadMapValue(properties, 'AVMSTripID'));
-    _addNonEmptyValue(ids, tryReadMapValue(properties, 'realtimeTripId'));
+  for (final source in [
+    rawJson,
+    tryReadJsonMap(rawJson, 'properties'),
+    properties,
+  ]) {
+    for (final key in ['RealtimeTripId', 'AVMSTripID', 'realtimeTripId']) {
+      _addNonEmptyValue(ids, tryReadMapValue(source, key));
+    }
   }
 
   return ids;
@@ -26,13 +30,26 @@ Set<String> collectTripIdsForVehicleFiltering({
   required Map<String, dynamic>? legRawJson,
 }) {
   final ids = <String>{};
-  ids.addAll(collectTripIdsFromRawJson(legRawJson));
+  // An EFA leg/journey's generic `id` is not a GTFS realtime trip ID.
+  ids.addAll(
+    collectTripIdsFromRawJson(
+      legRawJson == null
+          ? null
+          : (Map<String, dynamic>.of(legRawJson)..remove('id')),
+    ),
+  );
 
   // Vehicle filtering must stay scoped to the active leg. Journey raw JSON may
   // contain every leg, so only use top-level trip IDs as a fallback when the
   // active leg itself carries no realtime trip ID.
-  if (ids.isEmpty) {
-    ids.addAll(collectTripIdsFromRawJson(tripRawJson));
+  if (ids.isEmpty && tryReadMapValue(tripRawJson, 'legs') == null) {
+    ids.addAll(
+      collectTripIdsFromRawJson(
+        tripRawJson == null
+            ? null
+            : (Map<String, dynamic>.of(tripRawJson)..remove('id')),
+      ),
+    );
   }
 
   return ids;

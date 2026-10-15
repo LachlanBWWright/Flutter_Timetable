@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:lbww_flutter/nsw/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
 import '../../gtfs/agency.dart';
@@ -19,6 +19,10 @@ import '../../logs/logger.dart';
 import '../../services/api_key_service.dart';
 import '../../services/app_http_client.dart';
 import '../../utils/safe_value_utils.dart';
+import 'realtime_feed_parser.dart';
+
+part 'timetable/csv_parser.dart';
+part 'timetable/archive_parser.dart';
 
 /// Which schedule surface to use when fetching GTFS schedule ZIPs
 enum GtfsScheduleVersion { v1, v2 }
@@ -65,13 +69,6 @@ Uri? _apiUri(String path) {
   return tryParseUriValue('https://api.transport.nsw.gov.au/$path');
 }
 
-List<int>? _archiveFileContent(dynamic content) {
-  if (content is List<int>) {
-    return content;
-  }
-  return null;
-}
-
 Future<FeedMessage?> _fetchRealtimeFeed(
   String versionPath,
   String endpoint, {
@@ -90,7 +87,7 @@ Future<FeedMessage?> _fetchRealtimeFeed(
       );
       return null;
     }
-    return FeedMessage.fromBuffer(response.bodyBytes);
+    return await decodeRealtimeFeed(response.bodyBytes);
   } catch (e, st) {
     safeLogError('Error fetching $logLabel for $endpoint: $e\n$st');
     return null;
@@ -115,22 +112,10 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
       );
       return null;
     }
-    final archive = ZipDecoder().decodeBytes(response.bodyBytes);
-    final Map<String, String> csvFiles = {};
-    for (final file in archive) {
-      if (file.isFile && file.name.endsWith('.txt')) {
-        final content = _archiveFileContent(file.content);
-        if (content == null) {
-          safeLogWarning('Skipping ${file.name}: invalid archive content type');
-          continue;
-        }
-        csvFiles[file.name] = utf8.decode(content);
-      }
-    }
-    final data = parseGtfsFiles(csvFiles);
-    safeLogInfo(
-      'Parsed GTFS files for $endpoint: found ${csvFiles.length} CSV files, ${data.stops.length} stops',
-    );
+    // ZIP inflation, UTF-8 decoding and CSV/model creation are CPU intensive.
+    // Keep them off the UI isolate after the asynchronous download completes.
+    final data = await compute(parseGtfsZipBytes, response.bodyBytes);
+    safeLogInfo('Parsed GTFS files for $endpoint: ${data.stops.length} stops');
     return data;
   } catch (e, st) {
     safeLogError('Error fetching GTFS data for $endpoint: $e\n$st');
@@ -261,271 +246,3 @@ Future<GtfsData?> fetchRegionBusesNewcastleHunterGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/newcastlehunter');
 Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/farwest');
-
-List<Agency> parseAgencyCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'agency.txt',
-    shouldParseNumbers: false,
-    parseRow: Agency.fromCsv,
-  );
-}
-
-List<Calendar> parseCalendarCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'calendar.txt',
-    shouldParseNumbers: false,
-    parseRow: Calendar.fromCsv,
-  );
-}
-
-List<CalendarDate> parseCalendarDatesCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'calendar_dates.txt',
-    shouldParseNumbers: false,
-    parseRow: CalendarDate.fromCsv,
-  );
-}
-
-List<Route> parseRoutesCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'routes.txt',
-    shouldParseNumbers: false,
-    parseRow: Route.fromCsv,
-  );
-}
-
-List<Stop> parseStopsCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'stops.txt',
-    shouldParseNumbers: true,
-    parseRow: Stop.fromCsv,
-  );
-}
-
-List<StopTime> parseStopTimesCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'stop_times.txt',
-    shouldParseNumbers: false,
-    parseRow: StopTime.fromCsv,
-  );
-}
-
-List<Trip> parseTripsCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'trips.txt',
-    shouldParseNumbers: false,
-    parseRow: Trip.fromCsv,
-  );
-}
-
-List<Shape> parseShapesCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'shapes.txt',
-    shouldParseNumbers: false,
-    parseRow: Shape.fromCsv,
-  );
-}
-
-List<Note> parseNotesCsv(String csv) {
-  return _parseCsvRecords(
-    csv,
-    fileLabel: 'notes.txt',
-    shouldParseNumbers: false,
-    parseRow: Note.fromCsv,
-  );
-}
-
-List<T> _parseCsvRecords<T>(
-  String csv, {
-  required String fileLabel,
-  required bool shouldParseNumbers,
-  required T Function(List<String> header, List<String> row) parseRow,
-}) {
-  final rows = _csvToRows(csv, shouldParseNumbers: shouldParseNumbers);
-  if (rows.isEmpty) {
-    safeLogWarning('$fileLabel is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    safeLogWarning(
-      '$fileLabel contains less than 2 rows; using fallback empty list; sample="$sample"',
-    );
-    return [];
-  }
-
-  final rowIterator = rows.iterator;
-  if (!rowIterator.moveNext()) {
-    safeLogWarning('$fileLabel did not expose a readable header row');
-    return [];
-  }
-
-  final List<String> header;
-  try {
-    header = _rowToStrings(rowIterator.current, stripLeadingBom: true);
-  } catch (e, st) {
-    safeLogWarning('Failed to parse $fileLabel header row: $e\n$st');
-    return [];
-  }
-
-  final records = <T>[];
-  var rowIndex = 1;
-  for (final row in rows.skip(1)) {
-    try {
-      records.add(parseRow(header, _rowToStrings(row)));
-    } catch (e, st) {
-      safeLogWarning('Skipping malformed $fileLabel row #$rowIndex: $e\n$st');
-    }
-    rowIndex++;
-  }
-  return records;
-}
-
-// Note: custom CSV line parser removed in favor of package:csv
-
-/// Convert a raw CSV string to rows while trying to autodetect EOL and field
-/// delimiter. This works around feeds that use different line endings or
-/// separators so the entire file isn't interpreted as a single row.
-List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
-  if (csv.isEmpty) return [];
-
-  // Detect end-of-line sequence: prefer CRLF, then LF, then CR.
-  String eol;
-  if (csv.contains('\r\n')) {
-    eol = '\r\n';
-  } else if (csv.contains('\n')) {
-    eol = '\n';
-  } else if (csv.contains('\r')) {
-    eol = '\r';
-  } else {
-    eol = '\n';
-  }
-
-  // Pick a likely field delimiter by checking the first non-empty line
-  final lines = csv.split(eol);
-  var firstLine = '';
-  for (final l in lines) {
-    if (l.trim().isNotEmpty) {
-      firstLine = l;
-      break;
-    }
-  }
-  if (firstLine.isEmpty && lines.isNotEmpty) firstLine = lines.first;
-
-  final delimiters = [',', ';', '\t', '|'];
-  var fieldDelimiter = ',';
-  var bestCount = -1;
-  for (final d in delimiters) {
-    final count = firstLine.split(d).length - 1;
-    if (count > bestCount) {
-      bestCount = count;
-      fieldDelimiter = d;
-    }
-  }
-
-  try {
-    return CsvToListConverter(
-      shouldParseNumbers: shouldParseNumbers,
-    ).convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
-  } catch (e) {
-    safeLogWarning(
-      'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e',
-    );
-    // Fallback: try with a simple LF eol
-    try {
-      return CsvToListConverter(
-        shouldParseNumbers: shouldParseNumbers,
-      ).convert(csv, eol: '\n');
-    } catch (e2) {
-      safeLogWarning('CSV parsing fallback failed: $e2');
-      return [];
-    }
-  }
-}
-
-List<String> _rowToStrings(List<dynamic> row, {bool stripLeadingBom = false}) {
-  final values = <String>[];
-  var isFirstCell = true;
-  for (final cell in row) {
-    final value = _cellToString(cell, stripBom: stripLeadingBom && isFirstCell);
-    values.add(stripLeadingBom ? value.trim() : value);
-    isFirstCell = false;
-  }
-  return values;
-}
-
-String _cellToString(dynamic cell, {bool stripBom = false}) {
-  var value = cell == null ? '' : cell.toString();
-  if (stripBom) {
-    value = value
-        .replaceFirst('\uFEFF', '')
-        .replaceFirst(RegExp('^\u00EF\u00BB\u00BF'), '');
-  }
-  return value;
-}
-
-GtfsData parseGtfsFiles(Map<String, String> files) {
-  final agencyFile = _lookupTextFile(files, 'agency.txt');
-  final calendarFile = _lookupTextFile(files, 'calendar.txt');
-  final calendarDatesFile = _lookupTextFile(files, 'calendar_dates.txt');
-  final routesFile = _lookupTextFile(files, 'routes.txt');
-  final stopsFile = _lookupTextFile(files, 'stops.txt');
-  final stopTimesFile = _lookupTextFile(files, 'stop_times.txt');
-  final tripsFile = _lookupTextFile(files, 'trips.txt');
-  final shapesFile = _lookupTextFile(files, 'shapes.txt');
-  final notesFile = _lookupTextFile(files, 'notes.txt');
-  if (stopsFile == null) {
-    safeLogError('Stops.txt is missing');
-  }
-  return GtfsData(
-    agencies: agencyFile != null ? parseAgencyCsv(agencyFile) : [],
-    calendars: calendarFile != null ? parseCalendarCsv(calendarFile) : [],
-    calendarDates: calendarDatesFile != null
-        ? parseCalendarDatesCsv(calendarDatesFile)
-        : [],
-    routes: routesFile != null ? parseRoutesCsv(routesFile) : [],
-    stops: stopsFile != null ? parseStopsCsv(stopsFile) : [],
-    stopTimes: stopTimesFile != null ? parseStopTimesCsv(stopTimesFile) : [],
-    trips: tripsFile != null ? parseTripsCsv(tripsFile) : [],
-    shapes: shapesFile != null ? parseShapesCsv(shapesFile) : [],
-    notes: notesFile != null ? parseNotesCsv(notesFile) : [],
-  );
-}
-
-/// Decode a GTFS ZIP and return only the stops from stops.txt, ignoring all
-/// other files (stop_times.txt, trips.txt, shapes.txt etc. can be very large).
-///
-/// This is a top-level function so it can be passed to [compute] and run in
-/// a background isolate, keeping the UI thread free.
-List<Stop> parseStopsOnlyFromZipBytes(Uint8List bytes) {
-  final archive = ZipDecoder().decodeBytes(bytes);
-  for (final file in archive) {
-    if (file.isFile && file.name == 'stops.txt') {
-      try {
-        final csv = utf8.decode(file.content as List<int>);
-        return parseStopsCsv(csv);
-      } catch (e, st) {
-        safeLogWarning('Failed to decode stops.txt from ZIP: $e\n$st');
-        return [];
-      }
-    }
-  }
-  return [];
-}
-
-String? _lookupTextFile(Map<String, String> files, String fileName) {
-  try {
-    return files[fileName];
-  } catch (e, st) {
-    safeLogWarning('Failed to look up $fileName: $e\n$st');
-    return null;
-  }
-}

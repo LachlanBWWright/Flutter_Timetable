@@ -1,5 +1,3 @@
-// ignore_for_file: no_null_assertion
-
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -8,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
-import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:lbww_flutter/transit/gtfs/public_gtfs_transit_adapter.dart';
+import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 
 void main() {
   const sourceId = TransitSourceId('fixture:network');
@@ -93,8 +91,8 @@ void main() {
         hasLength(2),
       );
       expect(matches.map((item) => item.ref.stopId), ['A1']);
-      expect(stop?.name, 'Argyle Street');
-      expect(stop?.ref.sourceId, sourceId);
+      expect(stop.name, 'Argyle Street');
+      expect(stop.ref.sourceId, sourceId);
       expect(plan.journeys, hasLength(1));
       expect(plan.journeys.single.legs.single.route?.shortName, '10');
       expect(storedJourneys, hasLength(1));

@@ -1,5 +1,3 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
-
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +19,7 @@ import 'package:lbww_flutter/services/realtime_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
+import 'package:lbww_flutter/widgets/realtime_status_banner.dart';
 
 void main() {
   setUp(() {
@@ -644,12 +643,12 @@ void main() {
 
     final stopA = TripUpdate_StopTimeUpdate();
     stopA.stopSequence = 1;
-    stopA.stopId = 'RT1';
+    stopA.stopId = 'LEG1';
     stopA.departure = buildEvent(1_700_000_000);
 
     final stopB = TripUpdate_StopTimeUpdate();
     stopB.stopSequence = 2;
-    stopB.stopId = 'RT2';
+    stopB.stopId = 'LEG2';
     stopB.departure = buildEvent(1_700_000_600);
 
     final stopC = TripUpdate_StopTimeUpdate();
@@ -696,7 +695,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('All stops (3)'), findsOneWidget);
-    expect(find.text('Show scheduled stops'), findsOneWidget);
+    expect(find.text('Show trip stops'), findsOneWidget);
     expect(find.text('Leg Stop 1'), findsOneWidget);
     expect(find.text('Leg Stop 2'), findsOneWidget);
     expect(find.text('RT1'), findsNothing);
@@ -783,75 +782,89 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('All stops (1)'), findsOneWidget);
+    expect(find.text('All stops (2)'), findsOneWidget);
+    expect(find.text('Timed Stop'), findsOneWidget);
     expect(find.text('Skipped Stop'), findsOneWidget);
     expect(find.text('Skipped'), findsOneWidget);
   });
 
-  testWidgets('TripLegDetailScreen shows a no-match state for vehicle stops', (
-    tester,
-  ) async {
-    final leg = Leg(
-      origin: Stop(
-        id: 'ORIGIN',
-        name: 'Origin',
-        type: 'stop',
-        departureTimePlanned: '2024-01-01T10:00:00Z',
-      ),
-      destination: Stop(
-        id: 'DEST',
-        name: 'Destination',
-        type: 'stop',
-        arrivalTimePlanned: '2024-01-01T10:20:00Z',
-      ),
-      transportation: Transportation(
-        id: 'ROUTE1',
-        name: 'Route 1',
-        product: Product(classField: 5, iconId: 1, name: 'Bus'),
-      ),
-      rawJson: {
-        'transportation': {
-          'properties': {'RealtimeTripId': 'MATCH123'},
-        },
-      },
-      stopSequence: [Stop(id: 'LEG1', name: 'Leg Stop 1', type: 'stop')],
-    );
-    final trip = TripJourney(isAdditional: false, legs: [leg], rating: 0);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: TripLegDetailScreen(
-          leg: leg,
-          trip: trip,
-          getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
-          skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async =>
-              const VehiclePositionAggregationResult(
-                vehicles: <VehiclePosition>[],
-                breakdown: <String, int>{},
-              ),
-          getAllTripUpdatesAggregated: () async =>
-              const TripUpdateAggregationResult(
-                tripUpdates: <TripUpdate>[],
-                breakdown: <String, int>{'updates:bus': 0},
-              ),
+  testWidgets(
+    'TripLegDetailScreen retains scheduled stops without a live match',
+    (tester) async {
+      final leg = Leg(
+        origin: Stop(
+          id: 'ORIGIN',
+          name: 'Origin',
+          type: 'stop',
+          departureTimePlanned: '2024-01-01T10:00:00Z',
         ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+        destination: Stop(
+          id: 'DEST',
+          name: 'Destination',
+          type: 'stop',
+          arrivalTimePlanned: '2024-01-01T10:20:00Z',
+        ),
+        transportation: Transportation(
+          id: 'ROUTE1',
+          name: 'Route 1',
+          product: Product(classField: 5, iconId: 1, name: 'Bus'),
+        ),
+        rawJson: {
+          'transportation': {
+            'properties': {'RealtimeTripId': 'MATCH123'},
+          },
+        },
+        stopSequence: [
+          Stop(
+            id: 'LEG1',
+            name: 'Leg Stop 1',
+            type: 'stop',
+            departureTimePlanned: '2024-01-01T10:05:00Z',
+          ),
+        ],
+      );
+      final trip = TripJourney(isAdditional: false, legs: [leg], rating: 0);
 
-    await tester.tap(find.text('Show all stops'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TripLegDetailScreen(
+            leg: leg,
+            trip: trip,
+            getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
+            skipInitialLoadDelay: true,
+            getAllVehiclesAggregated: () async =>
+                const VehiclePositionAggregationResult(
+                  vehicles: <VehiclePosition>[],
+                  breakdown: <String, int>{},
+                ),
+            getAllTripUpdatesAggregated: () async =>
+                const TripUpdateAggregationResult(
+                  tripUpdates: <TripUpdate>[],
+                  breakdown: <String, int>{'updates:bus': 0},
+                ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    expect(
-      find.textContaining('No realtime match found for this leg'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('tripIds=MATCH123'), findsOneWidget);
-    expect(find.textContaining('feeds=updates:bus'), findsOneWidget);
-  });
+      await tester.tap(find.text('Show all stops'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Trip stops (1)'), findsOneWidget);
+      expect(find.text('Leg Stop 1'), findsOneWidget);
+      expect(find.text('Show trip stops'), findsOneWidget);
+      expect(find.byType(RealtimeStatusBanner), findsNothing);
+      expect(find.textContaining('Updated '), findsNothing);
+      expect(find.text('No live vehicle matched this trip.'), findsNothing);
+
+      await tester.tap(find.text('Show trip stops'));
+      await tester.pump();
+      expect(find.text('Show all stops'), findsOneWidget);
+      expect(find.text('Leg Stop 1'), findsOneWidget);
+    },
+  );
 
   testWidgets('Route debug card shows GTFS route and agency fields', (
     tester,

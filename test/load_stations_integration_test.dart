@@ -1,11 +1,11 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+@Tags(['integration'])
+library;
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:test/test.dart';
 
-@Tags(['integration'])
 void main() {
   setUpAll(() async {
     await dotenv.load();

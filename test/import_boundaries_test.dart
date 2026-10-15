@@ -22,7 +22,7 @@ void main() {
     }
 
     final forbiddenImport = RegExp(
-      r"package:lbww_flutter\/(nsw|victoria|queensland)\/",
+      r'package:lbww_flutter\/(nsw|victoria|queensland)\/',
     );
 
     for (final path in files) {

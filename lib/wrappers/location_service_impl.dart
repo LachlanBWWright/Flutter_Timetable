@@ -220,7 +220,7 @@ class LocationService {
 
   /// Set sorting preference
   static Future<void> setSortingPreference(bool isAlphabetical) async {
-    await AppPreferences.setString(
+    await AppPreferences.setStringOrThrow(
       _sortingPreferenceKey,
       isAlphabetical ? _sortAlphabetically : _sortByDistance,
     );

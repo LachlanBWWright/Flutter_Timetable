@@ -1,3 +1,6 @@
+@Tags(['integration'])
+library;
+
 import 'dart:io';
 
 import 'package:drift/drift.dart' as drift;
@@ -12,7 +15,6 @@ import 'package:lbww_flutter/victoria/adapters/ptv_transit_adapter.dart';
 import 'package:lbww_flutter/victoria/services/victoria_gtfs_endpoints.dart';
 import 'package:test/test.dart';
 
-@Tags(['integration'])
 void main() {
   final runLiveTests = Platform.environment['RUN_VIC_API_TESTS'] == 'true';
 
@@ -79,7 +81,7 @@ void main() {
         print(
           'STATE_SAMPLE VIC stop=${origin.name} id=${origin.ref.stopId} '
           'destination=${destination.name} id=${destination.ref.stopId} '
-          'journeys=${selectedPlan!.journeys.length}',
+          'journeys=${selectedPlan.journeys.length}',
         );
         expect(await services.stops.getStop(origin.ref), isNotNull);
 

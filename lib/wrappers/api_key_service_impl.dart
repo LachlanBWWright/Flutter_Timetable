@@ -5,8 +5,9 @@ import '../services/app_preferences.dart';
 /// Manages the Transport for NSW API key used by all network requests.
 ///
 /// The app may ship with a built-in key baked into the `.env` asset at build
-/// time (via the `API_KEY` secret in CI/CD). Users can override it in the
-/// Settings screen with their own key, which is persisted in
+/// time after explicitly opting into public credential distribution. Bundled
+/// keys are extractable from web assets and APKs. Users can override them in
+/// Settings with their own key, which is persisted in
 /// [SharedPreferences] and always takes priority over the built-in key.
 class ApiKeyService {
   static const String _prefKey = 'user_api_key';
@@ -25,8 +26,9 @@ class ApiKeyService {
   /// Load the user-supplied override from [SharedPreferences] into memory.
   /// Call once at app startup alongside other service initialisations.
   static Future<void> init() async {
-    final stored = await AppPreferences.getString(_prefKey);
-    _userApiKey = (stored != null && stored.isNotEmpty) ? stored : null;
+    final stored = await AppPreferences.getStringOrThrow(_prefKey);
+    final next = (stored != null && stored.isNotEmpty) ? stored : null;
+    _userApiKey = next;
   }
 
   /// The active API key: user-supplied override if set, otherwise the key
@@ -45,17 +47,17 @@ class ApiKeyService {
   static Future<void> setUserApiKey(String key) async {
     final trimmed = key.trim();
     if (trimmed.isEmpty) {
-      await AppPreferences.remove(_prefKey);
+      await AppPreferences.removeOrThrow(_prefKey);
       _userApiKey = null;
     } else {
-      await AppPreferences.setString(_prefKey, trimmed);
+      await AppPreferences.setStringOrThrow(_prefKey, trimmed);
       _userApiKey = trimmed;
     }
   }
 
   /// Remove the user-supplied override and revert to the built-in key.
   static Future<void> clearUserApiKey() async {
-    await AppPreferences.remove(_prefKey);
+    await AppPreferences.removeOrThrow(_prefKey);
     _userApiKey = null;
   }
 }

@@ -13,7 +13,8 @@ the Flutter version pinned in `.fvmrc`; otherwise they use `flutter` on `PATH`.
 | `./scripts/lint.sh` | Check formatting and run static analysis |
 | `./scripts/test.sh [test args]` | Run deterministic tests only |
 | `./scripts/test_integration.sh [test args]` | Run credential-dependent integration tests |
-| `./scripts/ci.sh` | Reproduce the GitHub Actions quality job locally |
+| `./scripts/ci.sh [nsw\|all-regions] [test args]` | Run format, analysis, and deterministic tests in an explicit region configuration (defaults to `nsw`) |
+| `./scripts/check_goldens.sh [--update-goldens] [test args]` | Compare or generate screenshot baselines with all regions enabled |
 | `./scripts/build_web.sh [build args]` | Create a release web build |
 | `./scripts/build_apk.sh [build args]` | Create a release Android APK |
 | `./scripts/test_cicd.sh [web\|android\|all]` | Run CI checks and selected production builds |

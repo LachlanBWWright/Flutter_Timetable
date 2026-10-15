@@ -18,30 +18,29 @@ class PrefetchScheduler {
   static const int _maxStaticJobs = 1;
   static const int _maxTripPlannerJobs = 2;
   static const Duration _baseBackoff = Duration(minutes: 2);
+  static const int _maxBackoffEntries = 500;
+  static const int _maxQueuedJobsPerKind = 200;
 
-  _PrefetchJob? _removeFirstOrNull(Queue<_PrefetchJob> queue) {
-    if (queue.isEmpty) {
-      return null;
-    }
-    try {
-      return queue.removeFirst();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  DateTime? _backoffUntilFor(String key) {
-    try {
-      return _backoffUntil[key];
-    } catch (_) {
-      return null;
-    }
+  void _pruneBackoff(DateTime now) {
+    _backoffUntil.removeWhere((_, until) => !now.isBefore(until));
   }
 
   void _setBackoffUntil(String key, DateTime value) {
-    try {
-      _backoffUntil[key] = value;
-    } catch (_) {}
+    final now = DateTime.now();
+    _pruneBackoff(now);
+    if (!_backoffUntil.containsKey(key) &&
+        _backoffUntil.length >= _maxBackoffEntries) {
+      String? earliestKey;
+      DateTime? earliestValue;
+      for (final entry in _backoffUntil.entries) {
+        if (earliestValue == null || entry.value.isBefore(earliestValue)) {
+          earliestKey = entry.key;
+          earliestValue = entry.value;
+        }
+      }
+      if (earliestKey != null) _backoffUntil.remove(earliestKey);
+    }
+    _backoffUntil[key] = value;
   }
 
   Future<void> _runJob(_PrefetchJob job) async {
@@ -100,11 +99,19 @@ class PrefetchScheduler {
     if (_queuedOrInflightKeys.contains(job.key)) {
       return;
     }
-    final backoffUntil = _backoffUntilFor(job.key);
+    final now = DateTime.now();
+    _pruneBackoff(now);
+    final backoffUntil = _backoffUntil[job.key];
     if (backoffUntil != null && DateTime.now().isBefore(backoffUntil)) {
       return;
     }
 
+    if (queue.length >= _maxQueuedJobsPerKind) {
+      final lowestPriority = queue.last;
+      if (job.priority >= lowestPriority.priority) return;
+      queue.removeLast();
+      _queuedOrInflightKeys.remove(lowestPriority.key);
+    }
     _queuedOrInflightKeys.add(job.key);
     queue.add(job);
     _sortQueue(queue);
@@ -113,17 +120,11 @@ class PrefetchScheduler {
 
   void _pump() {
     while (_activeStaticJobs < _maxStaticJobs && _staticQueue.isNotEmpty) {
-      final job = _removeFirstOrNull(_staticQueue);
-      if (job != null) {
-        _start(job);
-      }
+      _start(_staticQueue.removeFirst());
     }
     while (_activeTripPlannerJobs < _maxTripPlannerJobs &&
         _tripPlannerQueue.isNotEmpty) {
-      final job = _removeFirstOrNull(_tripPlannerQueue);
-      if (job != null) {
-        _start(job);
-      }
+      _start(_tripPlannerQueue.removeFirst());
     }
   }
 

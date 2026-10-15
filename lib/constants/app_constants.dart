@@ -21,5 +21,4 @@ class AppConstants {
   static const int coachColor = 0xFFA1542F; // Brown
   static const int ferryColor = 0xFF44F05B; // Green
   static const int defaultColor = 0xFFFFFFFF; // White
-
 }

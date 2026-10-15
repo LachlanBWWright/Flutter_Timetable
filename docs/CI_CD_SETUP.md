@@ -25,7 +25,7 @@ The project uses GitHub Actions for continuous integration and deployment with f
 
 **Steps:**
 1. Checkout code
-2. Setup Flutter (v3.27.0)
+2. Setup Flutter (v3.47.7, pinned in `.fvmrc`; bundled Dart 3.13.5)
 3. Get dependencies
 4. Verify formatting
 5. Analyze project source
@@ -103,7 +103,7 @@ Before pushing changes, test the workflows locally to ensure they work correctly
 Install the required tools:
 
 ```bash
-# Install Flutter (version 3.27.0 or compatible)
+# Install Flutter 3.47.7 (the repository pin in `.fvmrc`)
 # See: https://docs.flutter.dev/get-started/install
 
 # Install Java 17 (for Android builds)
@@ -269,15 +269,10 @@ This will cause pull requests to be blocked if:
 
 ### Updating Flutter Version
 
-Update the Flutter version in all workflow files:
-
-```yaml
-- name: Setup Flutter
-  uses: subosito/flutter-action@v2
-  with:
-    flutter-version: '3.27.0'  # Update this version
-    channel: 'stable'
-```
+Update `.fvmrc` when changing the Flutter version. GitHub Actions workflows
+read that pin through `flutter-version-file`, and FVM uses it locally. The
+current Flutter 3.47.7 pin bundles Dart 3.13.5 and meets the
+`golden_screenshot 12.0.0` requirement (Flutter >=3.47.0, Dart >=3.13.0).
 
 ### Updating Java Version
 

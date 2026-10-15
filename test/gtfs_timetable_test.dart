@@ -1,11 +1,11 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
+@Tags(['integration'])
+library;
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 
-@Tags(['integration'])
 void main() {
   // Helper to print first N stops and a frequency map of locationType values
   void logStopsSummary(GtfsData data, String name, int showCount) {
@@ -70,22 +70,18 @@ void main() {
     skip: 'Requires live API key',
   );
 
-  test(
-    'fetchFerriesSydneyFerriesGtfsData returns a GtfsData object',
-    () async {
-      final data = await fetchFerriesSydneyFerriesGtfsData();
-      expect(data, isNotNull);
-      if (data == null) return;
-      expect(data, isA<GtfsData>());
-      expect(data.routes, isA<List>());
-      if (data.stops.isNotEmpty) {
-        logStopsSummary(data, 'ferries', 10);
-      } else {
-        // print('\n--- ferries feed returned 0 stops ---');
-      }
-    },
-    skip: 'Requires live API key',
-  );
+  test('fetchFerriesSydneyFerriesGtfsData returns a GtfsData object', () async {
+    final data = await fetchFerriesSydneyFerriesGtfsData();
+    expect(data, isNotNull);
+    if (data == null) return;
+    expect(data, isA<GtfsData>());
+    expect(data.routes, isA<List>());
+    if (data.stops.isNotEmpty) {
+      logStopsSummary(data, 'ferries', 10);
+    } else {
+      // print('\n--- ferries feed returned 0 stops ---');
+    }
+  }, skip: 'Requires live API key');
 
   test(
     'fetchMetroGtfsData returns a GtfsData object and logs stops',
@@ -110,22 +106,18 @@ void main() {
     skip: 'Requires live API key',
   );
 
-  test(
-    'fetchLightRailInnerWestGtfsData returns a GtfsData object',
-    () async {
-      final data = await fetchLightRailInnerWestGtfsData();
-      expect(data, isNotNull);
-      if (data == null) return;
-      expect(data, isA<GtfsData>());
-      expect(data.trips, isA<List>());
-      if (data.stops.isNotEmpty) {
-        logStopsSummary(data, 'lightrail', 10);
-      } else {
-        // print('\n--- lightrail feed returned 0 stops ---');
-      }
-    },
-    skip: 'Requires live API key',
-  );
+  test('fetchLightRailInnerWestGtfsData returns a GtfsData object', () async {
+    final data = await fetchLightRailInnerWestGtfsData();
+    expect(data, isNotNull);
+    if (data == null) return;
+    expect(data, isA<GtfsData>());
+    expect(data.trips, isA<List>());
+    if (data.stops.isNotEmpty) {
+      logStopsSummary(data, 'lightrail', 10);
+    } else {
+      // print('\n--- lightrail feed returned 0 stops ---');
+    }
+  }, skip: 'Requires live API key');
 
   /*   test('fetchNswTrainsGtfsData returns a GtfsData object', () async {
     final data = await fetchNswTrainsGtfsData();

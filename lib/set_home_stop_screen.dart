@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'constants/transport_modes.dart';
-import 'services/app_preferences.dart';
+import 'home_stop/home_stop_mode_tabs.dart';
+import 'home_stop/home_stop_station_tab.dart';
+import 'services/home_stop_service.dart';
 import 'services/location_service.dart';
+import 'services/preference_read_failure.dart';
 import 'services/station_loader.dart';
 import 'utils/guarded_state.dart';
 import 'widgets/station_widgets.dart';
@@ -13,11 +16,13 @@ class SetHomeStopScreen extends StatefulWidget {
     this.skipInitialLoad = false,
     this.initialStations = const [],
     this.initialHomeStop,
+    this.homeStopService = const HomeStopService(),
   });
 
   final bool skipInitialLoad;
   final List<Station> initialStations;
   final String? initialHomeStop;
+  final HomeStopService homeStopService;
 
   @override
   State<SetHomeStopScreen> createState() => _SetHomeStopScreenState();
@@ -25,16 +30,15 @@ class SetHomeStopScreen extends StatefulWidget {
 
 class _SetHomeStopScreenState extends State<SetHomeStopScreen>
     with TickerProviderStateMixin, GuardedState<SetHomeStopScreen> {
-  List<Station> _trainStationList = [];
-  List<Station> _busStationList = [];
-  List<Station> _ferryStationList = [];
-  List<Station> _lightRailStationList = [];
-  List<Station> _metroStationList = [];
+  final Map<TransportMode, List<Station>> _stationCatalog = {};
+  int _sortGeneration = 0;
+  int _loadGeneration = 0;
   String _selectedStationName = '';
   String _selectedStationId = '';
   TransportMode? _selectedStationMode;
   bool _isSearching = false;
   bool _isLoading = false;
+  bool _isSaving = false;
   SortMode _sortMode = SortMode.alphabetical;
   final keyController = TextEditingController();
   late FocusNode _searchFocusNode;
@@ -55,7 +59,9 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
 
     _searchFocusNode = FocusNode();
     if (widget.skipInitialLoad) {
-      _trainStationList = List<Station>.of(widget.initialStations);
+      _stationCatalog[TransportMode.train] = List<Station>.unmodifiable(
+        widget.initialStations,
+      );
       _currentHomeStop = widget.initialHomeStop;
       return;
     }
@@ -64,13 +70,21 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   Future<void> _loadCurrentHomeStop() async {
-    final homeStopName = await AppPreferences.getString('home_stop_name');
-    guardedSetState(() {
-      _currentHomeStop = homeStopName;
-    });
+    try {
+      final homeStop = await widget.homeStopService.load();
+      guardedSetState(() {
+        _currentHomeStop = homeStop?.name;
+      });
+    } on PreferenceReadFailure {
+      if (!mounted) return;
+      showSnackBar(
+        const SnackBar(content: Text('Could not load your saved home stop.')),
+      );
+    }
   }
 
   Future<void> _loadAllModes() async {
+    final generation = ++_loadGeneration;
     guardedSetState(() {
       _isLoading = true;
     });
@@ -83,14 +97,13 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       loadStationsFromDbForMode(TransportMode.ferry),
     ]);
 
-    if (!mounted) return;
+    if (!mounted || generation != _loadGeneration) return;
 
     guardedSetState(() {
-      _trainStationList = _stationsAtOrEmpty(results, 0);
-      _lightRailStationList = _stationsAtOrEmpty(results, 1);
-      _metroStationList = _stationsAtOrEmpty(results, 2);
-      _busStationList = _stationsAtOrEmpty(results, 3);
-      _ferryStationList = _stationsAtOrEmpty(results, 4);
+      for (var index = 0; index < 5; index++) {
+        _stationCatalog[_getTransportModeForIndex(index)] =
+            List<Station>.unmodifiable(_stationsAtOrEmpty(results, index));
+      }
       _isLoading = false;
     });
 
@@ -136,77 +149,60 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   void _applySearchFilter() {
-    final searchTerm = keyController.text.toLowerCase();
-    guardedSetState(() {
-      _trainStationList = _trainStationList
-          .where((station) => station.name.toLowerCase().contains(searchTerm))
-          .toList();
-      _busStationList = _busStationList
-          .where((station) => station.name.toLowerCase().contains(searchTerm))
-          .toList();
-      _ferryStationList = _ferryStationList
-          .where((station) => station.name.toLowerCase().contains(searchTerm))
-          .toList();
-      _lightRailStationList = _lightRailStationList
-          .where((station) => station.name.toLowerCase().contains(searchTerm))
-          .toList();
-      _metroStationList = _metroStationList
-          .where((station) => station.name.toLowerCase().contains(searchTerm))
-          .toList();
-    });
+    // Filtering is derived from the complete catalog at build time.
+    guardedSetState(() {});
   }
 
   Future<void> _applySorting() async {
-    if (_sortMode == SortMode.distance) {
-      final position = await LocationService.getCurrentLocation();
-      if (position != null) {
-        if (!mounted) return;
-        guardedSetState(() {
-          _trainStationList = _sortByDistance(_trainStationList, position);
-          _busStationList = _sortByDistance(_busStationList, position);
-          _ferryStationList = _sortByDistance(_ferryStationList, position);
-          _lightRailStationList = _sortByDistance(
-            _lightRailStationList,
-            position,
-          );
-          _metroStationList = _sortByDistance(_metroStationList, position);
-        });
+    final generation = ++_sortGeneration;
+    final requestedMode = _sortMode;
+    final position = requestedMode == SortMode.distance
+        ? await LocationService.getCurrentLocation()
+        : null;
+    if (!mounted || generation != _sortGeneration) return;
+
+    guardedSetState(() {
+      for (final mode in _stationCatalog.keys.toList()) {
+        final stations = _stationCatalog[mode]!;
+        final sorted = requestedMode == SortMode.distance && position != null
+            ? _sortByDistance(stations, position)
+            : (List<Station>.of(stations)
+                ..sort((a, b) => a.name.compareTo(b.name)));
+        _stationCatalog[mode] = List<Station>.unmodifiable(sorted);
       }
-    } else {
-      guardedSetState(() {
-        _trainStationList.sort((a, b) => a.name.compareTo(b.name));
-        _busStationList.sort((a, b) => a.name.compareTo(b.name));
-        _ferryStationList.sort((a, b) => a.name.compareTo(b.name));
-        _lightRailStationList.sort((a, b) => a.name.compareTo(b.name));
-        _metroStationList.sort((a, b) => a.name.compareTo(b.name));
-      });
-    }
+    });
   }
 
   List<Station> _sortByDistance(List<Station> stations, Position position) {
-    final stationsWithDistance = stations
-        .where((s) => s.latitude != null && s.longitude != null)
-        .map((station) {
-          final lat = station.latitude;
-          final lon = station.longitude;
-          final distance = lat != null && lon != null
-              ? LocationService.calculateDistance(
-                  position.latitude,
-                  position.longitude,
-                  lat,
-                  lon,
-                )
-              : 0.0;
-          return station.copyWith(distance: distance);
-        })
-        .toList();
+    final sorted = stations.map((station) {
+      final lat = station.latitude;
+      final lon = station.longitude;
+      if (lat == null || lon == null || !lat.isFinite || !lon.isFinite) {
+        return station;
+      }
+      return station.copyWith(
+        distance: LocationService.calculateDistance(
+          position.latitude,
+          position.longitude,
+          lat,
+          lon,
+        ),
+      );
+    }).toList();
+    double distanceFor(Station station) {
+      final lat = station.latitude;
+      final lon = station.longitude;
+      if (lat == null || lon == null || !lat.isFinite || !lon.isFinite) {
+        return double.infinity;
+      }
+      return station.distance ?? double.infinity;
+    }
 
-    stationsWithDistance.sort((a, b) {
-      final da = a.distance ?? 0.0;
-      final db = b.distance ?? 0.0;
-      return da.compareTo(db);
+    sorted.sort((a, b) {
+      final distance = distanceFor(a).compareTo(distanceFor(b));
+      return distance != 0 ? distance : a.name.compareTo(b.name);
     });
-    return stationsWithDistance;
+    return sorted;
   }
 
   void _toggleSort() async {
@@ -223,7 +219,6 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       _isSearching = !_isSearching;
       if (!_isSearching) {
         keyController.clear();
-        _loadAllModes(); // Reload to reset filter
       }
     });
     if (_isSearching) {
@@ -232,6 +227,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   void _setStation(Station station) {
+    if (_isSaving) return;
     guardedSetState(() {
       _selectedStationName = station.name;
       _selectedStationId = station.transitRef?.storageKey ?? station.id;
@@ -240,7 +236,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   Future<void> _saveHomeStop() async {
-    if (_selectedStationName.isEmpty) {
+    if (_isSaving || _selectedStationName.isEmpty) {
       return;
     }
     final selectedMode = _selectedStationMode;
@@ -248,11 +244,30 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       return;
     }
 
-    await AppPreferences.setString('home_stop_name', _selectedStationName);
-    await AppPreferences.setString('home_stop_id', _selectedStationId);
-    await AppPreferences.setString('home_stop_mode', selectedMode.id);
+    guardedSetState(() => _isSaving = true);
+    try {
+      await widget.homeStopService.save(
+        HomeStop(
+          name: _selectedStationName,
+          id: _selectedStationId,
+          mode: selectedMode,
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        showSnackBar(
+          const SnackBar(
+            content: Text('Could not save home stop. Please try again.'),
+          ),
+        );
+      }
+      return;
+    } finally {
+      guardedSetState(() => _isSaving = false);
+    }
 
     if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       showSnackBar(
         SnackBar(
           content: Text('Home stop set to $_selectedStationName'),
@@ -264,85 +279,31 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   List<Station> _getCurrentStationList() {
-    switch (_currentMode) {
-      case TransportMode.train:
-        return _trainStationList;
-      case TransportMode.lightrail:
-        return _lightRailStationList;
-      case TransportMode.metro:
-        return _metroStationList;
-      case TransportMode.bus:
-        return _busStationList;
-      case TransportMode.ferry:
-        return _ferryStationList;
-    }
+    final stations = _stationCatalog[_currentMode] ?? const <Station>[];
+    final query = keyController.text.trim().toLowerCase();
+    return query.isEmpty
+        ? stations
+        : stations
+              .where((station) => station.name.toLowerCase().contains(query))
+              .toList(growable: false);
   }
 
   Widget _buildStationTab() {
-    final stationList = _getCurrentStationList();
-
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (stationList.isEmpty) {
-      return const Center(child: Text('No stations found'));
-    }
-
-    return Column(
-      children: [
-        if (_currentHomeStop != null)
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.blue.shade50,
-            child: Row(
-              children: [
-                const Icon(Icons.home, color: Colors.blue),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Current home stop: $_currentHomeStop',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        if (_selectedStationName.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.green.shade50,
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Selected: $_selectedStationName',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    guardedSetState(() {
-                      _selectedStationName = '';
-                      _selectedStationId = '';
-                      _selectedStationMode = null;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-        Expanded(
-          child: EnhancedStationList(
-            listItems: stationList,
-            setStation: _setStation,
-            sortMode: _sortMode,
-          ),
-        ),
-      ],
+    return HomeStopStationTab(
+      stationList: _getCurrentStationList(),
+      isLoading: _isLoading,
+      currentHomeStop: _currentHomeStop,
+      selectedStationName: _selectedStationName,
+      sortMode: _sortMode,
+      onStationSelected: _setStation,
+      onClearSelection: () {
+        if (_isSaving) return;
+        guardedSetState(() {
+          _selectedStationName = '';
+          _selectedStationId = '';
+          _selectedStationMode = null;
+        });
+      },
     );
   }
 
@@ -378,34 +339,26 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
             IconButton(
               onPressed: _toggleSearch,
               icon: Icon(_isSearching ? Icons.cancel : Icons.search),
+              tooltip: _isSearching ? 'Cancel search' : 'Search stations',
             ),
           ] else
             IconButton(
-              onPressed: _saveHomeStop,
-              icon: const Icon(Icons.check),
+              onPressed: _isSaving ? null : _saveHomeStop,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check),
               tooltip: 'Save home stop',
             ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.directions_train)),
-            Tab(icon: Icon(Icons.tram)),
-            Tab(icon: Icon(Icons.subway)),
-            Tab(icon: Icon(Icons.directions_bus)),
-            Tab(icon: Icon(Icons.directions_ferry)),
-          ],
-        ),
+        bottom: TabBar(controller: _tabController, tabs: homeStopModeTabs),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildStationTab(),
-          _buildStationTab(),
-          _buildStationTab(),
-          _buildStationTab(),
-          _buildStationTab(),
-        ],
+        children: List.generate(5, (_) => _buildStationTab()),
       ),
     );
   }

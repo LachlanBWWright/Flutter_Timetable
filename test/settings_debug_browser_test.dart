@@ -1,5 +1,3 @@
-// ignore_for_file: catch_async_error_sources, catch_inferred_throwing_calls, catch_runtime_throw_sources, catch_unknown_dynamic_calls, no_null_assertion
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
@@ -7,8 +5,9 @@ import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_models.dart';
 import 'package:lbww_flutter/debug/debug_entity_type.dart';
 import 'package:lbww_flutter/debug/debug_navigation.dart';
-import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/services/transport_preferences_service.dart';
+import 'package:lbww_flutter/settings.dart';
+import 'package:lbww_flutter/transit/registry/region_feature_flags.dart';
 import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/widgets/stops_widgets.dart';
 
@@ -38,29 +37,42 @@ void main() {
         TransportPreferencesService.enabledRegions.value = {TransitRegion.nsw};
         TransportPreferencesService.selectedRegion.value = TransitRegion.nsw;
       });
-      TransportPreferencesService.enabledRegions.value = {
-        TransitRegion.nsw,
-        TransitRegion.victoria,
-        TransitRegion.queensland,
-      };
+      final enabledRegions = RegionFeatureFlags.enabledRegions;
+      TransportPreferencesService.enabledRegions.value = enabledRegions;
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: SettingsScreen(
-            stopsManagementWidget: const SizedBox.shrink(),
-            stopsSearchWidget: const SizedBox.shrink(),
-            realtimeInfoWidget: const SizedBox.shrink(),
+            stopsManagementWidget: SizedBox.shrink(),
+            stopsSearchWidget: SizedBox.shrink(),
+            realtimeInfoWidget: SizedBox.shrink(),
           ),
         ),
       );
 
-      expect(find.text('Transport for NSW Open Data'), findsWidgets);
-      expect(find.text('Public Transport Victoria'), findsWidgets);
-      expect(find.text('Queensland TransLink GTFS'), findsWidgets);
-      expect(find.text('PTV developer ID'), findsOneWidget);
+      for (final region in enabledRegions) {
+        final attribution = AppTransitContext.instance
+            .servicesFor(region)
+            .attribution
+            .name;
+        expect(find.text(attribution), findsWidgets);
+        expect(find.text('$attribution credentials'), findsOneWidget);
+      }
+      expect(
+        find.text('PTV developer ID'),
+        RegionFeatureFlags.victoria ? findsOneWidget : findsNothing,
+      );
       expect(
         find.textContaining('No API credentials are required'),
-        findsOneWidget,
+        findsNWidgets(
+          enabledRegions
+              .where(
+                (region) =>
+                    region != TransitRegion.nsw &&
+                    region != TransitRegion.victoria,
+              )
+              .length,
+        ),
       );
     },
   );

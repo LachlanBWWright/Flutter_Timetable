@@ -9,17 +9,6 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
-plugins:
-  dart_exception_lint:
-    path: ../dart-exception-lint
-    diagnostics:
-      no_null_assertion: true
-      no_manual_throw: true
-      catch_throwing_third_party_calls: true
-      catch_runtime_throw_sources: true
-      catch_async_error_sources: true
-      catch_inferred_throwing_calls: true
-      catch_unknown_dynamic_calls: true
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
@@ -52,7 +41,6 @@ linter:
 
 analyzer:
   exclude:
-    - test/**
     - lib/protobuf/**
     - lib/swagger_clients/**
     - lib/swagger_generated/**

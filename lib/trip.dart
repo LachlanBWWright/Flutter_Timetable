@@ -3,14 +3,15 @@ import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/debug_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
-import 'package:lbww_flutter/services/saved_trip_render_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
+import 'package:lbww_flutter/transit/domain/transit_types.dart';
+import 'package:lbww_flutter/transit/registry/region_feature_flags.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart';
-import 'package:option_result/option_result.dart';
+import 'trip_screen/controller.dart';
 
 class TripScreen extends StatefulWidget {
   const TripScreen({
@@ -19,178 +20,98 @@ class TripScreen extends StatefulWidget {
     this.skipInitialLoad = false,
     this.initialTrips = const [],
   });
-
   final Journey trip;
   final bool skipInitialLoad;
   final List<TripJourney> initialTrips;
-
   @override
   State<TripScreen> createState() => _TripScreenState();
 }
 
 class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
-  String testText = '';
-  List<TripJourney> trips = [];
+  late final TripScreenController _controller;
   final Set<int> _prefetchedVisibleTripIndexes = <int>{};
-  bool _isLoading = false;
-  String? _error;
 
-  String? _rawTripJson;
-
-  void _pushLegDetail(Leg leg, TripJourney tripJourney) {
-    pushPage((context) => TripLegDetailScreen(leg: leg, trip: tripJourney));
-  }
-
-  void _setTripLoadState({
-    required List<TripJourney> loadedTrips,
-    String? error,
-    String? rawTripJson,
-  }) {
-    guardedSetState(() {
-      trips = loadedTrips;
-      _error = error;
-      _rawTripJson = rawTripJson;
-      _isLoading = false;
-    });
-  }
-
-  void _setManualTripState(TripJourney? manualJourney) {
-    if (manualJourney == null) {
-      _setTripLoadState(
-        loadedTrips: const <TripJourney>[],
-        error: 'Unable to load the saved manual trip.',
-      );
-      return;
+  bool get _usesTfnswServices {
+    if (!RegionFeatureFlags.nsw || widget.trip.isManualMultiLeg) return false;
+    for (final id in [widget.trip.originId, widget.trip.destinationId]) {
+      final reference = TransitStopRef.tryParse(id);
+      if (reference == null && id.contains('|')) return false;
+      if (reference != null &&
+          (reference.region != TransitRegion.nsw ||
+              reference.provider != TransitProviderId.tfnsw)) {
+        return false;
+      }
     }
-
-    _setTripLoadState(
-      loadedTrips: <TripJourney>[manualJourney],
-      rawTripJson: prettyPrintRawJson(manualJourney.rawJson),
-    );
-  }
-
-  void _setFetchedTripState(GetTripsResponse response) {
-    guardedSetState(() {
-      trips = sortTripJourneysForDisplay(response.tripJourneys);
-      testText = response.toString();
-      _rawTripJson = prettyPrintRawJson(response.rawJson);
-      _isLoading = false;
-    });
-  }
-
-  void _setTripLoadError(String error) {
-    _setTripLoadState(loadedTrips: const <TripJourney>[], error: error);
-  }
-
-  Future<void> getTripData() async {
-    guardedSetState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    if (widget.trip.isManualMultiLeg) {
-      final manualJourney = await SavedTripRenderService.buildManualTripJourney(
-        widget.trip,
-      );
-
-      if (!context.mounted) return;
-      _setManualTripState(manualJourney);
-      return;
-    }
-
-    final result = await TripCacheService.getCachedOrFetch(
-      originId: widget.trip.originId,
-      destinationId: widget.trip.destinationId,
-    );
-
-    if (!context.mounted) return;
-
-    switch (result) {
-      case Ok(:final v):
-        _setFetchedTripState(v);
-
-        // Preemptively load realtime vehicle positions in the background so
-        // the trip leg detail map loads faster when the user taps a leg.
-        RealtimeService.prefetchAggregates().ignore();
-      case Err(:final e):
-        _setTripLoadError(e);
-    }
+    return true;
   }
 
   @override
   void initState() {
     super.initState();
-    trips = List<TripJourney>.of(widget.initialTrips);
-    if (widget.skipInitialLoad) {
-      return;
+    _controller = TripScreenController(
+      trip: widget.trip,
+      initialTrips: widget.initialTrips,
+      startAgingTimer: !widget.skipInitialLoad,
+      onUsableData: _usesTfnswServices
+          ? () => RealtimeService.prefetchAggregates().ignore()
+          : null,
+    );
+    if (!widget.skipInitialLoad) {
+      if (_usesTfnswServices) RealtimeService.prefetchAggregates().ignore();
+      _controller.load();
     }
-    RealtimeService.prefetchAggregates().ignore();
-    getTripData();
+  }
+
+  void _pushLegDetail(Leg leg, TripJourney tripJourney) {
+    pushPage((context) => TripLegDetailScreen(leg: leg, trip: tripJourney));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _prefetchVisibleTrip(TripJourney trip, int index) {
-    if (widget.skipInitialLoad) {
+    if (widget.skipInitialLoad ||
+        !_usesTfnswServices ||
+        !_prefetchedVisibleTripIndexes.add(index)) {
       return;
     }
-    if (_prefetchedVisibleTripIndexes.contains(index)) {
-      return;
-    }
-
-    _prefetchedVisibleTripIndexes.add(index);
-
-    // Warm detail screens for the most likely taps first.
     RealtimeService.prefetchAggregates().ignore();
-
-    final legs = trip.legs;
-    for (final leg in legs.take(2)) {
-      final origin = leg.origin;
-      final destination = leg.destination;
-      final hasOrigin = origin.id.isNotEmpty;
-      final hasDestination = destination.id.isNotEmpty;
-      if (!hasOrigin || !hasDestination) {
-        continue;
-      }
+    for (final leg in trip.legs.take(2)) {
+      if (leg.origin.id.isEmpty || leg.destination.id.isEmpty) continue;
       TripCacheService.getCachedOrFetch(
-        originId: origin.id,
-        destinationId: destination.id,
+        originId: leg.origin.id,
+        destinationId: leg.destination.id,
       ).ignore();
     }
   }
 
-  Future<void> _refreshTrips() async {
-    if (!widget.trip.isManualMultiLeg) {
-      TripCacheService.invalidate(
-        widget.trip.originId,
-        widget.trip.destinationId,
-      );
-    }
-    await getTripData();
-  }
+  Future<void> _refreshTrips() => _controller.load(forceRefresh: true);
 
-  Widget _buildRawTripJsonCard(String rawTripJson) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(maxHeight: 240),
-        decoration: BoxDecoration(
-          color: Colors.black12,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            rawTripJson,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
+  Widget _buildRawTripJsonCard(String rawTripJson) => Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 240),
+      decoration: BoxDecoration(
+        color: Colors.black12,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          rawTripJson,
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
         ),
       ),
-    );
-  }
+    ),
+  );
 
-  Widget _buildEmptyTripState(BuildContext context) {
-    final rawTripJson = _rawTripJson;
+  Widget _buildEmptyTripState(BuildContext context, TripScreenState state) {
+    final rawTripJson = state.rawTripJson;
     return ListView(
       children: [
         SizedBox(
@@ -199,23 +120,23 @@ class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (_isLoading)
+                if (state.isLoading)
                   const CircularProgressIndicator()
                 else
                   const Icon(Icons.info_outline, size: 48, color: Colors.grey),
                 const SizedBox(height: 12),
-                if (_isLoading)
+                if (state.isLoading)
                   Text(loadingTripMessage(widget.trip))
-                else if (_error != null)
+                else if (state.error != null)
                   Column(
                     children: [
                       Text(
-                        'Error loading trips:\n$_error',
+                        'Error loading trips:\n${state.error}',
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton(
-                        onPressed: getTripData,
+                        onPressed: _controller.load,
                         child: const Text('Retry'),
                       ),
                     ],
@@ -226,7 +147,7 @@ class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
                       Text(emptyTripMessage(widget.trip)),
                       const SizedBox(height: 8),
                       ElevatedButton(
-                        onPressed: getTripData,
+                        onPressed: _controller.load,
                         child: Text(retryButtonLabel(widget.trip)),
                       ),
                       ValueListenableBuilder<bool>(
@@ -248,37 +169,38 @@ class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
     );
   }
 
-  Widget _buildTripList() {
-    final tripCards = <Widget>[];
-    var index = 0;
-    for (final tripJourney in trips) {
-      tripCards.add(
+  Widget _buildTripList(TripScreenState state) => ListView(
+    children: [
+      for (final (index, tripJourney) in state.trips.indexed)
         TripCard(
           trip: tripJourney,
           onVisible: (trip) => _prefetchVisibleTrip(trip, index),
           onSelectLeg: (leg) => _pushLegDetail(leg, tripJourney),
         ),
-      );
-      index++;
-    }
+    ],
+  );
 
-    return ListView(children: tripCards);
-  }
-
-  Widget _buildBody(BuildContext context) {
-    return trips.isEmpty ? _buildEmptyTripState(context) : _buildTripList();
+  Widget _buildBody(BuildContext context, TripScreenState state) {
+    return Column(
+      children: [
+        Expanded(
+          child: state.trips.isEmpty
+              ? _buildEmptyTripState(context, state)
+              : _buildTripList(state),
+        ),
+      ],
+    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Trip')),
-      body: RefreshIndicator(
-        onRefresh: _refreshTrips,
-        child: _buildBody(context),
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Trip')),
+    body: RefreshIndicator(
+      onRefresh: _refreshTrips,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => _buildBody(context, _controller.state),
       ),
-    );
-  }
+    ),
+  );
 }
-
-// TripLegScreen moved to trip_leg_screen.dart

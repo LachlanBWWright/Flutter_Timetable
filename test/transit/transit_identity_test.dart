@@ -28,7 +28,7 @@ void main() {
       sourceId: TransitSourceId('ptv:route_type:0'),
       stopId: '1071',
     );
-    final station = Station(
+    const station = Station(
       name: 'Flinders Street',
       id: '1071',
       transitRef: ref,

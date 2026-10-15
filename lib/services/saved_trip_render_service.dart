@@ -1,8 +1,10 @@
+import 'package:collection/collection.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart' as api;
+import 'package:lbww_flutter/transit/domain/transit_types.dart';
 
 class SavedTripRenderService {
   SavedTripRenderService._();
@@ -73,20 +75,35 @@ class SavedTripRenderService {
   }
 
   static Future<api.Stop> _buildStop(String stopId, String fallbackName) async {
-    final rows = await StopsService.database.getStopsById(stopId);
-    final row = rows.isNotEmpty ? rows.first : null;
+    final ref = TransitStopRef.tryParse(stopId);
+    final rawStopId = ref?.stopId ?? stopId;
+    final rows = await StopsService.database.getStopsById(rawStopId);
+    final row = rows
+        .where(
+          (candidate) =>
+              ref == null || candidate.endpoint == ref.sourceId.value,
+        )
+        .firstOrNull;
     final lat = row?.stopLat;
     final lon = row?.stopLon;
     final hasCoordinates =
         lat != null && lon != null && lat != 0.0 && lon != 0.0;
 
     return api.Stop(
-      id: stopId,
+      id: rawStopId,
       name: row?.stopName ?? fallbackName,
       disassembledName: row?.stopName ?? fallbackName,
       type: 'stop',
       coord: hasCoordinates ? [lat, lon] : null,
-      rawJson: {'manual': true, 'id': stopId},
+      rawJson: {
+        'manual': true,
+        'id': rawStopId,
+        if (ref != null) ...{
+          'transitRegion': ref.region.name,
+          'transitProvider': ref.provider.name,
+          'transitSourceId': ref.sourceId.value,
+        },
+      },
     );
   }
 

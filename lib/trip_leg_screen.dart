@@ -14,6 +14,9 @@ import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 import 'utils/color_utils.dart';
 
+part 'trip_leg/map_view.dart';
+part 'trip_leg/stop_card.dart';
+
 class TripLegDetailScreen extends StatefulWidget {
   final Map<String, dynamic> leg;
   const TripLegDetailScreen({super.key, required this.leg});
@@ -29,9 +32,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
   VehiclePosition? _currentVehicle;
   bool _isLoadingLocation = false;
   bool _isLoadingVehicles = false;
-
-  // Sydney CBD as default center
-  static const LatLng _defaultCenter = LatLng(-33.8688, 151.2093);
 
   @override
   void initState() {
@@ -94,208 +94,6 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     }
   }
 
-  LatLng _getMapCenter() {
-    // Prefer current vehicle position
-    final currentVehicle = _currentVehicle;
-    if (currentVehicle != null &&
-        currentVehicle.hasPosition() &&
-        currentVehicle.position.hasLatitude() &&
-        currentVehicle.position.hasLongitude()) {
-      return LatLng(
-        currentVehicle.position.latitude,
-        currentVehicle.position.longitude,
-      );
-    }
-
-    final origin = tryReadJsonMap(widget.leg, 'origin');
-    final originCoord = parseStopCoord(origin);
-    if (originCoord != null) {
-      return originCoord;
-    }
-
-    // Fall back to user location
-    final userLocation = _userLocation;
-    if (userLocation != null) {
-      return LatLng(userLocation.latitude, userLocation.longitude);
-    }
-
-    // Default to Sydney CBD
-    return _defaultCenter;
-  }
-
-  List<Marker> _buildMapMarkers() {
-    final markers = <Marker>[];
-    final int transportClassForMarkers =
-        extractTransportClassFromLeg(widget.leg) ?? 5;
-
-    // Add user location marker
-    final userLocation = _userLocation;
-    if (userLocation != null) {
-      markers.add(
-        Marker(
-          point: LatLng(userLocation.latitude, userLocation.longitude),
-          child: const Icon(
-            Icons.person_pin_circle,
-            color: Colors.blue,
-            size: 30,
-          ),
-        ),
-      );
-    }
-
-    // Add current vehicle marker if available
-    final currentVehicle = _currentVehicle;
-    if (currentVehicle != null &&
-        currentVehicle.hasPosition() &&
-        currentVehicle.position.hasLatitude() &&
-        currentVehicle.position.hasLongitude()) {
-      markers.add(
-        Marker(
-          point: LatLng(
-            currentVehicle.position.latitude,
-            currentVehicle.position.longitude,
-          ),
-          child: Icon(
-            Icons.directions_bus,
-            color: TransportModeUtils.getModeColor(transportClassForMarkers),
-            size: 25,
-          ),
-        ),
-      );
-    }
-
-    // Add origin and destination markers
-    final origin = tryReadJsonMap(widget.leg, 'origin');
-    final destination = tryReadJsonMap(widget.leg, 'destination');
-    final originCoord = parseStopCoord(origin);
-    if (originCoord != null) {
-      markers.add(
-        Marker(
-          point: originCoord,
-          child: const Icon(Icons.play_arrow, color: Colors.green, size: 25),
-        ),
-      );
-    }
-
-    final destinationCoord = parseStopCoord(destination);
-    if (destinationCoord != null) {
-      markers.add(
-        Marker(
-          point: destinationCoord,
-          child: const Icon(Icons.stop, color: Colors.red, size: 25),
-        ),
-      );
-    }
-
-    return markers;
-  }
-
-  Widget _buildMapView() {
-    return SizedBox(
-      height: 250,
-      width: double.infinity,
-      child: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(initialCenter: _getMapCenter(), initialZoom: 14.0),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.app',
-          ),
-          MarkerLayer(markers: _buildMapMarkers()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStopCard(Map<String, dynamic> stop, int index) {
-    final stopName =
-        tryReadStringValue(stop, 'disassembledName') ??
-        tryReadStringValue(stop, 'name') ??
-        'Unknown Stop';
-    final departureTimePlanned = tryReadStringValue(
-      stop,
-      'departureTimePlanned',
-    );
-    final departureTimeEstimated = tryReadStringValue(
-      stop,
-      'departureTimeEstimated',
-    );
-    final arrivalTimePlanned = tryReadStringValue(stop, 'arrivalTimePlanned');
-    final arrivalTimeEstimated = tryReadStringValue(
-      stop,
-      'arrivalTimeEstimated',
-    );
-
-    // Check if this stop is where the vehicle currently is
-    bool isCurrentStop = false;
-    final currentVehicle = _currentVehicle;
-    if (currentVehicle != null) {
-      final currentStopSequence = currentVehicle.currentStopSequence;
-      if (currentStopSequence > 0 && currentStopSequence == index + 1) {
-        isCurrentStop = true;
-      }
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isCurrentStop ? Colors.orange.withValues(alpha: .1) : null,
-        border: isCurrentStop
-            ? Border.all(color: Colors.orange, width: 2)
-            : Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isCurrentStop ? Colors.orange : Colors.grey,
-          foregroundColor: getContrastingForeground(
-            isCurrentStop ? Colors.orange : Colors.grey,
-          ),
-          child: Text('${index + 1}'),
-        ),
-        title: Text(
-          stopName,
-          style: TextStyle(
-            fontWeight: isCurrentStop ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (departureTimePlanned != null || departureTimeEstimated != null)
-              Row(
-                children: [
-                  const Icon(
-                    Icons.departure_board,
-                    size: 16,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Depart: ${formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-            if (arrivalTimePlanned != null || arrivalTimeEstimated != null)
-              Row(
-                children: [
-                  const Icon(Icons.schedule, size: 16, color: Colors.red),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Arrive: ${formatTimeDifference(arrivalTimePlanned, arrivalTimeEstimated)}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-          ],
-        ),
-        trailing: isCurrentStop
-            ? const Icon(Icons.directions_bus, color: Colors.orange)
-            : null,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final transportation = tryReadJsonMap(widget.leg, 'transportation');
@@ -339,7 +137,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Map view at the top
-            _buildMapView(),
+            _TripLegMapView(
+              leg: widget.leg,
+              userLocation: _userLocation,
+              currentVehicle: _currentVehicle,
+              mapController: _mapController,
+            ),
 
             // Trip information
             Container(
@@ -448,7 +251,11 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
                   if (stop == null) {
                     return const SizedBox.shrink();
                   }
-                  return _buildStopCard(stop, index);
+                  return _TripLegStopCard(
+                    stop: stop,
+                    index: index,
+                    currentVehicle: _currentVehicle,
+                  );
                 },
               )
             else

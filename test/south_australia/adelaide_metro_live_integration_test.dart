@@ -1,3 +1,6 @@
+@Tags(['integration'])
+library;
+
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -8,7 +11,6 @@ import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:test/test.dart';
 
-@Tags(['integration'])
 void main() {
   final runLiveTests = Platform.environment['RUN_SA_API_TESTS'] == 'true';
 
@@ -71,9 +73,9 @@ void main() {
         final saved = await JourneyService.insertJourney(
           database,
           db.JourneysCompanion.insert(
-            origin: selectedOrigin!.name,
+            origin: selectedOrigin.name,
             originId: selectedOrigin.ref.storageKey,
-            destination: selectedDestination!.name,
+            destination: selectedDestination.name,
             destinationId: selectedDestination.ref.storageKey,
           ),
         );
