@@ -4,6 +4,7 @@ import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/widgets/journey/journey_accent_strip.dart';
+import 'package:lbww_flutter/widgets/journey/journey_direction_button.dart';
 
 /// A reusable card widget for displaying journey information with two-column layout
 class JourneyCard extends StatefulWidget {
@@ -13,6 +14,7 @@ class JourneyCard extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onTogglePin;
   final bool isEditingMode;
+  final bool showNextTripTimes;
   final void Function(Journey)? onJourneyVisible;
 
   const JourneyCard({
@@ -24,6 +26,7 @@ class JourneyCard extends StatefulWidget {
     required this.onTogglePin,
     required this.isEditingMode,
     this.onJourneyVisible,
+    this.showNextTripTimes = false,
   });
 
   @override
@@ -85,19 +88,10 @@ class _JourneyCardState extends State<JourneyCard>
             children: [
               // Origin column
               Expanded(
-                child: InkWell(
+                child: JourneyDirectionButton(
+                  journey: journey,
                   onTap: widget.onTap,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(16, 14, 10, 14),
-                    child: Text(
-                      journey.origin,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  showNextTripTimes: widget.showNextTripTimes,
                 ),
               ),
               // Vertical divider between origin and destination
@@ -110,19 +104,11 @@ class _JourneyCardState extends State<JourneyCard>
               ),
               // Destination column
               Expanded(
-                child: InkWell(
+                child: JourneyDirectionButton(
+                  journey: journey,
                   onTap: widget.onReverseTap,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(10, 14, 16, 14),
-                    child: Text(
-                      journey.destination,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  showNextTripTimes: widget.showNextTripTimes,
+                  reverse: true,
                 ),
               ),
               // Action buttons (pin/delete)
@@ -173,6 +159,7 @@ class JourneyList extends StatelessWidget {
   final void Function(int) onDeleteJourney;
   final void Function(int, bool) onTogglePin;
   final bool isEditingMode;
+  final bool showNextTripTimes;
   final bool isPinnedSection;
 
   const JourneyList({
@@ -181,6 +168,7 @@ class JourneyList extends StatelessWidget {
     required this.onJourneyTap,
     required this.onReverseJourneyTap,
     this.onJourneyVisible,
+    this.showNextTripTimes = false,
     required this.onDeleteJourney,
     required this.onTogglePin,
     required this.isEditingMode,
@@ -223,6 +211,7 @@ class JourneyList extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return JourneyCard(
+          key: ValueKey(journey.id),
           journey: journey,
           onTap: () => _handleJourneyTap(journey),
           onReverseTap: () => _handleReverseJourneyTap(journey),
@@ -230,6 +219,7 @@ class JourneyList extends StatelessWidget {
           onDelete: () => _handleDeleteJourney(journey),
           onTogglePin: () => _handleTogglePin(journey),
           isEditingMode: isEditingMode,
+          showNextTripTimes: showNextTripTimes,
         );
       },
     );

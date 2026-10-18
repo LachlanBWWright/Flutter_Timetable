@@ -4,95 +4,80 @@ This document describes the CI/CD pipeline for the Flutter Timetable application
 
 ## Overview
 
-The project uses GitHub Actions for continuous integration and deployment with four main workflows:
-
-1. **Test Suite** (`test.yml`) - Runs tests on pull requests and pushes
-2. **Build APK** (`build-apk.yml`) - Builds Android APK files
-3. **Release APK** (`release-apk.yml`) - Publishes APK as GitHub release on master
-4. **Deploy Web** (`deploy-web.yml`) - Deploys Flutter web app to GitHub Pages
+The project uses GitHub Actions for CI, screenshot comparison, provider checks,
+Android releases, and GitHub Pages deployment. Every Flutter setup reads the
+repository version from `.fvmrc`.
 
 ## Workflows
 
-### 1. Test Suite (`.github/workflows/test.yml`)
+### 1. CI (`.github/workflows/ci.yml`)
 
-**Triggers:** Pull requests and pushes to `master` and `dev` branches
+**Triggers:** Pull requests and pushes to `main`, `master`, and `dev`
 
-**Purpose:** Runs the test suite, formatting checks, and static analysis
+**Purpose:** Runs formatting, analysis, NSW-only and all-regions tests, compares
+screenshot baselines, builds debug APKs, and runs the saved-trip Android
+emulator flow.
 
-**Configuration:**
-- Currently set to `continue-on-error: true` to allow failures without blocking
-- To re-enable blocking on failures: Remove the `continue-on-error: true` line
+The deterministic tests exclude the separate `integration` and `golden` suites
+and run with serial concurrency. Coverage artifacts are uploaded separately
+for each region configuration.
 
-**Steps:**
-1. Checkout code
-2. Setup Flutter (v3.47.7, pinned in `.fvmrc`; bundled Dart 3.13.5)
-3. Get dependencies
-4. Verify formatting
-5. Analyze project source
-6. Run tests
+### 2. Live provider tests (`.github/workflows/test.yml`)
 
-### 2. Build APK (`.github/workflows/build-apk.yml`)
+**Trigger:** Manual dispatch with provider selections. Credentials are read
+from repository secrets.
 
-**Triggers:** Pull requests and pushes to `master` and `dev` branches
+### 3. Screenshot goldens (`.github/workflows/goldens.yml`)
 
-**Purpose:** Builds both release and debug APK files
+**Trigger:** Called by `CI` for pull requests and pushes to `main`, `master`,
+and `dev`. It does not also run independently.
 
-**Outputs:**
-- Release APK: `lbww_flutter-{version}-release.apk`
-- Debug APK: `app-debug.apk`
-- Artifacts retained for 30 days (release) / 7 days (debug)
+The screenshot job compares committed baselines with all regions enabled. It
+does not update the baselines. A failed screenshot comparison fails `CI` and
+blocks automatic web deployment for that commit.
 
-**Steps:**
-1. Checkout code
-2. Setup Java 17 and Flutter
-3. Get dependencies
-4. Create `.env` file from template
-5. Build release and debug APKs
-6. Upload as artifacts
+### 4. Release Android APKs (`.github/workflows/release-android.yml`)
 
-### 3. Release APK (`.github/workflows/release-apk.yml`)
+**Trigger:** Manual dispatch with a source ref and release options. Android
+signing secrets are required. Provider credentials are omitted by default;
+public credential distribution follows the explicit policy below.
 
-**Triggers:** Pushes to `master` branch only
+### 5. Deploy Web (`.github/workflows/deploy-web.yml`)
 
-**Purpose:** Creates a GitHub release with the APK file
+**Triggers:** Successful `CI` push runs from `main` or `master`, when the
+workflow run belongs to this repository. Manual dispatch is also supported on
+`main` or `master`; other refs are rejected by the job guard. Both automatic
+and manual deployment require the latest push `CI` run for the exact deployment
+commit to have completed successfully, including screenshot comparisons. A
+missing, running, cancelled, or failed run blocks the build and deployment.
 
-**Outputs:**
-- GitHub Release with tag `v{version}-{build_number}`
-- Release APK attached to the release
-- Artifacts retained for 90 days
+The workflow checks out only trusted branch commits, builds with the pinned
+Flutter SDK, and deploys through the `github-pages` environment. Provider
+credentials are omitted by default.
 
-**Steps:**
-1. Checkout code
-2. Setup Java 17 and Flutter
-3. Build release APK
-4. Create GitHub release
-5. Upload APK to release
+### Public deployment credentials (Web and Android release)
 
-**Note:** This workflow is independent of the web deployment workflow.
+The `.env` Flutter asset is downloadable from the web build and extractable
+from APKs. GitHub Actions secrets become public when bundled there. A key
+that must remain secret needs a server boundary; no backend proxy is included.
 
-### 4. Deploy Web (`.github/workflows/deploy-web.yml`)
+Both release workflows call `bash scripts/create_deployment_env.sh` to
+replace `.env` with a blank `API_KEY` by default. An unset or `false`
+repository variable `BUNDLE_PUBLIC_TFNSW_KEY` selects this default. To opt into
+public distribution, set the variable to exactly `true` and configure the
+dedicated repository secret `PUBLIC_TFNSW_API_KEY`. Invalid flag values,
+missing opted-in keys, and keys containing whitespace or dotenv syntax fail
+configuration before the build. The key must contain only letters, digits,
+`.`, `_`, `~`, `+`, `/`, `=`, or `-`. Values are not printed.
 
-**Triggers:** Pushes to `master` branch only
+Do not reuse a private integration key for this public deployment key. The
+existing `API_KEY` secret is only for live-provider checks and is not bundled.
+Other provider credentials are not automatically included.
 
-**Purpose:** Builds and deploys the Flutter web app to GitHub Pages
-
-**Configuration:**
-- Uses concurrency control to prevent deployment conflicts
-- Requires GitHub Pages to be enabled in repository settings
-- Uses HTML renderer for better compatibility
-
-**Steps:**
-1. Build job:
-   - Checkout code
-   - Setup Flutter
-   - Enable Flutter web
-   - Build web app
-   - Upload artifacts
-2. Deploy job:
-   - Deploy to GitHub Pages
-   - Runs independently after build completes
-
-**Note:** This workflow is independent of the APK release workflow.
+With no bundled key, users can configure their own TfNSW key in Settings.
+Their override takes priority. Local/cached data remains available, but
+TfNSW requests requiring authentication need a configured key. For custom
+local builds, inspect `.env` before distributing the resulting artifact.
 
 ## Local Testing Instructions
 
@@ -118,20 +103,12 @@ flutter --version
 java -version
 ```
 
-### Testing the Test Workflow
+### Testing CI locally
 
 ```bash
-# Get dependencies
-flutter pub get
-
-# Run formatting check
-dart format --output=none --set-exit-if-changed .
-
-# Run static analysis
-flutter analyze
-
-# Run tests
-flutter test
+./scripts/ci.sh nsw
+./scripts/ci.sh all-regions
+./scripts/check_goldens.sh
 ```
 
 ### Testing APK Build
@@ -172,8 +149,8 @@ flutter pub get
 # Ensure you have the .env file
 cp .env.template .env
 
-# Build for web (using HTML renderer for compatibility)
-flutter build web --release --web-renderer html
+# Build for web
+flutter build web --release
 
 # Check the output
 ls -lh build/web/
@@ -216,18 +193,14 @@ To enable GitHub Pages deployment:
 3. Wait for the first deployment to complete
 4. Access your app at: `https://{username}.github.io/{repository-name}/`
 
-## Enabling Test Blocking
+## Pull Request Checks
 
-Currently, tests are configured to not block CI/CD workflows. To enable blocking:
-
-1. Open `.github/workflows/test.yml`
-2. Remove the line `continue-on-error: true` from the test job
-3. Commit and push the change
-
-This will cause pull requests to be blocked if:
-- Code formatting is incorrect
-- Static analysis finds issues
-- Tests fail
+The `CI` workflow reports failures for formatting, analysis, deterministic
+tests, screenshot comparisons, the Android debug build, and the saved-trip
+emulator flow. Configure
+the repository's branch protection rules to require the `CI` check if those
+results should block merging. The manually triggered live-provider and release
+workflows do not run as pull-request checks.
 
 ## Troubleshooting
 

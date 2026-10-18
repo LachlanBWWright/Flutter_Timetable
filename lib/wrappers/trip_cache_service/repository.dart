@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:option_result/option_result.dart';
 import '../../logs/logger.dart';
 import '../../schema/database.dart' as db;
@@ -65,6 +68,25 @@ class TripCacheRepository {
   final _activeRequests = <String, int>{};
   int _generation = 0;
   Future<void>? _persistence;
+  final ValueNotifier<int> _changes = ValueNotifier(0);
+  bool _notificationQueued = false;
+
+  Listenable get changes => _changes;
+
+  /// Read available memory data without fetching or accessing storage.
+  TripCacheSnapshot? peekSnapshot(String origin, String destination) {
+    final entry = _memory['$origin|$destination'];
+    return entry == null ? null : _snapshot(entry);
+  }
+
+  void _notifyChanged() {
+    if (_notificationQueued) return;
+    _notificationQueued = true;
+    scheduleMicrotask(() {
+      _notificationQueued = false;
+      _changes.value += 1;
+    });
+  }
 
   // Ordering deletes and writes also protects invalidateAll across endpoints.
   Future<void> _mutate(Future<void> Function() operation) {
@@ -237,6 +259,7 @@ class TripCacheRepository {
     while (_memory.length > 50) {
       _memory.remove(_memory.keys.first);
     }
+    _notifyChanged();
   }
 
   void _releaseRequestKey(String key) {
@@ -258,6 +281,7 @@ class TripCacheRepository {
     }
     _memory.remove(key);
     _inflight.remove(key);
+    _notifyChanged();
     _mutate(() => deleteCache(origin, destination)).ignore();
   }
 
@@ -275,6 +299,7 @@ class TripCacheRepository {
     _memory.clear();
     _generations.clear();
     _inflight.clear();
+    _notifyChanged();
   }
 
   void invalidateAll() {

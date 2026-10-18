@@ -84,6 +84,7 @@ extension _HomeJourneysView on _MyHomePageState {
                     onDeleteJourney: deleteTrip,
                     onTogglePin: togglePin,
                     isEditingMode: _isEditingMode,
+                    showNextTripTimes: !widget.skipInitialLoad,
                     isPinnedSection: true,
                   ),
                   if (unpinnedJourneys.isNotEmpty)
@@ -106,6 +107,7 @@ extension _HomeJourneysView on _MyHomePageState {
                     onDeleteJourney: deleteTrip,
                     onTogglePin: togglePin,
                     isEditingMode: _isEditingMode,
+                    showNextTripTimes: !widget.skipInitialLoad,
                     isPinnedSection: false,
                   ),
               ],

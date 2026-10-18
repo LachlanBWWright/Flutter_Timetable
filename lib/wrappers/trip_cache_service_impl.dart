@@ -26,6 +26,25 @@ class TripCacheService {
   @visibleForTesting
   static void resetForTesting() => _repository = TripCacheRepository();
 
+  static Listenable get changes => _repository.changes;
+
+  static bool canLoadJourney(db.Journey journey) =>
+      !journey.isManualMultiLeg &&
+      _tfnswStopId(journey.originId) != null &&
+      _tfnswStopId(journey.destinationId) != null;
+
+  /// Returns current cached data without starting another request.
+  static TripCacheSnapshot? peekSnapshot(
+    String originId,
+    String destinationId,
+  ) {
+    final origin = _tfnswStopId(originId);
+    final destination = _tfnswStopId(destinationId);
+    return origin == null || destination == null
+        ? null
+        : _repository.peekSnapshot(origin, destination);
+  }
+
   static String? _tfnswStopId(String value) {
     if (!RegionFeatureFlags.nsw) return null;
     if (value.trim().isEmpty) return null;
