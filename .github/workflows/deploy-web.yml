@@ -1,34 +1,97 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
     branches:
       - main
+      - master
+  workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  build-web:
+  quality-gate:
+    name: Require successful CI for deployment commit
+    if: >-
+      ${{
+        (github.event_name == 'workflow_dispatch' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
+        ||
+        (github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_repository.full_name == github.repository &&
+          (github.event.workflow_run.head_branch == 'main' ||
+            github.event.workflow_run.head_branch == 'master'))
+      }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check CI status for the exact source commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const trigger = context.payload.workflow_run;
+            const sha = trigger?.head_sha ?? context.sha;
+            const branch = trigger?.head_branch ?? context.ref.replace('refs/heads/', '');
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo,
+              workflow_id: 'ci.yml',
+              branch,
+              head_sha: sha,
+              event: 'push',
+              per_page: 100,
+            });
+            const run = data.workflow_runs.find(candidate =>
+              candidate.head_sha === sha &&
+              candidate.head_repository?.full_name === `${context.repo.owner}/${context.repo.repo}`);
+            if (!run || run.status !== 'completed' || run.conclusion !== 'success') {
+              core.setFailed(`The latest push CI run for ${sha} must pass, including screenshot baselines.`);
+            }
+
+  build-web:
+    needs: quality-gate
+    if: >-
+      ${{
+        (github.event_name == 'workflow_dispatch' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
+        ||
+        (github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_repository.full_name == github.repository &&
+          (github.event.workflow_run.head_branch == 'main' ||
+            github.event.workflow_run.head_branch == 'master'))
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
 
       - name: Enable Flutter web
         run: flutter config --enable-web
@@ -36,10 +99,11 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Create .env file
-        run: |
-          echo "API_KEY=${{ secrets.API_KEY }}" > .env
-          echo "Created .env file with API key"
+      - name: Configure public deployment credentials
+        env:
+          BUNDLE_PUBLIC_TFNSW_KEY: ${{ vars.BUNDLE_PUBLIC_TFNSW_KEY }}
+          PUBLIC_TFNSW_API_KEY: ${{ secrets.PUBLIC_TFNSW_API_KEY }}
+        run: bash scripts/create_deployment_env.sh
 
       - name: Build Flutter web
         run: |
@@ -48,7 +112,6 @@ jobs:
 
       - name: Prepare web artifacts
         run: |
-          # The build output is in build/web
           ls -la build/web/
 
       - name: Upload web artifacts
@@ -60,6 +123,8 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        with:
+          enablement: 'false'
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
@@ -67,9 +132,11 @@ jobs:
           path: build/web
 
   deploy-web:
-    # Deploy job runs independently after build completes
     needs: build-web
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
 
     environment:
       name: github-pages
@@ -82,11 +149,14 @@ jobs:
 
       - name: Deployment summary
         if: always()
+        env:
+          DEPLOYMENT_OUTCOME: ${{ steps.deployment.outcome }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
-          echo "Deployment status: ${{ steps.deployment.outcome }}"
-          if [ "${{ steps.deployment.outcome }}" == "success" ]; then
+          echo "Deployment status: $DEPLOYMENT_OUTCOME"
+          if [ "$DEPLOYMENT_OUTCOME" == "success" ]; then
             echo "Web app deployed successfully to GitHub Pages!"
-            echo "URL: ${{ steps.deployment.outputs.page_url }}"
+            echo "URL: $PAGE_URL"
           else
             echo "Deployment encountered an issue. Check the logs above."
           fi

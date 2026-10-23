@@ -1,15 +1,21 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/constants/transport_colors.dart';
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
+import 'package:lbww_flutter/widgets/journey/journey_accent_strip.dart';
+import 'package:lbww_flutter/widgets/journey/journey_direction_button.dart';
 
 /// A reusable card widget for displaying journey information with two-column layout
-class JourneyCard extends StatelessWidget {
+class JourneyCard extends StatefulWidget {
   final Journey journey;
   final VoidCallback onTap;
   final VoidCallback onReverseTap;
   final VoidCallback onDelete;
   final VoidCallback onTogglePin;
   final bool isEditingMode;
+  final bool showNextTripTimes;
+  final void Function(Journey)? onJourneyVisible;
 
   const JourneyCard({
     super.key,
@@ -19,12 +25,62 @@ class JourneyCard extends StatelessWidget {
     required this.onDelete,
     required this.onTogglePin,
     required this.isEditingMode,
+    this.onJourneyVisible,
+    this.showNextTripTimes = false,
   });
 
   @override
+  State<JourneyCard> createState() => _JourneyCardState();
+}
+
+class _JourneyCardState extends State<JourneyCard>
+    with GuardedState<JourneyCard> {
+  bool _didNotifyVisible = false;
+
+  void _emitJourneyVisible() {
+    final onJourneyVisible = widget.onJourneyVisible;
+    if (onJourneyVisible == null) {
+      return;
+    }
+    try {
+      onJourneyVisible.call(widget.journey);
+    } catch (_) {}
+  }
+
+  @override
+  void didUpdateWidget(covariant JourneyCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.journey.id != widget.journey.id) {
+      _didNotifyVisible = false;
+    }
+  }
+
+  void _notifyVisible() {
+    if (_didNotifyVisible) return;
+    _didNotifyVisible = true;
+    addPostFrameCallbackSafely((_) {
+      if (!mounted) return;
+      _emitJourneyVisible();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    _notifyVisible();
+
+    final journey = widget.journey;
+    final manualDefinition = journey.manualTripDefinition;
+    final interchangeCount = manualDefinition == null
+        ? null
+        : manualDefinition.legs.length - 1;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -32,73 +88,62 @@ class JourneyCard extends StatelessWidget {
             children: [
               // Origin column
               Expanded(
-                child: InkWell(
-                  onTap: onTap,
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          journey.origin,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: JourneyDirectionButton(
+                  journey: journey,
+                  onTap: widget.onTap,
+                  showNextTripTimes: widget.showNextTripTimes,
                 ),
               ),
               // Vertical divider between origin and destination
               VerticalDivider(
-                width: 12,
+                width: 10,
                 thickness: 1,
                 color: Colors.grey.shade400,
-                indent: 8,
-                endIndent: 8,
+                indent: 12,
+                endIndent: 12,
               ),
               // Destination column
               Expanded(
-                child: InkWell(
-                  onTap: onReverseTap,
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          journey.destination,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: JourneyDirectionButton(
+                  journey: journey,
+                  onTap: widget.onReverseTap,
+                  showNextTripTimes: widget.showNextTripTimes,
+                  reverse: true,
                 ),
               ),
               // Action buttons (pin/delete)
-              if (isEditingMode) ...[
+              if (widget.isEditingMode) ...[
                 IconButton(
                   icon: Icon(
                     journey.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                     color: journey.isPinned ? Colors.blue : Colors.grey,
                   ),
-                  onPressed: onTogglePin,
+                  onPressed: widget.onTogglePin,
                 ),
-                IconButton(icon: const Icon(Icons.delete), onPressed: onDelete),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: widget.onDelete,
+                ),
               ],
             ],
           ),
-          // Bottom accent strip to match TripCard
-          Container(
-            height: 6,
-            width: double.infinity,
-            color: TransportColors.train,
-          ),
+          if (journey.isManualMultiLeg)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                [
+                  'Manual multi-leg',
+                  if (journey.lineName case final lineName?
+                      when lineName.isNotEmpty)
+                    lineName,
+                  if (interchangeCount != null)
+                    '$interchangeCount interchange${interchangeCount == 1 ? '' : 's'}',
+                ].join(' • '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          const SizedBox(height: 2),
+          JourneyAccentStrip(journey: journey),
         ],
       ),
     );
@@ -110,9 +155,11 @@ class JourneyList extends StatelessWidget {
   final List<Journey> journeys;
   final void Function(Journey) onJourneyTap;
   final void Function(Journey) onReverseJourneyTap;
+  final void Function(Journey)? onJourneyVisible;
   final void Function(int) onDeleteJourney;
   final void Function(int, bool) onTogglePin;
   final bool isEditingMode;
+  final bool showNextTripTimes;
   final bool isPinnedSection;
 
   const JourneyList({
@@ -120,11 +167,37 @@ class JourneyList extends StatelessWidget {
     required this.journeys,
     required this.onJourneyTap,
     required this.onReverseJourneyTap,
+    this.onJourneyVisible,
+    this.showNextTripTimes = false,
     required this.onDeleteJourney,
     required this.onTogglePin,
     required this.isEditingMode,
     required this.isPinnedSection,
   });
+
+  void _handleJourneyTap(Journey journey) {
+    try {
+      onJourneyTap.call(journey);
+    } catch (_) {}
+  }
+
+  void _handleReverseJourneyTap(Journey journey) {
+    try {
+      onReverseJourneyTap.call(journey);
+    } catch (_) {}
+  }
+
+  void _handleDeleteJourney(Journey journey) {
+    try {
+      onDeleteJourney.call(journey.id);
+    } catch (_) {}
+  }
+
+  void _handleTogglePin(Journey journey) {
+    try {
+      onTogglePin.call(journey.id, journey.isPinned);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,14 +206,20 @@ class JourneyList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: journeys.length,
       itemBuilder: (context, index) {
+        final journey = journeys.elementAtOrNull(index);
+        if (journey == null) {
+          return const SizedBox.shrink();
+        }
         return JourneyCard(
-          journey: journeys[index],
-          onTap: () => onJourneyTap(journeys[index]),
-          onReverseTap: () => onReverseJourneyTap(journeys[index]),
-          onDelete: () => onDeleteJourney(journeys[index].id),
-          onTogglePin: () =>
-              onTogglePin(journeys[index].id, journeys[index].isPinned),
+          key: ValueKey(journey.id),
+          journey: journey,
+          onTap: () => _handleJourneyTap(journey),
+          onReverseTap: () => _handleReverseJourneyTap(journey),
+          onJourneyVisible: onJourneyVisible,
+          onDelete: () => _handleDeleteJourney(journey),
+          onTogglePin: () => _handleTogglePin(journey),
           isEditingMode: isEditingMode,
+          showNextTripTimes: showNextTripTimes,
         );
       },
     );
@@ -150,37 +229,81 @@ class JourneyList extends StatelessWidget {
 /// Custom app bar for the home screen
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final bool hasApiKey;
+  final bool canAddTrip;
   final bool isSearching;
   final bool isEditingMode;
   final bool hasTrips;
+  final bool isAlphabeticalSorting;
   final VoidCallback onAddTrip;
   final VoidCallback onSettings;
   final VoidCallback onToggleSearch;
   final VoidCallback onToggleEdit;
-  final Function(String) onSearchChanged;
+  final VoidCallback onToggleSort;
+  final void Function(String) onSearchChanged;
   final TextEditingController searchController;
 
   const HomeAppBar({
     super.key,
     required this.title,
-    required this.hasApiKey,
+    required this.canAddTrip,
     required this.isSearching,
     required this.isEditingMode,
     required this.hasTrips,
+    required this.isAlphabeticalSorting,
     required this.onAddTrip,
     required this.onSettings,
     required this.onToggleSearch,
     required this.onToggleEdit,
+    required this.onToggleSort,
     required this.onSearchChanged,
     required this.searchController,
   });
 
+  void _handleSortSelection(bool isAlphabetical) {
+    if (isAlphabetical == isAlphabeticalSorting) {
+      return;
+    }
+    try {
+      onToggleSort.call();
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      title: isSearching
-          ? TextField(
+    // The AppBar sometimes receives absurdly small width constraints (e.g.,
+    // during the very first layout after a hot restart or inside certain
+    // tests). When the max width is 0 or 1 pixel the internal row that
+    // arranges icons overflows, generating the errors you've been seeing.
+    //
+    // To stop the framework complaining we peek at the available space with a
+    // LayoutBuilder and, if it's below a reasonable minimum, return a
+    // stripped‑down bar with no children. It still obeys the preferred size but
+    // cannot overflow because there is nothing to lay out.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        // when the bar is given almost no horizontal space (common during
+        // first layout on hot restart or in focused widget tests) we simply emit
+        // a placeholder app bar with no children. 100px is far less than any
+        // real device width but safely above the combined minimum width of two
+        // icon buttons so that we never try to lay them out into a 1px box.
+        if (maxWidth < 100.0) {
+          return AppBar(
+            automaticallyImplyLeading: false,
+            title: const SizedBox.shrink(),
+          );
+        }
+
+        if (isSearching) {
+          // when searching we use a simplified app bar: no actions, the close
+          // button on the leading slot and the text field as the title.
+          return AppBar(
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              onPressed: onToggleSearch,
+              icon: const Icon(Icons.close),
+            ),
+            title: TextField(
               controller: searchController,
               onChanged: onSearchChanged,
               autofocus: true,
@@ -190,27 +313,70 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                 hintStyle: TextStyle(color: Colors.white70),
               ),
               style: const TextStyle(color: Colors.white),
-            )
-          : Text(title),
-      actions: <Widget>[
-        if (!isSearching) ...[
-          if (hasTrips)
-            IconButton(
-              onPressed: onToggleSearch,
-              icon: const Icon(Icons.search),
             ),
-          if (hasTrips)
-            IconButton(
-              onPressed: onToggleEdit,
-              icon: Icon(isEditingMode ? Icons.done : Icons.edit),
-            ),
-          if (hasApiKey)
-            IconButton(onPressed: onAddTrip, icon: const Icon(Icons.add)),
-          IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
-        ] else ...[
-          IconButton(onPressed: onToggleSearch, icon: const Icon(Icons.close)),
-        ],
-      ],
+          );
+        }
+
+        // normal (non-search) app bar
+        return AppBar(
+          title: Text(title),
+          actions: <Widget>[
+            if (hasTrips)
+              IconButton(
+                onPressed: onToggleSearch,
+                icon: const Icon(Icons.search),
+              ),
+            if (hasTrips)
+              IconButton(
+                onPressed: onToggleEdit,
+                icon: Icon(isEditingMode ? Icons.done : Icons.edit),
+              ),
+            if (hasTrips)
+              PopupMenuButton<bool>(
+                icon: const Icon(Icons.filter_list),
+                tooltip: 'Sort trips',
+                onSelected: _handleSortSelection,
+                itemBuilder: (context) => [
+                  PopupMenuItem<bool>(
+                    value: true,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sort_by_alpha,
+                          color: isAlphabeticalSorting ? null : Colors.grey,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('A–Z'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<bool>(
+                    value: false,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.near_me,
+                          color: !isAlphabeticalSorting ? null : Colors.grey,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Nearest first'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            if (canAddTrip)
+              IconButton(
+                onPressed: onAddTrip,
+                tooltip: 'Plan a new trip',
+                icon: const Icon(Icons.add),
+              ),
+            IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
+          ],
+        );
+      },
     );
   }
 

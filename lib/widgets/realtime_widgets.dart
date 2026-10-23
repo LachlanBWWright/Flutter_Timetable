@@ -4,7 +4,8 @@ import '../constants/transport_colors.dart';
 import '../constants/transport_modes.dart';
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import '../services/realtime_service.dart';
-import '../utils/transport_display.dart';
+import '../transit/transit.dart';
+import '../utils/guarded_state.dart';
 
 /// Widget displaying realtime transport information
 class RealtimeInfoWidget extends StatefulWidget {
@@ -14,8 +15,13 @@ class RealtimeInfoWidget extends StatefulWidget {
   State<RealtimeInfoWidget> createState() => _RealtimeInfoWidgetState();
 }
 
-class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
-  Map<TransportMode, Map<String, dynamic>>? _statusSummary;
+class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget>
+    with GuardedState<RealtimeInfoWidget> {
+  int _vehicleCount = 0;
+  int _updateCount = 0;
+  int _alertCount = 0;
+  String? _providerLabel;
+  String? _unavailableMessage;
   bool _isLoading = false;
   String? _error;
 
@@ -26,23 +32,54 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   }
 
   Future<void> _loadRealtimeStatus() async {
-    setState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    final summary = await RealtimeService.getRealtimeStatusSummary();
-    if (!mounted) return;
-    setState(() {
-      _statusSummary = summary;
-      _isLoading = false;
-    });
+    await runAsyncGuarded(
+      () async {
+        final services = AppTransitContext.instance.currentServices;
+        final realtime = services.realtime;
+        if (realtime == null) {
+          guardedSetState(() {
+            _providerLabel = services.attribution.name;
+            _unavailableMessage =
+                'Realtime is unavailable for ${services.region.label}.';
+            _vehicleCount = 0;
+            _updateCount = 0;
+            _alertCount = 0;
+            _isLoading = false;
+          });
+          return;
+        }
+        final vehicles = await realtime.getVehiclePositions(
+          const RealtimeRequest(),
+        );
+        final updates = await realtime.getTripUpdates(const RealtimeRequest());
+        final alerts = await realtime.getAlerts(const RealtimeRequest());
+        guardedSetState(() {
+          _providerLabel = services.attribution.name;
+          _unavailableMessage = null;
+          _vehicleCount = vehicles.items.length;
+          _updateCount = updates.items.length;
+          _alertCount = alerts.items.length;
+          _isLoading = false;
+        });
+      },
+      onError: (error, _) {
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -66,10 +103,13 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
               Text('Error: $_error', style: const TextStyle(color: Colors.red))
-            else if (_statusSummary != null)
-              ..._buildStatusList()
+            else if (_unavailableMessage != null)
+              Text(
+                _unavailableMessage!,
+                style: const TextStyle(color: Colors.grey),
+              )
             else
-              const Text('No data available'),
+              ..._buildStatusList(),
           ],
         ),
       ),
@@ -77,85 +117,68 @@ class _RealtimeInfoWidgetState extends State<RealtimeInfoWidget> {
   }
 
   List<Widget> _buildStatusList() {
-    final summary = _statusSummary!;
-    return summary.entries.map((entry) {
-      final modeKey = entry.key;
-      final data = entry.value;
-      final vehicleCount = data['vehicles'] as int;
-      final updateCount = data['updates'] as int;
-
-      // modeKey is a TransportMode enum per service contract. Use it
-      // directly for display and color. Keep a modeString for any
-      // legacy string-based fallbacks (not expected here).
-      final TransportMode parsedMode = modeKey;
-
-      // Resolve display name: prefer typed TransportMode helper, otherwise
-      // fall back to a generic formatted fallback.
-      final displayName = getDisplayNameForTransportMode(parsedMode);
-
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: (() {
-            return TransportColors.getColorByTransportMode(
-              parsedMode,
-            ).withValues(alpha: 0.1);
-          })(),
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(
-            color: (() {
-              return TransportColors.getColorByTransportMode(
-                parsedMode,
-              ).withValues(alpha: 0.3);
-            })(),
+    return [
+      if (_providerLabel != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            _providerLabel!,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 4,
-              height: 40,
-              decoration: BoxDecoration(
-                color: TransportColors.getColorByTransportMode(parsedMode),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$vehicleCount vehicles • $updateCount updates',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            if (vehicleCount > 0 || updateCount > 0)
-              const Icon(Icons.check_circle, color: Colors.green, size: 20)
-            else
-              const Icon(Icons.error_outline, color: Colors.orange, size: 20),
-          ],
-        ),
-      );
-    }).toList();
+      _buildMetricTile(
+        icon: Icons.directions_bus,
+        label: 'Tracked vehicles',
+        count: _vehicleCount,
+        color: TransportColors.getColorByTransportMode(TransportMode.bus),
+      ),
+      _buildMetricTile(
+        icon: Icons.update,
+        label: 'Trip updates',
+        count: _updateCount,
+        color: TransportColors.getColorByTransportMode(TransportMode.train),
+      ),
+      _buildMetricTile(
+        icon: Icons.warning_amber_rounded,
+        label: 'Alerts',
+        count: _alertCount,
+        color: Colors.orange,
+      ),
+    ];
   }
 
-  // Color selection is performed inline where feed keys or group keys are
-  // available so that transport modes are always represented by the
-  // `TransportMode` enum when possible.
-
-  // _getDisplayName removed — display name resolution is inlined where needed
+  Widget _buildMetricTile({
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+          ),
+          Text(
+            '$count',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Widget for displaying specific transport mode positions
@@ -176,7 +199,8 @@ class TransportPositionsWidget extends StatefulWidget {
       _TransportPositionsWidgetState();
 }
 
-class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
+class _TransportPositionsWidgetState extends State<TransportPositionsWidget>
+    with GuardedState<TransportPositionsWidget> {
   List<VehiclePosition> _positions = [];
   bool _isLoading = false;
   String? _error;
@@ -188,41 +212,44 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
   }
 
   Future<void> _loadPositions() async {
-    setState(() {
+    guardedSetState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      FeedMessage? feed;
-      if (widget.transportMode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(
-          widget.transportMode!,
-        );
-      } else if (widget.mode != null) {
-        feed = await RealtimeService.getPositionsForTransportMode(widget.mode!);
-      } else {
-        feed = null;
-      }
-      final positions = RealtimeService.extractVehiclePositions(feed);
-      if (!mounted) return;
-      setState(() {
-        _positions = positions;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+    await runAsyncGuarded(
+      () async {
+        FeedMessage? feed;
+        final transportMode = widget.transportMode;
+        final mode = widget.mode;
+        if (transportMode != null) {
+          feed = await RealtimeService.getPositionsForTransportMode(
+            transportMode,
+          );
+        } else if (mode != null) {
+          feed = await RealtimeService.getPositionsForTransportMode(mode);
+        } else {
+          feed = null;
+        }
+        final positions = RealtimeService.extractVehiclePositions(feed);
+        guardedSetState(() {
+          _positions = positions;
+          _isLoading = false;
+        });
+      },
+      onError: (error, _) {
+        guardedSetState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -260,76 +287,76 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget> {
   }
 
   List<Widget> _buildPositionsList() {
-    return _positions.take(10).map((position) {
-      final vehicle = position.vehicle;
-      final trip = position.trip;
-      final pos = position.position;
+    final mode = widget.mode;
+    return _positions
+        .take(10)
+        .map<Widget>((position) {
+          final vehicle = position.vehicle;
+          final trip = position.trip;
+          final pos = position.position;
 
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 4.0),
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  vehicle.hasId() ? 'Vehicle ${vehicle.id}' : 'Unknown Vehicle',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                if (trip.hasRouteId())
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      vehicle.hasId()
+                          ? 'Vehicle ${vehicle.id}'
+                          : 'Unknown Vehicle',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    decoration: BoxDecoration(
-                      color: (() {
-                        final parsed = widget.mode;
-                        if (parsed != null) {
-                          return TransportColors.getColorByTransportMode(
-                            parsed,
-                          );
-                        }
-                        return Colors.grey;
-                      })(),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      trip.routeId,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    if (trip.hasRouteId())
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: mode != null
+                              ? TransportColors.getColorByTransportMode(mode)
+                              : Colors.grey,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          trip.routeId,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                  ],
+                ),
+                if (trip.hasTripId())
+                  Text(
+                    'Trip: ${trip.tripId}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                if (pos.hasLatitude() && pos.hasLongitude())
+                  Text(
+                    'Position: ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                if (position.hasTimestamp())
+                  Text(
+                    'Updated: ${DateTime.fromMillisecondsSinceEpoch(position.timestamp.toInt() * 1000)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
               ],
             ),
-            if (trip.hasTripId())
-              Text(
-                'Trip: ${trip.tripId}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            if (pos.hasLatitude() && pos.hasLongitude())
-              Text(
-                'Position: ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            if (position.hasTimestamp())
-              Text(
-                'Updated: ${DateTime.fromMillisecondsSinceEpoch(position.timestamp.toInt() * 1000)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-          ],
-        ),
-      );
-    }).toList();
+          );
+        })
+        .toList(growable: false);
   }
 }

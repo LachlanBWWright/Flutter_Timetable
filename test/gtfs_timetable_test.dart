@@ -1,3 +1,6 @@
+@Tags(['integration'])
+library;
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/timetable_data.dart';
@@ -49,8 +52,9 @@ void main() {
     () async {
       final data = await fetchBusesGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       expect(
         data.stops.length,
         greaterThanOrEqualTo(5),
@@ -69,8 +73,9 @@ void main() {
   test('fetchFerriesSydneyFerriesGtfsData returns a GtfsData object', () async {
     final data = await fetchFerriesSydneyFerriesGtfsData();
     expect(data, isNotNull);
+    if (data == null) return;
     expect(data, isA<GtfsData>());
-    expect(data!.routes, isA<List>());
+    expect(data.routes, isA<List>());
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'ferries', 10);
     } else {
@@ -83,8 +88,9 @@ void main() {
     () async {
       final data = await fetchMetroGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       expect(
         data.stops.length,
         greaterThanOrEqualTo(5),
@@ -103,8 +109,9 @@ void main() {
   test('fetchLightRailInnerWestGtfsData returns a GtfsData object', () async {
     final data = await fetchLightRailInnerWestGtfsData();
     expect(data, isNotNull);
+    if (data == null) return;
     expect(data, isA<GtfsData>());
-    expect(data!.trips, isA<List>());
+    expect(data.trips, isA<List>());
     if (data.stops.isNotEmpty) {
       logStopsSummary(data, 'lightrail', 10);
     } else {
@@ -116,7 +123,7 @@ void main() {
     final data = await fetchNswTrainsGtfsData();
     expect(data, isNotNull);
     expect(data, isA<GtfsData>());
-    expect(data!.agencies, isA<List>());
+    expect(data?.agencies, isA<List>());
     // Require at least 5 stops for this feed to be considered valid
     expect(data.stops.length, greaterThanOrEqualTo(5),
         reason: 'Expected at least 5 stops for nswtrains feed');
@@ -132,8 +139,9 @@ void main() {
     () async {
       final data = await fetchSydneyTrainsGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       expect(
         data.stops.length,
         greaterThanOrEqualTo(5),
@@ -154,8 +162,9 @@ void main() {
       // Metro is exposed under the v2 schedule surface — use the v2 fetcher
       final data = await fetchMetroGtfsData();
       expect(data, isNotNull);
+      if (data == null) return;
       expect(data, isA<GtfsData>());
-      expect(data!.stops, isA<List>());
+      expect(data.stops, isA<List>());
       if (data.stops.isNotEmpty) {
         logStopsSummary(data, 'metro', 100);
       } else {

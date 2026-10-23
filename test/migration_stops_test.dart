@@ -1,37 +1,76 @@
-import 'dart:io';
-
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/schema/database.dart';
-import 'package:path/path.dart' as p;
-// sqlite3 not needed for this simplified test
 
 void main() {
-  test('migration creates stops table when upgrading from old schema', () async {
-    // Create a temp directory and a SQLite file that simulates an older DB version
-    final dir = await Directory.systemTemp.createTemp('fluttertimetable_test_');
-    final dbFile = File(p.join(dir.path, 'old_trip_database.db'));
-    // Ensure the file exists
-    await dbFile.create();
+  test('upgrades a version 4 database and preserves saved journeys', () async {
+    final database = AppDatabase.connect(
+      NativeDatabase.memory(
+        setup: (connection) {
+          connection.execute('''
+            CREATE TABLE journeys (
+              id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+              origin TEXT NOT NULL,
+              origin_id TEXT NOT NULL,
+              destination TEXT NOT NULL,
+              destination_id TEXT NOT NULL,
+              is_pinned INTEGER NOT NULL DEFAULT 0
+            )
+          ''');
+          connection.execute('''
+            CREATE TABLE stops (
+              stop_id TEXT NOT NULL,
+              stop_code TEXT,
+              tts_stop_name TEXT,
+              stop_desc TEXT,
+              zone_id TEXT,
+              stop_url TEXT,
+              stop_timezone TEXT,
+              level_id TEXT,
+              stop_name TEXT NOT NULL,
+              stop_lat REAL,
+              stop_lon REAL,
+              location_type INTEGER,
+              parent_station TEXT,
+              wheelchair_boarding INTEGER,
+              platform_code TEXT,
+              endpoint TEXT NOT NULL,
+              PRIMARY KEY (stop_id, endpoint)
+            )
+          ''');
+          connection.execute('''
+            INSERT INTO journeys (
+              origin, origin_id, destination, destination_id, is_pinned
+            ) VALUES ('Central', 'central', 'Redfern', 'redfern', 1)
+          ''');
+          connection.execute('PRAGMA user_version = 4');
+        },
+      ),
+    );
+    addTearDown(database.close);
 
-    // For this test create an in-memory database instance using the
-    // test-only constructor. This will run onCreate and create the tables.
-    final db = AppDatabase.connect(NativeDatabase.memory());
-
-    // Force the database to be opened and migrations to run by running a simple query
-    final tables = await db
+    final journeys = await database.getAllJourneys();
+    final tables = await database
         .customSelect("SELECT name FROM sqlite_master WHERE type='table'")
         .get();
-    final tableNames = tables.map((r) => r.data['name'] as String).toList();
+    final tableNames = tables.map((row) => row.data['name']).toSet();
 
-    // The migration should have created the 'stops' table
+    expect(journeys, hasLength(1));
+    expect(journeys.single.origin, 'Central');
+    expect(journeys.single.destination, 'Redfern');
+    expect(journeys.single.isPinned, isTrue);
+    expect(journeys.single.tripType, 'direct');
+    expect(journeys.single.mode, isNull);
     expect(
-      tableNames.contains('stops'),
-      isTrue,
-      reason: 'stops table should exist after migration',
+      tableNames,
+      containsAll(<String>{
+        'journeys',
+        'stops',
+        'stop_line_memberships',
+        'static_cache_statuses',
+        'trip_planner_cache',
+        'routes',
+      }),
     );
-
-    await db.close();
-    await dir.delete(recursive: true);
   });
 }

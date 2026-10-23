@@ -1,3 +1,6 @@
+@Tags(['integration'])
+library;
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/fetch_data/timetable_data.dart';
@@ -8,18 +11,14 @@ void main() {
     await dotenv.load();
   });
 
-  test(
-    'fetchMetroScheduleRealtime returns a FeedMessage on success',
-    () async {
-      final feed = await fetchMetroScheduleRealtime();
-      expect(
-        feed,
-        isNotNull,
-        reason:
-            'FeedMessage should not be null if API key and endpoint are valid',
-      );
-      expect(feed, isA<FeedMessage>());
-    },
-    skip: 'Requires live API key',
-  );
+  test('fetchMetroScheduleRealtime returns a FeedMessage on success', () async {
+    final feed = await fetchMetroScheduleRealtime();
+    expect(
+      feed,
+      isNotNull,
+      reason:
+          'FeedMessage should not be null if API key and endpoint are valid',
+    );
+    expect(feed, isA<FeedMessage>());
+  }, skip: 'Requires live API key');
 }
