@@ -9,13 +9,13 @@ on:
         default: main
         type: string
       tag:
-        description: New GitHub Release tag, for example v1.0.0
+        description: Release tag matching pubspec.yaml, for example v1.0.0
         required: true
         type: string
       draft:
         description: Create the GitHub Release as a draft
         required: true
-        default: true
+        default: false
         type: boolean
       prerelease:
         description: Mark the GitHub Release as a prerelease
@@ -24,16 +24,23 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: android-release
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and publish Android APKs
+  quality-gate:
+    name: Require successful CI for the release commit
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+      version: ${{ steps.source.outputs.version }}
     steps:
       - name: Validate release inputs
         env:
@@ -55,6 +62,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Capture built commit and verify existing tag
         id: source
@@ -64,6 +72,12 @@ jobs:
           set -Eeuo pipefail
           built_commit="$(git rev-parse --verify 'HEAD^{commit}')"
           printf 'commit=%s\n' "$built_commit" >> "$GITHUB_OUTPUT"
+          version="$(sed -nE 's/^version: *([^ +]+)(\+[^ ]+)? *$/\1/p' pubspec.yaml)"
+          if [[ -z "$version" || "$RELEASE_TAG" != "v$version" ]]; then
+            echo 'Release tag must be v followed by the version name in pubspec.yaml.' >&2
+            exit 1
+          fi
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
           if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
             tag_commit="$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")"
             if [[ "$tag_commit" != "$built_commit" ]]; then
@@ -72,43 +86,59 @@ jobs:
             fi
           fi
 
+      - name: Require passing CI for the exact source commit
+        uses: actions/github-script@v7
+        env:
+          BUILT_COMMIT: ${{ steps.source.outputs.commit }}
+        with:
+          script: |
+            const sha = process.env.BUILT_COMMIT;
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo,
+              workflow_id: 'ci.yml',
+              head_sha: sha,
+              event: 'push',
+              per_page: 100,
+            });
+            const run = data.workflow_runs.find(candidate =>
+              candidate.head_sha === sha &&
+              ['main', 'master', 'dev'].includes(candidate.head_branch) &&
+              candidate.head_repository?.full_name === `${context.repo.owner}/${context.repo.repo}`);
+            if (!run || run.status !== 'completed' || run.conclusion !== 'success') {
+              core.setFailed(`The latest push CI run for ${sha} must pass, including both region suites, screenshots, APK builds, and Android E2E.`);
+              return;
+            }
+            core.info(`Release source passed CI: ${run.html_url}`);
+
+  release:
+    name: Build and publish Android APKs
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the CI-approved commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.quality-gate.outputs.commit }}
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v5
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
-
-      - name: Validate release signing configuration
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          set -Eeuo pipefail
-          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [[ -z "${!name}" ]]; then
-              echo "Missing required repository secret: $name" >&2
-              exit 1
-            fi
-          done
-
-      - name: Configure Android signing
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          set -Eeuo pipefail
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
-          {
-            printf 'storeFile=upload-keystore.jks\n'
-            printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
-            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
-            printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
-          } > android/key.properties
 
       - name: Configure public deployment credentials
         env:
@@ -117,12 +147,12 @@ jobs:
         run: bash scripts/create_deployment_env.sh
 
       - name: Build split release APKs
+        env:
+          RELEASE_VERSION: ${{ needs.quality-gate.outputs.version }}
         run: |
           set -Eeuo pipefail
           flutter pub get
-          flutter analyze
-          flutter test --exclude-tags=integration,golden --concurrency=1 --reporter compact
-          flutter build apk --release --split-per-abi --build-number "$GITHUB_RUN_NUMBER"
+          flutter build apk --release --split-per-abi --build-name "$RELEASE_VERSION" --build-number "$GITHUB_RUN_NUMBER"
 
       - name: Verify APK signatures
         run: |
@@ -147,7 +177,7 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          BUILT_COMMIT: ${{ steps.source.outputs.commit }}
+          BUILT_COMMIT: ${{ needs.quality-gate.outputs.commit }}
           RELEASE_TAG: ${{ inputs.tag }}
           CREATE_DRAFT: ${{ inputs.draft }}
           CREATE_PRERELEASE: ${{ inputs.prerelease }}

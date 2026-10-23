@@ -10,6 +10,7 @@ jobs:
   screenshots:
     name: Compare screenshot baselines
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -26,3 +27,12 @@ jobs:
 
       - name: Compare committed screenshot baselines
         run: ./scripts/check_goldens.sh
+
+      - name: Upload screenshot failure comparisons
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-failures
+          path: test/failures/
+          if-no-files-found: ignore
+          retention-days: 7

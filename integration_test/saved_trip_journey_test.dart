@@ -43,10 +43,17 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.search));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Central');
+    await tester.enterText(find.byType(TextField), 'No matching station');
+    await tester.pumpAndSettle();
+    expect(find.text('Central'), findsNothing);
+    expect(find.text('South Bank'), findsNothing);
+    expect(find.text('No trips match your search'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'central');
     await tester.pumpAndSettle();
     expect(find.text('Central'), findsOneWidget);
-    expect(find.text('South Bank'), findsNothing);
+    // Search selects whole journeys, including their destination label.
+    expect(find.text('South Bank'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
@@ -66,10 +73,10 @@ void main() {
     expect(restoredJourneys, hasLength(1));
     expect(restoredJourneys.single.isPinned, isTrue);
     await _launchHome(tester, database, journeys: restoredJourneys);
-    expect(find.byIcon(Icons.push_pin), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.edit));
     await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
     await tester.tap(find.byIcon(Icons.delete));
     await tester.pumpAndSettle();
 
@@ -81,14 +88,15 @@ void main() {
 Future<void> _launchHome(
   WidgetTester tester,
   db.AppDatabase database, {
-  List<db.Journey> journeys = const <db.Journey>[],
+  List<db.Journey>? journeys,
 }) async {
+  final initialJourneys = journeys ?? await database.getAllJourneys();
   await tester.pumpWidget(
     MyApp(
       home: MyHomePage(
         title: 'Flutter Timetable',
         skipInitialLoad: true,
-        initialJourneys: journeys,
+        initialJourneys: initialJourneys,
         database: database,
       ),
     ),

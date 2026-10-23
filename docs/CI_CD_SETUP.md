@@ -38,8 +38,10 @@ blocks automatic web deployment for that commit.
 
 ### 4. Release Android APKs (`.github/workflows/release-android.yml`)
 
-**Trigger:** Manual dispatch with a source ref and release options. Android
-signing secrets are required. Provider credentials are omitted by default;
+**Trigger:** Manual dispatch with a source ref and release options. No Android
+signing secrets are required; APKs use the automatically generated debug key.
+Releases publish immediately by default after CI passes for the exact source
+commit. Provider credentials are omitted by default;
 public credential distribution follows the explicit policy below.
 
 ### 5. Deploy Web (`.github/workflows/deploy-web.yml`)
