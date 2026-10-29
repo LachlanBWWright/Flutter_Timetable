@@ -2,18 +2,12 @@ targets:
   $default:
     sources:
       - lib/**
-      - swaggers/**
+      - lib/victoria/swaggers/**
       - $package$
     builders:
       swagger_dart_code_generator:
         options:
-          input_folder: 'lib/swaggers'
-          output_folder: 'lib/swagger_generated'
+          input_folder: 'lib/victoria/swaggers'
+          output_folder: 'lib/victoria/swagger_generated'
           with_base_url: true
           multipart_file_type: "http.MultipartFile"
-          #separate_models: true
-          #build_only_models: true
-          #include_paths: []
-          #exclude_paths: []
-          #build_only_models: false
-          #multipart_file_type: "http.MultipartFile"

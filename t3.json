@@ -1,0 +1,32 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "defaultThreadEnvMode": "local",
+  "scripts": [
+    {
+      "name": "Linux: Get Dependencies",
+      "command": "flutter pub get",
+      "icon": "configure",
+      "runOnWorktreeCreate": true
+    },
+    {
+      "name": "Linux: Run App",
+      "command": "flutter run -d linux",
+      "icon": "play"
+    },
+    {
+      "name": "Linux: Build App",
+      "command": "flutter build linux",
+      "icon": "build"
+    },
+    {
+      "name": "Analyze Dart",
+      "command": "flutter analyze",
+      "icon": "lint"
+    },
+    {
+      "name": "Run Tests",
+      "command": "flutter test",
+      "icon": "test"
+    }
+  ]
+}

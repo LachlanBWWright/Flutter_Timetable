@@ -1,5 +1,5 @@
 name: lbww_flutter
-description: A new Flutter project.
+description: Multi-region public transport journey planner for NSW, Victoria, and Queensland.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -45,20 +45,29 @@ dependencies:
   flutter_dotenv: ^6.0.0
   archive: ^4.0.7
   flutter_map: ^8.2.2
+  flutter_map_marker_cluster: ^8.2.2
   latlong2: ^0.9.1
   geolocator: ^14.0.2
 
+  option_result: ^3.2.0
   collection: ^1.19.0
   fixnum: ^1.1.1
   logger: ^2.6.2
   chopper: ^8.0.5
   json_annotation: ^4.9.0
   dio: ^5.7.0
+  crypto: ^3.0.6
   url_launcher: ^6.3.1
+  zard: ^1.1.0
+  timezone: ^0.11.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  fake_async: ^1.3.3
+  integration_test:
+    sdk: flutter
+  golden_screenshot: ^12.0.0
   sqlite3: ^2.8.0
   drift_dev: ^2.20.0
   build_runner: ^2.4.0

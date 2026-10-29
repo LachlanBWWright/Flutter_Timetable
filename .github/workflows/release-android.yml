@@ -1,0 +1,204 @@
+name: Release Android APKs
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build (branch, tag, or commit SHA)
+        required: true
+        default: main
+        type: string
+      tag:
+        description: Release tag matching pubspec.yaml, for example v1.0.0
+        required: true
+        type: string
+      draft:
+        description: Create the GitHub Release as a draft
+        required: true
+        default: false
+        type: boolean
+      prerelease:
+        description: Mark the GitHub Release as a prerelease
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  quality-gate:
+    name: Require successful CI for the release commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+      version: ${{ steps.source.outputs.version }}
+    steps:
+      - name: Validate release inputs
+        env:
+          BUILD_REF: ${{ inputs.ref }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -Eeuo pipefail
+          for value in "$BUILD_REF" "$RELEASE_TAG"; do
+            if [[ -z "$value" || "$value" == -* ]]; then
+              echo "Build ref and release tag must be nonempty and cannot start with '-'." >&2
+              exit 1
+            fi
+          done
+          git check-ref-format --allow-onelevel "$BUILD_REF"
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Capture built commit and verify existing tag
+        id: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -Eeuo pipefail
+          built_commit="$(git rev-parse --verify 'HEAD^{commit}')"
+          printf 'commit=%s\n' "$built_commit" >> "$GITHUB_OUTPUT"
+          version="$(sed -nE 's/^version: *([^ +]+)(\+[^ ]+)? *$/\1/p' pubspec.yaml)"
+          if [[ -z "$version" || "$RELEASE_TAG" != "v$version" ]]; then
+            echo 'Release tag must be v followed by the version name in pubspec.yaml.' >&2
+            exit 1
+          fi
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            tag_commit="$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")"
+            if [[ "$tag_commit" != "$built_commit" ]]; then
+              echo "Release tag already points to a different commit; refusing to publish." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Require passing CI for the exact source commit
+        uses: actions/github-script@v7
+        env:
+          BUILT_COMMIT: ${{ steps.source.outputs.commit }}
+        with:
+          script: |
+            const sha = process.env.BUILT_COMMIT;
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo,
+              workflow_id: 'ci.yml',
+              head_sha: sha,
+              event: 'push',
+              per_page: 100,
+            });
+            const run = data.workflow_runs.find(candidate =>
+              candidate.head_sha === sha &&
+              ['main', 'master', 'dev'].includes(candidate.head_branch) &&
+              candidate.head_repository?.full_name === `${context.repo.owner}/${context.repo.repo}`);
+            if (!run || run.status !== 'completed' || run.conclusion !== 'success') {
+              core.setFailed(`The latest push CI run for ${sha} must pass, including both region suites, screenshots, APK builds, and Android E2E.`);
+              return;
+            }
+            core.info(`Release source passed CI: ${run.html_url}`);
+
+  release:
+    name: Build and publish Android APKs
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the CI-approved commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.quality-gate.outputs.commit }}
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - name: Configure public deployment credentials
+        env:
+          BUNDLE_PUBLIC_TFNSW_KEY: ${{ vars.BUNDLE_PUBLIC_TFNSW_KEY }}
+          PUBLIC_TFNSW_API_KEY: ${{ secrets.PUBLIC_TFNSW_API_KEY }}
+        run: bash scripts/create_deployment_env.sh
+
+      - name: Build split release APKs
+        env:
+          RELEASE_VERSION: ${{ needs.quality-gate.outputs.version }}
+        run: |
+          set -Eeuo pipefail
+          flutter pub get
+          flutter build apk --release --split-per-abi --build-name "$RELEASE_VERSION" --build-number "$GITHUB_RUN_NUMBER"
+
+      - name: Verify APK signatures
+        run: |
+          set -Eeuo pipefail
+          build_tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          for apk in build/app/outputs/flutter-apk/*-release.apk; do
+            "$build_tools/apksigner" verify --verbose "$apk"
+          done
+          (cd build/app/outputs/flutter-apk && sha256sum *-release.apk > SHA256SUMS.txt)
+
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-apks
+          path: |
+            build/app/outputs/flutter-apk/*-release.apk
+            build/app/outputs/flutter-apk/SHA256SUMS.txt
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILT_COMMIT: ${{ needs.quality-gate.outputs.commit }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          CREATE_DRAFT: ${{ inputs.draft }}
+          CREATE_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -Eeuo pipefail
+          # Check the remote again in case the tag changed during the build.
+          tag_ref="refs/tags/$RELEASE_TAG"
+          if remote_tags="$(git ls-remote --exit-code --tags origin "$tag_ref" "$tag_ref^{}")"; then
+            tag_commit="$(awk '$2 !~ /\^\{\}$/ { direct=$1 } $2 ~ /\^\{\}$/ { peeled=$1 } END { print peeled ? peeled : direct }' <<< "$remote_tags")"
+            if [[ "$tag_commit" != "$BUILT_COMMIT" ]]; then
+              echo "Release tag points to a different commit; refusing to publish." >&2
+              exit 1
+            fi
+          else
+            status=$?
+            if [[ "$status" != 2 ]]; then exit "$status"; fi
+            # An ordinary push atomically fails if another job creates this tag.
+            # Never force, overwrite, or move an existing release tag.
+            git push origin "$BUILT_COMMIT:$tag_ref"
+          fi
+          args=("$RELEASE_TAG" build/app/outputs/flutter-apk/*-release.apk build/app/outputs/flutter-apk/SHA256SUMS.txt --title "$RELEASE_TAG" --generate-notes --target "$BUILT_COMMIT" --verify-tag)
+          if [[ "$CREATE_DRAFT" == "true" ]]; then args+=(--draft); fi
+          if [[ "$CREATE_PRERELEASE" == "true" ]]; then args+=(--prerelease); fi
+          gh release create "${args[@]}"

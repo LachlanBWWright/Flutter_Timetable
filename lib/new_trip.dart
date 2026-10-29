@@ -1,460 +1,243 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:lbww_flutter/constants/transport_colors.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
-// logger removed
+import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
+import 'package:lbww_flutter/services/journey_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
+import 'package:lbww_flutter/services/transport_preferences_service.dart';
+import 'package:lbww_flutter/services/trip_line_service.dart';
+import 'package:lbww_flutter/transit/transit.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
+import 'package:lbww_flutter/utils/new_trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
 
+part 'new_trip/station_catalog.dart';
+part 'new_trip/trip_selection.dart';
+part 'new_trip/draft_lookups.dart';
+part 'new_trip/manual_journey.dart';
+part 'new_trip/station_tab_view.dart';
+part 'new_trip/trip_creator_tabs.dart';
+
 class NewTripScreen extends StatefulWidget {
-  const NewTripScreen({super.key});
+  const NewTripScreen({
+    super.key,
+    this.skipInitialLoad = false,
+    this.initialStations = const [],
+  });
+
+  final bool skipInitialLoad;
+  final List<Station> initialStations;
 
   @override
   State<NewTripScreen> createState() => _NewTripScreenState();
 }
 
 class _NewTripScreenState extends State<NewTripScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, GuardedState<NewTripScreen> {
+  T? _itemAtOrNull<T>(List<T> items, int index) {
+    if (index < 0 || index >= items.length) {
+      return null;
+    }
+    return items.skip(index).firstOrNull;
+  }
+
+  List<Station> _stationsAtOrEmpty(List<dynamic> results, int index) {
+    final value = _itemAtOrNull(results, index);
+    return value is List<Station> ? value : const <Station>[];
+  }
+
   List<Station> _trainStationList = [];
+  List<Station> _nswTrainLinkStationList = [];
   List<Station> _busStationList = [];
   List<Station> _ferryStationList = [];
   List<Station> _lightRailStationList = [];
   List<Station> _metroStationList = [];
-  String _firstStation = '';
-  String _firstStationId = '';
-  TransportMode? _firstStationMode;
-  String _secondStation = '';
-  String _secondStationId = '';
-  TransportMode? _secondStationMode;
+  List<Station> _regionalSearchResults = [];
+  bool _isRegionalSearchLoading = false;
+  bool _regionalSearchFailed = false;
+  TransitRegion? _draftRegion;
+  int _searchGeneration = 0;
+  int _draftGeneration = 0;
+  int _lineLookupGeneration = 0;
+  int _sharedLineLookupGeneration = 0;
+  int _interchangeLookupGeneration = 0;
+  bool _isSavingTrip = false;
+  Timer? _searchDebounce;
+  final Map<_TripCreatorTabKind, int> _sortGenerations = {};
+
+  Station? _originStation;
+  TransportMode? _originMode;
+  Station? _destinationStation;
+  TransportMode? _destinationMode;
+
   bool _isSearching = false;
   bool _isLoading = false;
+  bool _showMapView = false;
+  bool _isResolvingSharedLines = false;
+  bool _isLoadingLineCandidates = false;
+  bool _isLoadingInterchangeCandidates = false;
+  bool _filterDestinationsToSameLine = false;
   SortMode _sortMode = SortMode.alphabetical;
+
   final keyController = TextEditingController();
   late FocusNode _searchFocusNode;
-  final AppDatabase _db = AppDatabase();
+  late final AppDatabase _db;
+  final TripLineService _tripLineService = TripLineService.instance;
   late TabController _tabController;
-  TransportMode _currentMode = TransportMode.train;
+  late List<_TripCreatorTab> _tabs;
+  _TripCreatorTabKind _currentTabKind = _TripCreatorTabKind.sydneyTrains;
+  TransportMode get _currentMode => _currentTab.mode;
+  _TripCreatorTab get _currentTab {
+    return _itemAtOrNull(_tabs, _tabController.index) ??
+        (_tabs.isNotEmpty ? _tabs.first : _fallbackTripCreatorTab);
+  }
+
+  List<StopLineMatch> _sharedLines = [];
+  List<StopLineMatch> _originLineCandidates = [];
+  List<Station> _sameLineDestinationStations = [];
+  StopLineMatch? _selectedLine;
+  bool _manualBuilderEnabled = false;
+  List<Station> _interchanges = [];
+  int? _pendingInterchangeInsertIndex;
+  List<Station> _manualCandidateStations = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-    _tabController.addListener(_onTabChanged);
-    keyController.addListener(_applySearchFilter);
+    if (widget.skipInitialLoad) {
+      _tabs = _buildTabs();
+      _trainStationList = List<Station>.of(widget.initialStations);
+      _tabController = TabController(length: _tabs.length, vsync: this);
+      _searchFocusNode = FocusNode();
+      return;
+    }
+    _db = AppDatabase();
+    _tabs = _buildTabs();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    addListenerSafely(_tabController, _onTabChanged);
+    addListenerSafely(
+      TransportPreferencesService.showNswTrainLink,
+      _onTransportPreferencesChanged,
+    );
+    addListenerSafely(keyController, _applySearchFilter);
+    addListenerSafely(
+      AppTransitContext.instance.enabledRegionsListenable,
+      _applySearchFilter,
+    );
+    addListenerSafely(
+      AppTransitContext.instance.selectedRegionListenable,
+      _applySearchFilter,
+    );
     _searchFocusNode = FocusNode();
     _loadAllModes();
   }
 
-  Future<void> _loadAllModes() async {
-    // Load all modes from local database (no network fetch)
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final futures = [
-        loadStationsFromDbForMode(TransportMode.train),
-        loadStationsFromDbForMode(TransportMode.lightrail),
-        loadStationsFromDbForMode(TransportMode.metro),
-        loadStationsFromDbForMode(TransportMode.bus),
-        loadStationsFromDbForMode(TransportMode.ferry),
-      ];
-
-      final results = await Future.wait(futures);
-
-      if (!mounted) return;
-
-      setState(() {
-        _trainStationList = results[0];
-        _lightRailStationList = results[1];
-        _metroStationList = results[2];
-        _busStationList = results[3];
-        _ferryStationList = results[4];
-        _isLoading = false;
-      });
-
-      await _applySorting();
-
-      // Check if any stops were loaded, show helpful message if not
-      final hasAnyStops =
-          _trainStationList.isNotEmpty ||
-          _busStationList.isNotEmpty ||
-          _ferryStationList.isNotEmpty ||
-          _lightRailStationList.isNotEmpty ||
-          _metroStationList.isNotEmpty;
-
-      if (!hasAnyStops && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No stops found in database. Please update stops data from Settings.',
-            ),
-            duration: Duration(seconds: 5),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      // Error loading stations from DB
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading stations: $e')));
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Use the extracted function from services/station_loader.dart
-
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
-    keyController.removeListener(_applySearchFilter);
-    keyController.dispose();
-    _searchFocusNode.dispose();
-    super.dispose();
-  }
-
-  void _onTabChanged() {
-    // Always update the current mode when the tab index changes. Using
-    // indexIsChanging caused cases where the index wasn't reflected yet and
-    // UI actions (like "Open stops map") used a stale mode. Update the
-    // mode immediately and trigger a rebuild only when it actually changes.
-    final oldMode = _currentMode;
-    switch (_tabController.index) {
-      case 0:
-        _currentMode = TransportMode.train;
-        break;
-      case 1:
-        _currentMode = TransportMode.lightrail;
-        break;
-      case 2:
-        _currentMode = TransportMode.metro;
-        break;
-      case 3:
-        _currentMode = TransportMode.bus;
-        break;
-      case 4:
-        _currentMode = TransportMode.ferry;
-        break;
-    }
-
-    if (oldMode != _currentMode) {
-      // Trigger rebuild for the new mode/tab. Per-tab filtering is handled
-      // by _buildStationTab (which reads the current search text).
-      setState(() {});
-    }
-  }
-
-  void setStation(String station, String id) async {
-    // Lookup the mode for this stop id
-    final mode = await StopsService.getModeForStopId(id);
-    if (!mounted) return;
-
-    setState(() {
-      if (_firstStation == '') {
-        _firstStation = station;
-        _firstStationId = id;
-        _firstStationMode = mode;
-        keyController.text = '';
-      } else {
-        _secondStation = station;
-        _secondStationId = id;
-        _secondStationMode = mode;
-        keyController.text = '';
-      }
-    });
-    _applySearchFilter();
-  }
-
-  void _clearFirstStation() {
-    setState(() {
-      _firstStation = '';
-      _firstStationId = '';
-      _firstStationMode = null;
-    });
-  }
-
-  void _clearSecondStation() {
-    setState(() {
-      _secondStation = '';
-      _secondStationId = '';
-      _secondStationMode = null;
-    });
-  }
-
-  void _toggleSearch() {
-    setState(() {
-      if (keyController.text == '') {
-        _isSearching = !_isSearching;
-        if (_isSearching) {
-          // Request focus for the search box after frame so the
-          // TextField receives focus and the keyboard opens.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) FocusScope.of(context).requestFocus(_searchFocusNode);
-          });
-        } else {
-          // When closing search, unfocus to hide keyboard
-          _searchFocusNode.unfocus();
-        }
-      } else {
-        keyController.text = '';
-        _applySearchFilter();
-      }
-    });
-  }
-
-  void _toggleSort() async {
-    // If switching to distance, ensure we have permission and location
-    if (_sortMode == SortMode.alphabetical) {
-      final error = await LocationService.checkAndRequestLocationAvailability();
-      if (error != null) {
-        // Show error and keep alphabetical sorting
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(error)));
-        }
-        setState(() {
-          _sortMode = SortMode.alphabetical;
-        });
-        return;
-      }
-
-      setState(() {
-        _sortMode = SortMode.distance;
-      });
-    } else {
-      setState(() {
-        _sortMode = SortMode.alphabetical;
-      });
-    }
-
-    await _applySorting();
-    if (!mounted) return;
-  }
-
-  void _openMap() {
-    final modeDisplayName = NewTripService.getModeDisplayName(_currentMode);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StopsMapWidget(
-          transportMode: _currentMode,
-          modeDisplayName: modeDisplayName,
-          onStopSelected: setStation,
-        ),
-      ),
+    _searchDebounce?.cancel();
+    _searchGeneration++;
+    removeListenerSafely(
+      TransportPreferencesService.showNswTrainLink,
+      _onTransportPreferencesChanged,
     );
+    removeListenerSafely(_tabController, _onTabChanged);
+    disposeChangeNotifierSafely(_tabController);
+    removeListenerSafely(
+      AppTransitContext.instance.enabledRegionsListenable,
+      _applySearchFilter,
+    );
+    removeListenerSafely(
+      AppTransitContext.instance.selectedRegionListenable,
+      _applySearchFilter,
+    );
+    removeListenerSafely(keyController, _applySearchFilter);
+    disposeChangeNotifierSafely(keyController);
+    disposeFocusNodeSafely(_searchFocusNode);
+    try {
+      super.dispose();
+    } catch (_) {}
   }
 
-  Future<void> _saveTrip() async {
-    if (_firstStation.isNotEmpty && _secondStation.isNotEmpty) {
-      // Attempting to save trip
-      try {
-        await _db.insertJourney(
-          JourneysCompanion(
-            origin: drift.Value(_firstStation),
-            originId: drift.Value(_firstStationId),
-            destination: drift.Value(_secondStation),
-            destinationId: drift.Value(_secondStationId),
-          ),
-        );
-
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Trip saved.')));
-          setState(() {
-            _firstStation = '';
-            _firstStationId = '';
-            _firstStationMode = null;
-            _secondStation = '';
-            _secondStationId = '';
-            _secondStationMode = null;
-          });
-        }
-      } catch (e) {
-        // Error inserting journey
-      }
-    }
-  }
-
-  List<Station> _getCurrentStationList() {
-    switch (_currentMode) {
-      case TransportMode.train:
-        return _trainStationList;
-      case TransportMode.lightrail:
-        return _lightRailStationList;
-      case TransportMode.metro:
-        return _metroStationList;
-      case TransportMode.bus:
-        return _busStationList;
-      case TransportMode.ferry:
-        return _ferryStationList;
-    }
-  }
-
-  /// Get station list for an arbitrary mode (does not depend on _currentMode)
-  List<Station> _getStationListForMode(TransportMode mode) {
-    switch (mode) {
-      case TransportMode.train:
-        return _trainStationList;
-      case TransportMode.lightrail:
-        return _lightRailStationList;
-      case TransportMode.metro:
-        return _metroStationList;
-      case TransportMode.bus:
-        return _busStationList;
-      case TransportMode.ferry:
-        return _ferryStationList;
-    }
-  }
-
-  Future<void> _applySorting() async {
-    final stations = _getCurrentStationList();
-    List<Station> sortedStations;
-
-    if (_sortMode == SortMode.alphabetical) {
-      sortedStations = NewTripService.sortAlphabetically(stations);
-    } else {
-      sortedStations = await NewTripService.sortByDistance(stations);
-    }
-
-    setState(() {
-      switch (_currentMode) {
-        case TransportMode.train:
-          _trainStationList = sortedStations;
-          break;
-        case TransportMode.lightrail:
-          _lightRailStationList = sortedStations;
-          break;
-        case TransportMode.metro:
-          _metroStationList = sortedStations;
-          break;
-        case TransportMode.bus:
-          _busStationList = sortedStations;
-          break;
-        case TransportMode.ferry:
-          _ferryStationList = sortedStations;
-          break;
-      }
-      // Trigger a rebuild so the tab lists reflect the new sort order.
-      // rebuild request completed
-    });
-  }
-
-  void _applySearchFilter() {
-    // Per-tab filtering is handled by _buildStationTab which reads
-    // keyController.text and the per-mode station lists. This method
-    // exists as the listener target for keyController so just trigger
-    // a rebuild when the search text changes.
-    if (mounted) setState(() {});
-  }
+  Future<void> setStation(Station station) => _selectStation(station);
 
   @override
   Widget build(BuildContext context) {
-    final bool canSave = _firstStation.isNotEmpty && _secondStation.isNotEmpty;
-
     return Scaffold(
       appBar: NewTripAppBar(
         isSearching: _isSearching,
         searchController: keyController,
         searchFocusNode: _searchFocusNode,
-        onSearch: (query) {
-          // This will be handled by the text controller listener
-        },
+        onSearch: (_) {},
         onToggleSearch: _toggleSearch,
-        onSaveTrip: canSave ? _saveTrip : null,
-        canSave: canSave,
-        onOpenMap: _openMap,
+        onSaveTrip: null,
+        canSave: false,
+        onOpenMap: _canUseNswStopsMap ? _openMap : null,
         onToggleSort: _toggleSort,
         sortMode: _sortMode,
+        showMapView: _showMapView,
         tabController: _tabController,
+        tabs: _tabs.map((tab) => tab.tab).toList(),
       ),
       body: Column(
         children: [
-          // Main content with TabBarView
+          if (_draftRegion case final region?)
+            MaterialBanner(
+              content: Text('Trip region: ${region.label}'),
+              actions: const [SizedBox.shrink()],
+            )
+          else if (AppTransitContext.instance.enabledRegions.length > 1)
+            const MaterialBanner(
+              content: Text(
+                'Search all enabled regions. Selecting the first stop locks this trip to that region.',
+              ),
+              actions: [SizedBox.shrink()],
+            ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildStationTab(TransportMode.train),
-                _buildStationTab(TransportMode.lightrail),
-                _buildStationTab(TransportMode.metro),
-                _buildStationTab(TransportMode.bus),
-                _buildStationTab(TransportMode.ferry),
-              ],
+              children: _tabs.map(_buildStationTab).toList(),
             ),
           ),
-
-          // Selected stops widget at the bottom
           SelectedStopsWidget(
-            firstStation: _firstStation,
-            firstStationId: _firstStationId,
-            secondStation: _secondStation,
-            secondStationId: _secondStationId,
+            origin: _originStation,
+            destination: _destinationStation,
             currentMode: _currentMode,
-            firstMode: _firstStationMode,
-            secondMode: _secondStationMode,
-            onClearFirst: _clearFirstStation,
-            onClearSecond: _clearSecondStation,
-            onConfirm: _saveTrip,
-            canSave: canSave,
+            originMode: _originMode,
+            destinationMode: _destinationMode,
+            isLoadingLineCandidates: _isLoadingLineCandidates,
+            originLineCandidates: _currentTabOriginLineCandidates,
+            isSameLineFilterEnabled: _filterDestinationsToSameLine,
+            onSameLineFilterChanged: _originStation == null
+                ? null
+                : _toggleSameLineDestinationFilter,
+            selectedLine: _selectedLine,
+            interchanges: _interchanges,
+            isResolvingSharedLines: _isResolvingSharedLines,
+            isManualBuilderEnabled: _manualBuilderEnabled,
+            pendingInterchangeInsertIndex: _pendingInterchangeInsertIndex,
+            statusMessage: _statusMessage,
+            manualValidationMessage: _manualValidationMessage,
+            onClearOrigin: _clearOrigin,
+            onClearDestination: _clearDestination,
+            onSaveDirect: _saveTrip,
+            onSaveManual: _canSaveManual ? _saveManualTrip : null,
+            onAddInterchange: _startInterchangeSelection,
+            onRemoveInterchange: _removeInterchange,
+            onMoveInterchange: _moveInterchange,
+            canSaveDirect: _canSaveDirect,
+            canSaveManual: _canSaveManual,
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStationTab(TransportMode mode) {
-    // Build the list for this specific tab mode to avoid relying on a
-    // single _filteredStations list which may cause delays when switching tabs.
-    final baseList = _getStationListForMode(mode);
-    List<Station> displayList;
-
-    if (_isLoading) {
-      // Don't return an Expanded here — callers place the tab widgets inside
-      // non-Flex parents (TabBarView). Returning Expanded without a Flex
-      // ancestor causes a ParentDataWidget assertion (Expanded must be
-      // a descendant of a Flex). Return a simple centered indicator instead.
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final query = keyController.text.trim();
-    if (query.isEmpty) {
-      displayList = baseList;
-    } else {
-      displayList = baseList
-          .where(
-            (station) =>
-                station.name.toLowerCase().contains(query.toLowerCase()),
-          )
-          .toList();
-    }
-
-    return Column(
-      children: [
-        Expanded(
-          child: EnhancedStationList(
-            listItems: displayList,
-            setStation: setStation,
-            sortMode: _sortMode,
-            mode: mode,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,0 +1,267 @@
+[
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/SEQ_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/BOW_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/BUN_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/CNS_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/GLT_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/GYM_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/INN_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/KIL_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/MKY_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/MAG_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/MIF_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/MAL_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/MHB_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/NSI_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/RKY_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/TWB_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/TSV_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/WAR_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/GTFS/WHT_GTFS.zip",
+    "kind": "static",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/SEQ/TripUpdates",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/SEQ/VehiclePositions",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/SEQ/Alerts",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/BOW/TripUpdates",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/BOW/VehiclePositions",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/BOW/Alerts",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/CNS/TripUpdates",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/CNS/VehiclePositions",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/CNS/Alerts",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/NSI/TripUpdates",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/NSI/VehiclePositions",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/NSI/Alerts",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/MHB/TripUpdates",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/MHB/VehiclePositions",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://gtfsrt.api.translink.com.au/api/realtime/MHB/Alerts",
+    "kind": "realtime",
+    "provider": "translink"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/metro/trip-updates",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/metro/vehicle-positions/",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/metro/service-alerts/",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/tram/trip-updates/",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/tram/vehicle-positions/",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/tram/service-alerts/",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/bus/trip-updates/",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/bus/vehicle-positions",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/vline/trip-updates",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/vline/vehicle-positions",
+    "kind": "realtime",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://opendata.transport.vic.gov.au/dataset/3f4e292e-7f8a-4ffe-831f-1953be0fe448/resource/fb152201-859f-4882-9206-b768060b50ad/download/gtfs.zip",
+    "kind": "static",
+    "provider": "victoria"
+  },
+  {
+    "url": "https://gtfs.adelaidemetro.com.au/v1/static/latest/google_transit.zip",
+    "kind": "static",
+    "provider": "adelaideMetro"
+  },
+  {
+    "url": "https://gtfs.adelaidemetro.com.au/v1/realtime/vehicle_positions",
+    "kind": "realtime",
+    "provider": "adelaideMetro"
+  },
+  {
+    "url": "https://gtfs.adelaidemetro.com.au/v1/realtime/trip_updates",
+    "kind": "realtime",
+    "provider": "adelaideMetro"
+  },
+  {
+    "url": "https://gtfs.adelaidemetro.com.au/v1/realtime/service_alerts",
+    "kind": "realtime",
+    "provider": "adelaideMetro"
+  },
+  {
+    "url": "https://www.transport.tas.gov.au/__data/assets/file/0011/557615/tas_gtfs.zip",
+    "kind": "static",
+    "provider": "tasmania"
+  },
+  {
+    "url": "https://dli.nt.gov.au/data-feeds/bus-gtfs/google-transit-darwin.zip?v=0.38.2",
+    "kind": "static",
+    "provider": "ntBus"
+  },
+  {
+    "url": "https://dli.nt.gov.au/data-feeds/bus-gtfs/google-transit-alice.zip?v=0.14.0",
+    "kind": "static",
+    "provider": "ntBus"
+  },
+  {
+    "url": "https://www.transperth.wa.gov.au/LinkClick.aspx?link=%2FTimetablePDFs%2FGoogleTransit%2FProduction%2Fgoogle_transit.zip&mid=1470&portalid=0&tabid=267",
+    "kind": "static",
+    "provider": "transperth"
+  }
+]

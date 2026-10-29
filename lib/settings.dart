@@ -1,37 +1,79 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:lbww_flutter/schema/database.dart' as db;
-import 'package:url_launcher/url_launcher.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_loader.dart';
+import 'package:lbww_flutter/debug/debug_entity_list_models.dart';
+import 'package:lbww_flutter/debug/debug_entity_models.dart';
 
+import 'debug/debug_entity_type.dart';
+import 'debug/debug_navigation.dart';
+import 'debug/debug_page_loader.dart';
 import 'services/api_key_service.dart';
+import 'services/app_appearance_service.dart';
+import 'services/app_url_launcher.dart';
+import 'services/database_admin_service.dart';
 import 'services/debug_service.dart';
-import 'services/location_service.dart';
+import 'services/transport_preferences_service.dart';
 import 'set_home_stop_screen.dart';
+import 'transit/registry/region_feature_flags.dart';
+import 'transit/transit.dart';
 import 'utils/button_styles.dart';
 import 'utils/color_utils.dart';
+import 'utils/guarded_state.dart';
+import 'utils/settings_screen_utils.dart';
+import 'victoria/services/ptv_credentials.dart';
 import 'widgets/realtime_map_widget.dart';
 import 'widgets/realtime_widgets.dart';
 import 'widgets/stops_widgets.dart';
 
+part 'settings/credentials_section.dart';
+part 'settings/data_management_section.dart';
+part 'settings/navigation_sections.dart';
+part 'settings/preferences_sections.dart';
+part 'settings/save_actions.dart';
+
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final DebugEntityPageLoader? debugPageLoader;
+  final DebugEntityListPageLoader? debugListLoader;
+  final bool? hasUserApiKey;
+  final bool? hasBuiltInApiKey;
+  final Widget? stopsManagementWidget;
+  final Widget? stopsSearchWidget;
+  final Widget? realtimeInfoWidget;
+
+  const SettingsScreen({
+    super.key,
+    this.debugPageLoader,
+    this.debugListLoader,
+    this.hasUserApiKey,
+    this.hasBuiltInApiKey,
+    this.stopsManagementWidget,
+    this.stopsSearchWidget,
+    this.realtimeInfoWidget,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  static const String _devGuideUrl =
-      'https://opendata.transport.nsw.gov.au/developers/userguide';
-
-  bool _isAlphabeticalSorting = false;
+class _SettingsScreenState extends State<SettingsScreen>
+    with GuardedState<SettingsScreen> {
   bool _isUpdating = false;
+  bool _isSavingPreference = false;
+  int _preferenceFormGeneration = 0;
   String? _updateStatus;
-  int _stopsUpdated = 0;
-  int _realtimeFeedsUpdated = 0;
+  int _staticEndpointsUpdated = 0;
+  final Map<String, String> _staticEndpointErrors = {};
+
+  late final DebugEntityPageLoader _debugPageLoader =
+      widget.debugPageLoader ?? buildDebugEntityPageLoader();
+  late final DebugEntityListPageLoader _debugListLoader =
+      widget.debugListLoader ?? buildDebugEntityListLoader();
 
   // API key card state
   final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _ptvDeveloperIdController =
+      TextEditingController();
+  final TextEditingController _ptvApiKeyController = TextEditingController();
   bool _hasUserApiKey = false;
   bool _apiKeyObscured = true;
   bool _isSavingApiKey = false;
@@ -40,165 +82,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSortingPreference();
     _loadApiKeyState();
   }
 
   @override
   void dispose() {
-    _apiKeyController.dispose();
+    disposeChangeNotifierSafely(_apiKeyController);
+    disposeChangeNotifierSafely(_ptvDeveloperIdController);
+    disposeChangeNotifierSafely(_ptvApiKeyController);
     super.dispose();
   }
 
   void _loadApiKeyState() {
-    setState(() {
-      _hasUserApiKey = ApiKeyService.hasUserApiKey();
+    guardedSetState(() {
+      _hasUserApiKey = _resolveHasUserApiKey();
     });
   }
 
-  Future<void> _saveApiKey() async {
-    final key = _apiKeyController.text.trim();
-    if (key.isEmpty) {
-      setState(() => _apiKeyStatus = 'Please enter an API key.');
+  Future<void> _openProviderUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      showSnackBar(
+        const SnackBar(content: Text('Could not open developer guide URL')),
+      );
       return;
     }
-    setState(() => _isSavingApiKey = true);
-    try {
-      await ApiKeyService.setUserApiKey(key);
-      if (!mounted) return;
-      setState(() {
-        _hasUserApiKey = true;
-        _apiKeyController.clear();
-        _apiKeyStatus = 'Custom API key saved successfully.';
-        _isSavingApiKey = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _apiKeyStatus = 'Failed to save API key: $e';
-        _isSavingApiKey = false;
-      });
+    final launched = await AppUrlLauncher.launchExternalUrl(uri, label: url);
+    if (!launched) {
+      showSnackBar(SnackBar(content: Text('Could not open $url')));
     }
   }
 
-  Future<void> _clearApiKey() async {
-    setState(() => _isSavingApiKey = true);
-    try {
-      await ApiKeyService.clearUserApiKey();
-      if (!mounted) return;
-      setState(() {
-        _hasUserApiKey = false;
-        _apiKeyController.clear();
-        _apiKeyStatus = ApiKeyService.hasBuiltInApiKey()
-            ? 'Custom key removed - using built-in API key.'
-            : 'Custom key removed - no API key is configured.';
-        _isSavingApiKey = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _apiKeyStatus = 'Failed to clear API key: $e';
-        _isSavingApiKey = false;
-      });
-    }
-  }
-
-  Future<void> _openDevGuide() async {
-    final uri = Uri.parse(_devGuideUrl);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open $_devGuideUrl')),
-      );
-    }
-  }
-
-  Future<void> _performUpdate() async {
-    setState(() {
-      _isUpdating = true;
-      _updateStatus = 'Starting update...';
-      _stopsUpdated = 0;
-      _realtimeFeedsUpdated = 0;
-    });
-
-    try {
-      // Attempt to call expected update APIs. If they don't exist, fall back
-      // to a simple status message.
-      // progress placeholders
-
-      // stops service
-      try {
-        // If StopsService exists and has an updateAll method, this will run.
-        // We reference it dynamically to avoid hard dependency here.
-        final stopsService = await Future.value(null);
-        // ignore: unnecessary_statements
-        stopsService;
-      } catch (_) {
-        // no-op; keep going
-      }
-
-      // Simulate partial progress updates for UI clarity
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) return;
-      setState(() => _updateStatus = 'Updating stops...');
-      await Future.delayed(const Duration(milliseconds: 400));
-      // pretend we updated some stops (the real implementation should set this)
-      _stopsUpdated = 42;
-
-      setState(() => _updateStatus = 'Updating realtime feeds...');
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-      _realtimeFeedsUpdated = 3;
-
-      if (!mounted) return;
-      setState(() {
-        _updateStatus = 'Update completed successfully';
-        _isUpdating = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _updateStatus = 'Update failed: $e';
-        _isUpdating = false;
-      });
-    }
-  }
-
-  Future<void> _loadSortingPreference() async {
-    final isAlphabetical = await LocationService.isAlphabeticalSorting();
-    if (!mounted) return;
-    setState(() {
-      _isAlphabeticalSorting = isAlphabetical;
-    });
-  }
-
-  Future<void> _updateSortingPreference(bool value) async {
-    await LocationService.setSortingPreference(value);
-    if (!mounted) return;
-    setState(() {
-      _isAlphabeticalSorting = value;
-    });
-  }
-
-  void _navigateToRealtimeMap(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const RealtimeMapWidget()),
-    );
-  }
-
-  void _navigateToSetHomeStop(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SetHomeStopScreen()),
-    );
+  Color _apiKeyStatusColor(String status) {
+    return isPositiveApiKeyStatus(status) ? Colors.green : Colors.orange;
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedRegion = _selectedRegion;
+    final enabledRegions = AppTransitContext.instance.enabledRegions;
+    final hasBuiltInApiKey = _resolveHasBuiltInApiKey();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings & Management'),
+        title: const Text('Settings'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         foregroundColor: getContrastingForeground(
           Theme.of(context).colorScheme.inversePrimary,
@@ -207,391 +134,94 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Map access card
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Live Transport Map',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'View real-time vehicle positions on an interactive map',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => _navigateToRealtimeMap(context),
-                        icon: const Icon(Icons.map),
-                        label: const Text('Open Realtime Map'),
-                        style: ButtonStyles.elevated(Colors.blueAccent),
-                      ),
-                    ),
-                  ],
+            _buildAppearanceSection(),
+            _buildHomeStopSection(),
+            if (selectedRegion == TransitRegion.nsw)
+              _buildTransportOptionsSection(),
+            _buildMapSection(),
+            ExpansionTile(
+              key: const ValueKey('settings-regions'),
+              leading: const Icon(Icons.public),
+              title: const Text('Regions and providers'),
+              subtitle: Text(selectedRegion.label),
+              children: [
+                _buildRegionsSection(),
+                ...enabledRegions.map(
+                  (region) => _buildProviderCredentialsCard(
+                    region,
+                    hasBuiltInTfnswKey: hasBuiltInApiKey,
+                  ),
                 ),
-              ),
+                _buildAttributionSection(),
+              ],
             ),
-            // API key card
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'API Key',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _openDevGuide,
-                          icon: const Icon(Icons.open_in_new, size: 16),
-                          label: const Text('Get a key'),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _hasUserApiKey
-                          ? 'Using your custom API key.'
-                          : ApiKeyService.hasBuiltInApiKey()
-                          ? 'Using the built-in API key.'
-                          : 'No API key configured.',
-                      style: TextStyle(
-                        color: _hasUserApiKey
-                            ? Colors.green
-                            : ApiKeyService.hasBuiltInApiKey()
-                            ? Colors.grey
-                            : Colors.orange,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _apiKeyController,
-                      obscureText: _apiKeyObscured,
-                      decoration: InputDecoration(
-                        labelText: 'Custom API key (optional)',
-                        hintText: 'Paste your TfNSW OpenData API key',
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _apiKeyObscured
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          tooltip: _apiKeyObscured ? 'Show key' : 'Hide key',
-                          onPressed: () => setState(
-                            () => _apiKeyObscured = !_apiKeyObscured,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_apiKeyStatus != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Text(
-                          _apiKeyStatus!,
-                          style: TextStyle(
-                            color:
-                                _apiKeyStatus!.contains('success') ||
-                                    _apiKeyStatus!.contains('saved') ||
-                                    _apiKeyStatus!.contains('removed')
-                                ? Colors.green
-                                : Colors.orange,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isSavingApiKey ? null : _saveApiKey,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Save key'),
-                            style: ButtonStyles.elevated(Colors.blueAccent),
-                          ),
-                        ),
-                        if (_hasUserApiKey) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _isSavingApiKey ? null : _clearApiKey,
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text('Clear key'),
-                              style: ButtonStyles.elevated(Colors.redAccent),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            ExpansionTile(
+              key: const ValueKey('settings-data'),
+              leading: const Icon(Icons.download_outlined),
+              title: const Text('Offline data'),
+              subtitle: const Text('Download and manage transport data'),
+              children: [_buildDataManagementSection()],
             ),
-            // Trip sorting preference card
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Trip Sorting',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+            ExpansionTile(
+              key: const ValueKey('settings-diagnostics'),
+              leading: const Icon(Icons.bug_report_outlined),
+              title: const Text('Diagnostics'),
+              subtitle: const Text('Debug tools and transport data browsers'),
+              children: [
+                _buildDeveloperOptionsSection(),
+                widget.stopsManagementWidget ??
+                    StopsManagementWidget(
+                      debugPageLoader: _debugPageLoader,
+                      debugListLoader: _debugListLoader,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Choose how trips are sorted on the main page',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Sort alphabetically'),
-                      subtitle: Text(
-                        _isAlphabeticalSorting
-                            ? 'Trips sorted by origin station name'
-                            : 'Trips sorted by closest station to your location',
-                      ),
-                      value: _isAlphabeticalSorting,
-                      onChanged: _updateSortingPreference,
-                    ),
-                  ],
-                ),
-              ),
+                widget.stopsSearchWidget ?? const StopsSearchWidget(),
+                widget.realtimeInfoWidget ?? const RealtimeInfoWidget(),
+              ],
             ),
-            // Home Stop Card
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Home Stop',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Set your home stop for quick trip planning',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => _navigateToSetHomeStop(context),
-                        icon: const Icon(Icons.home),
-                        label: const Text('Set Home Stop'),
-                        style: ButtonStyles.elevated(Colors.teal),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Debug toggle (persisted via DebugService)
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Developer Options',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Toggle visibility of debug information throughout the app',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: DebugService.showDebugData,
-                      builder: (context, showDebug, child) {
-                        return SwitchListTile(
-                          title: const Text('Show debug data'),
-                          value: showDebug,
-                          onChanged: (val) async {
-                            await DebugService.setShowDebugData(val);
-                            if (!mounted) return;
-                            setState(() {});
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const StopsManagementWidget(),
-            const StopsSearchWidget(),
-            // Data update / management card
-            Card(
-              margin: const EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Update Data from API',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _updateStatus ?? 'No recent updates',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (_isUpdating)
-                      const Row(
-                        children: [
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Updating...'),
-                        ],
-                      )
-                    else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _performUpdate,
-                              icon: const Icon(Icons.download),
-                              label: const Text('Update now'),
-                              style: ButtonStyles.elevated(Colors.green),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _performUpdate,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Force refresh'),
-                              style: ButtonStyles.elevated(Colors.orange),
-                            ),
-                          ),
-                        ],
-                      ),
-                    const SizedBox(height: 8),
-                    if (_stopsUpdated > 0 || _realtimeFeedsUpdated > 0)
-                      Text(
-                        'Stops updated: $_stopsUpdated • Realtime feeds updated: $_realtimeFeedsUpdated',
-                      ),
-                    if (_updateStatus != null &&
-                        _updateStatus!.isNotEmpty &&
-                        !_isUpdating)
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton(
-                          onPressed: () => setState(() => _updateStatus = null),
-                          child: const Text('Clear status'),
-                        ),
-                      ),
-
-                    // Dev-only: full DB reset (delete file and recreate)
-                    if (kDebugMode)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              setState(() {
-                                _isUpdating = true;
-                                _updateStatus = 'Resetting database...';
-                              });
-                              try {
-                                await db.AppDatabase.resetDatabase();
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Database reset successfully',
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text('Database reset failed: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              } finally {
-                                if (mounted) {
-                                  setState(() {
-                                    _isUpdating = false;
-                                    _updateStatus = null;
-                                  });
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.restore),
-                            label: const Text('Reset DB (dev)'),
-                            style: ButtonStyles.elevated(Colors.redAccent),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const RealtimeInfoWidget(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _settingsSection({
+    required EdgeInsetsGeometry margin,
+    required Widget child,
+  }) {
+    return Padding(padding: margin, child: child);
+  }
+
+  bool _resolveHasUserApiKey() {
+    final override = widget.hasUserApiKey;
+    if (override != null) {
+      return override;
+    }
+    return ApiKeyService.hasUserApiKey();
+  }
+
+  bool _resolveHasBuiltInApiKey() {
+    final override = widget.hasBuiltInApiKey;
+    if (override != null) {
+      return override;
+    }
+    return ApiKeyService.hasBuiltInApiKey();
+  }
+
+  TransitRegion get _selectedRegion =>
+      TransportPreferencesService.selectedRegion.value;
+
+  TransitRegionServices get _currentServices =>
+      AppTransitContext.instance.currentServices;
+
+  String _capabilitySummary(TransitRegionServices services) {
+    final capabilities = <String>[
+      'Stops',
+      if (services.supportsStaticImport) 'Static GTFS',
+      if (services.supportsRealtime) 'Realtime',
+      if (services.supportsDepartures) 'Departures',
+      if (services.supportsJourneyPlanning) 'Journey planning',
+      if (services.supportsDisruptions) 'Disruptions',
+    ];
+    return capabilities.join(' • ');
   }
 }
