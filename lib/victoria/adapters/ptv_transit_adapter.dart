@@ -8,6 +8,9 @@ import 'package:lbww_flutter/logs/logger.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/app_http_client.dart';
+import 'package:lbww_flutter/transit/cache/feed_freshness.dart';
+import 'package:lbww_flutter/transit/cache/realtime_query.dart';
+import 'package:lbww_flutter/transit/cache/shared_transit_cache.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/errors/transit_failure.dart';
 import 'package:lbww_flutter/transit/gtfs/gtfs_journey_planner.dart';
@@ -31,6 +34,7 @@ part 'ptv/adapter_helpers.dart';
 
 TransitRegionServices buildPtvRegionServices({db.AppDatabase? database}) {
   final hasRealtime =
+      SharedTransitCache.instance.isConfigured ||
       _readEnv('VICTORIA_OPEN_DATA_API_KEY').isNotEmpty ||
       (_readEnv('VICTORIA_GTFS_RT_VEHICLES_URL').isNotEmpty &&
           _readEnv('VICTORIA_GTFS_RT_TRIP_UPDATES_URL').isNotEmpty);

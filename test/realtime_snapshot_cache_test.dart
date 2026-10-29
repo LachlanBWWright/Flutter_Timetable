@@ -5,6 +5,38 @@ import 'package:lbww_flutter/nsw/wrappers/realtime_service/snapshot_cache.dart';
 
 void main() {
   test(
+    'shared snapshot age survives local reuse and broad-to-scoped reuse',
+    () async {
+      var now = DateTime.utc(2026, 10, 28);
+      final fetched = now.subtract(const Duration(seconds: 25));
+      final cache = RealtimeSnapshotCache<String>(
+        clock: () => now,
+        fetchedAt: (_) => fetched,
+      );
+      var calls = 0;
+      await cache.load('full', () async {
+        calls++;
+        return ['data'];
+      });
+      cache.reuseFresh('full', 'scoped');
+      expect(
+        (await cache.load('scoped', () async {
+          calls++;
+          return ['unexpected'];
+        })).single.fetchedAt,
+        fetched,
+      );
+      expect(calls, 1);
+      now = now.add(const Duration(seconds: 6));
+      await cache.load('scoped', () async {
+        calls++;
+        return ['refreshed'];
+      });
+      expect(calls, 2);
+    },
+  );
+
+  test(
     'failed refresh preserves source values and their original timestamps',
     () async {
       var now = DateTime.utc(2026, 1, 1);

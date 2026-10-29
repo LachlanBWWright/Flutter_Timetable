@@ -5,6 +5,7 @@ import 'package:option_result/option_result.dart';
 import '../../logs/logger.dart' as app_logger;
 import '../../services/api_key_service.dart';
 import '../../utils/safe_value_utils.dart';
+import '../../wrappers/app_http_client_impl.dart';
 import '../swagger_clients/swagger_backend.dart';
 import '../swagger_generated/trip_planner.enums.swagger.dart' as enums;
 import '../swagger_generated/trip_planner.swagger.dart' as generated;
@@ -67,10 +68,17 @@ Stop _unknownStop() {
 
 /// Service class for handling NSW Transport API requests
 class TransportApiService {
-  static Future<TripPlanner?> _client() async {
+  static Future<TripPlanner?> _client({
+    bool validateCredentials = false,
+  }) async {
     try {
       final key = ApiKeyService.getEffectiveApiKey();
-      return await createTripPlannerClient(apiKey: key);
+      return await createTripPlannerClient(
+        apiKey: key,
+        httpClient: validateCredentials
+            ? BoundedHttpClient(useSharedCache: false)
+            : null,
+      );
     } catch (e, st) {
       logger.e('Unable to create generated Trip Planner client: $e');
       logger.e(st);
@@ -81,7 +89,7 @@ class TransportApiService {
   /// Test if API key is valid
   static Future<bool> isApiKeyValid() async {
     try {
-      final client = await _client();
+      final client = await _client(validateCredentials: true);
       if (client == null) return false;
       final response = await client.stopFinderGet(
         outputFormat: enums.StopFinderGetOutputFormat.rapidjson,
@@ -170,7 +178,18 @@ class TransportApiService {
       logger.i(
         'TransportApiService.getTrips: received ${body.journeys?.length ?? 0} journeys for origin=$originId destination=$destinationId',
       );
-      return Ok(getTripsResponseFromGenerated(body));
+      final parsed = getTripsResponseFromGenerated(body);
+      return Ok(
+        GetTripsResponse(
+          tripJourneys: parsed.tripJourneys,
+          systemMessages: parsed.systemMessages,
+          version: parsed.version,
+          rawJson: parsed.rawJson,
+          fetchedAt: DateTime.tryParse(
+            response.headers['x-transit-fetched-at'] ?? '',
+          ),
+        ),
+      );
     } catch (e, st) {
       logger.e('getTrips error: $e');
       logger.e(st);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -111,6 +113,48 @@ class _VehicleWithMode {
 class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
     with GuardedState<RealtimeMapWidget> {
   final MapController _mapController = MapController();
+  bool _mapReady = false;
+  Timer? _viewportRefresh;
+
+  bool get _usesViewportQuery =>
+      RealtimeService.usesSharedCache &&
+      widget.getPositions == null &&
+      widget.getAllVehiclesAggregated == null &&
+      widget.leg == null &&
+      !widget.filterByLegTrip &&
+      widget.vehicleId == null;
+
+  void _onViewportChanged() {
+    if (!_usesViewportQuery) return;
+    _viewportRefresh?.cancel();
+    _viewportRefresh = Timer(const Duration(milliseconds: 350), () {
+      if (mounted && _visibleRefresh.isVisible) _loadVehiclePositions();
+    });
+  }
+
+  RealtimeQuery _mapQuery() {
+    List<double>? bounds;
+    if (_usesViewportQuery) {
+      if (_mapReady) {
+        final visible = _mapController.camera.visibleBounds;
+        bounds = [visible.south, visible.west, visible.north, visible.east];
+      } else {
+        bounds = [
+          _mapCenter.latitude - .25,
+          _mapCenter.longitude - .25,
+          _mapCenter.latitude + .25,
+          _mapCenter.longitude + .25,
+        ];
+      }
+    }
+    return RealtimeQuery(
+      tripIds: widget.filterByLegTrip ? widget.tripIds ?? {} : {},
+      routeId: widget.routeFilter,
+      vehicleId: widget.vehicleId,
+      bounds: bounds,
+    );
+  }
+
   // Store vehicles with an associated mode so markers can use mode-specific
   // colors and icons.
   List<_VehicleWithMode> _vehicles = [];
@@ -340,6 +384,7 @@ class _RealtimeMapWidgetState extends State<RealtimeMapWidget>
   @override
   void dispose() {
     _loadGeneration++;
+    _viewportRefresh?.cancel();
     _visibleRefresh.dispose();
     _mapController.dispose();
     super.dispose();

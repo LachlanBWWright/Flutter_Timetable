@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
@@ -119,10 +118,12 @@ class _JourneyCardState extends State<JourneyCard>
                     color: journey.isPinned ? Colors.blue : Colors.grey,
                   ),
                   onPressed: widget.onTogglePin,
+                  tooltip: journey.isPinned ? 'Unpin trip' : 'Pin trip',
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete),
                   onPressed: widget.onDelete,
+                  tooltip: 'Delete trip',
                 ),
               ],
             ],
@@ -162,6 +163,9 @@ class JourneyList extends StatelessWidget {
   final bool showNextTripTimes;
   final bool isPinnedSection;
 
+  /// Render in a parent CustomScrollView instead of owning a scrollable.
+  final bool asSliver;
+
   const JourneyList({
     super.key,
     required this.journeys,
@@ -173,6 +177,7 @@ class JourneyList extends StatelessWidget {
     required this.onTogglePin,
     required this.isEditingMode,
     required this.isPinnedSection,
+    this.asSliver = false,
   });
 
   void _handleJourneyTap(Journey journey) {
@@ -201,15 +206,9 @@ class JourneyList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: journeys.length,
-      itemBuilder: (context, index) {
-        final journey = journeys.elementAtOrNull(index);
-        if (journey == null) {
-          return const SizedBox.shrink();
-        }
+    final children = SliverChildBuilderDelegate(
+      (context, index) {
+        final journey = journeys[index];
         return JourneyCard(
           key: ValueKey(journey.id),
           journey: journey,
@@ -222,6 +221,17 @@ class JourneyList extends StatelessWidget {
           showNextTripTimes: showNextTripTimes,
         );
       },
+      childCount: journeys.length,
+      findChildIndexCallback: (key) {
+        if (key is! ValueKey<int>) return null;
+        final index = journeys.indexWhere((journey) => journey.id == key.value);
+        return index < 0 ? null : index;
+      },
+    );
+    if (asSliver) return SliverList(delegate: children);
+    return ListView.custom(
+      padding: EdgeInsets.zero,
+      childrenDelegate: children,
     );
   }
 }
@@ -229,13 +239,12 @@ class JourneyList extends StatelessWidget {
 /// Custom app bar for the home screen
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final bool canAddTrip;
   final bool isSearching;
   final bool isEditingMode;
   final bool hasTrips;
   final bool isAlphabeticalSorting;
-  final VoidCallback onAddTrip;
   final VoidCallback onSettings;
+  final VoidCallback? onFindVehicle;
   final VoidCallback onToggleSearch;
   final VoidCallback onToggleEdit;
   final VoidCallback onToggleSort;
@@ -245,13 +254,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HomeAppBar({
     super.key,
     required this.title,
-    required this.canAddTrip,
     required this.isSearching,
     required this.isEditingMode,
     required this.hasTrips,
     required this.isAlphabeticalSorting,
-    required this.onAddTrip,
     required this.onSettings,
+    this.onFindVehicle,
     required this.onToggleSearch,
     required this.onToggleEdit,
     required this.onToggleSort,
@@ -301,6 +309,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
             automaticallyImplyLeading: false,
             leading: IconButton(
               onPressed: onToggleSearch,
+              tooltip: isSearching ? 'Close search' : 'Search trips',
               icon: const Icon(Icons.close),
             ),
             title: TextField(
@@ -310,9 +319,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               decoration: const InputDecoration(
                 hintText: 'Search trips...',
                 border: InputBorder.none,
-                hintStyle: TextStyle(color: Colors.white70),
               ),
-              style: const TextStyle(color: Colors.white),
             ),
           );
         }
@@ -321,14 +328,22 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         return AppBar(
           title: Text(title),
           actions: <Widget>[
+            if (onFindVehicle != null)
+              IconButton(
+                onPressed: onFindVehicle,
+                tooltip: 'Find my vehicle (experimental)',
+                icon: const Icon(Icons.radar),
+              ),
             if (hasTrips)
               IconButton(
                 onPressed: onToggleSearch,
+                tooltip: isSearching ? 'Close search' : 'Search trips',
                 icon: const Icon(Icons.search),
               ),
             if (hasTrips)
               IconButton(
                 onPressed: onToggleEdit,
+                tooltip: isEditingMode ? 'Finish editing' : 'Edit trips',
                 icon: Icon(isEditingMode ? Icons.done : Icons.edit),
               ),
             if (hasTrips)
@@ -367,13 +382,11 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ],
               ),
-            if (canAddTrip)
-              IconButton(
-                onPressed: onAddTrip,
-                tooltip: 'Plan a new trip',
-                icon: const Icon(Icons.add),
-              ),
-            IconButton(onPressed: onSettings, icon: const Icon(Icons.settings)),
+            IconButton(
+              onPressed: onSettings,
+              tooltip: 'Settings',
+              icon: const Icon(Icons.settings),
+            ),
           ],
         );
       },

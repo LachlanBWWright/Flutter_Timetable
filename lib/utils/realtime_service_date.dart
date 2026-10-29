@@ -14,7 +14,10 @@ timezone.Location _sydneyLocation() {
 
 /// Offset-free TfNSW timestamps belong to Sydney, regardless of device locale.
 DateTime? tfnswDepartureInstant(Leg leg) {
-  final raw = leg.origin.departureTimePlanned;
+  return tfnswTimeInstant(leg.origin.departureTimePlanned);
+}
+
+DateTime? tfnswTimeInstant(String? raw) {
   if (raw == null) return null;
   final parsed = DateTime.tryParse(raw);
   if (parsed == null) return null;

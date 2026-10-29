@@ -5,6 +5,9 @@ class GetTripsResponse {
   final SystemMessages systemMessages;
   final String version;
 
+  /// Original backend fetch time, preserved when shared data is cached locally.
+  final DateTime? fetchedAt;
+
   /// Raw JSON response as returned by the transport API.
   ///
   /// This is useful for debug/diagnostic features when the parsed model
@@ -16,6 +19,7 @@ class GetTripsResponse {
     required this.systemMessages,
     required this.version,
     required this.rawJson,
+    this.fetchedAt,
   });
 
   factory GetTripsResponse.fromJson(Map<String, dynamic> json) =>

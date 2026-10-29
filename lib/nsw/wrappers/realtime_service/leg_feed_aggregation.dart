@@ -3,20 +3,27 @@ part of '../realtime_service_impl.dart';
 /// Builds trip-leg snapshots from only the selected mode's feeds.
 class _LegFeedAggregation {
   static Future<VehiclePositionAggregationResult>
-  getVehiclePositionsForModeSafe(TransportMode mode) async {
+  getVehiclePositionsForModeSafe(
+    TransportMode mode, {
+    RealtimeQuery? query,
+  }) async {
     try {
       final metadata = _SnapshotMetadataBuilder();
       final breakdown = <String, int>{};
       final records = <_RealtimeRecord<VehiclePosition>>[];
       final baseRequest = _RealtimeFeedAggregation._loadModes(
         () async => {
-          mode: await RealtimeService.getPositionsForTransportMode(mode),
+          mode: await RealtimeService.getPositionsForTransportMode(
+            mode,
+            query: query,
+          ),
         },
         metadata,
         'positions',
         custom: false,
+        query: query,
       );
-      final groupRequest = _loadPositionGroup(mode, metadata);
+      final groupRequest = _loadPositionGroup(mode, metadata, query);
       final base = await baseRequest;
       for (final entry in base.entries) {
         final values = RealtimeService.extractVehiclePositions(
@@ -63,21 +70,26 @@ class _LegFeedAggregation {
   }
 
   static Future<TripUpdateAggregationResult> getTripUpdatesForModeSafe(
-    TransportMode mode,
-  ) async {
+    TransportMode mode, {
+    RealtimeQuery? query,
+  }) async {
     try {
       final metadata = _SnapshotMetadataBuilder();
       final breakdown = <String, int>{};
       final records = <_RealtimeRecord<TripUpdate>>[];
       final baseRequest = _RealtimeFeedAggregation._loadModes(
         () async => {
-          mode: await RealtimeService.getUpdatesForTransportMode(mode),
+          mode: await RealtimeService.getUpdatesForTransportMode(
+            mode,
+            query: query,
+          ),
         },
         metadata,
         'updates',
         custom: false,
+        query: query,
       );
-      final groupRequest = _loadUpdateGroup(mode, metadata);
+      final groupRequest = _loadUpdateGroup(mode, metadata, query);
       final base = await baseRequest;
       for (final entry in base.entries) {
         final values = RealtimeService.extractTripUpdates(entry.value.feed);
@@ -124,27 +136,28 @@ class _LegFeedAggregation {
   static Future<List<_LoadedRealtimeFeed>> _loadPositionGroup(
     TransportMode mode,
     _SnapshotMetadataBuilder metadata,
+    RealtimeQuery? query,
   ) {
     switch (mode) {
       case TransportMode.bus:
         return _RealtimeFeedAggregation._loadGroup(
-          RealtimeService.getRegionBusPositions,
+          () => RealtimeService.getRegionBusPositions(query: query),
           metadata,
-          'positions:region_buses',
+          _RealtimeFeedCache.key('positions:region_buses', query),
           custom: false,
         );
       case TransportMode.ferry:
         return _RealtimeFeedAggregation._loadGroup(
-          RealtimeService.getAllFerryPositions,
+          () => RealtimeService.getAllFerryPositions(query: query),
           metadata,
-          'positions:ferries',
+          _RealtimeFeedCache.key('positions:ferries', query),
           custom: false,
         );
       case TransportMode.lightrail:
         return _RealtimeFeedAggregation._loadGroup(
-          RealtimeService.getAllLightRailPositions,
+          () => RealtimeService.getAllLightRailPositions(query: query),
           metadata,
-          'positions:lightrail_all',
+          _RealtimeFeedCache.key('positions:lightrail_all', query),
           custom: false,
         );
       case TransportMode.train:
@@ -156,27 +169,28 @@ class _LegFeedAggregation {
   static Future<List<_LoadedRealtimeFeed>> _loadUpdateGroup(
     TransportMode mode,
     _SnapshotMetadataBuilder metadata,
+    RealtimeQuery? query,
   ) {
     switch (mode) {
       case TransportMode.bus:
         return _RealtimeFeedAggregation._loadGroup(
-          RealtimeService.getRegionBusUpdates,
+          () => RealtimeService.getRegionBusUpdates(query: query),
           metadata,
-          'updates:region_buses',
+          _RealtimeFeedCache.key('updates:region_buses', query),
           custom: false,
         );
       case TransportMode.ferry:
         return _RealtimeFeedAggregation._loadGroup(
-          RealtimeService.getAllFerryUpdates,
+          () => RealtimeService.getAllFerryUpdates(query: query),
           metadata,
-          'updates:ferries',
+          _RealtimeFeedCache.key('updates:ferries', query),
           custom: false,
         );
       case TransportMode.lightrail:
         return _RealtimeFeedAggregation._loadGroup(
-          RealtimeService.getAllLightRailUpdates,
+          () => RealtimeService.getAllLightRailUpdates(query: query),
           metadata,
-          'updates:lightrail_all',
+          _RealtimeFeedCache.key('updates:lightrail_all', query),
           custom: false,
         );
       case TransportMode.train:

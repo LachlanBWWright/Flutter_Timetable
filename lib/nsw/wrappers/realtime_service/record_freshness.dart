@@ -34,7 +34,7 @@ class _LoadedRealtimeFeed {
   }
 
   static String _namespace(String key) {
-    final source = key.split(':').last;
+    final source = key.split('|').first.split(':').last;
     final mode = switch (source) {
       'region_buses' => 'bus',
       'ferries' => 'ferry',

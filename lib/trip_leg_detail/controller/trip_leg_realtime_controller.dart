@@ -77,7 +77,7 @@ class TripLegRealtimeController extends ChangeNotifier {
             if (isCurrent(generation)) {
               _vehiclesInFlight = null;
               _vehicleCacheGeneration = generation;
-              _vehiclesLoadedAt = DateTime.now();
+              _vehiclesLoadedAt = result.metadata.fetchedAt ?? DateTime.now();
               _publish(
                 _state.copyWith(
                   vehicles: _freezeVehicles(result),
@@ -123,7 +123,7 @@ class TripLegRealtimeController extends ChangeNotifier {
             if (isCurrent(generation)) {
               _updatesInFlight = null;
               _updatesCacheGeneration = generation;
-              _updatesLoadedAt = DateTime.now();
+              _updatesLoadedAt = result.metadata.fetchedAt ?? DateTime.now();
               _publish(
                 _state.copyWith(
                   tripUpdates: _freezeUpdates(result),

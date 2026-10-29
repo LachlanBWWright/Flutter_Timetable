@@ -18,6 +18,10 @@ import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/journey_filter_utils.dart';
 import 'package:lbww_flutter/widgets/journey_widgets.dart';
 
+import '../active_journey/recovery_prompt.dart';
+import '../active_journey/session.dart';
+import '../utils/visible_realtime_refresh.dart';
+import '../vehicle_finder/screen.dart';
 import 'home_controller.dart';
 
 part 'home_sorting.dart';
@@ -59,6 +63,12 @@ int _staticEndpointPriority(StopsEndpoint endpoint) {
 
 class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   late final HomeController _controller;
+  late final VisibleRealtimeRefresh _activeRefresh = VisibleRealtimeRefresh(
+    onRefresh: () => _hasLoadedJourneys
+        ? ActiveJourneySession.instance.refresh(_journeys)
+        : Future<void>.value(),
+  );
+  bool _hasLoadedJourneys = false;
   List<db.Journey> _journeys = [];
   List<db.Journey> _filteredJourneys = [];
   bool _isEditingMode = false;
@@ -96,13 +106,15 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
   Future<void> getTrips() async {
     await _controller.load();
     if (!mounted || _controller.state.loadFailed) return;
+    _hasLoadedJourneys = true;
     final journeys = _controller.state.journeys;
+    ActiveJourneySession.instance.reconcile(journeys);
+    unawaited(ActiveJourneySession.instance.loadRecovery(journeys));
     guardedSetState(() {
       _journeys = journeys;
       _filteredJourneys = _applySearchFilter(journeys);
     });
     if (AppTransitContext.instance.selectedRegion == TransitRegion.nsw) {
-      TripCacheService.prefetch(journeys);
       prefetchAllStations();
       _prefetchStaticTransportData();
     }
@@ -128,6 +140,10 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
     }
     _shownActionError = actionError;
     final journeys = _controller.state.journeys;
+    if (!_controller.state.isLoading && !_controller.state.loadFailed) {
+      _hasLoadedJourneys = true;
+      ActiveJourneySession.instance.reconcile(journeys);
+    }
     guardedSetState(() {
       _journeys = journeys;
       _filteredJourneys = _applySearchFilter(journeys);
@@ -196,6 +212,7 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
     )..addListener(_onControllerChanged);
     _journeys = _controller.state.journeys;
     _filteredJourneys = _applySearchFilter(_journeys);
+    _hasLoadedJourneys = widget.skipInitialLoad;
     if (widget.skipInitialLoad) {
       return;
     }
@@ -204,6 +221,12 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
     addPostFrameCallbackSafely((_) {
       unawaited(_validateApiKey(notifyOnFailure: true));
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _activeRefresh.updateRoute(context);
   }
 
   Future<void> _loadInitialSorting() async {
@@ -232,6 +255,7 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
 
   @override
   void dispose() {
+    _activeRefresh.dispose();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     disposeChangeNotifierSafely(_searchController);
@@ -277,15 +301,19 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
 
     return Scaffold(
       appBar: HomeAppBar(
-        title:
-            '${widget.title} • ${AppTransitContext.instance.selectedRegion.shortLabel}',
-        canAddTrip:
-            AppTransitContext.instance.currentServices.supportsJourneyPlanning,
+        title: 'Home',
+        onFindVehicle: () => _pushPage(
+          VehicleFinderScreen(
+            journeys: _journeys,
+            supported:
+                AppTransitContext.instance.selectedRegion == TransitRegion.nsw,
+          ),
+          () {},
+        ),
         isSearching: _isSearching,
         isEditingMode: _isEditingMode,
         hasTrips: _journeys.isNotEmpty,
         isAlphabeticalSorting: _isAlphabeticalSorting,
-        onAddTrip: _navigateToNewTrip,
         onSettings: _navigateToSettings,
         onToggleSearch: _toggleSearchMode,
         onToggleEdit: _toggleEditingMode,
@@ -293,6 +321,14 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
         onSearchChanged: _filterJourneys,
         searchController: _searchController,
       ),
+      floatingActionButton:
+          AppTransitContext.instance.currentServices.supportsJourneyPlanning
+          ? FloatingActionButton(
+              onPressed: _navigateToNewTrip,
+              tooltip: 'Add trip',
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: _buildJourneysBody(context, pinnedJourneys, unpinnedJourneys),
     );
   }

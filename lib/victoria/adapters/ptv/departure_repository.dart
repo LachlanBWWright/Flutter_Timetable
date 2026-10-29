@@ -11,7 +11,8 @@ class PtvDepartureRepository implements DepartureRepository {
     if (request.stop.sourceId.value == 'ptv:static') {
       return _getStaticDepartures(request);
     }
-    if (!_signedClient.isConfigured) {
+    if (!_signedClient.isConfigured &&
+        !SharedTransitCache.instance.isConfigured) {
       throw const InvalidCredentials(
         message:
             'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',

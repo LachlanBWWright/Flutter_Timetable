@@ -11,7 +11,12 @@ extension _RealtimeMapContent on _RealtimeMapWidgetState {
             initialZoom: 11.0,
             minZoom: 8.0,
             maxZoom: 18.0,
+            onPositionChanged: (_, hasGesture) {
+              if (hasGesture) _onViewportChanged();
+            },
             onMapReady: () {
+              _mapReady = true;
+              _onViewportChanged();
               final fit = _pendingFit;
               final center = _pendingCenter;
               _pendingFit = null;

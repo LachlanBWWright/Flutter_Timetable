@@ -4,10 +4,14 @@ class RealtimeSnapshotCache<T> {
   RealtimeSnapshotCache({
     DateTime Function()? clock,
     this.ttl = const Duration(seconds: 30),
+    this.maxEntries = 128,
+    this.fetchedAt,
     this.failureBackoff = const Duration(seconds: 3),
   }) : _clock = clock ?? DateTime.now;
 
   final DateTime Function() _clock;
+  final int maxEntries;
+  final DateTime? Function(T)? fetchedAt;
   final Duration ttl;
   final Duration failureBackoff;
   final _entries = <String, List<RealtimeCachedSource<T>>>{};
@@ -25,17 +29,42 @@ class RealtimeSnapshotCache<T> {
     _inflight.clear();
   }
 
+  bool _fresh(String key) {
+    final completed = _completedAt[key];
+    final previous = sources(key);
+    if (completed == null || previous.isEmpty) return false;
+    final now = _clock();
+    if (previous.any((s) => s.failed)) {
+      return now.difference(completed) < failureBackoff;
+    }
+    return now.difference(completed) < ttl &&
+        previous.every(
+          (s) => s.fetchedAt != null && now.difference(s.fetchedAt!) < ttl,
+        );
+  }
+
+  void reuseFresh(String source, String target) {
+    if (_fresh(source) && !_fresh(target)) {
+      _entries[target] = _entries[source]!;
+      _completedAt[target] = _completedAt[source]!;
+      _trim();
+    }
+  }
+
+  void _trim() {
+    while (_entries.length > maxEntries && _entries.length > 1) {
+      final oldest = _entries.keys.first;
+      _entries.remove(oldest);
+      _completedAt.remove(oldest);
+    }
+  }
+
   Future<List<RealtimeCachedSource<T>>> load(
     String key,
     Future<List<T?>> Function() loader,
   ) async {
     final previous = sources(key);
-    final completed = _completedAt[key];
-    if (completed != null &&
-        _clock().difference(completed) <
-            (previous.any((source) => source.failed) ? failureBackoff : ttl)) {
-      return previous;
-    }
+    if (_fresh(key)) return previous;
     final pending = _inflight[key];
     if (pending != null) return pending;
     final request = _refresh(key, previous, loader, _generation);
@@ -71,7 +100,10 @@ class RealtimeSnapshotCache<T> {
       final value = index < incoming.length ? incoming[index] : null;
       final old = index < previous.length ? previous[index] : null;
       return value != null
-          ? RealtimeCachedSource(value: value, fetchedAt: now)
+          ? RealtimeCachedSource(
+              value: value,
+              fetchedAt: fetchedAt?.call(value) ?? now,
+            )
           : RealtimeCachedSource(
               value: old?.value,
               fetchedAt: old?.fetchedAt,
@@ -80,6 +112,7 @@ class RealtimeSnapshotCache<T> {
     });
     if (generation != _generation) return next;
     _entries[key] = next;
+    _trim();
     // Failed results retain their status and use only a short retry backoff.
     // Explicit invalidation bypasses either TTL while preserving fallback data.
     _completedAt[key] = now;

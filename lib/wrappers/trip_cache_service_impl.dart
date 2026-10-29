@@ -85,6 +85,16 @@ class TripCacheService {
     );
   }
 
+  static Future<TripCacheSnapshot?> getRetainedSnapshot(
+    String originId,
+    String destinationId,
+  ) async {
+    final origin = _tfnswStopId(originId);
+    final destination = _tfnswStopId(destinationId);
+    if (origin == null || destination == null) return null;
+    return _repository.getRetainedSnapshot(origin, destination);
+  }
+
   /// Legacy callers still receive only usable, non-expired journey results.
   static Future<Result<GetTripsResponse, String>> getCachedOrFetch({
     required String originId,

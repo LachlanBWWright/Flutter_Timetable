@@ -7,13 +7,22 @@ extension _HomeJourneysView on _MyHomePageState {
     List<db.Journey> unpinnedJourneys,
   ) {
     return RefreshIndicator(
+      key: ValueKey(
+        _hasLoadedJourneys ? 'home-journeys-ready' : 'home-journeys-loading',
+      ),
       onRefresh: () async {
         await getTrips();
         await _validateApiKey(notifyOnFailure: false);
       },
       child: _filteredJourneys.isEmpty
           ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 96),
               children: [
+                ActiveJourneyRecoveryPrompt(
+                  session: ActiveJourneySession.instance,
+                  journeys: _journeys,
+                ),
                 SizedBox(
                   height: MediaQuery.of(context).size.height * 0.7,
                   child: Center(
@@ -57,24 +66,34 @@ extension _HomeJourneysView on _MyHomePageState {
                 ),
               ],
             )
-          : ListView(
-              children: [
+          : CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: ActiveJourneyRecoveryPrompt(
+                    session: ActiveJourneySession.instance,
+                    journeys: _journeys,
+                  ),
+                ),
                 if (_controller.state.loadFailed)
-                  MaterialBanner(
-                    content: const Text(
-                      'Could not load saved trips. Pull down to retry.',
-                    ),
-                    leading: const Icon(Icons.error_outline),
-                    actions: [
-                      TextButton(
-                        onPressed: getTrips,
-                        child: const Text('RETRY'),
+                  SliverToBoxAdapter(
+                    child: MaterialBanner(
+                      content: const Text(
+                        'Could not load saved trips. Pull down to retry.',
                       ),
-                    ],
+                      leading: const Icon(Icons.error_outline),
+                      actions: [
+                        TextButton(
+                          onPressed: getTrips,
+                          child: const Text('RETRY'),
+                        ),
+                      ],
+                    ),
                   ),
                 // Pinned trips section
                 if (pinnedJourneys.isNotEmpty) ...[
                   JourneyList(
+                    asSliver: true,
                     journeys: pinnedJourneys,
                     onJourneyTap: _navigateToTrip,
                     onReverseJourneyTap: _navigateToReverseTrip,
@@ -88,16 +107,19 @@ extension _HomeJourneysView on _MyHomePageState {
                     isPinnedSection: true,
                   ),
                   if (unpinnedJourneys.isNotEmpty)
-                    const Divider(
-                      height: 32,
-                      thickness: 2,
-                      indent: 16,
-                      endIndent: 16,
+                    const SliverToBoxAdapter(
+                      child: Divider(
+                        height: 32,
+                        thickness: 2,
+                        indent: 16,
+                        endIndent: 16,
+                      ),
                     ),
                 ],
                 // Unpinned trips section
                 if (unpinnedJourneys.isNotEmpty)
                   JourneyList(
+                    asSliver: true,
                     journeys: unpinnedJourneys,
                     onJourneyTap: _navigateToTrip,
                     onReverseJourneyTap: _navigateToReverseTrip,
@@ -110,6 +132,7 @@ extension _HomeJourneysView on _MyHomePageState {
                     showNextTripTimes: !widget.skipInitialLoad,
                     isPinnedSection: false,
                   ),
+                const SliverToBoxAdapter(child: SizedBox(height: 96)),
               ],
             ),
     );

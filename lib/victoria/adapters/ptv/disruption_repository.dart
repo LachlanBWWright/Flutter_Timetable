@@ -9,6 +9,14 @@ class PtvDisruptionRepository implements DisruptionRepository {
   @override
   Future<List<TransitAlert>> getDisruptions(DisruptionRequest request) async {
     if (!_signedClient.isConfigured) {
+      if (SharedTransitCache.instance.isConfigured) {
+        try {
+          return await _getLegacyDisruptions(request);
+        } on Exception {
+          // This backend may have only Open Data credentials. Preserve the
+          // existing GTFS alert path when legacy PTV access is unavailable.
+        }
+      }
       // The legacy signed PTV disruption API is not required for the current
       // Open Data integration. Metro and tram publish service alerts through
       // GTFS-Realtime; use those feeds when legacy credentials are absent.
@@ -30,6 +38,12 @@ class PtvDisruptionRepository implements DisruptionRepository {
       }
       return alerts;
     }
+    return _getLegacyDisruptions(request);
+  }
+
+  Future<List<TransitAlert>> _getLegacyDisruptions(
+    DisruptionRequest request,
+  ) async {
     if (request.stop != null) {
       final stopId = int.tryParse(request.stop!.stopId);
       if (stopId == null) return const <TransitAlert>[];

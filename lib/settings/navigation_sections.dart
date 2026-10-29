@@ -14,9 +14,11 @@ extension _SettingsNavigationSections on _SettingsScreenState {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'View real-time vehicle positions on an interactive map',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -47,9 +49,11 @@ extension _SettingsNavigationSections on _SettingsScreenState {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Set your home stop for quick trip planning',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -108,9 +112,11 @@ extension _SettingsNavigationSections on _SettingsScreenState {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Toggle visibility of debug information throughout the app',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             ValueListenableBuilder<bool>(

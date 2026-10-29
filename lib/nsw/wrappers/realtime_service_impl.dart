@@ -1,8 +1,13 @@
 import '../../constants/transport_modes.dart';
+import '../../transit/cache/realtime_query.dart';
+import '../../transit/cache/shared_transit_cache.dart';
+import '../fetch_data/realtime_feed_fetcher.dart' show sharedFeedFetchedAt;
 import '../fetch_data/realtime_positions.dart' as positions;
 import '../fetch_data/realtime_updates.dart' as updates;
 import '../protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'realtime_service/snapshot_cache.dart';
+
+export '../../transit/cache/realtime_query.dart';
 
 part 'realtime_service/aggregation_results.dart';
 part 'realtime_service/feed_aggregation.dart';
@@ -15,18 +20,22 @@ part 'realtime_service/snapshot_metadata.dart';
 
 /// Service for managing realtime transport data
 class RealtimeService {
+  static bool get usesSharedCache => SharedTransitCache.instance.isConfigured;
+
   /// Retry expired feeds while retaining the last successful fallback.
   static void invalidateRealtimeCache() {
     _RealtimeFeedCache.cache.invalidate();
+    SharedTransitCache.instance.invalidate();
     _lastAggregatePrefetchAt = null;
   }
 
   static RealtimeSnapshotMetadata metadataForVehicleModes(
-    Iterable<TransportMode> modes,
-  ) {
+    Iterable<TransportMode> modes, {
+    RealtimeQuery? query,
+  }) {
     final builder = _SnapshotMetadataBuilder();
     for (final mode in modes) {
-      builder.addCached('positions:${mode.id}');
+      builder.addCached(_RealtimeFeedCache.key('positions:${mode.id}', query));
     }
     return builder.build();
   }
@@ -42,6 +51,7 @@ class RealtimeService {
     bool includeVehicles = true,
     bool includeTripUpdates = true,
   }) async {
+    if (SharedTransitCache.instance.isConfigured) return;
     final now = DateTime.now();
     final lastAggregatePrefetchAt = _lastAggregatePrefetchAt;
     if (lastAggregatePrefetchAt != null &&
@@ -160,13 +170,14 @@ class RealtimeService {
 
   /// Load only the aggregate sources belonging to one transport mode.
   static Future<VehiclePositionAggregationResult>
-  getVehiclePositionsForModeSafe(TransportMode mode) =>
-      _LegFeedAggregation.getVehiclePositionsForModeSafe(mode);
+  getVehiclePositionsForModeSafe(TransportMode mode, {RealtimeQuery? query}) =>
+      _LegFeedAggregation.getVehiclePositionsForModeSafe(mode, query: query);
 
   /// Load only the aggregate sources belonging to one transport mode.
   static Future<TripUpdateAggregationResult> getTripUpdatesForModeSafe(
-    TransportMode mode,
-  ) => _LegFeedAggregation.getTripUpdatesForModeSafe(mode);
+    TransportMode mode, {
+    RealtimeQuery? query,
+  }) => _LegFeedAggregation.getTripUpdatesForModeSafe(mode, query: query);
 
   /// Get realtime trip updates for all broad transport modes.
   ///
@@ -200,89 +211,115 @@ class RealtimeService {
   /// enum to a sensible canonical feed key and delegates to the existing
   /// string-based API to preserve existing feed selection logic.
   static Future<FeedMessage?> getPositionsForTransportMode(
-    TransportMode mode,
-  ) async {
-    return _RealtimeFeedCache.getFeed('positions:${mode.id}', () async {
-      switch (mode) {
-        case TransportMode.train:
-          return await positions.fetchSydneyTrainsPositions();
-        case TransportMode.metro:
-          return await positions.fetchSydneyMetroPositions();
-        case TransportMode.bus:
-          return await positions.fetchBusesPositions();
-        case TransportMode.lightrail:
-          return await positions.fetchLightRailCbdAndSoutheastPositions();
-        case TransportMode.ferry:
-          return await positions.fetchFerriesSydneyFerriesPositions();
-      }
-    });
+    TransportMode mode, {
+    RealtimeQuery? query,
+  }) async {
+    return _RealtimeFeedCache.getFeed(
+      _RealtimeFeedCache.key('positions:${mode.id}', query),
+      () async {
+        switch (mode) {
+          case TransportMode.train:
+            return await positions.fetchSydneyTrainsPositions(query: query);
+          case TransportMode.metro:
+            return await positions.fetchSydneyMetroPositions(query: query);
+          case TransportMode.bus:
+            return await positions.fetchBusesPositions(query: query);
+          case TransportMode.lightrail:
+            return await positions.fetchLightRailCbdAndSoutheastPositions(
+              query: query,
+            );
+          case TransportMode.ferry:
+            return await positions.fetchFerriesSydneyFerriesPositions(
+              query: query,
+            );
+        }
+      },
+    );
   }
 
   /// Typed wrapper: get trip updates for a broad TransportMode.
   static Future<FeedMessage?> getUpdatesForTransportMode(
-    TransportMode mode,
-  ) async {
-    return _RealtimeFeedCache.getFeed('updates:${mode.id}', () async {
-      switch (mode) {
-        case TransportMode.train:
-          return await updates.fetchSydneyTrainsUpdates();
-        case TransportMode.metro:
-          return await updates.fetchSydneyMetroUpdates();
-        case TransportMode.bus:
-          return await updates.fetchBusesUpdates();
-        case TransportMode.lightrail:
-          return await updates.fetchLightRailCbdAndSoutheastUpdates();
-        case TransportMode.ferry:
-          return await updates.fetchFerriesSydneyFerriesUpdates();
-      }
-    });
+    TransportMode mode, {
+    RealtimeQuery? query,
+  }) async {
+    return _RealtimeFeedCache.getFeed(
+      _RealtimeFeedCache.key('updates:${mode.id}', query),
+      () async {
+        switch (mode) {
+          case TransportMode.train:
+            return await updates.fetchSydneyTrainsUpdates(query: query);
+          case TransportMode.metro:
+            return await updates.fetchSydneyMetroUpdates(query: query);
+          case TransportMode.bus:
+            return await updates.fetchBusesUpdates(query: query);
+          case TransportMode.lightrail:
+            return await updates.fetchLightRailCbdAndSoutheastUpdates(
+              query: query,
+            );
+          case TransportMode.ferry:
+            return await updates.fetchFerriesSydneyFerriesUpdates(query: query);
+        }
+      },
+    );
   }
 
   /// Get region bus positions
-  static Future<List<FeedMessage?>> getRegionBusPositions() async {
+  static Future<List<FeedMessage?>> getRegionBusPositions({
+    RealtimeQuery? query,
+  }) async {
     return _RealtimeFeedCache.getFeedList(
-      'positions:region_buses',
-      positions.getAllRegionBuses,
+      _RealtimeFeedCache.key('positions:region_buses', query),
+      () => positions.getAllRegionBuses(query: query),
     );
   }
 
   /// Get region bus updates
-  static Future<List<FeedMessage?>> getRegionBusUpdates() async {
+  static Future<List<FeedMessage?>> getRegionBusUpdates({
+    RealtimeQuery? query,
+  }) async {
     return _RealtimeFeedCache.getFeedList(
-      'updates:region_buses',
-      updates.fetchAllRegionBuses,
+      _RealtimeFeedCache.key('updates:region_buses', query),
+      () => updates.fetchAllRegionBuses(query: query),
     );
   }
 
   /// Get all ferry positions
-  static Future<List<FeedMessage?>> getAllFerryPositions() async {
+  static Future<List<FeedMessage?>> getAllFerryPositions({
+    RealtimeQuery? query,
+  }) async {
     return _RealtimeFeedCache.getFeedList(
-      'positions:ferries',
-      positions.getAllFerries,
+      _RealtimeFeedCache.key('positions:ferries', query),
+      () => positions.getAllFerries(query: query),
     );
   }
 
   /// Get all ferry updates
-  static Future<List<FeedMessage?>> getAllFerryUpdates() async {
+  static Future<List<FeedMessage?>> getAllFerryUpdates({
+    RealtimeQuery? query,
+  }) async {
     return _RealtimeFeedCache.getFeedList(
-      'updates:ferries',
-      updates.fetchAllFerries,
+      _RealtimeFeedCache.key('updates:ferries', query),
+      () => updates.fetchAllFerries(query: query),
     );
   }
 
   /// Get all light rail positions
-  static Future<List<FeedMessage?>> getAllLightRailPositions() async {
+  static Future<List<FeedMessage?>> getAllLightRailPositions({
+    RealtimeQuery? query,
+  }) async {
     return _RealtimeFeedCache.getFeedList(
-      'positions:lightrail_all',
-      positions.getAllLightRail,
+      _RealtimeFeedCache.key('positions:lightrail_all', query),
+      () => positions.getAllLightRail(query: query),
     );
   }
 
   /// Get all light rail updates
-  static Future<List<FeedMessage?>> getAllLightRailUpdates() async {
+  static Future<List<FeedMessage?>> getAllLightRailUpdates({
+    RealtimeQuery? query,
+  }) async {
     return _RealtimeFeedCache.getFeedList(
-      'updates:lightrail_all',
-      updates.fetchAllLightRail,
+      _RealtimeFeedCache.key('updates:lightrail_all', query),
+      () => updates.fetchAllLightRail(query: query),
     );
   }
 

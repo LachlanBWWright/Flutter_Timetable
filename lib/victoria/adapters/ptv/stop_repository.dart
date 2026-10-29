@@ -68,7 +68,10 @@ class PtvStopRepository implements StopRepository {
         limit: request.limit,
         endpoints: const ['ptv:static'],
       );
-      return rows.map(_mapDatabaseStop).toList(growable: false);
+      final loaded = rows.map(_mapDatabaseStop).toList(growable: false);
+      if (loaded.isNotEmpty || !SharedTransitCache.instance.isConfigured) {
+        return loaded;
+      }
     }
     _requireCredentials();
     final signature = _signedClient.signatureForPath(
@@ -89,6 +92,7 @@ class PtvStopRepository implements StopRepository {
     );
     final body = response.body;
     if (!response.isSuccessful || body == null) {
+      if (!_signedClient.isConfigured) return const [];
       throw const ProviderUnavailable(message: 'Failed to search PTV stops.');
     }
     return (body.stops ?? const <V3ResultStop>[])
@@ -116,7 +120,8 @@ class PtvStopRepository implements StopRepository {
   }
 
   void _requireCredentials() {
-    if (!_signedClient.isConfigured) {
+    if (!_signedClient.isConfigured &&
+        !SharedTransitCache.instance.isConfigured) {
       throw const InvalidCredentials(
         message:
             'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',

@@ -180,13 +180,14 @@ class _RealtimeFeedAggregation {
     Future<Map<TransportMode, FeedMessage?>> Function() loader,
     _SnapshotMetadataBuilder metadata,
     String prefix, {
+    RealtimeQuery? query,
     required bool custom,
   }) async {
     try {
       final feeds = await loader();
       if (feeds.isEmpty) metadata.add(prefix, failed: true);
       for (final entry in feeds.entries) {
-        final key = '$prefix:${entry.key.id}';
+        final key = _RealtimeFeedCache.key('$prefix:${entry.key.id}', query);
         if (custom) {
           metadata.add(
             key,
@@ -200,7 +201,12 @@ class _RealtimeFeedAggregation {
       return feeds.map(
         (mode, feed) => MapEntry(
           mode,
-          _LoadedRealtimeFeed.fromSource(feed, '$prefix:${mode.id}', 0, custom),
+          _LoadedRealtimeFeed.fromSource(
+            feed,
+            _RealtimeFeedCache.key('$prefix:${mode.id}', query),
+            0,
+            custom,
+          ),
         ),
       );
     } catch (_) {

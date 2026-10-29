@@ -232,3 +232,8 @@ This workflow distributes APKs through GitHub; it does not publish to Google Pla
 
 No Android signing secrets are required. GitHub publication uses the workflow's
 automatically provided `GITHUB_TOKEN`.
+
+## Optional Firebase transport cache
+
+See [shared cache setup](../backend/README.md). Leaving `FIREBASE_CACHE_URL` empty
+keeps normal provider fetching; the optional backend is deployed separately.

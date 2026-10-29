@@ -62,17 +62,44 @@ extension _RealtimeMapVehicleLoading on _RealtimeMapWidgetState {
             },
           );
         } else {
-          if (ApiKeyService.getEffectiveApiKey().isEmpty) {
+          if (ApiKeyService.getEffectiveApiKey().isEmpty &&
+              !RealtimeService.usesSharedCache) {
             mapPositions = const <TransportMode, FeedMessage?>{};
             metadata = const RealtimeSnapshotMetadata(
               failedSources: {'positions'},
             );
           } else {
-            mapPositions = await RealtimeService.getAllRealtimePositions();
+            if (RealtimeService.usesSharedCache) {
+              final selected = widget.transportMode ?? widget.mode;
+              final modes = selected == null
+                  ? TransportMode.values
+                  : [selected];
+              final query = _mapQuery();
+              final feeds = await Future.wait(
+                modes.map(
+                  (mode) async => MapEntry(
+                    mode,
+                    await RealtimeService.getPositionsForTransportMode(
+                      mode,
+                      query: query,
+                    ),
+                  ),
+                ),
+              );
+              mapPositions = Map.fromEntries(feeds);
+              metadata = RealtimeService.metadataForVehicleModes(
+                modes,
+                query: query,
+              );
+            } else {
+              mapPositions = await RealtimeService.getAllRealtimePositions();
+            }
             final selectedMode = widget.transportMode ?? widget.mode;
-            metadata = RealtimeService.metadataForVehicleModes(
-              selectedMode == null ? mapPositions.keys : [selectedMode],
-            );
+            if (!RealtimeService.usesSharedCache) {
+              metadata = RealtimeService.metadataForVehicleModes(
+                selectedMode == null ? mapPositions.keys : [selectedMode],
+              );
+            }
           }
         }
         if (!mounted || generation != _loadGeneration) return;

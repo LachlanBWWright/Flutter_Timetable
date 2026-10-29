@@ -50,6 +50,11 @@ void main() {
         ),
       );
 
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Regions and providers'));
+      await tester.tap(find.text('Regions and providers'));
+      await tester.pumpAndSettle();
+
       for (final region in enabledRegions) {
         final attribution = AppTransitContext.instance
             .servicesFor(region)
@@ -96,6 +101,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Diagnostics'));
+    await tester.tap(find.text('Diagnostics'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Browse route debug pages'),
       500,

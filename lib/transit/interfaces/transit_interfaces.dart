@@ -1,4 +1,5 @@
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/transit/cache/realtime_query.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 
 class StopSearchRequest {
@@ -39,9 +40,10 @@ class StaticImportProgress {
 }
 
 class RealtimeRequest {
-  const RealtimeRequest({this.sourceId});
+  const RealtimeRequest({this.sourceId, this.query});
 
   final TransitSourceId? sourceId;
+  final RealtimeQuery? query;
 }
 
 class RealtimeSnapshot<T> {

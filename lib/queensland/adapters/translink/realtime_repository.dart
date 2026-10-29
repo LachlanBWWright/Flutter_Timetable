@@ -8,7 +8,7 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
     RealtimeRequest request,
   ) async {
     final feedSetId = _feedIdFromSource(request.sourceId?.value ?? 'qld:SEQ');
-    final feed = await fetchTranslinkAlerts(feedSetId);
+    final feed = await fetchTranslinkAlerts(feedSetId, query: request.query);
     final alerts = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasAlert())
         .map(
@@ -23,7 +23,7 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: alerts, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: alerts, fetchedAt: feedFetchedAt(feed));
   }
 
   @override
@@ -31,7 +31,10 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
     RealtimeRequest request,
   ) async {
     final feedSetId = _feedIdFromSource(request.sourceId?.value ?? 'qld:SEQ');
-    final feed = await fetchTranslinkTripUpdates(feedSetId);
+    final feed = await fetchTranslinkTripUpdates(
+      feedSetId,
+      query: request.query,
+    );
     final updates = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasTripUpdate())
         .map(
@@ -50,7 +53,7 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: updates, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: updates, fetchedAt: feedFetchedAt(feed));
   }
 
   @override
@@ -58,7 +61,10 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
     RealtimeRequest request,
   ) async {
     final feedSetId = _feedIdFromSource(request.sourceId?.value ?? 'qld:SEQ');
-    final feed = await fetchTranslinkVehiclePositions(feedSetId);
+    final feed = await fetchTranslinkVehiclePositions(
+      feedSetId,
+      query: request.query,
+    );
     final vehicles = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasVehicle())
         .map(
@@ -73,6 +79,6 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: vehicles, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: vehicles, fetchedAt: feedFetchedAt(feed));
   }
 }

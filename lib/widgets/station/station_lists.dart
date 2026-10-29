@@ -86,15 +86,16 @@ class SelectedStationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Row(
       children: [
-        Align(child: Text('$label: $stationName', textAlign: TextAlign.center)),
-        Positioned(
-          right: 0,
-          child: InkWell(
-            onTap: onCancel,
-            child: const Icon(Icons.cancel, size: 12),
-          ),
+        Expanded(
+          child: Text('$label: $stationName', textAlign: TextAlign.center),
+        ),
+        IconButton(
+          onPressed: onCancel,
+          tooltip: 'Clear ${label.toLowerCase()} stop $stationName',
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          icon: const Icon(Icons.cancel),
         ),
       ],
     );

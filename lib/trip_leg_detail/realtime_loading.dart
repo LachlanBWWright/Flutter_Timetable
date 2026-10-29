@@ -133,7 +133,13 @@ extension _RealtimeLoading on _TripLegDetailScreenState {
         breakdown: <String, int>{},
       );
     }
-    return RealtimeService.getVehiclePositionsForModeSafe(mode);
+    return RealtimeService.getVehiclePositionsForModeSafe(
+      mode,
+      query: RealtimeQuery(
+        tripIds: _collectTripIdsForActiveLeg(),
+        routeId: _legRouteId(),
+      ),
+    );
   }
 
   Future<TripUpdateAggregationResult> _loadTripUpdateAggregate() async {
@@ -159,7 +165,13 @@ extension _RealtimeLoading on _TripLegDetailScreenState {
         breakdown: <String, int>{},
       );
     }
-    return RealtimeService.getTripUpdatesForModeSafe(mode);
+    return RealtimeService.getTripUpdatesForModeSafe(
+      mode,
+      query: RealtimeQuery(
+        tripIds: _collectTripIdsForActiveLeg(),
+        routeId: _legRouteId(),
+      ),
+    );
   }
 
   // Kept as screen-level adapters for map and stop-loading parts that share

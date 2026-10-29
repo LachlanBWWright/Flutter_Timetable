@@ -9,14 +9,18 @@ import 'package:lbww_flutter/debug/screens/debug_entity_screen.dart';
 import 'package:lbww_flutter/main.dart';
 import 'package:lbww_flutter/new_trip.dart';
 import 'package:lbww_flutter/previews/preview_fixtures.dart';
+
 import 'package:lbww_flutter/set_home_stop_screen.dart';
 import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/trip_composer_screen.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/trip_legs_screen.dart';
+import 'package:lbww_flutter/vehicle_finder/screen.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
+
+export 'active_journey_preview.dart';
 
 Future<DebugPageData> previewDebugLoader(DebugEntityRequest request) async =>
     previewDebugPage;
@@ -179,3 +183,11 @@ Widget debugEntityScreenPreview() => const DebugEntityScreen(
     loader: previewDebugLoader,
   ),
 );
+
+@Preview(
+  name: 'Find my vehicle',
+  group: 'Pages',
+  size: Size(430, 850),
+  wrapper: appPreviewWrapper,
+)
+Widget vehicleFinderPagePreview() => const VehicleFinderScreen();

@@ -50,6 +50,8 @@ void main() {
     (name: '9_realtime_map', builder: realtimeMapPagePreview),
     (name: '10_stops_map', builder: stopsMapPagePreview),
     (name: '11_debug_entity', builder: debugEntityScreenPreview),
+    (name: '15_vehicle_finder', builder: vehicleFinderPagePreview),
+    (name: '16_running_service', builder: runningServicePagePreview),
   ];
 
   for (final page in pages) {

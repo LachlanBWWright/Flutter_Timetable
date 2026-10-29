@@ -79,6 +79,19 @@ class TripCacheRepository {
     return entry == null ? null : _snapshot(entry);
   }
 
+  /// Read a stored service without dropping departures already boarded.
+  /// This path never fetches transport data or changes the departure list.
+  Future<TripCacheSnapshot?> getRetainedSnapshot(
+    String origin,
+    String destination,
+  ) async {
+    final pending = _persistence;
+    if (pending != null) await pending;
+    final entry =
+        _memory['$origin|$destination'] ?? await readCache(origin, destination);
+    return entry == null ? null : _snapshot(entry, includeDeparted: true);
+  }
+
   void _notifyChanged() {
     if (_notificationQueued) return;
     _notificationQueued = true;
@@ -178,7 +191,10 @@ class TripCacheRepository {
     }
     switch (result) {
       case Ok(:final v):
-        final updated = TripCacheEntry(response: v, fetchedAt: clock());
+        final updated = TripCacheEntry(
+          response: v,
+          fetchedAt: v.fetchedAt ?? clock(),
+        );
         if (current()) {
           _remember(key, updated);
           try {
@@ -214,12 +230,20 @@ class TripCacheRepository {
     }
   }
 
-  TripCacheSnapshot _snapshot(TripCacheEntry entry, {String? error}) {
+  TripCacheSnapshot _snapshot(
+    TripCacheEntry entry, {
+    String? error,
+    bool includeDeparted = false,
+  }) {
     final age = clock().difference(entry.fetchedAt);
     final expired = age.isNegative || age >= renderableFor;
     final refreshError = error ?? entry.error;
     return TripCacheSnapshot(
-      response: expired ? null : _upcoming(entry.response),
+      response: expired
+          ? null
+          : includeDeparted
+          ? entry.response
+          : _upcoming(entry.response),
       fetchedAt: entry.fetchedAt,
       error: refreshError,
       isFresh: !expired && age < freshFor && refreshError == null,
@@ -251,6 +275,7 @@ class TripCacheRepository {
     systemMessages: response.systemMessages,
     version: response.version,
     rawJson: response.rawJson,
+    fetchedAt: response.fetchedAt,
   );
 
   void _remember(String key, TripCacheEntry entry) {

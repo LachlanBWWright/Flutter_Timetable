@@ -13,7 +13,7 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
     if (url == null) {
       return RealtimeSnapshot(items: const [], fetchedAt: DateTime.now());
     }
-    final feed = await _fetchFeed(url);
+    final feed = await _fetchFeed(url, query: request.query);
     final alerts = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasAlert())
         .map(
@@ -28,7 +28,7 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: alerts, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: alerts, fetchedAt: feedFetchedAt(feed));
   }
 
   @override
@@ -40,6 +40,7 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
       legacyUrl.isNotEmpty
           ? legacyUrl
           : _feedSet(request.sourceId).tripUpdatesUrl,
+      query: request.query,
     );
     final updates = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasTripUpdate())
@@ -61,7 +62,7 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: updates, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: updates, fetchedAt: feedFetchedAt(feed));
   }
 
   @override
@@ -73,6 +74,7 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
       legacyUrl.isNotEmpty
           ? legacyUrl
           : _feedSet(request.sourceId).vehiclePositionsUrl,
+      query: request.query,
     );
     final vehicles = (feed?.entity ?? const <FeedEntity>[])
         .where((entity) => entity.hasVehicle())
@@ -88,16 +90,17 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: vehicles, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: vehicles, fetchedAt: feedFetchedAt(feed));
   }
 
-  Future<FeedMessage?> _fetchFeed(String url) async {
+  Future<FeedMessage?> _fetchFeed(String url, {RealtimeQuery? query}) async {
     final uri = tryParseUriValue(url);
     final apiKey = _readEnv('VICTORIA_OPEN_DATA_API_KEY');
     final response = uri == null
         ? null
         : await AppHttpClient.get(
             uri,
+            query: query,
             headers: {
               'Accept': 'application/x-protobuf',
               if (apiKey.isNotEmpty) 'KeyID': apiKey,
@@ -108,7 +111,10 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
         message: 'Failed to fetch Victoria realtime feed.',
       );
     }
-    return FeedMessage.fromBuffer(response.bodyBytes);
+    return rememberFeedFetch<FeedMessage>(
+      FeedMessage.fromBuffer(response.bodyBytes),
+      response,
+    );
   }
 
   VictoriaRealtimeFeedSet _feedSet(TransitSourceId? sourceId) {

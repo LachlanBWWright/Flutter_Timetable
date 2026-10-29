@@ -11,6 +11,7 @@ the Flutter version pinned in `.fvmrc`; otherwise they use `flutter` on `PATH`.
 | `./scripts/dev_web.sh [Flutter args]` | Start the web development server with hot reload |
 | `./scripts/format.sh` | Apply Dart formatting |
 | `./scripts/lint.sh` | Check formatting and run static analysis |
+| `./scripts/profile.sh <device-id>` | Run device performance scenarios and save frame/GC/memory reports |
 | `./scripts/test.sh [test args]` | Run deterministic tests only |
 | `./scripts/test_integration.sh [test args]` | Run credential-dependent integration tests |
 | `./scripts/ci.sh [nsw\|all-regions] [test args]` | Run format, analysis, and deterministic tests in an explicit region configuration (defaults to `nsw`) |
@@ -36,3 +37,6 @@ It binds to `127.0.0.1` so Flutter's browser debugging URLs remain valid. Set
 
 Integration tests need valid provider credentials in `.env`. Android release
 builds also require an installed Android SDK and a compatible Java toolchain.
+
+See [performance profiling](../docs/performance-profiling.md) for scenarios,
+report interpretation, and the manual profiling workflow.

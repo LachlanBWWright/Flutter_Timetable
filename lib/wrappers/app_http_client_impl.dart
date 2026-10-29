@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../logs/logger.dart';
+import '../transit/cache/realtime_query.dart';
+import '../transit/cache/shared_transit_cache.dart';
 import '../transit/errors/transit_failure.dart';
 import 'app_http_retry_policy.dart';
 
@@ -17,7 +19,18 @@ class AppHttpClient {
     Duration timeout = _defaultTimeout,
     int retries = _defaultRetries,
     http.Client? client,
+    RealtimeQuery? query,
+    bool useSharedCache = true,
+    SharedTransitCache? sharedCache,
   }) async {
+    if (useSharedCache) {
+      final cached = await (sharedCache ?? SharedTransitCache.instance).lookup(
+        uri,
+        query: query,
+        client: client,
+      );
+      if (cached != null) return cached;
+    }
     final attempts = retries.clamp(0, 4).toInt() + 1;
     final ownsClient = client == null;
     final activeClient = client ?? http.Client();
@@ -105,6 +118,7 @@ class AppHttpClient {
     Duration timeout = _defaultTimeout,
     int retries = _defaultRetries,
     http.Client? client,
+    RealtimeQuery? query,
   }) async {
     final response = await get(
       uri,
@@ -112,6 +126,7 @@ class AppHttpClient {
       timeout: timeout,
       retries: retries,
       client: client,
+      query: query,
     );
     if (response == null) {
       throw const NetworkUnavailable(message: 'Network request failed.');
@@ -143,14 +158,34 @@ class AppHttpClient {
 class BoundedHttpClient extends http.BaseClient {
   BoundedHttpClient({
     http.Client? inner,
+    SharedTransitCache? sharedCache,
+    this.useSharedCache = true,
     this.timeout = const Duration(seconds: 20),
-  }) : _inner = inner ?? http.Client();
+  }) : _inner = inner ?? http.Client(),
+       _sharedCache = sharedCache;
 
+  final bool useSharedCache;
+  final SharedTransitCache? _sharedCache;
   final http.Client _inner;
   final Duration timeout;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (useSharedCache && request.method == 'GET') {
+      final cached = await (_sharedCache ?? SharedTransitCache.instance).lookup(
+        request.url,
+        client: _inner,
+      );
+      if (cached != null) {
+        return http.StreamedResponse(
+          Stream.value(cached.bodyBytes),
+          cached.statusCode,
+          headers: cached.headers,
+          request: request,
+          contentLength: cached.bodyBytes.length,
+        );
+      }
+    }
     final stopwatch = Stopwatch()..start();
     final abort = Completer<void>();
     final requestBody = request.finalize();

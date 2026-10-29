@@ -38,6 +38,7 @@ extension _SettingsPreferencesSections on _SettingsScreenState {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<TransitRegion>(
+              isExpanded: true,
               key: ValueKey((selectedRegion, _preferenceFormGeneration)),
               initialValue: selectedRegion,
               items: enabledRegions
@@ -71,7 +72,9 @@ extension _SettingsPreferencesSections on _SettingsScreenState {
             const SizedBox(height: 4),
             Text(
               _capabilitySummary(currentServices),
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -96,6 +99,7 @@ extension _SettingsPreferencesSections on _SettingsScreenState {
               valueListenable: AppAppearanceService.themeMode,
               builder: (context, themeMode, child) {
                 return DropdownButtonFormField<ThemeMode>(
+                  isExpanded: true,
                   key: ValueKey((themeMode, _preferenceFormGeneration)),
                   initialValue: themeMode,
                   items: const [

@@ -125,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings & Management'),
+        title: const Text('Settings'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         foregroundColor: getContrastingForeground(
           Theme.of(context).colorScheme.inversePrimary,
@@ -134,33 +134,50 @@ class _SettingsScreenState extends State<SettingsScreen>
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildRegionsSection(),
             _buildAppearanceSection(),
-            _buildAttributionSection(),
-            // Map access section
-            _buildMapSection(),
-            ...enabledRegions.map(
-              (region) => _buildProviderCredentialsCard(
-                region,
-                hasBuiltInTfnswKey: hasBuiltInApiKey,
-              ),
-            ),
-            // Home Stop section
             _buildHomeStopSection(),
-            // Transport options section
             if (selectedRegion == TransitRegion.nsw)
               _buildTransportOptionsSection(),
-            // Debug toggle (persisted via DebugService)
-            _buildDeveloperOptionsSection(),
-            widget.stopsManagementWidget ??
-                StopsManagementWidget(
-                  debugPageLoader: _debugPageLoader,
-                  debugListLoader: _debugListLoader,
+            _buildMapSection(),
+            ExpansionTile(
+              key: const ValueKey('settings-regions'),
+              leading: const Icon(Icons.public),
+              title: const Text('Regions and providers'),
+              subtitle: Text(selectedRegion.label),
+              children: [
+                _buildRegionsSection(),
+                ...enabledRegions.map(
+                  (region) => _buildProviderCredentialsCard(
+                    region,
+                    hasBuiltInTfnswKey: hasBuiltInApiKey,
+                  ),
                 ),
-            widget.stopsSearchWidget ?? const StopsSearchWidget(),
-            // Data update / management section
-            _buildDataManagementSection(),
-            widget.realtimeInfoWidget ?? const RealtimeInfoWidget(),
+                _buildAttributionSection(),
+              ],
+            ),
+            ExpansionTile(
+              key: const ValueKey('settings-data'),
+              leading: const Icon(Icons.download_outlined),
+              title: const Text('Offline data'),
+              subtitle: const Text('Download and manage transport data'),
+              children: [_buildDataManagementSection()],
+            ),
+            ExpansionTile(
+              key: const ValueKey('settings-diagnostics'),
+              leading: const Icon(Icons.bug_report_outlined),
+              title: const Text('Diagnostics'),
+              subtitle: const Text('Debug tools and transport data browsers'),
+              children: [
+                _buildDeveloperOptionsSection(),
+                widget.stopsManagementWidget ??
+                    StopsManagementWidget(
+                      debugPageLoader: _debugPageLoader,
+                      debugListLoader: _debugListLoader,
+                    ),
+                widget.stopsSearchWidget ?? const StopsSearchWidget(),
+                widget.realtimeInfoWidget ?? const RealtimeInfoWidget(),
+              ],
+            ),
           ],
         ),
       ),

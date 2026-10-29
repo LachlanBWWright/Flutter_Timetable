@@ -9,7 +9,10 @@ class AdelaideMetroRealtimeRepository implements RealtimeRepository {
   Future<RealtimeSnapshot<TransitAlert>> getAlerts(
     RealtimeRequest request,
   ) async {
-    final feed = await _fetchFeed(adelaideMetroServiceAlertsUrl);
+    final feed = await _fetchFeed(
+      adelaideMetroServiceAlertsUrl,
+      query: request.query,
+    );
     final alerts = (feed?.entity ?? const <sa_pb.FeedEntity>[])
         .where((entity) => entity.hasAlert())
         .map(
@@ -24,14 +27,17 @@ class AdelaideMetroRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: alerts, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: alerts, fetchedAt: feedFetchedAt(feed));
   }
 
   @override
   Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(
     RealtimeRequest request,
   ) async {
-    final feed = await _fetchFeed(adelaideMetroTripUpdatesUrl);
+    final feed = await _fetchFeed(
+      adelaideMetroTripUpdatesUrl,
+      query: request.query,
+    );
     final updates = (feed?.entity ?? const <sa_pb.FeedEntity>[])
         .where((entity) => entity.hasTripUpdate())
         .map(
@@ -50,14 +56,17 @@ class AdelaideMetroRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: updates, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: updates, fetchedAt: feedFetchedAt(feed));
   }
 
   @override
   Future<RealtimeSnapshot<TransitVehicle>> getVehiclePositions(
     RealtimeRequest request,
   ) async {
-    final feed = await _fetchFeed(adelaideMetroVehiclePositionsUrl);
+    final feed = await _fetchFeed(
+      adelaideMetroVehiclePositionsUrl,
+      query: request.query,
+    );
     final vehicles = (feed?.entity ?? const <sa_pb.FeedEntity>[])
         .where((entity) => entity.hasVehicle())
         .map(
@@ -72,18 +81,22 @@ class AdelaideMetroRealtimeRepository implements RealtimeRepository {
           ),
         )
         .toList(growable: false);
-    return RealtimeSnapshot(items: vehicles, fetchedAt: DateTime.now());
+    return RealtimeSnapshot(items: vehicles, fetchedAt: feedFetchedAt(feed));
   }
 
-  Future<sa_pb.FeedMessage?> _fetchFeed(String url) async {
+  Future<sa_pb.FeedMessage?> _fetchFeed(
+    String url, {
+    RealtimeQuery? query,
+  }) async {
     final response = await AppHttpClient.getOrThrow(
       Uri.parse(url),
       headers: const {'Accept': 'application/x-google-protobuf'},
+      query: query,
     );
     try {
-      return sa_pb.FeedMessage.fromBuffer(
-        response.bodyBytes,
-        _extensionRegistry,
+      return rememberFeedFetch<sa_pb.FeedMessage>(
+        sa_pb.FeedMessage.fromBuffer(response.bodyBytes, _extensionRegistry),
+        response,
       );
     } catch (error, stackTrace) {
       safeLogWarning(

@@ -8,6 +8,7 @@ import 'package:lbww_flutter/nsw/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/queensland/translink/translink.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
+import 'package:lbww_flutter/transit/cache/feed_freshness.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/gtfs/gtfs_journey_planner.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';

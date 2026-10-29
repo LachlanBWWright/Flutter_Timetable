@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lbww_flutter/schema/database.dart';
 
+import '../../active_journey/indicator.dart';
 import 'journey_next_trip_subtitle.dart';
 
 class JourneyDirectionButton extends StatelessWidget {
@@ -37,6 +38,7 @@ class JourneyDirectionButton extends StatelessWidget {
           ),
           if (showNextTripTimes)
             JourneyNextTripSubtitle(journey: journey, reverse: reverse),
+          ActiveJourneyIndicator(journey: journey, reverse: reverse),
         ],
       ),
     ),

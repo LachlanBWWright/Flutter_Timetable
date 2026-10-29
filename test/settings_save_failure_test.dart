@@ -29,7 +29,10 @@ class _FailingPreferences extends InMemorySharedPreferencesStore {
 }
 
 void main() {
-  Future<void> showSettings(WidgetTester tester) async {
+  Future<void> showSettings(
+    WidgetTester tester, {
+    bool credentials = true,
+  }) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: SettingsScreen(
@@ -40,6 +43,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    if (credentials) {
+      await tester.ensureVisible(find.text('Regions and providers'));
+      await tester.tap(find.text('Regions and providers'));
+      await tester.pumpAndSettle();
+    }
   }
 
   Future<void> reveal(WidgetTester tester, Finder finder) async {
@@ -135,7 +143,7 @@ void main() {
   ) async {
     final preferences = _FailingPreferences()..pendingWrite = Completer<bool>();
     SharedPreferencesStorePlatform.instance = preferences;
-    await showSettings(tester);
+    await showSettings(tester, credentials: false);
     final theme = find.byWidgetPredicate(
       (widget) => widget is DropdownButtonFormField<ThemeMode>,
     );
@@ -189,7 +197,7 @@ void main() {
     tester,
   ) async {
     SharedPreferencesStorePlatform.instance = _FailingPreferences();
-    await showSettings(tester);
+    await showSettings(tester, credentials: false);
     await reveal(tester, find.text('System default'));
     await tester.tap(find.text('System default'));
     await tester.pumpAndSettle();
