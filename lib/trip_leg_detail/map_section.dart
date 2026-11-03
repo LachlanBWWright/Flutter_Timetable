@@ -52,7 +52,7 @@ extension _MapSection on _TripLegDetailScreenState {
     );
   }
 
-  /// Returns the map widget filling all available space (used in the
+  /// Builds the full-width map directly below the app bar.
   Widget _buildMapCard(
     String? transportId,
     TransportMode? mode,
@@ -70,47 +70,31 @@ extension _MapSection on _TripLegDetailScreenState {
     }
 
     if (!_showEmbeddedMap) {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 16.0),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: const SizedBox(
-          height: 300,
-          child: Center(child: CircularProgressIndicator()),
-        ),
+      return const SizedBox(
+        height: 300,
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: SizedBox(
-        height: 300,
-        child: Stack(
-          children: [
-            _buildRealtimeMapWidget(transportId, mode, leg, additionalLegs),
-            Positioned(
-              bottom: 8,
-              right: 8,
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: IconButton(
-                  icon: const Icon(Icons.fullscreen),
-                  color: modeColor,
-                  tooltip: 'Open fullscreen map',
-                  onPressed: _openFullscreenMap,
-                ),
+    return SizedBox(
+      height: 300,
+      child: Stack(
+        children: [
+          _buildRealtimeMapWidget(transportId, mode, leg, additionalLegs),
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: IconButton(
+                icon: const Icon(Icons.fullscreen),
+                color: modeColor,
+                tooltip: 'Open fullscreen map',
+                onPressed: _openFullscreenMap,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

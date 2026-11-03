@@ -1,38 +1,38 @@
 part of 'package:lbww_flutter/schema/database.dart';
 
 // Drift table for stops
-class Stops extends SafeTable {
-  TextColumn get stopId => safeTextColumn();
+class Stops extends Table {
+  TextColumn get stopId => text()();
 
-  TextColumn get stopName => safeTextColumn();
+  TextColumn get stopName => text()();
 
-  TextColumn get stopCode => safeTextColumn(nullable: true);
+  TextColumn get stopCode => text().nullable()();
 
-  TextColumn get ttsStopName => safeTextColumn(nullable: true);
+  TextColumn get ttsStopName => text().nullable()();
 
-  TextColumn get stopDesc => safeTextColumn(nullable: true);
+  TextColumn get stopDesc => text().nullable()();
 
-  TextColumn get zoneId => safeTextColumn(nullable: true);
+  TextColumn get zoneId => text().nullable()();
 
-  TextColumn get stopUrl => safeTextColumn(nullable: true);
+  TextColumn get stopUrl => text().nullable()();
 
-  TextColumn get stopTimezone => safeTextColumn(nullable: true);
+  TextColumn get stopTimezone => text().nullable()();
 
-  TextColumn get levelId => safeTextColumn(nullable: true);
+  TextColumn get levelId => text().nullable()();
 
-  RealColumn get stopLat => safeRealColumn(nullable: true);
+  RealColumn get stopLat => real().nullable()();
 
-  RealColumn get stopLon => safeRealColumn(nullable: true);
+  RealColumn get stopLon => real().nullable()();
 
-  IntColumn get locationType => safeIntColumn(nullable: true);
+  IntColumn get locationType => integer().nullable()();
 
-  TextColumn get parentStation => safeTextColumn(nullable: true);
+  TextColumn get parentStation => text().nullable()();
 
-  IntColumn get wheelchairBoarding => safeIntColumn(nullable: true);
+  IntColumn get wheelchairBoarding => integer().nullable()();
 
-  TextColumn get platformCode => safeTextColumn(nullable: true);
+  TextColumn get platformCode => text().nullable()();
 
-  TextColumn get endpoint => safeTextColumn();
+  TextColumn get endpoint => text()();
 
   @override
   Set<Column> get primaryKey => {stopId, endpoint};

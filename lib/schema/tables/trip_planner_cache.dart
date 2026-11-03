@@ -1,15 +1,15 @@
 part of 'package:lbww_flutter/schema/database.dart';
 
-class TripPlannerCache extends SafeTable {
-  TextColumn get originId => safeTextColumn();
+class TripPlannerCache extends Table {
+  TextColumn get originId => text()();
 
-  TextColumn get destinationId => safeTextColumn();
+  TextColumn get destinationId => text()();
 
-  DateTimeColumn get fetchedAt => safeDateTimeColumn();
+  DateTimeColumn get fetchedAt => dateTime()();
 
-  TextColumn get responseJson => safeTextColumn(nullable: true);
+  TextColumn get responseJson => text().nullable()();
 
-  TextColumn get error => safeTextColumn(nullable: true);
+  TextColumn get error => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {originId, destinationId};

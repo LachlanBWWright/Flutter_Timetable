@@ -373,20 +373,27 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
           return RefreshIndicator(
             onRefresh: _retryRealtimeFeeds,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildMapCard(transportId, mode, leg, modeColor, otherLegs),
-                  _buildInfoCard(
-                    originName,
-                    destinationName,
-                    modeColor,
-                    origin,
-                    destination,
-                    leg,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                    child: Column(
+                      children: [
+                        _buildInfoCard(
+                          originName,
+                          destinationName,
+                          modeColor,
+                          origin,
+                          destination,
+                          leg,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildDebugCards(leg, transportId, modeColor),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  _buildDebugCards(leg, transportId, modeColor),
                 ],
               ),
             ),

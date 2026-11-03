@@ -1,7 +1,12 @@
 part of '../new_trip.dart';
 
 extension _TripSelection on _NewTripScreenState {
-  Future<void> _selectStation(Station selectedStation) async {
+  Future<void> _selectStation(
+    Station selectedStation, {
+    _StopTarget? target,
+    int? index,
+  }) async {
+    if (_isApplyingStop || _isSavingTrip) return;
     final selectedRegion =
         selectedStation.transitRef?.region ?? TransitRegion.nsw;
     if (_draftRegion != null && selectedRegion != _draftRegion) {
@@ -14,15 +19,31 @@ extension _TripSelection on _NewTripScreenState {
       );
       return;
     }
+    if (target == _StopTarget.addInterchange &&
+        (index == null || index < 0 || index > _interchanges.length)) {
+      return;
+    }
+    if (target == _StopTarget.editInterchange &&
+        (index == null || index < 0 || index >= _interchanges.length)) {
+      return;
+    }
     _invalidateDraftLookups();
     final draft = _captureDraftLookup();
     final id = selectedStation.id;
-    final mode =
-        selectedStation.mode ??
-        await StopsService.resolveModeForStopId(
-          id,
-          preferredMode: selectedStation.mode,
-        );
+    guardedSetState(() => _isApplyingStop = true);
+    TransportMode? mode;
+    try {
+      mode =
+          selectedStation.mode ??
+          (widget.skipInitialLoad
+              ? _currentMode
+              : await StopsService.resolveModeForStopId(
+                  id,
+                  preferredMode: selectedStation.mode,
+                ));
+    } finally {
+      if (mounted) guardedSetState(() => _isApplyingStop = false);
+    }
     if (!_isCurrentDraftLookup(draft) || mode == null) {
       return;
     }
@@ -34,92 +55,90 @@ extension _TripSelection on _NewTripScreenState {
       return;
     }
 
-    if (_manualBuilderEnabled && _pendingInterchangeInsertIndex != null) {
-      _insertInterchange(station);
+    final selectedTarget =
+        target ??
+        (_originStation == null ? _StopTarget.origin : _StopTarget.destination);
+    if ((selectedTarget == _StopTarget.origin &&
+            _destinationStation != null &&
+            _persistedStopId(station) ==
+                _persistedStopId(_destinationStation!)) ||
+        (selectedTarget == _StopTarget.destination &&
+            _originStation != null &&
+            _persistedStopId(station) == _persistedStopId(_originStation!))) {
+      showSnackBar(
+        const SnackBar(
+          content: Text('Origin and destination cannot be the same stop.'),
+        ),
+      );
       return;
     }
-
-    if (_originStation == null) {
-      guardedSetState(() {
-        _draftRegion = selectedRegion;
-        _originStation = station;
-        _originMode = mode;
-        keyController.clear();
-      });
-      _resetManualDraft(clearSharedLines: true, keepDestination: false);
-      await _loadOriginLineCandidates();
-      return;
-    }
-
-    if (_destinationStation == null) {
-      guardedSetState(() {
-        _destinationStation = station;
-        _destinationMode = mode;
-        keyController.clear();
-        _showMapView = false;
-      });
+    guardedSetState(() {
+      _draftRegion = selectedRegion;
+      switch (selectedTarget) {
+        case _StopTarget.origin:
+          _originStation = station;
+          _originMode = mode;
+        case _StopTarget.destination:
+          _destinationStation = station;
+          _destinationMode = mode;
+        case _StopTarget.addInterchange:
+          _interchanges.insert(index!, station);
+          _manualBuilderEnabled = true;
+        case _StopTarget.editInterchange:
+          _interchanges[index!] = station;
+      }
+      if (selectedTarget == _StopTarget.origin ||
+          selectedTarget == _StopTarget.destination) {
+        _sharedLines = [];
+        _originLineCandidates = [];
+        _selectedLine = null;
+        _sameLineDestinationStations = [];
+        _filterDestinationsToSameLine = false;
+      }
+    });
+    _applySearchFilter();
+    if (widget.skipInitialLoad) return;
+    if (_originStation != null && _destinationStation != null) {
       await _resolveSharedLines();
-      return;
+    } else if (_originStation != null) {
+      await _loadOriginLineCandidates();
     }
-
-    if (!mounted) return;
-    showSnackBar(
-      const SnackBar(
-        content: Text('Clear a selected stop before choosing another one.'),
-      ),
-    );
   }
 
   Station? _resolveStation(String id, String stationName, TransportMode mode) {
     for (final station in _getStationListForMode(mode)) {
       if (station.id == id) {
-        return station;
+        return station.copyWith(mode: mode);
       }
     }
 
-    return Station(name: stationName, id: id);
+    return Station(name: stationName, id: id, mode: mode);
   }
 
-  void _clearOrigin() {
-    guardedSetState(() {
-      _originStation = null;
-      _originMode = null;
-      if (_destinationStation == null) _draftRegion = null;
-    });
-    _resetManualDraft(clearSharedLines: true, keepDestination: false);
-  }
+  void _clearOrigin() => _clearEndpoint(origin: true);
 
-  void _clearDestination() {
-    guardedSetState(() {
-      _destinationStation = null;
-      _destinationMode = null;
-      if (_originStation == null) _draftRegion = null;
-    });
-    _resetManualDraft(clearSharedLines: true);
-  }
+  void _clearDestination() => _clearEndpoint(origin: false);
 
-  void _resetManualDraft({
-    bool clearSharedLines = false,
-    bool keepDestination = true,
-  }) {
+  void _clearEndpoint({required bool origin}) {
     _invalidateDraftLookups();
-    if (!keepDestination) {
-      _destinationStation = null;
-      _destinationMode = null;
-    }
-
     guardedSetState(() {
-      _manualBuilderEnabled = false;
-      _interchanges = [];
-      _pendingInterchangeInsertIndex = null;
-      _manualCandidateStations = [];
-      _filterDestinationsToSameLine = false;
-      _sameLineDestinationStations = [];
-      if (clearSharedLines) {
-        _sharedLines = [];
-        _originLineCandidates = [];
-        _selectedLine = null;
+      if (origin) {
+        _originStation = null;
+        _originMode = null;
+      } else {
+        _destinationStation = null;
+        _destinationMode = null;
       }
+      if (_originStation == null &&
+          _destinationStation == null &&
+          _interchanges.isEmpty) {
+        _draftRegion = null;
+      }
+      _sharedLines = [];
+      _originLineCandidates = [];
+      _selectedLine = null;
+      _sameLineDestinationStations = [];
+      _filterDestinationsToSameLine = false;
     });
     _applySearchFilter();
   }
@@ -127,7 +146,7 @@ extension _TripSelection on _NewTripScreenState {
   Future<void> _loadOriginLineCandidates() async {
     final origin = _originStation;
     final originMode = _originMode;
-    if (origin == null || originMode == null) {
+    if (widget.skipInitialLoad || origin == null || originMode == null) {
       return;
     }
     if (_draftRegion != TransitRegion.nsw) {
@@ -243,7 +262,7 @@ extension _TripSelection on _NewTripScreenState {
     final originMode = _originMode;
     final destinationMode = _destinationMode;
 
-    if (origin == null || destination == null) {
+    if (widget.skipInitialLoad || origin == null || destination == null) {
       return;
     }
     if (_draftRegion != TransitRegion.nsw) {
@@ -283,8 +302,6 @@ extension _TripSelection on _NewTripScreenState {
       _isResolvingSharedLines = true;
       _sharedLines = [];
       _selectedLine = null;
-      _manualBuilderEnabled = false;
-      _interchanges = [];
       _pendingInterchangeInsertIndex = null;
       _manualCandidateStations = [];
     });

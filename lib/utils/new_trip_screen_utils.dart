@@ -114,24 +114,24 @@ String? buildNewTripStatusMessage({
 
   if (manualBuilderEnabled) {
     return manualValidationMessage ??
-        'Add interchanges before, between, or after stops to build multiple legs.';
+        'Add interchanges between stops to build multiple legs.';
   }
 
   if (canSaveDirect && sharedLines.isEmpty) {
     if (originMode != null &&
         destinationMode != null &&
         originMode != destinationMode) {
-      return 'These stops do not share a mode. You can still save them as a direct trip.';
+      return 'These stops use different transport modes. Review the route or add an interchange.';
     }
-    return 'No shared line found. You can still save this as a direct trip.';
+    return 'No shared line found. Check your stops or add an interchange.';
   }
 
   if (sharedLines.length == 1) {
-    return 'Save this two-stop trip, or add stops before, after, or between the selected stops.';
+    return 'These stops share a line. Save the trip or add an interchange.';
   }
 
   if (sharedLines.length > 1) {
-    return 'Save this two-stop trip, or add stops using the first matching shared line.';
+    return 'These stops share multiple lines. Save the trip or add an interchange.';
   }
 
   return null;

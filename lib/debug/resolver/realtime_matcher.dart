@@ -122,7 +122,7 @@ class DebugRealtimeMatcher {
       routeIds: routeIds,
     );
     final orderedCandidates = <TripUpdate>[
-      if (preferredTripUpdate != null) preferredTripUpdate,
+      ?preferredTripUpdate,
       ...candidates.where(
         (candidate) => !identical(candidate, preferredTripUpdate),
       ),

@@ -38,5 +38,16 @@ It binds to `127.0.0.1` so Flutter's browser debugging URLs remain valid. Set
 Integration tests need valid provider credentials in `.env`. Android release
 builds also require an installed Android SDK and a compatible Java toolchain.
 
+Use JDK 25 for Android builds with the project's Gradle 9.1.0 wrapper. Point
+Flutter at your local installation before using the Android scripts in `t3.json`:
+
+```bash
+flutter config --jdk-dir=/path/to/jdk-25
+```
+
+This setting applies to Flutter on your machine. The Android build uses Android
+Gradle Plugin 9.0.1 and Kotlin 2.3.21, with Flutter's legacy Kotlin and Android DSL
+compatibility flags enabled for existing plugins.
+
 See [performance profiling](../docs/performance-profiling.md) for scenarios,
 report interpretation, and the manual profiling workflow.

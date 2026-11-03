@@ -22,7 +22,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   Future<Response<V3DeparturesResponse>>
   _v3DeparturesRouteTypeRouteTypeStopStopIdGet({
     required String? routeType,
-    required int stopId,
+    required int? stopId,
     List<int>? platformNumbers,
     int? directionId,
     bool? gtfs,
@@ -77,8 +77,8 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   Future<Response<V3DeparturesResponse>>
   _v3DeparturesRouteTypeRouteTypeStopStopIdRouteRouteIdGet({
     required String? routeType,
-    required int stopId,
-    required String routeId,
+    required int? stopId,
+    required String? routeId,
     int? directionId,
     bool? gtfs,
     DateTime? dateUtc,
@@ -129,7 +129,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3DirectionsResponse>> _v3DirectionsRouteRouteIdGet({
-    required int routeId,
+    required int? routeId,
     String? token,
     String? devid,
     String? signature,
@@ -162,7 +162,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3DirectionsResponse>> _v3DirectionsDirectionIdGet({
-    required int directionId,
+    required int? directionId,
     String? token,
     String? devid,
     String? signature,
@@ -196,7 +196,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   @override
   Future<Response<V3DirectionsResponse>>
   _v3DirectionsDirectionIdRouteTypeRouteTypeGet({
-    required int directionId,
+    required int? directionId,
     required String? routeType,
     String? token,
     String? devid,
@@ -270,7 +270,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3DisruptionsResponse>> _v3DisruptionsRouteRouteIdGet({
-    required int routeId,
+    required int? routeId,
     String? disruptionStatus,
     String? token,
     String? devid,
@@ -306,8 +306,8 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   @override
   Future<Response<V3DisruptionsResponse>>
   _v3DisruptionsRouteRouteIdStopStopIdGet({
-    required int routeId,
-    required int stopId,
+    required int? routeId,
+    required int? stopId,
     String? disruptionStatus,
     String? token,
     String? devid,
@@ -344,7 +344,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3DisruptionsResponse>> _v3DisruptionsStopStopIdGet({
-    required int stopId,
+    required int? stopId,
     String? disruptionStatus,
     String? token,
     String? devid,
@@ -379,7 +379,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3DisruptionResponse>> _v3DisruptionsDisruptionIdGet({
-    required int disruptionId,
+    required int? disruptionId,
     String? token,
     String? devid,
     String? signature,
@@ -447,8 +447,8 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   @override
   Future<Response<V3FareEstimateResponse>>
   _v3FareEstimateMinZoneMinZoneMaxZoneMaxZoneGet({
-    required int minZone,
-    required int maxZone,
+    required int? minZone,
+    required int? maxZone,
     DateTime? journeyTouchOnUtc,
     DateTime? journeyTouchOffUtc,
     bool? isJourneyInFreeTramZone,
@@ -530,8 +530,8 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   @override
   Future<Response<V3OutletGeolocationResponse>>
   _v3OutletsLocationLatitudeLongitudeGet({
-    required num latitude,
-    required num longitude,
+    required num? latitude,
+    required num? longitude,
     num? maxDistance,
     int? maxResults,
     String? token,
@@ -571,7 +571,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3StoppingPattern>> _v3PatternRunRunRefRouteTypeRouteTypeGet({
-    required String runRef,
+    required String? runRef,
     required String? routeType,
     List<Object?>? expand,
     int? stopId,
@@ -655,7 +655,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3RouteResponse>> _v3RoutesRouteIdGet({
-    required int routeId,
+    required int? routeId,
     bool? includeGeopath,
     DateTime? geopathUtc,
     String? token,
@@ -724,7 +724,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3RunsResponse>> _v3RunsRouteRouteIdGet({
-    required int routeId,
+    required int? routeId,
     List<Object?>? expand,
     DateTime? dateUtc,
     bool? includeAdvertisedInterchange,
@@ -763,7 +763,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3RunsResponse>> _v3RunsRouteRouteIdRouteTypeRouteTypeGet({
-    required int routeId,
+    required int? routeId,
     required String? routeType,
     List<Object?>? expand,
     DateTime? dateUtc,
@@ -806,7 +806,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3RunsResponse>> _v3RunsRunRefGet({
-    required String runRef,
+    required String? runRef,
     bool? includeGeopath,
     List<Object?>? expand,
     DateTime? dateUtc,
@@ -847,7 +847,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3RunResponse>> _v3RunsRunRefRouteTypeRouteTypeGet({
-    required String runRef,
+    required String? runRef,
     required String? routeType,
     List<Object?>? expand,
     DateTime? dateUtc,
@@ -888,7 +888,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3SearchResult>> _v3SearchSearchTermGet({
-    required String searchTerm,
+    required String? searchTerm,
     List<Object?>? routeTypes,
     num? latitude,
     num? longitude,
@@ -940,7 +940,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
 
   @override
   Future<Response<V3StopResponse>> _v3StopsStopIdRouteTypeRouteTypeGet({
-    required int stopId,
+    required int? stopId,
     required String? routeType,
     bool? stopLocation,
     bool? stopAmenities,
@@ -992,7 +992,7 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   @override
   Future<Response<V3StopsOnRouteResponse>>
   _v3StopsRouteRouteIdRouteTypeRouteTypeGet({
-    required int routeId,
+    required int? routeId,
     required String? routeType,
     int? directionId,
     bool? stopDisruptions,
@@ -1041,8 +1041,8 @@ final class _$PtvTimetableV3 extends PtvTimetableV3 {
   @override
   Future<Response<V3StopsByDistanceResponse>>
   _v3StopsLocationLatitudeLongitudeGet({
-    required num latitude,
-    required num longitude,
+    required num? latitude,
+    required num? longitude,
     List<Object?>? routeTypes,
     int? maxResults,
     num? maxDistance,

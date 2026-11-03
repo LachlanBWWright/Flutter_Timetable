@@ -8,7 +8,11 @@ import 'package:lbww_flutter/wrappers/app_http_client_impl.dart';
 class PtvSignedClient {
   PtvSignedClient({PtvTimetableV3? client, PtvCredentials? credentials})
     : _client =
-          client ?? PtvTimetableV3.create(httpClient: BoundedHttpClient()),
+          client ??
+          PtvTimetableV3.create(
+            httpClient: BoundedHttpClient(),
+            baseUrl: Uri.parse('https://timetableapi.ptv.vic.gov.au'),
+          ),
       _credentialsOverride = credentials;
 
   final PtvTimetableV3 _client;

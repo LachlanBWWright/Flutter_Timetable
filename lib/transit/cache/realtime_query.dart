@@ -26,7 +26,7 @@ class RealtimeQuery {
   Map<String, Object> toJson() => {
     if (tripIds.isNotEmpty) 'tripIds': tripIds,
     if (vehicleId != null && vehicleId!.isNotEmpty) 'vehicleId': vehicleId!,
-    if (bounds != null) 'bounds': bounds!,
+    'bounds': ?bounds,
     if (routeId != null && routeId!.isNotEmpty) 'routeId': routeId!,
   };
   String get cacheKey => jsonEncode(toJson());

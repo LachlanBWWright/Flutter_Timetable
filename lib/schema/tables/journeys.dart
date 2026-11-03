@@ -1,26 +1,26 @@
 part of 'package:lbww_flutter/schema/database.dart';
 
 // Drift table for journeys
-class Journeys extends SafeTable {
-  IntColumn get id => safeIntColumn(autoIncrement: true);
+class Journeys extends Table {
+  IntColumn get id => integer().autoIncrement()();
 
-  TextColumn get origin => safeTextColumn();
+  TextColumn get origin => text()();
 
-  TextColumn get originId => safeTextColumn();
+  TextColumn get originId => text()();
 
-  TextColumn get destination => safeTextColumn();
+  TextColumn get destination => text()();
 
-  TextColumn get destinationId => safeTextColumn();
+  TextColumn get destinationId => text()();
 
-  TextColumn get tripType => safeTextColumn(defaultValue: 'direct');
+  TextColumn get tripType => text().withDefault(const Constant('direct'))();
 
-  TextColumn get mode => safeTextColumn(nullable: true);
+  TextColumn get mode => text().nullable()();
 
-  TextColumn get lineId => safeTextColumn(nullable: true);
+  TextColumn get lineId => text().nullable()();
 
-  TextColumn get lineName => safeTextColumn(nullable: true);
+  TextColumn get lineName => text().nullable()();
 
-  TextColumn get legsJson => safeTextColumn(nullable: true);
+  TextColumn get legsJson => text().nullable()();
 
-  BoolColumn get isPinned => safeBoolColumn(defaultValue: false);
+  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
 }

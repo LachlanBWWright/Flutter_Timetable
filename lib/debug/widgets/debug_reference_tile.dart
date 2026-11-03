@@ -25,7 +25,7 @@ class DebugReferenceTile extends StatelessWidget {
     final subtitleParts = <String>[
       reference.entityId,
       if (subtitle != null && subtitle.isNotEmpty) subtitle,
-      if (unavailableReason != null) unavailableReason,
+      ?unavailableReason,
     ];
 
     return ListTile(

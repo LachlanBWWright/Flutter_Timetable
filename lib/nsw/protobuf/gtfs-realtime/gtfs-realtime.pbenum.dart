@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: gtfs-realtime.proto
-//
+// Generated from gtfs-realtime.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -30,11 +31,12 @@ class FeedHeader_Incrementality extends $pb.ProtobufEnum {
     DIFFERENTIAL,
   ];
 
-  static final $core.Map<$core.int, FeedHeader_Incrementality> _byValue =
-      $pb.ProtobufEnum.initByValue(values);
-  static FeedHeader_Incrementality? valueOf($core.int value) => _byValue[value];
+  static final $core.List<FeedHeader_Incrementality?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 1);
+  static FeedHeader_Incrementality? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const FeedHeader_Incrementality._(super.v, super.n);
+  const FeedHeader_Incrementality._(super.value, super.name);
 }
 
 /// The relation between this StopTime and the static schedule.
@@ -70,14 +72,14 @@ class TripUpdate_StopTimeUpdate_ScheduleRelationship extends $pb.ProtobufEnum {
     NO_DATA,
   ];
 
-  static final $core
-      .Map<$core.int, TripUpdate_StopTimeUpdate_ScheduleRelationship> _byValue =
-      $pb.ProtobufEnum.initByValue(values);
+  static final $core.List<TripUpdate_StopTimeUpdate_ScheduleRelationship?>
+      _byValue = $pb.ProtobufEnum.$_initByValueList(values, 2);
   static TripUpdate_StopTimeUpdate_ScheduleRelationship? valueOf(
           $core.int value) =>
-      _byValue[value];
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const TripUpdate_StopTimeUpdate_ScheduleRelationship._(super.v, super.n);
+  const TripUpdate_StopTimeUpdate_ScheduleRelationship._(
+      super.value, super.name);
 }
 
 class VehiclePosition_VehicleStopStatus extends $pb.ProtobufEnum {
@@ -104,12 +106,12 @@ class VehiclePosition_VehicleStopStatus extends $pb.ProtobufEnum {
     IN_TRANSIT_TO,
   ];
 
-  static final $core.Map<$core.int, VehiclePosition_VehicleStopStatus>
-      _byValue = $pb.ProtobufEnum.initByValue(values);
+  static final $core.List<VehiclePosition_VehicleStopStatus?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
   static VehiclePosition_VehicleStopStatus? valueOf($core.int value) =>
-      _byValue[value];
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const VehiclePosition_VehicleStopStatus._(super.v, super.n);
+  const VehiclePosition_VehicleStopStatus._(super.value, super.name);
 }
 
 /// Congestion level that is affecting this vehicle.
@@ -137,12 +139,12 @@ class VehiclePosition_CongestionLevel extends $pb.ProtobufEnum {
     SEVERE_CONGESTION,
   ];
 
-  static final $core.Map<$core.int, VehiclePosition_CongestionLevel> _byValue =
-      $pb.ProtobufEnum.initByValue(values);
+  static final $core.List<VehiclePosition_CongestionLevel?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
   static VehiclePosition_CongestionLevel? valueOf($core.int value) =>
-      _byValue[value];
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const VehiclePosition_CongestionLevel._(super.v, super.n);
+  const VehiclePosition_CongestionLevel._(super.value, super.name);
 }
 
 /// The degree of passenger occupancy of the vehicle. This field is still
@@ -202,12 +204,12 @@ class VehiclePosition_OccupancyStatus extends $pb.ProtobufEnum {
     NOT_ACCEPTING_PASSENGERS,
   ];
 
-  static final $core.Map<$core.int, VehiclePosition_OccupancyStatus> _byValue =
-      $pb.ProtobufEnum.initByValue(values);
+  static final $core.List<VehiclePosition_OccupancyStatus?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 6);
   static VehiclePosition_OccupancyStatus? valueOf($core.int value) =>
-      _byValue[value];
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const VehiclePosition_OccupancyStatus._(super.v, super.n);
+  const VehiclePosition_OccupancyStatus._(super.value, super.name);
 }
 
 /// Cause of this alert.
@@ -252,11 +254,12 @@ class Alert_Cause extends $pb.ProtobufEnum {
     MEDICAL_EMERGENCY,
   ];
 
-  static final $core.Map<$core.int, Alert_Cause> _byValue =
-      $pb.ProtobufEnum.initByValue(values);
-  static Alert_Cause? valueOf($core.int value) => _byValue[value];
+  static final $core.List<Alert_Cause?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 12);
+  static Alert_Cause? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const Alert_Cause._(super.v, super.n);
+  const Alert_Cause._(super.value, super.name);
 }
 
 /// What is the effect of this problem on the affected entity.
@@ -296,11 +299,12 @@ class Alert_Effect extends $pb.ProtobufEnum {
     STOP_MOVED,
   ];
 
-  static final $core.Map<$core.int, Alert_Effect> _byValue =
-      $pb.ProtobufEnum.initByValue(values);
-  static Alert_Effect? valueOf($core.int value) => _byValue[value];
+  static final $core.List<Alert_Effect?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 9);
+  static Alert_Effect? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const Alert_Effect._(super.v, super.n);
+  const Alert_Effect._(super.value, super.name);
 }
 
 /// The relation between this trip and the static schedule. If a trip is done
@@ -338,12 +342,13 @@ class TripDescriptor_ScheduleRelationship extends $pb.ProtobufEnum {
     CANCELED,
   ];
 
-  static final $core.Map<$core.int, TripDescriptor_ScheduleRelationship>
-      _byValue = $pb.ProtobufEnum.initByValue(values);
+  static final $core.List<TripDescriptor_ScheduleRelationship?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
   static TripDescriptor_ScheduleRelationship? valueOf($core.int value) =>
-      _byValue[value];
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const TripDescriptor_ScheduleRelationship._(super.v, super.n);
+  const TripDescriptor_ScheduleRelationship._(super.value, super.name);
 }
 
-const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');
+const $core.bool _omitEnumNames =
+    $core.bool.fromEnvironment('protobuf.omit_enum_names');

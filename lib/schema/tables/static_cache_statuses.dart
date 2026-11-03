@@ -1,20 +1,19 @@
 part of 'package:lbww_flutter/schema/database.dart';
 
-class StaticCacheStatuses extends SafeTable {
-  TextColumn get endpoint => safeTextColumn();
+class StaticCacheStatuses extends Table {
+  TextColumn get endpoint => text()();
 
-  DateTimeColumn get stopsUpdatedAt => safeDateTimeColumn(nullable: true);
+  DateTimeColumn get stopsUpdatedAt => dateTime().nullable()();
 
-  DateTimeColumn get lineMembershipsUpdatedAt =>
-      safeDateTimeColumn(nullable: true);
+  DateTimeColumn get lineMembershipsUpdatedAt => dateTime().nullable()();
 
-  DateTimeColumn get lastBuildStartedAt => safeDateTimeColumn(nullable: true);
+  DateTimeColumn get lastBuildStartedAt => dateTime().nullable()();
 
-  DateTimeColumn get lastBuildFinishedAt => safeDateTimeColumn(nullable: true);
+  DateTimeColumn get lastBuildFinishedAt => dateTime().nullable()();
 
-  TextColumn get lastError => safeTextColumn(nullable: true);
+  TextColumn get lastError => text().nullable()();
 
-  BoolColumn get isBuilding => safeBoolColumn(defaultValue: false);
+  BoolColumn get isBuilding => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {endpoint};

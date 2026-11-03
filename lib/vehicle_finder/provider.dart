@@ -104,7 +104,7 @@ List<FinderVehicle> finderVehiclesFromSnapshot(
   ];
   if (result.vehicles.isNotEmpty && observations.isEmpty) {
     throw const VehicleFinderException(
-      'This feed has no usable, timestamped vehicle positions right now. Try another transport type or retry later.',
+      'This feed has no usable, timestamped vehicle positions right now. Retry later.',
     );
   }
   return observations;

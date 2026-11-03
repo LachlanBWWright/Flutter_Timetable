@@ -22,7 +22,7 @@ class VehicleFinderController extends ChangeNotifier {
   final Future<List<FinderVehicle>> Function(TransportMode) _vehicles;
   final DateTime Function() _clock;
   final Duration pollInterval;
-  final Duration searchDuration;
+  final Duration? searchDuration;
   final matcher = VehicleMatcher();
   StreamSubscription<FinderLocation>? _subscription;
   Timer? _poll;
@@ -38,8 +38,8 @@ class VehicleFinderController extends ChangeNotifier {
   Future<void>? _inflight;
   List<FinderVehicle> _snapshot = [];
   bool running = false;
-  TransportMode mode = TransportMode.train;
-  String status = 'Choose your transport type, then start searching.';
+  TransportMode? mode;
+  String status = 'Finding nearby vehicles…';
   String? error;
   FinderLocation? location;
   List<VehicleCandidate> candidates = [];
@@ -49,7 +49,7 @@ class VehicleFinderController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  void start(TransportMode selectedMode) {
+  void start([TransportMode? selectedMode]) {
     if (_disposed || running) return;
     stop();
     final generation = _generation;
@@ -103,10 +103,13 @@ class VehicleFinderController extends ChangeNotifier {
       _fail('Could not start location updates. Please try again.');
       return;
     }
-    _expiry = Timer(searchDuration, () {
-      if (!_current(generation)) return;
-      stop(message: 'Search finished. Start again if you need more time.');
-    });
+    final duration = searchDuration;
+    if (duration != null) {
+      _expiry = Timer(duration, () {
+        if (!_current(generation)) return;
+        stop(message: 'Search finished. Refresh to search again.');
+      });
+    }
     _health = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!_current(generation)) return;
       if (location == null) {
@@ -138,10 +141,37 @@ class VehicleFinderController extends ChangeNotifier {
 
   Future<void> _load(int generation) async {
     try {
-      final snapshot = await _vehicles(mode);
+      final modes = mode == null ? TransportMode.values : [mode!];
+      final results = await Future.wait([
+        for (final selectedMode in modes)
+          () async {
+            try {
+              return (
+                mode: selectedMode,
+                vehicles: await _vehicles(selectedMode),
+                failure: null,
+              );
+            } catch (failure) {
+              return (
+                mode: selectedMode,
+                vehicles: <FinderVehicle>[],
+                failure: failure,
+              );
+            }
+          }(),
+      ]);
+      final failures = results
+          .where((result) => result.failure != null)
+          .toList();
+      if (failures.length == results.length) {
+        throw failures.first.failure!;
+      }
+      final snapshot = [for (final result in results) ...result.vehicles];
       if (!_current(generation)) return;
       _snapshot = snapshot;
-      error = null;
+      error = failures.isEmpty
+          ? null
+          : '${failures.map((result) => result.mode.displayName).join(', ')} positions are unavailable. Showing other transport modes; retrying shortly.';
       _evaluate(force: true);
     } catch (failure) {
       if (!_current(generation)) return;
@@ -203,16 +233,15 @@ class VehicleFinderController extends ChangeNotifier {
     _publish();
   }
 
-  void stop({
-    String message = 'Search paused. Start again when you are ready.',
-  }) {
+  void stop({String message = 'Search paused.'}) {
     _generation++;
     running = false;
     _poll?.cancel();
     _expiry?.cancel();
     _health?.cancel();
     _poll = _expiry = _health = null;
-    unawaited(_subscription?.cancel());
+    final subscription = _subscription;
+    if (subscription != null) unawaited(_cancelLocations(subscription));
     _subscription = null;
     _snapshot = [];
     candidates = [];
@@ -221,6 +250,17 @@ class VehicleFinderController extends ChangeNotifier {
     matcher.clear();
     status = message;
     _publish();
+  }
+
+  Future<void> _cancelLocations(
+    StreamSubscription<FinderLocation> subscription,
+  ) async {
+    try {
+      await subscription.cancel();
+    } on Exception {
+      // A pending permission/location request can fail after search stops.
+      // Its cancellation must not surface an unhandled asynchronous error.
+    }
   }
 
   @override

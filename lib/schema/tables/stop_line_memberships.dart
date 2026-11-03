@@ -1,23 +1,23 @@
 part of 'package:lbww_flutter/schema/database.dart';
 
-class StopLineMemberships extends SafeTable {
-  TextColumn get endpoint => safeTextColumn();
+class StopLineMemberships extends Table {
+  TextColumn get endpoint => text()();
 
-  TextColumn get stopId => safeTextColumn();
+  TextColumn get stopId => text()();
 
-  TextColumn get stopName => safeTextColumn();
+  TextColumn get stopName => text()();
 
-  TextColumn get lineId => safeTextColumn();
+  TextColumn get lineId => text()();
 
-  TextColumn get lineName => safeTextColumn();
+  TextColumn get lineName => text()();
 
-  TextColumn get mode => safeTextColumn();
+  TextColumn get mode => text()();
 
-  IntColumn get stopOrder => safeIntColumn();
+  IntColumn get stopOrder => integer()();
 
-  RealColumn get stopLat => safeRealColumn(nullable: true);
+  RealColumn get stopLat => real().nullable()();
 
-  RealColumn get stopLon => safeRealColumn(nullable: true);
+  RealColumn get stopLon => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {endpoint, stopId, lineId};

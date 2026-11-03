@@ -104,9 +104,9 @@ extension _DebugRouteList on DebugEntityListLoader {
             filterValues: filterValues,
             searchTerms: [
               entry.routeId,
-              if (route?.routeShortName case final shortName?) shortName,
-              if (route?.routeLongName case final longName?) longName,
-              if (route?.routeDesc case final routeDesc?) routeDesc,
+              ?route?.routeShortName,
+              ?route?.routeLongName,
+              ?route?.routeDesc,
               ...endpoints,
               ...modes,
             ],

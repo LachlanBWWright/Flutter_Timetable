@@ -48,7 +48,6 @@ extension _DraftLookups on _NewTripScreenState {
     _draftGeneration++;
     _lineLookupGeneration++;
     _sharedLineLookupGeneration++;
-    _interchangeLookupGeneration++;
     _isLoadingLineCandidates = false;
     _isResolvingSharedLines = false;
     _isLoadingInterchangeCandidates = false;

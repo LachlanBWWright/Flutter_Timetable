@@ -36,8 +36,6 @@ extension _ManualJourney on _NewTripScreenState {
     );
   }
 
-  Future<void> _saveManualTrip() => _saveTrip(manual: true);
-
   Future<void> _saveManualTripDraft() async {
     final draft = _captureDraftLookup();
     final origin = _originStation;
@@ -188,85 +186,14 @@ extension _ManualJourney on _NewTripScreenState {
     _applySearchFilter();
   }
 
-  Future<void> _startInterchangeSelection(int insertIndex) async {
-    final selectedLine = _selectedLine;
-    final orderedStops = _orderedStops;
-    if (selectedLine == null || orderedStops.length < 2) {
-      return;
-    }
-    if (insertIndex <= 0 || insertIndex >= orderedStops.length) {
-      return;
-    }
-
-    final previousStop = _itemAtOrNull(orderedStops, insertIndex - 1);
-    final nextStop = _itemAtOrNull(orderedStops, insertIndex);
-    if (previousStop == null || nextStop == null) {
-      return;
-    }
-
-    _invalidateDraftLookups();
-    guardedSetState(() {
-      _pendingInterchangeInsertIndex = insertIndex;
-      _isLoadingInterchangeCandidates = true;
-      _manualCandidateStations = [];
-      _showMapView = false;
-    });
-
-    _setTabForMode(selectedLine.mode);
-
-    final draft = _captureDraftLookup();
-    final request = ++_interchangeLookupGeneration;
-    final rankedStops = await _tripLineService.rankStopsForLine(
-      lineId: selectedLine.lineId,
-      mode: selectedLine.mode,
-      anchorStopIds: [previousStop.id, nextStop.id],
-      excludedStopIds: orderedStops.map((stop) => stop.id),
-      allowBuild: false,
-    );
-
-    if (!_isCurrentDraftLookup(draft) ||
-        request != _interchangeLookupGeneration ||
-        _selectedLine != selectedLine ||
-        _pendingInterchangeInsertIndex != insertIndex) {
-      return;
-    }
-    guardedSetState(() {
-      _manualCandidateStations = rankedStops
-          .map((lineStop) => lineStop.toStation())
-          .toList();
-      _isLoadingInterchangeCandidates = false;
-    });
-  }
-
-  void _insertInterchange(Station station) {
-    final selectedLine = _selectedLine;
-    final insertIndex = _pendingInterchangeInsertIndex;
-    if (selectedLine == null || insertIndex == null) {
-      return;
-    }
-    final orderedStops = _orderedStops;
-    if (insertIndex <= 0 || insertIndex >= orderedStops.length) {
-      return;
-    }
-
-    final interchange = station.copyWith(
-      lineId: selectedLine.lineId,
-      lineName: selectedLine.lineName,
-    );
-
-    _invalidateDraftLookups();
-    guardedSetState(() {
-      _interchanges.insert(insertIndex - 1, interchange);
-      _pendingInterchangeInsertIndex = null;
-      _manualCandidateStations = [];
-      keyController.clear();
-    });
-  }
+  Future<void> _startInterchangeSelection(int insertIndex) =>
+      _openStopPicker(_StopTarget.addInterchange, index: insertIndex - 1);
 
   void _removeInterchange(int interchangeIndex) {
     _invalidateDraftLookups();
     guardedSetState(() {
       _interchanges.removeAt(interchangeIndex);
+      _manualBuilderEnabled = _interchanges.isNotEmpty;
       _pendingInterchangeInsertIndex = null;
       _manualCandidateStations = [];
     });
@@ -285,14 +212,6 @@ extension _ManualJourney on _NewTripScreenState {
       updated.insert(newIndex, station);
       _interchanges = updated;
     });
-  }
-
-  void _setTabForMode(TransportMode mode) {
-    final index = _tabs.indexWhere((tab) => tab.mode == mode);
-
-    if (index != -1 && _tabController.index != index) {
-      _tabController.animateTo(index);
-    }
   }
 
   List<Station> get _orderedStops {

@@ -111,15 +111,7 @@ extension _StationCatalog on _NewTripScreenState {
     guardedSetState(() {
       if (keyController.text.isEmpty) {
         _isSearching = !_isSearching;
-        if (_isSearching) {
-          addPostFrameCallbackSafely((_) {
-            if (mounted) {
-              requestFocus(_searchFocusNode);
-            }
-          });
-        } else {
-          clearFocus(_searchFocusNode);
-        }
+        if (!_isSearching) clearFocus(_searchFocusNode);
       } else {
         keyController.clear();
       }
@@ -163,15 +155,6 @@ extension _StationCatalog on _NewTripScreenState {
       );
       return;
     }
-    if (_manualBuilderEnabled) {
-      showSnackBar(
-        const SnackBar(
-          content: Text('Use the list to add manual interchanges on a line.'),
-        ),
-      );
-      return;
-    }
-
     guardedSetState(() {
       _showMapView = !_showMapView;
     });
@@ -259,9 +242,10 @@ extension _StationCatalog on _NewTripScreenState {
       station.transitRef?.storageKey ?? station.id;
 
   bool get _usesRegionalStopSearch =>
-      AppTransitContext.instance.enabledRegions.length > 1 ||
-      (_draftRegion ?? AppTransitContext.instance.selectedRegion) !=
-          TransitRegion.nsw;
+      !widget.skipInitialLoad &&
+      (AppTransitContext.instance.enabledRegions.length > 1 ||
+          (_draftRegion ?? AppTransitContext.instance.selectedRegion) !=
+              TransitRegion.nsw);
 
   bool get _canUseNswStopsMap =>
       _draftRegion == TransitRegion.nsw ||

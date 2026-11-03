@@ -4022,7 +4022,16 @@ class $$JourneysTableTableManager
                 isPinned: isPinned,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$JourneysTable, Journey>(table),
+                  BaseReferences<_$AppDatabase, $JourneysTable, Journey>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -4321,7 +4330,16 @@ class $$RoutesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$RoutesTable, Route>(table),
+                  BaseReferences<_$AppDatabase, $RoutesTable, Route>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -4735,7 +4753,16 @@ class $$StopsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$StopsTable, Stop>(table),
+                  BaseReferences<_$AppDatabase, $StopsTable, Stop>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -5020,7 +5047,18 @@ class $$StopLineMembershipsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$StopLineMembershipsTable, StopLineMembership>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $StopLineMembershipsTable,
+                    StopLineMembership
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -5286,7 +5324,18 @@ class $$StaticCacheStatusesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$StaticCacheStatusesTable, StaticCacheStatuse>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $StaticCacheStatusesTable,
+                    StaticCacheStatuse
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -5500,7 +5549,18 @@ class $$TripPlannerCacheTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$TripPlannerCacheTable, TripPlannerCacheData>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $TripPlannerCacheTable,
+                    TripPlannerCacheData
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),

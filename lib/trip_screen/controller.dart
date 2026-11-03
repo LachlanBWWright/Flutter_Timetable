@@ -152,8 +152,8 @@ class TripScreenController extends ChangeNotifier {
           return;
         }
         final parsedRefs = [
-          if (originRef != null) originRef,
-          if (destinationRef != null) destinationRef,
+          ?originRef,
+          ?destinationRef,
         ];
         if (refRegion == TransitRegion.nsw &&
             parsedRefs.any((ref) => ref.provider != TransitProviderId.tfnsw)) {

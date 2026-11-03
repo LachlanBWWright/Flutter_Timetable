@@ -170,18 +170,23 @@ List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
   }
 
   try {
-    return CsvToListConverter(
-      shouldParseNumbers: shouldParseNumbers,
-    ).convert(csv, fieldDelimiter: fieldDelimiter, eol: eol);
+    return CsvDecoder(
+      fieldDelimiter: fieldDelimiter,
+      fieldTransform: shouldParseNumbers
+          ? (field, _, _) => num.tryParse(field.toString()) ?? field
+          : null,
+    ).convert(csv);
   } catch (e) {
     safeLogWarning(
-      'CsvToListConverter failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e',
+      'CsvDecoder failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e',
     );
-    // Fallback: try with a simple LF eol
+    // Fallback: let the decoder detect the field delimiter.
     try {
-      return CsvToListConverter(
-        shouldParseNumbers: shouldParseNumbers,
-      ).convert(csv, eol: '\n');
+      return CsvDecoder(
+        fieldTransform: shouldParseNumbers
+            ? (field, _, _) => num.tryParse(field.toString()) ?? field
+            : null,
+      ).convert(csv);
     } catch (e2) {
       safeLogWarning('CSV parsing fallback failed: $e2');
       return [];

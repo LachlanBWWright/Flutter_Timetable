@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: gtfs-realtime.proto
-//
+// Generated from gtfs-realtime.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -34,64 +35,59 @@ class FeedMessage extends $pb.GeneratedMessage {
     FeedHeader? header,
     $core.Iterable<FeedEntity>? entity,
   }) {
-    final $result = create();
-    if (header != null) {
-      $result.header = header;
-    }
-    if (entity != null) {
-      $result.entity.addAll(entity);
-    }
-    return $result;
+    final result = FeedMessage._();
+    if (header != null) result.header = header;
+    if (entity != null) result.entity.addAll(entity);
+    return result;
   }
-  FeedMessage._() : super();
-  factory FeedMessage.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory FeedMessage.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  FeedMessage._();
+
+  factory FeedMessage.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      FeedMessage()..mergeFromBuffer(data, registry);
+  factory FeedMessage.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      FeedMessage()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'FeedMessage',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: FeedMessage.$_createMessage)
     ..aQM<FeedHeader>(1, _omitFieldNames ? '' : 'header',
-        subBuilder: FeedHeader.create)
-    ..pc<FeedEntity>(2, _omitFieldNames ? '' : 'entity', $pb.PbFieldType.PM,
-        subBuilder: FeedEntity.create)
+        subBuilder: FeedHeader.$_createMessage)
+    ..pPM<FeedEntity>(2, _omitFieldNames ? '' : 'entity',
+        subBuilder: FeedEntity.$_createMessage)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  FeedMessage clone() => FeedMessage()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FeedMessage clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   FeedMessage copyWith(void Function(FeedMessage) updates) =>
       super.copyWith((message) => updates(message as FeedMessage))
           as FeedMessage;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use FeedMessage() / FeedMessage.new instead')
   static FeedMessage create() => FeedMessage._();
-  FeedMessage createEmptyInstance() => create();
-  static $pb.PbList<FeedMessage> createRepeated() => $pb.PbList<FeedMessage>();
+  static $pb.GeneratedMessage $_createMessage() => FeedMessage._();
+  @$core.override
+  FeedMessage createEmptyInstance() => FeedMessage._();
   @$core.pragma('dart2js:noInline')
-  static FeedMessage getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<FeedMessage>(create);
+  static FeedMessage getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FeedMessage>(
+          FeedMessage.$_createMessage);
   static FeedMessage? _defaultInstance;
 
   /// Metadata about this feed and feed message.
   @$pb.TagNumber(1)
   FeedHeader get header => $_getN(0);
   @$pb.TagNumber(1)
-  set header(FeedHeader v) {
-    $_setField(1, v);
-  }
-
+  set header(FeedHeader value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasHeader() => $_has(0);
   @$pb.TagNumber(1)
@@ -111,61 +107,55 @@ class FeedHeader extends $pb.GeneratedMessage {
     FeedHeader_Incrementality? incrementality,
     $fixnum.Int64? timestamp,
   }) {
-    final $result = create();
-    if (gtfsRealtimeVersion != null) {
-      $result.gtfsRealtimeVersion = gtfsRealtimeVersion;
-    }
-    if (incrementality != null) {
-      $result.incrementality = incrementality;
-    }
-    if (timestamp != null) {
-      $result.timestamp = timestamp;
-    }
-    return $result;
+    final result = FeedHeader._();
+    if (gtfsRealtimeVersion != null)
+      result.gtfsRealtimeVersion = gtfsRealtimeVersion;
+    if (incrementality != null) result.incrementality = incrementality;
+    if (timestamp != null) result.timestamp = timestamp;
+    return result;
   }
-  FeedHeader._() : super();
-  factory FeedHeader.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory FeedHeader.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  FeedHeader._();
+
+  factory FeedHeader.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      FeedHeader()..mergeFromBuffer(data, registry);
+  factory FeedHeader.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      FeedHeader()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'FeedHeader',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: FeedHeader.$_createMessage)
     ..aQS(1, _omitFieldNames ? '' : 'gtfsRealtimeVersion')
-    ..e<FeedHeader_Incrementality>(
-        2, _omitFieldNames ? '' : 'incrementality', $pb.PbFieldType.OE,
+    ..aE<FeedHeader_Incrementality>(2, _omitFieldNames ? '' : 'incrementality',
         defaultOrMaker: FeedHeader_Incrementality.FULL_DATASET,
-        valueOf: FeedHeader_Incrementality.valueOf,
         enumValues: FeedHeader_Incrementality.values)
     ..a<$fixnum.Int64>(
         3, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  FeedHeader clone() => FeedHeader()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FeedHeader clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   FeedHeader copyWith(void Function(FeedHeader) updates) =>
       super.copyWith((message) => updates(message as FeedHeader)) as FeedHeader;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use FeedHeader() / FeedHeader.new instead')
   static FeedHeader create() => FeedHeader._();
-  FeedHeader createEmptyInstance() => create();
-  static $pb.PbList<FeedHeader> createRepeated() => $pb.PbList<FeedHeader>();
+  static $pb.GeneratedMessage $_createMessage() => FeedHeader._();
+  @$core.override
+  FeedHeader createEmptyInstance() => FeedHeader._();
   @$core.pragma('dart2js:noInline')
   static FeedHeader getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<FeedHeader>(create);
+      $pb.GeneratedMessage.$_defaultFor<FeedHeader>(FeedHeader.$_createMessage);
   static FeedHeader? _defaultInstance;
 
   /// Version of the feed specification.
@@ -173,10 +163,7 @@ class FeedHeader extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get gtfsRealtimeVersion => $_getSZ(0);
   @$pb.TagNumber(1)
-  set gtfsRealtimeVersion($core.String v) {
-    $_setString(0, v);
-  }
-
+  set gtfsRealtimeVersion($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasGtfsRealtimeVersion() => $_has(0);
   @$pb.TagNumber(1)
@@ -185,10 +172,7 @@ class FeedHeader extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   FeedHeader_Incrementality get incrementality => $_getN(1);
   @$pb.TagNumber(2)
-  set incrementality(FeedHeader_Incrementality v) {
-    $_setField(2, v);
-  }
-
+  set incrementality(FeedHeader_Incrementality value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasIncrementality() => $_has(1);
   @$pb.TagNumber(2)
@@ -200,10 +184,7 @@ class FeedHeader extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get timestamp => $_getI64(2);
   @$pb.TagNumber(3)
-  set timestamp($fixnum.Int64 v) {
-    $_setInt64(2, v);
-  }
-
+  set timestamp($fixnum.Int64 value) => $_setInt64(2, value);
   @$pb.TagNumber(3)
   $core.bool hasTimestamp() => $_has(2);
   @$pb.TagNumber(3)
@@ -219,65 +200,57 @@ class FeedEntity extends $pb.GeneratedMessage {
     VehiclePosition? vehicle,
     Alert? alert,
   }) {
-    final $result = create();
-    if (id != null) {
-      $result.id = id;
-    }
-    if (isDeleted != null) {
-      $result.isDeleted = isDeleted;
-    }
-    if (tripUpdate != null) {
-      $result.tripUpdate = tripUpdate;
-    }
-    if (vehicle != null) {
-      $result.vehicle = vehicle;
-    }
-    if (alert != null) {
-      $result.alert = alert;
-    }
-    return $result;
+    final result = FeedEntity._();
+    if (id != null) result.id = id;
+    if (isDeleted != null) result.isDeleted = isDeleted;
+    if (tripUpdate != null) result.tripUpdate = tripUpdate;
+    if (vehicle != null) result.vehicle = vehicle;
+    if (alert != null) result.alert = alert;
+    return result;
   }
-  FeedEntity._() : super();
-  factory FeedEntity.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory FeedEntity.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  FeedEntity._();
+
+  factory FeedEntity.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      FeedEntity()..mergeFromBuffer(data, registry);
+  factory FeedEntity.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      FeedEntity()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'FeedEntity',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: FeedEntity.$_createMessage)
     ..aQS(1, _omitFieldNames ? '' : 'id')
     ..aOB(2, _omitFieldNames ? '' : 'isDeleted')
     ..aOM<TripUpdate>(3, _omitFieldNames ? '' : 'tripUpdate',
-        subBuilder: TripUpdate.create)
+        subBuilder: TripUpdate.$_createMessage)
     ..aOM<VehiclePosition>(4, _omitFieldNames ? '' : 'vehicle',
-        subBuilder: VehiclePosition.create)
-    ..aOM<Alert>(5, _omitFieldNames ? '' : 'alert', subBuilder: Alert.create)
+        subBuilder: VehiclePosition.$_createMessage)
+    ..aOM<Alert>(5, _omitFieldNames ? '' : 'alert',
+        subBuilder: Alert.$_createMessage)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  FeedEntity clone() => FeedEntity()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FeedEntity clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   FeedEntity copyWith(void Function(FeedEntity) updates) =>
       super.copyWith((message) => updates(message as FeedEntity)) as FeedEntity;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use FeedEntity() / FeedEntity.new instead')
   static FeedEntity create() => FeedEntity._();
-  FeedEntity createEmptyInstance() => create();
-  static $pb.PbList<FeedEntity> createRepeated() => $pb.PbList<FeedEntity>();
+  static $pb.GeneratedMessage $_createMessage() => FeedEntity._();
+  @$core.override
+  FeedEntity createEmptyInstance() => FeedEntity._();
   @$core.pragma('dart2js:noInline')
   static FeedEntity getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<FeedEntity>(create);
+      $pb.GeneratedMessage.$_defaultFor<FeedEntity>(FeedEntity.$_createMessage);
   static FeedEntity? _defaultInstance;
 
   /// The ids are used only to provide incrementality support. The id should be
@@ -291,10 +264,7 @@ class FeedEntity extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) {
-    $_setString(0, v);
-  }
-
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -305,10 +275,7 @@ class FeedEntity extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool get isDeleted => $_getBF(1);
   @$pb.TagNumber(2)
-  set isDeleted($core.bool v) {
-    $_setBool(1, v);
-  }
-
+  set isDeleted($core.bool value) => $_setBool(1, value);
   @$pb.TagNumber(2)
   $core.bool hasIsDeleted() => $_has(1);
   @$pb.TagNumber(2)
@@ -319,10 +286,7 @@ class FeedEntity extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   TripUpdate get tripUpdate => $_getN(2);
   @$pb.TagNumber(3)
-  set tripUpdate(TripUpdate v) {
-    $_setField(3, v);
-  }
-
+  set tripUpdate(TripUpdate value) => $_setField(3, value);
   @$pb.TagNumber(3)
   $core.bool hasTripUpdate() => $_has(2);
   @$pb.TagNumber(3)
@@ -333,10 +297,7 @@ class FeedEntity extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   VehiclePosition get vehicle => $_getN(3);
   @$pb.TagNumber(4)
-  set vehicle(VehiclePosition v) {
-    $_setField(4, v);
-  }
-
+  set vehicle(VehiclePosition value) => $_setField(4, value);
   @$pb.TagNumber(4)
   $core.bool hasVehicle() => $_has(3);
   @$pb.TagNumber(4)
@@ -347,10 +308,7 @@ class FeedEntity extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   Alert get alert => $_getN(4);
   @$pb.TagNumber(5)
-  set alert(Alert v) {
-    $_setField(5, v);
-  }
-
+  set alert(Alert value) => $_setField(5, value);
   @$pb.TagNumber(5)
   $core.bool hasAlert() => $_has(4);
   @$pb.TagNumber(5)
@@ -359,80 +317,76 @@ class FeedEntity extends $pb.GeneratedMessage {
   Alert ensureAlert() => $_ensure(4);
 }
 
-///  Timing information for a single predicted event (either arrival or
-///  departure).
-///  Timing consists of delay and/or estimated time, and uncertainty.
-///  - delay should be used when the prediction is given relative to some
-///    existing schedule in GTFS.
-///  - time should be given whether there is a predicted schedule or not. If
-///    both time and delay are specified, time will take precedence
-///    (although normally, time, if given for a scheduled trip, should be
-///    equal to scheduled time in GTFS + delay).
+/// Timing information for a single predicted event (either arrival or
+/// departure).
+/// Timing consists of delay and/or estimated time, and uncertainty.
+/// - delay should be used when the prediction is given relative to some
+///   existing schedule in GTFS.
+/// - time should be given whether there is a predicted schedule or not. If
+///   both time and delay are specified, time will take precedence
+///   (although normally, time, if given for a scheduled trip, should be
+///   equal to scheduled time in GTFS + delay).
 ///
-///  Uncertainty applies equally to both time and delay.
-///  The uncertainty roughly specifies the expected error in true delay (but
-///  note, we don't yet define its precise statistical meaning). It's possible
-///  for the uncertainty to be 0, for example for trains that are driven under
-///  computer timing control.
+/// Uncertainty applies equally to both time and delay.
+/// The uncertainty roughly specifies the expected error in true delay (but
+/// note, we don't yet define its precise statistical meaning). It's possible
+/// for the uncertainty to be 0, for example for trains that are driven under
+/// computer timing control.
 class TripUpdate_StopTimeEvent extends $pb.GeneratedMessage {
   factory TripUpdate_StopTimeEvent({
     $core.int? delay,
     $fixnum.Int64? time,
     $core.int? uncertainty,
   }) {
-    final $result = create();
-    if (delay != null) {
-      $result.delay = delay;
-    }
-    if (time != null) {
-      $result.time = time;
-    }
-    if (uncertainty != null) {
-      $result.uncertainty = uncertainty;
-    }
-    return $result;
+    final result = TripUpdate_StopTimeEvent._();
+    if (delay != null) result.delay = delay;
+    if (time != null) result.time = time;
+    if (uncertainty != null) result.uncertainty = uncertainty;
+    return result;
   }
-  TripUpdate_StopTimeEvent._() : super();
-  factory TripUpdate_StopTimeEvent.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory TripUpdate_StopTimeEvent.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  TripUpdate_StopTimeEvent._();
+
+  factory TripUpdate_StopTimeEvent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripUpdate_StopTimeEvent()..mergeFromBuffer(data, registry);
+  factory TripUpdate_StopTimeEvent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripUpdate_StopTimeEvent()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TripUpdate.StopTimeEvent',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'delay', $pb.PbFieldType.O3)
+      createEmptyInstance: TripUpdate_StopTimeEvent.$_createMessage)
+    ..aI(1, _omitFieldNames ? '' : 'delay')
     ..aInt64(2, _omitFieldNames ? '' : 'time')
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'uncertainty', $pb.PbFieldType.O3)
+    ..aI(3, _omitFieldNames ? '' : 'uncertainty')
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  TripUpdate_StopTimeEvent clone() =>
-      TripUpdate_StopTimeEvent()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TripUpdate_StopTimeEvent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TripUpdate_StopTimeEvent copyWith(
           void Function(TripUpdate_StopTimeEvent) updates) =>
       super.copyWith((message) => updates(message as TripUpdate_StopTimeEvent))
           as TripUpdate_StopTimeEvent;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated(
+      'Use TripUpdate_StopTimeEvent() / TripUpdate_StopTimeEvent.new instead')
   static TripUpdate_StopTimeEvent create() => TripUpdate_StopTimeEvent._();
-  TripUpdate_StopTimeEvent createEmptyInstance() => create();
-  static $pb.PbList<TripUpdate_StopTimeEvent> createRepeated() =>
-      $pb.PbList<TripUpdate_StopTimeEvent>();
+  static $pb.GeneratedMessage $_createMessage() => TripUpdate_StopTimeEvent._();
+  @$core.override
+  TripUpdate_StopTimeEvent createEmptyInstance() =>
+      TripUpdate_StopTimeEvent._();
   @$core.pragma('dart2js:noInline')
   static TripUpdate_StopTimeEvent getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<TripUpdate_StopTimeEvent>(create);
+      $pb.GeneratedMessage.$_defaultFor<TripUpdate_StopTimeEvent>(
+          TripUpdate_StopTimeEvent.$_createMessage);
   static TripUpdate_StopTimeEvent? _defaultInstance;
 
   /// Delay (in seconds) can be positive (meaning that the vehicle is late) or
@@ -441,10 +395,7 @@ class TripUpdate_StopTimeEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.int get delay => $_getIZ(0);
   @$pb.TagNumber(1)
-  set delay($core.int v) {
-    $_setSignedInt32(0, v);
-  }
-
+  set delay($core.int value) => $_setSignedInt32(0, value);
   @$pb.TagNumber(1)
   $core.bool hasDelay() => $_has(0);
   @$pb.TagNumber(1)
@@ -456,10 +407,7 @@ class TripUpdate_StopTimeEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get time => $_getI64(1);
   @$pb.TagNumber(2)
-  set time($fixnum.Int64 v) {
-    $_setInt64(1, v);
-  }
-
+  set time($fixnum.Int64 value) => $_setInt64(1, value);
   @$pb.TagNumber(2)
   $core.bool hasTime() => $_has(1);
   @$pb.TagNumber(2)
@@ -472,10 +420,7 @@ class TripUpdate_StopTimeEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get uncertainty => $_getIZ(2);
   @$pb.TagNumber(3)
-  set uncertainty($core.int v) {
-    $_setSignedInt32(2, v);
-  }
-
+  set uncertainty($core.int value) => $_setSignedInt32(2, value);
   @$pb.TagNumber(3)
   $core.bool hasUncertainty() => $_has(2);
   @$pb.TagNumber(3)
@@ -493,85 +438,75 @@ class TripUpdate_StopTimeUpdate extends $pb.GeneratedMessage {
     $core.String? stopId,
     TripUpdate_StopTimeUpdate_ScheduleRelationship? scheduleRelationship,
   }) {
-    final $result = create();
-    if (stopSequence != null) {
-      $result.stopSequence = stopSequence;
-    }
-    if (arrival != null) {
-      $result.arrival = arrival;
-    }
-    if (departure != null) {
-      $result.departure = departure;
-    }
-    if (stopId != null) {
-      $result.stopId = stopId;
-    }
-    if (scheduleRelationship != null) {
-      $result.scheduleRelationship = scheduleRelationship;
-    }
-    return $result;
+    final result = TripUpdate_StopTimeUpdate._();
+    if (stopSequence != null) result.stopSequence = stopSequence;
+    if (arrival != null) result.arrival = arrival;
+    if (departure != null) result.departure = departure;
+    if (stopId != null) result.stopId = stopId;
+    if (scheduleRelationship != null)
+      result.scheduleRelationship = scheduleRelationship;
+    return result;
   }
-  TripUpdate_StopTimeUpdate._() : super();
-  factory TripUpdate_StopTimeUpdate.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory TripUpdate_StopTimeUpdate.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  TripUpdate_StopTimeUpdate._();
+
+  factory TripUpdate_StopTimeUpdate.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripUpdate_StopTimeUpdate()..mergeFromBuffer(data, registry);
+  factory TripUpdate_StopTimeUpdate.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripUpdate_StopTimeUpdate()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TripUpdate.StopTimeUpdate',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
-    ..a<$core.int>(
-        1, _omitFieldNames ? '' : 'stopSequence', $pb.PbFieldType.OU3)
+      createEmptyInstance: TripUpdate_StopTimeUpdate.$_createMessage)
+    ..aI(1, _omitFieldNames ? '' : 'stopSequence',
+        fieldType: $pb.PbFieldType.OU3)
     ..aOM<TripUpdate_StopTimeEvent>(2, _omitFieldNames ? '' : 'arrival',
-        subBuilder: TripUpdate_StopTimeEvent.create)
+        subBuilder: TripUpdate_StopTimeEvent.$_createMessage)
     ..aOM<TripUpdate_StopTimeEvent>(3, _omitFieldNames ? '' : 'departure',
-        subBuilder: TripUpdate_StopTimeEvent.create)
+        subBuilder: TripUpdate_StopTimeEvent.$_createMessage)
     ..aOS(4, _omitFieldNames ? '' : 'stopId')
-    ..e<TripUpdate_StopTimeUpdate_ScheduleRelationship>(
-        5, _omitFieldNames ? '' : 'scheduleRelationship', $pb.PbFieldType.OE,
+    ..aE<TripUpdate_StopTimeUpdate_ScheduleRelationship>(
+        5, _omitFieldNames ? '' : 'scheduleRelationship',
         defaultOrMaker:
             TripUpdate_StopTimeUpdate_ScheduleRelationship.SCHEDULED,
-        valueOf: TripUpdate_StopTimeUpdate_ScheduleRelationship.valueOf,
         enumValues: TripUpdate_StopTimeUpdate_ScheduleRelationship.values)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  TripUpdate_StopTimeUpdate clone() =>
-      TripUpdate_StopTimeUpdate()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TripUpdate_StopTimeUpdate clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TripUpdate_StopTimeUpdate copyWith(
           void Function(TripUpdate_StopTimeUpdate) updates) =>
       super.copyWith((message) => updates(message as TripUpdate_StopTimeUpdate))
           as TripUpdate_StopTimeUpdate;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated(
+      'Use TripUpdate_StopTimeUpdate() / TripUpdate_StopTimeUpdate.new instead')
   static TripUpdate_StopTimeUpdate create() => TripUpdate_StopTimeUpdate._();
-  TripUpdate_StopTimeUpdate createEmptyInstance() => create();
-  static $pb.PbList<TripUpdate_StopTimeUpdate> createRepeated() =>
-      $pb.PbList<TripUpdate_StopTimeUpdate>();
+  static $pb.GeneratedMessage $_createMessage() =>
+      TripUpdate_StopTimeUpdate._();
+  @$core.override
+  TripUpdate_StopTimeUpdate createEmptyInstance() =>
+      TripUpdate_StopTimeUpdate._();
   @$core.pragma('dart2js:noInline')
   static TripUpdate_StopTimeUpdate getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<TripUpdate_StopTimeUpdate>(create);
+      $pb.GeneratedMessage.$_defaultFor<TripUpdate_StopTimeUpdate>(
+          TripUpdate_StopTimeUpdate.$_createMessage);
   static TripUpdate_StopTimeUpdate? _defaultInstance;
 
   /// Must be the same as in stop_times.txt in the corresponding GTFS feed.
   @$pb.TagNumber(1)
   $core.int get stopSequence => $_getIZ(0);
   @$pb.TagNumber(1)
-  set stopSequence($core.int v) {
-    $_setUnsignedInt32(0, v);
-  }
-
+  set stopSequence($core.int value) => $_setUnsignedInt32(0, value);
   @$pb.TagNumber(1)
   $core.bool hasStopSequence() => $_has(0);
   @$pb.TagNumber(1)
@@ -580,10 +515,7 @@ class TripUpdate_StopTimeUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   TripUpdate_StopTimeEvent get arrival => $_getN(1);
   @$pb.TagNumber(2)
-  set arrival(TripUpdate_StopTimeEvent v) {
-    $_setField(2, v);
-  }
-
+  set arrival(TripUpdate_StopTimeEvent value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasArrival() => $_has(1);
   @$pb.TagNumber(2)
@@ -594,10 +526,7 @@ class TripUpdate_StopTimeUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   TripUpdate_StopTimeEvent get departure => $_getN(2);
   @$pb.TagNumber(3)
-  set departure(TripUpdate_StopTimeEvent v) {
-    $_setField(3, v);
-  }
-
+  set departure(TripUpdate_StopTimeEvent value) => $_setField(3, value);
   @$pb.TagNumber(3)
   $core.bool hasDeparture() => $_has(2);
   @$pb.TagNumber(3)
@@ -609,10 +538,7 @@ class TripUpdate_StopTimeUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get stopId => $_getSZ(3);
   @$pb.TagNumber(4)
-  set stopId($core.String v) {
-    $_setString(3, v);
-  }
-
+  set stopId($core.String value) => $_setString(3, value);
   @$pb.TagNumber(4)
   $core.bool hasStopId() => $_has(3);
   @$pb.TagNumber(4)
@@ -622,42 +548,41 @@ class TripUpdate_StopTimeUpdate extends $pb.GeneratedMessage {
   TripUpdate_StopTimeUpdate_ScheduleRelationship get scheduleRelationship =>
       $_getN(4);
   @$pb.TagNumber(5)
-  set scheduleRelationship(TripUpdate_StopTimeUpdate_ScheduleRelationship v) {
-    $_setField(5, v);
-  }
-
+  set scheduleRelationship(
+          TripUpdate_StopTimeUpdate_ScheduleRelationship value) =>
+      $_setField(5, value);
   @$pb.TagNumber(5)
   $core.bool hasScheduleRelationship() => $_has(4);
   @$pb.TagNumber(5)
   void clearScheduleRelationship() => $_clearField(5);
 }
 
-///  Realtime update of the progress of a vehicle along a trip.
-///  Depending on the value of ScheduleRelationship, a TripUpdate can specify:
-///  - A trip that proceeds along the schedule.
-///  - A trip that proceeds along a route but has no fixed schedule.
-///  - A trip that have been added or removed with regard to schedule.
+/// Realtime update of the progress of a vehicle along a trip.
+/// Depending on the value of ScheduleRelationship, a TripUpdate can specify:
+/// - A trip that proceeds along the schedule.
+/// - A trip that proceeds along a route but has no fixed schedule.
+/// - A trip that have been added or removed with regard to schedule.
 ///
-///  The updates can be for future, predicted arrival/departure events, or for
-///  past events that already occurred.
-///  Normally, updates should get more precise and more certain (see
-///  uncertainty below) as the events gets closer to current time.
-///  Even if that is not possible, the information for past events should be
-///  precise and certain. In particular, if an update points to time in the past
-///  but its update's uncertainty is not 0, the client should conclude that the
-///  update is a (wrong) prediction and that the trip has not completed yet.
+/// The updates can be for future, predicted arrival/departure events, or for
+/// past events that already occurred.
+/// Normally, updates should get more precise and more certain (see
+/// uncertainty below) as the events gets closer to current time.
+/// Even if that is not possible, the information for past events should be
+/// precise and certain. In particular, if an update points to time in the past
+/// but its update's uncertainty is not 0, the client should conclude that the
+/// update is a (wrong) prediction and that the trip has not completed yet.
 ///
-///  Note that the update can describe a trip that is already completed.
-///  To this end, it is enough to provide an update for the last stop of the trip.
-///  If the time of that is in the past, the client will conclude from that that
-///  the whole trip is in the past (it is possible, although inconsequential, to
-///  also provide updates for preceding stops).
-///  This option is most relevant for a trip that has completed ahead of schedule,
-///  but according to the schedule, the trip is still proceeding at the current
-///  time. Removing the updates for this trip could make the client assume
-///  that the trip is still proceeding.
-///  Note that the feed provider is allowed, but not required, to purge past
-///  updates - this is one case where this would be practically useful.
+/// Note that the update can describe a trip that is already completed.
+/// To this end, it is enough to provide an update for the last stop of the trip.
+/// If the time of that is in the past, the client will conclude from that that
+/// the whole trip is in the past (it is possible, although inconsequential, to
+/// also provide updates for preceding stops).
+/// This option is most relevant for a trip that has completed ahead of schedule,
+/// but according to the schedule, the trip is still proceeding at the current
+/// time. Removing the updates for this trip could make the client assume
+/// that the trip is still proceeding.
+/// Note that the feed provider is allowed, but not required, to purge past
+/// updates - this is one case where this would be practically useful.
 class TripUpdate extends $pb.GeneratedMessage {
   factory TripUpdate({
     TripDescriptor? trip,
@@ -666,69 +591,59 @@ class TripUpdate extends $pb.GeneratedMessage {
     $fixnum.Int64? timestamp,
     $core.int? delay,
   }) {
-    final $result = create();
-    if (trip != null) {
-      $result.trip = trip;
-    }
-    if (stopTimeUpdate != null) {
-      $result.stopTimeUpdate.addAll(stopTimeUpdate);
-    }
-    if (vehicle != null) {
-      $result.vehicle = vehicle;
-    }
-    if (timestamp != null) {
-      $result.timestamp = timestamp;
-    }
-    if (delay != null) {
-      $result.delay = delay;
-    }
-    return $result;
+    final result = TripUpdate._();
+    if (trip != null) result.trip = trip;
+    if (stopTimeUpdate != null) result.stopTimeUpdate.addAll(stopTimeUpdate);
+    if (vehicle != null) result.vehicle = vehicle;
+    if (timestamp != null) result.timestamp = timestamp;
+    if (delay != null) result.delay = delay;
+    return result;
   }
-  TripUpdate._() : super();
-  factory TripUpdate.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory TripUpdate.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  TripUpdate._();
+
+  factory TripUpdate.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripUpdate()..mergeFromBuffer(data, registry);
+  factory TripUpdate.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripUpdate()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TripUpdate',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: TripUpdate.$_createMessage)
     ..aQM<TripDescriptor>(1, _omitFieldNames ? '' : 'trip',
-        subBuilder: TripDescriptor.create)
-    ..pc<TripUpdate_StopTimeUpdate>(
-        2, _omitFieldNames ? '' : 'stopTimeUpdate', $pb.PbFieldType.PM,
-        subBuilder: TripUpdate_StopTimeUpdate.create)
+        subBuilder: TripDescriptor.$_createMessage)
+    ..pPM<TripUpdate_StopTimeUpdate>(2, _omitFieldNames ? '' : 'stopTimeUpdate',
+        subBuilder: TripUpdate_StopTimeUpdate.$_createMessage)
     ..aOM<VehicleDescriptor>(3, _omitFieldNames ? '' : 'vehicle',
-        subBuilder: VehicleDescriptor.create)
+        subBuilder: VehicleDescriptor.$_createMessage)
     ..a<$fixnum.Int64>(
         4, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'delay', $pb.PbFieldType.O3)
+    ..aI(5, _omitFieldNames ? '' : 'delay')
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  TripUpdate clone() => TripUpdate()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TripUpdate clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TripUpdate copyWith(void Function(TripUpdate) updates) =>
       super.copyWith((message) => updates(message as TripUpdate)) as TripUpdate;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use TripUpdate() / TripUpdate.new instead')
   static TripUpdate create() => TripUpdate._();
-  TripUpdate createEmptyInstance() => create();
-  static $pb.PbList<TripUpdate> createRepeated() => $pb.PbList<TripUpdate>();
+  static $pb.GeneratedMessage $_createMessage() => TripUpdate._();
+  @$core.override
+  TripUpdate createEmptyInstance() => TripUpdate._();
   @$core.pragma('dart2js:noInline')
   static TripUpdate getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<TripUpdate>(create);
+      $pb.GeneratedMessage.$_defaultFor<TripUpdate>(TripUpdate.$_createMessage);
   static TripUpdate? _defaultInstance;
 
   /// The Trip that this message applies to. There can be at most one
@@ -738,10 +653,7 @@ class TripUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   TripDescriptor get trip => $_getN(0);
   @$pb.TagNumber(1)
-  set trip(TripDescriptor v) {
-    $_setField(1, v);
-  }
-
+  set trip(TripDescriptor value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasTrip() => $_has(0);
   @$pb.TagNumber(1)
@@ -749,25 +661,25 @@ class TripUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   TripDescriptor ensureTrip() => $_ensure(0);
 
-  ///  Updates to StopTimes for the trip (both future, i.e., predictions, and in
-  ///  some cases, past ones, i.e., those that already happened).
-  ///  The updates must be sorted by stop_sequence, and apply for all the
-  ///  following stops of the trip up to the next specified one.
+  /// Updates to StopTimes for the trip (both future, i.e., predictions, and in
+  /// some cases, past ones, i.e., those that already happened).
+  /// The updates must be sorted by stop_sequence, and apply for all the
+  /// following stops of the trip up to the next specified one.
   ///
-  ///  Example 1:
-  ///  For a trip with 20 stops, a StopTimeUpdate with arrival delay and departure
-  ///  delay of 0 for stop_sequence of the current stop means that the trip is
-  ///  exactly on time.
+  /// Example 1:
+  /// For a trip with 20 stops, a StopTimeUpdate with arrival delay and departure
+  /// delay of 0 for stop_sequence of the current stop means that the trip is
+  /// exactly on time.
   ///
-  ///  Example 2:
-  ///  For the same trip instance, 3 StopTimeUpdates are provided:
-  ///  - delay of 5 min for stop_sequence 3
-  ///  - delay of 1 min for stop_sequence 8
-  ///  - delay of unspecified duration for stop_sequence 10
-  ///  This will be interpreted as:
-  ///  - stop_sequences 3,4,5,6,7 have delay of 5 min.
-  ///  - stop_sequences 8,9 have delay of 1 min.
-  ///  - stop_sequences 10,... have unknown delay.
+  /// Example 2:
+  /// For the same trip instance, 3 StopTimeUpdates are provided:
+  /// - delay of 5 min for stop_sequence 3
+  /// - delay of 1 min for stop_sequence 8
+  /// - delay of unspecified duration for stop_sequence 10
+  /// This will be interpreted as:
+  /// - stop_sequences 3,4,5,6,7 have delay of 5 min.
+  /// - stop_sequences 8,9 have delay of 1 min.
+  /// - stop_sequences 10,... have unknown delay.
   @$pb.TagNumber(2)
   $pb.PbList<TripUpdate_StopTimeUpdate> get stopTimeUpdate => $_getList(1);
 
@@ -775,10 +687,7 @@ class TripUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   VehicleDescriptor get vehicle => $_getN(2);
   @$pb.TagNumber(3)
-  set vehicle(VehicleDescriptor v) {
-    $_setField(3, v);
-  }
-
+  set vehicle(VehicleDescriptor value) => $_setField(3, value);
   @$pb.TagNumber(3)
   $core.bool hasVehicle() => $_has(2);
   @$pb.TagNumber(3)
@@ -791,40 +700,34 @@ class TripUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $fixnum.Int64 get timestamp => $_getI64(3);
   @$pb.TagNumber(4)
-  set timestamp($fixnum.Int64 v) {
-    $_setInt64(3, v);
-  }
-
+  set timestamp($fixnum.Int64 value) => $_setInt64(3, value);
   @$pb.TagNumber(4)
   $core.bool hasTimestamp() => $_has(3);
   @$pb.TagNumber(4)
   void clearTimestamp() => $_clearField(4);
 
-  ///  The current schedule deviation for the trip.  Delay should only be
-  ///  specified when the prediction is given relative to some existing schedule
-  ///  in GTFS.
+  /// The current schedule deviation for the trip.  Delay should only be
+  /// specified when the prediction is given relative to some existing schedule
+  /// in GTFS.
   ///
-  ///  Delay (in seconds) can be positive (meaning that the vehicle is late) or
-  ///  negative (meaning that the vehicle is ahead of schedule). Delay of 0
-  ///  means that the vehicle is exactly on time.
+  /// Delay (in seconds) can be positive (meaning that the vehicle is late) or
+  /// negative (meaning that the vehicle is ahead of schedule). Delay of 0
+  /// means that the vehicle is exactly on time.
   ///
-  ///  Delay information in StopTimeUpdates take precedent of trip-level delay
-  ///  information, such that trip-level delay is only propagated until the next
-  ///  stop along the trip with a StopTimeUpdate delay value specified.
+  /// Delay information in StopTimeUpdates take precedent of trip-level delay
+  /// information, such that trip-level delay is only propagated until the next
+  /// stop along the trip with a StopTimeUpdate delay value specified.
   ///
-  ///  Feed providers are strongly encouraged to provide a TripUpdate.timestamp
-  ///  value indicating when the delay value was last updated, in order to
-  ///  evaluate the freshness of the data.
+  /// Feed providers are strongly encouraged to provide a TripUpdate.timestamp
+  /// value indicating when the delay value was last updated, in order to
+  /// evaluate the freshness of the data.
   ///
-  ///  NOTE: This field is still experimental, and subject to change. It may be
-  ///  formally adopted in the future.
+  /// NOTE: This field is still experimental, and subject to change. It may be
+  /// formally adopted in the future.
   @$pb.TagNumber(5)
   $core.int get delay => $_getIZ(4);
   @$pb.TagNumber(5)
-  set delay($core.int v) {
-    $_setSignedInt32(4, v);
-  }
-
+  set delay($core.int value) => $_setSignedInt32(4, value);
   @$pb.TagNumber(5)
   $core.bool hasDelay() => $_has(4);
   @$pb.TagNumber(5)
@@ -844,100 +747,78 @@ class VehiclePosition extends $pb.GeneratedMessage {
     VehicleDescriptor? vehicle,
     VehiclePosition_OccupancyStatus? occupancyStatus,
   }) {
-    final $result = create();
-    if (trip != null) {
-      $result.trip = trip;
-    }
-    if (position != null) {
-      $result.position = position;
-    }
-    if (currentStopSequence != null) {
-      $result.currentStopSequence = currentStopSequence;
-    }
-    if (currentStatus != null) {
-      $result.currentStatus = currentStatus;
-    }
-    if (timestamp != null) {
-      $result.timestamp = timestamp;
-    }
-    if (congestionLevel != null) {
-      $result.congestionLevel = congestionLevel;
-    }
-    if (stopId != null) {
-      $result.stopId = stopId;
-    }
-    if (vehicle != null) {
-      $result.vehicle = vehicle;
-    }
-    if (occupancyStatus != null) {
-      $result.occupancyStatus = occupancyStatus;
-    }
-    return $result;
+    final result = VehiclePosition._();
+    if (trip != null) result.trip = trip;
+    if (position != null) result.position = position;
+    if (currentStopSequence != null)
+      result.currentStopSequence = currentStopSequence;
+    if (currentStatus != null) result.currentStatus = currentStatus;
+    if (timestamp != null) result.timestamp = timestamp;
+    if (congestionLevel != null) result.congestionLevel = congestionLevel;
+    if (stopId != null) result.stopId = stopId;
+    if (vehicle != null) result.vehicle = vehicle;
+    if (occupancyStatus != null) result.occupancyStatus = occupancyStatus;
+    return result;
   }
-  VehiclePosition._() : super();
-  factory VehiclePosition.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory VehiclePosition.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  VehiclePosition._();
+
+  factory VehiclePosition.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      VehiclePosition()..mergeFromBuffer(data, registry);
+  factory VehiclePosition.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      VehiclePosition()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'VehiclePosition',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: VehiclePosition.$_createMessage)
     ..aOM<TripDescriptor>(1, _omitFieldNames ? '' : 'trip',
-        subBuilder: TripDescriptor.create)
+        subBuilder: TripDescriptor.$_createMessage)
     ..aOM<Position>(2, _omitFieldNames ? '' : 'position',
-        subBuilder: Position.create)
-    ..a<$core.int>(
-        3, _omitFieldNames ? '' : 'currentStopSequence', $pb.PbFieldType.OU3)
-    ..e<VehiclePosition_VehicleStopStatus>(
-        4, _omitFieldNames ? '' : 'currentStatus', $pb.PbFieldType.OE,
+        subBuilder: Position.$_createMessage)
+    ..aI(3, _omitFieldNames ? '' : 'currentStopSequence',
+        fieldType: $pb.PbFieldType.OU3)
+    ..aE<VehiclePosition_VehicleStopStatus>(
+        4, _omitFieldNames ? '' : 'currentStatus',
         defaultOrMaker: VehiclePosition_VehicleStopStatus.IN_TRANSIT_TO,
-        valueOf: VehiclePosition_VehicleStopStatus.valueOf,
         enumValues: VehiclePosition_VehicleStopStatus.values)
     ..a<$fixnum.Int64>(
         5, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
-    ..e<VehiclePosition_CongestionLevel>(
-        6, _omitFieldNames ? '' : 'congestionLevel', $pb.PbFieldType.OE,
-        defaultOrMaker:
-            VehiclePosition_CongestionLevel.UNKNOWN_CONGESTION_LEVEL,
-        valueOf: VehiclePosition_CongestionLevel.valueOf,
+    ..aE<VehiclePosition_CongestionLevel>(
+        6, _omitFieldNames ? '' : 'congestionLevel',
         enumValues: VehiclePosition_CongestionLevel.values)
     ..aOS(7, _omitFieldNames ? '' : 'stopId')
     ..aOM<VehicleDescriptor>(8, _omitFieldNames ? '' : 'vehicle',
-        subBuilder: VehicleDescriptor.create)
-    ..e<VehiclePosition_OccupancyStatus>(
-        9, _omitFieldNames ? '' : 'occupancyStatus', $pb.PbFieldType.OE,
-        defaultOrMaker: VehiclePosition_OccupancyStatus.EMPTY,
-        valueOf: VehiclePosition_OccupancyStatus.valueOf,
+        subBuilder: VehicleDescriptor.$_createMessage)
+    ..aE<VehiclePosition_OccupancyStatus>(
+        9, _omitFieldNames ? '' : 'occupancyStatus',
         enumValues: VehiclePosition_OccupancyStatus.values)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  VehiclePosition clone() => VehiclePosition()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VehiclePosition clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   VehiclePosition copyWith(void Function(VehiclePosition) updates) =>
       super.copyWith((message) => updates(message as VehiclePosition))
           as VehiclePosition;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use VehiclePosition() / VehiclePosition.new instead')
   static VehiclePosition create() => VehiclePosition._();
-  VehiclePosition createEmptyInstance() => create();
-  static $pb.PbList<VehiclePosition> createRepeated() =>
-      $pb.PbList<VehiclePosition>();
+  static $pb.GeneratedMessage $_createMessage() => VehiclePosition._();
+  @$core.override
+  VehiclePosition createEmptyInstance() => VehiclePosition._();
   @$core.pragma('dart2js:noInline')
-  static VehiclePosition getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<VehiclePosition>(create);
+  static VehiclePosition getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VehiclePosition>(
+          VehiclePosition.$_createMessage);
   static VehiclePosition? _defaultInstance;
 
   /// The Trip that this vehicle is serving.
@@ -946,10 +827,7 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   TripDescriptor get trip => $_getN(0);
   @$pb.TagNumber(1)
-  set trip(TripDescriptor v) {
-    $_setField(1, v);
-  }
-
+  set trip(TripDescriptor value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasTrip() => $_has(0);
   @$pb.TagNumber(1)
@@ -961,10 +839,7 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   Position get position => $_getN(1);
   @$pb.TagNumber(2)
-  set position(Position v) {
-    $_setField(2, v);
-  }
-
+  set position(Position value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasPosition() => $_has(1);
   @$pb.TagNumber(2)
@@ -979,10 +854,7 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get currentStopSequence => $_getIZ(2);
   @$pb.TagNumber(3)
-  set currentStopSequence($core.int v) {
-    $_setUnsignedInt32(2, v);
-  }
-
+  set currentStopSequence($core.int value) => $_setUnsignedInt32(2, value);
   @$pb.TagNumber(3)
   $core.bool hasCurrentStopSequence() => $_has(2);
   @$pb.TagNumber(3)
@@ -993,10 +865,8 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   VehiclePosition_VehicleStopStatus get currentStatus => $_getN(3);
   @$pb.TagNumber(4)
-  set currentStatus(VehiclePosition_VehicleStopStatus v) {
-    $_setField(4, v);
-  }
-
+  set currentStatus(VehiclePosition_VehicleStopStatus value) =>
+      $_setField(4, value);
   @$pb.TagNumber(4)
   $core.bool hasCurrentStatus() => $_has(3);
   @$pb.TagNumber(4)
@@ -1007,10 +877,7 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $fixnum.Int64 get timestamp => $_getI64(4);
   @$pb.TagNumber(5)
-  set timestamp($fixnum.Int64 v) {
-    $_setInt64(4, v);
-  }
-
+  set timestamp($fixnum.Int64 value) => $_setInt64(4, value);
   @$pb.TagNumber(5)
   $core.bool hasTimestamp() => $_has(4);
   @$pb.TagNumber(5)
@@ -1019,10 +886,8 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   VehiclePosition_CongestionLevel get congestionLevel => $_getN(5);
   @$pb.TagNumber(6)
-  set congestionLevel(VehiclePosition_CongestionLevel v) {
-    $_setField(6, v);
-  }
-
+  set congestionLevel(VehiclePosition_CongestionLevel value) =>
+      $_setField(6, value);
   @$pb.TagNumber(6)
   $core.bool hasCongestionLevel() => $_has(5);
   @$pb.TagNumber(6)
@@ -1033,10 +898,7 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.String get stopId => $_getSZ(6);
   @$pb.TagNumber(7)
-  set stopId($core.String v) {
-    $_setString(6, v);
-  }
-
+  set stopId($core.String value) => $_setString(6, value);
   @$pb.TagNumber(7)
   $core.bool hasStopId() => $_has(6);
   @$pb.TagNumber(7)
@@ -1046,10 +908,7 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   VehicleDescriptor get vehicle => $_getN(7);
   @$pb.TagNumber(8)
-  set vehicle(VehicleDescriptor v) {
-    $_setField(8, v);
-  }
-
+  set vehicle(VehicleDescriptor value) => $_setField(8, value);
   @$pb.TagNumber(8)
   $core.bool hasVehicle() => $_has(7);
   @$pb.TagNumber(8)
@@ -1060,10 +919,8 @@ class VehiclePosition extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   VehiclePosition_OccupancyStatus get occupancyStatus => $_getN(8);
   @$pb.TagNumber(9)
-  set occupancyStatus(VehiclePosition_OccupancyStatus v) {
-    $_setField(9, v);
-  }
-
+  set occupancyStatus(VehiclePosition_OccupancyStatus value) =>
+      $_setField(9, value);
   @$pb.TagNumber(9)
   $core.bool hasOccupancyStatus() => $_has(8);
   @$pb.TagNumber(9)
@@ -1081,84 +938,67 @@ class Alert extends $pb.GeneratedMessage {
     TranslatedString? headerText,
     TranslatedString? descriptionText,
   }) {
-    final $result = create();
-    if (activePeriod != null) {
-      $result.activePeriod.addAll(activePeriod);
-    }
-    if (informedEntity != null) {
-      $result.informedEntity.addAll(informedEntity);
-    }
-    if (cause != null) {
-      $result.cause = cause;
-    }
-    if (effect != null) {
-      $result.effect = effect;
-    }
-    if (url != null) {
-      $result.url = url;
-    }
-    if (headerText != null) {
-      $result.headerText = headerText;
-    }
-    if (descriptionText != null) {
-      $result.descriptionText = descriptionText;
-    }
-    return $result;
+    final result = Alert._();
+    if (activePeriod != null) result.activePeriod.addAll(activePeriod);
+    if (informedEntity != null) result.informedEntity.addAll(informedEntity);
+    if (cause != null) result.cause = cause;
+    if (effect != null) result.effect = effect;
+    if (url != null) result.url = url;
+    if (headerText != null) result.headerText = headerText;
+    if (descriptionText != null) result.descriptionText = descriptionText;
+    return result;
   }
-  Alert._() : super();
-  factory Alert.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory Alert.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  Alert._();
+
+  factory Alert.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Alert()..mergeFromBuffer(data, registry);
+  factory Alert.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Alert()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'Alert',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
-    ..pc<TimeRange>(
-        1, _omitFieldNames ? '' : 'activePeriod', $pb.PbFieldType.PM,
-        subBuilder: TimeRange.create)
-    ..pc<EntitySelector>(
-        5, _omitFieldNames ? '' : 'informedEntity', $pb.PbFieldType.PM,
-        subBuilder: EntitySelector.create)
-    ..e<Alert_Cause>(6, _omitFieldNames ? '' : 'cause', $pb.PbFieldType.OE,
+      createEmptyInstance: Alert.$_createMessage)
+    ..pPM<TimeRange>(1, _omitFieldNames ? '' : 'activePeriod',
+        subBuilder: TimeRange.$_createMessage)
+    ..pPM<EntitySelector>(5, _omitFieldNames ? '' : 'informedEntity',
+        subBuilder: EntitySelector.$_createMessage)
+    ..aE<Alert_Cause>(6, _omitFieldNames ? '' : 'cause',
         defaultOrMaker: Alert_Cause.UNKNOWN_CAUSE,
-        valueOf: Alert_Cause.valueOf,
         enumValues: Alert_Cause.values)
-    ..e<Alert_Effect>(7, _omitFieldNames ? '' : 'effect', $pb.PbFieldType.OE,
+    ..aE<Alert_Effect>(7, _omitFieldNames ? '' : 'effect',
         defaultOrMaker: Alert_Effect.UNKNOWN_EFFECT,
-        valueOf: Alert_Effect.valueOf,
         enumValues: Alert_Effect.values)
     ..aOM<TranslatedString>(8, _omitFieldNames ? '' : 'url',
-        subBuilder: TranslatedString.create)
+        subBuilder: TranslatedString.$_createMessage)
     ..aOM<TranslatedString>(10, _omitFieldNames ? '' : 'headerText',
-        subBuilder: TranslatedString.create)
+        subBuilder: TranslatedString.$_createMessage)
     ..aOM<TranslatedString>(11, _omitFieldNames ? '' : 'descriptionText',
-        subBuilder: TranslatedString.create)
+        subBuilder: TranslatedString.$_createMessage)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  Alert clone() => Alert()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Alert clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   Alert copyWith(void Function(Alert) updates) =>
       super.copyWith((message) => updates(message as Alert)) as Alert;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use Alert() / Alert.new instead')
   static Alert create() => Alert._();
-  Alert createEmptyInstance() => create();
-  static $pb.PbList<Alert> createRepeated() => $pb.PbList<Alert>();
+  static $pb.GeneratedMessage $_createMessage() => Alert._();
+  @$core.override
+  Alert createEmptyInstance() => Alert._();
   @$core.pragma('dart2js:noInline')
-  static Alert getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Alert>(create);
+  static Alert getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Alert>(Alert.$_createMessage);
   static Alert? _defaultInstance;
 
   /// Time when the alert should be shown to the user. If missing, the
@@ -1174,10 +1014,7 @@ class Alert extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   Alert_Cause get cause => $_getN(2);
   @$pb.TagNumber(6)
-  set cause(Alert_Cause v) {
-    $_setField(6, v);
-  }
-
+  set cause(Alert_Cause value) => $_setField(6, value);
   @$pb.TagNumber(6)
   $core.bool hasCause() => $_has(2);
   @$pb.TagNumber(6)
@@ -1186,10 +1023,7 @@ class Alert extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   Alert_Effect get effect => $_getN(3);
   @$pb.TagNumber(7)
-  set effect(Alert_Effect v) {
-    $_setField(7, v);
-  }
-
+  set effect(Alert_Effect value) => $_setField(7, value);
   @$pb.TagNumber(7)
   $core.bool hasEffect() => $_has(3);
   @$pb.TagNumber(7)
@@ -1199,10 +1033,7 @@ class Alert extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   TranslatedString get url => $_getN(4);
   @$pb.TagNumber(8)
-  set url(TranslatedString v) {
-    $_setField(8, v);
-  }
-
+  set url(TranslatedString value) => $_setField(8, value);
   @$pb.TagNumber(8)
   $core.bool hasUrl() => $_has(4);
   @$pb.TagNumber(8)
@@ -1214,10 +1045,7 @@ class Alert extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   TranslatedString get headerText => $_getN(5);
   @$pb.TagNumber(10)
-  set headerText(TranslatedString v) {
-    $_setField(10, v);
-  }
-
+  set headerText(TranslatedString value) => $_setField(10, value);
   @$pb.TagNumber(10)
   $core.bool hasHeaderText() => $_has(5);
   @$pb.TagNumber(10)
@@ -1230,10 +1058,7 @@ class Alert extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   TranslatedString get descriptionText => $_getN(6);
   @$pb.TagNumber(11)
-  set descriptionText(TranslatedString v) {
-    $_setField(11, v);
-  }
-
+  set descriptionText(TranslatedString value) => $_setField(11, value);
   @$pb.TagNumber(11)
   $core.bool hasDescriptionText() => $_has(6);
   @$pb.TagNumber(11)
@@ -1249,53 +1074,50 @@ class TimeRange extends $pb.GeneratedMessage {
     $fixnum.Int64? start,
     $fixnum.Int64? end,
   }) {
-    final $result = create();
-    if (start != null) {
-      $result.start = start;
-    }
-    if (end != null) {
-      $result.end = end;
-    }
-    return $result;
+    final result = TimeRange._();
+    if (start != null) result.start = start;
+    if (end != null) result.end = end;
+    return result;
   }
-  TimeRange._() : super();
-  factory TimeRange.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory TimeRange.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  TimeRange._();
+
+  factory TimeRange.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TimeRange()..mergeFromBuffer(data, registry);
+  factory TimeRange.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TimeRange()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TimeRange',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: TimeRange.$_createMessage)
     ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'start', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'end', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  TimeRange clone() => TimeRange()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TimeRange clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TimeRange copyWith(void Function(TimeRange) updates) =>
       super.copyWith((message) => updates(message as TimeRange)) as TimeRange;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use TimeRange() / TimeRange.new instead')
   static TimeRange create() => TimeRange._();
-  TimeRange createEmptyInstance() => create();
-  static $pb.PbList<TimeRange> createRepeated() => $pb.PbList<TimeRange>();
+  static $pb.GeneratedMessage $_createMessage() => TimeRange._();
+  @$core.override
+  TimeRange createEmptyInstance() => TimeRange._();
   @$core.pragma('dart2js:noInline')
-  static TimeRange getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TimeRange>(create);
+  static TimeRange getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TimeRange>(TimeRange.$_createMessage);
   static TimeRange? _defaultInstance;
 
   /// Start time, in POSIX time (i.e., number of seconds since January 1st 1970
@@ -1304,10 +1126,7 @@ class TimeRange extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $fixnum.Int64 get start => $_getI64(0);
   @$pb.TagNumber(1)
-  set start($fixnum.Int64 v) {
-    $_setInt64(0, v);
-  }
-
+  set start($fixnum.Int64 value) => $_setInt64(0, value);
   @$pb.TagNumber(1)
   $core.bool hasStart() => $_has(0);
   @$pb.TagNumber(1)
@@ -1319,10 +1138,7 @@ class TimeRange extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get end => $_getI64(1);
   @$pb.TagNumber(2)
-  set end($fixnum.Int64 v) {
-    $_setInt64(1, v);
-  }
-
+  set end($fixnum.Int64 value) => $_setInt64(1, value);
   @$pb.TagNumber(2)
   $core.bool hasEnd() => $_has(1);
   @$pb.TagNumber(2)
@@ -1338,73 +1154,61 @@ class Position extends $pb.GeneratedMessage {
     $core.double? odometer,
     $core.double? speed,
   }) {
-    final $result = create();
-    if (latitude != null) {
-      $result.latitude = latitude;
-    }
-    if (longitude != null) {
-      $result.longitude = longitude;
-    }
-    if (bearing != null) {
-      $result.bearing = bearing;
-    }
-    if (odometer != null) {
-      $result.odometer = odometer;
-    }
-    if (speed != null) {
-      $result.speed = speed;
-    }
-    return $result;
+    final result = Position._();
+    if (latitude != null) result.latitude = latitude;
+    if (longitude != null) result.longitude = longitude;
+    if (bearing != null) result.bearing = bearing;
+    if (odometer != null) result.odometer = odometer;
+    if (speed != null) result.speed = speed;
+    return result;
   }
-  Position._() : super();
-  factory Position.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory Position.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  Position._();
+
+  factory Position.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Position()..mergeFromBuffer(data, registry);
+  factory Position.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Position()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'Position',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
-    ..a<$core.double>(1, _omitFieldNames ? '' : 'latitude', $pb.PbFieldType.QF)
-    ..a<$core.double>(2, _omitFieldNames ? '' : 'longitude', $pb.PbFieldType.QF)
-    ..a<$core.double>(3, _omitFieldNames ? '' : 'bearing', $pb.PbFieldType.OF)
-    ..a<$core.double>(4, _omitFieldNames ? '' : 'odometer', $pb.PbFieldType.OD)
-    ..a<$core.double>(5, _omitFieldNames ? '' : 'speed', $pb.PbFieldType.OF)
+      createEmptyInstance: Position.$_createMessage)
+    ..aD(1, _omitFieldNames ? '' : 'latitude', fieldType: $pb.PbFieldType.QF)
+    ..aD(2, _omitFieldNames ? '' : 'longitude', fieldType: $pb.PbFieldType.QF)
+    ..aD(3, _omitFieldNames ? '' : 'bearing', fieldType: $pb.PbFieldType.OF)
+    ..aD(4, _omitFieldNames ? '' : 'odometer')
+    ..aD(5, _omitFieldNames ? '' : 'speed', fieldType: $pb.PbFieldType.OF)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  Position clone() => Position()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Position clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   Position copyWith(void Function(Position) updates) =>
       super.copyWith((message) => updates(message as Position)) as Position;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use Position() / Position.new instead')
   static Position create() => Position._();
-  Position createEmptyInstance() => create();
-  static $pb.PbList<Position> createRepeated() => $pb.PbList<Position>();
+  static $pb.GeneratedMessage $_createMessage() => Position._();
+  @$core.override
+  Position createEmptyInstance() => Position._();
   @$core.pragma('dart2js:noInline')
-  static Position getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Position>(create);
+  static Position getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Position>(Position.$_createMessage);
   static Position? _defaultInstance;
 
   /// Degrees North, in the WGS-84 coordinate system.
   @$pb.TagNumber(1)
   $core.double get latitude => $_getN(0);
   @$pb.TagNumber(1)
-  set latitude($core.double v) {
-    $_setFloat(0, v);
-  }
-
+  set latitude($core.double value) => $_setFloat(0, value);
   @$pb.TagNumber(1)
   $core.bool hasLatitude() => $_has(0);
   @$pb.TagNumber(1)
@@ -1414,10 +1218,7 @@ class Position extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.double get longitude => $_getN(1);
   @$pb.TagNumber(2)
-  set longitude($core.double v) {
-    $_setFloat(1, v);
-  }
-
+  set longitude($core.double value) => $_setFloat(1, value);
   @$pb.TagNumber(2)
   $core.bool hasLongitude() => $_has(1);
   @$pb.TagNumber(2)
@@ -1431,10 +1232,7 @@ class Position extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.double get bearing => $_getN(2);
   @$pb.TagNumber(3)
-  set bearing($core.double v) {
-    $_setFloat(2, v);
-  }
-
+  set bearing($core.double value) => $_setFloat(2, value);
   @$pb.TagNumber(3)
   $core.bool hasBearing() => $_has(2);
   @$pb.TagNumber(3)
@@ -1444,10 +1242,7 @@ class Position extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.double get odometer => $_getN(3);
   @$pb.TagNumber(4)
-  set odometer($core.double v) {
-    $_setDouble(3, v);
-  }
-
+  set odometer($core.double value) => $_setDouble(3, value);
   @$pb.TagNumber(4)
   $core.bool hasOdometer() => $_has(3);
   @$pb.TagNumber(4)
@@ -1457,10 +1252,7 @@ class Position extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.double get speed => $_getN(4);
   @$pb.TagNumber(5)
-  set speed($core.double v) {
-    $_setFloat(4, v);
-  }
-
+  set speed($core.double value) => $_setFloat(4, value);
   @$pb.TagNumber(5)
   $core.bool hasSpeed() => $_has(4);
   @$pb.TagNumber(5)
@@ -1485,73 +1277,62 @@ class TripDescriptor extends $pb.GeneratedMessage {
     $core.String? routeId,
     $core.int? directionId,
   }) {
-    final $result = create();
-    if (tripId != null) {
-      $result.tripId = tripId;
-    }
-    if (startTime != null) {
-      $result.startTime = startTime;
-    }
-    if (startDate != null) {
-      $result.startDate = startDate;
-    }
-    if (scheduleRelationship != null) {
-      $result.scheduleRelationship = scheduleRelationship;
-    }
-    if (routeId != null) {
-      $result.routeId = routeId;
-    }
-    if (directionId != null) {
-      $result.directionId = directionId;
-    }
-    return $result;
+    final result = TripDescriptor._();
+    if (tripId != null) result.tripId = tripId;
+    if (startTime != null) result.startTime = startTime;
+    if (startDate != null) result.startDate = startDate;
+    if (scheduleRelationship != null)
+      result.scheduleRelationship = scheduleRelationship;
+    if (routeId != null) result.routeId = routeId;
+    if (directionId != null) result.directionId = directionId;
+    return result;
   }
-  TripDescriptor._() : super();
-  factory TripDescriptor.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory TripDescriptor.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  TripDescriptor._();
+
+  factory TripDescriptor.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripDescriptor()..mergeFromBuffer(data, registry);
+  factory TripDescriptor.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TripDescriptor()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TripDescriptor',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: TripDescriptor.$_createMessage)
     ..aOS(1, _omitFieldNames ? '' : 'tripId')
     ..aOS(2, _omitFieldNames ? '' : 'startTime')
     ..aOS(3, _omitFieldNames ? '' : 'startDate')
-    ..e<TripDescriptor_ScheduleRelationship>(
-        4, _omitFieldNames ? '' : 'scheduleRelationship', $pb.PbFieldType.OE,
-        defaultOrMaker: TripDescriptor_ScheduleRelationship.SCHEDULED,
-        valueOf: TripDescriptor_ScheduleRelationship.valueOf,
+    ..aE<TripDescriptor_ScheduleRelationship>(
+        4, _omitFieldNames ? '' : 'scheduleRelationship',
         enumValues: TripDescriptor_ScheduleRelationship.values)
     ..aOS(5, _omitFieldNames ? '' : 'routeId')
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'directionId', $pb.PbFieldType.OU3)
+    ..aI(6, _omitFieldNames ? '' : 'directionId',
+        fieldType: $pb.PbFieldType.OU3)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  TripDescriptor clone() => TripDescriptor()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TripDescriptor clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TripDescriptor copyWith(void Function(TripDescriptor) updates) =>
       super.copyWith((message) => updates(message as TripDescriptor))
           as TripDescriptor;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use TripDescriptor() / TripDescriptor.new instead')
   static TripDescriptor create() => TripDescriptor._();
-  TripDescriptor createEmptyInstance() => create();
-  static $pb.PbList<TripDescriptor> createRepeated() =>
-      $pb.PbList<TripDescriptor>();
+  static $pb.GeneratedMessage $_createMessage() => TripDescriptor._();
+  @$core.override
+  TripDescriptor createEmptyInstance() => TripDescriptor._();
   @$core.pragma('dart2js:noInline')
-  static TripDescriptor getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<TripDescriptor>(create);
+  static TripDescriptor getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TripDescriptor>(
+          TripDescriptor.$_createMessage);
   static TripDescriptor? _defaultInstance;
 
   /// The trip_id from the GTFS feed that this selector refers to.
@@ -1561,10 +1342,7 @@ class TripDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get tripId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set tripId($core.String v) {
-    $_setString(0, v);
-  }
-
+  set tripId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasTripId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1588,10 +1366,7 @@ class TripDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get startTime => $_getSZ(1);
   @$pb.TagNumber(2)
-  set startTime($core.String v) {
-    $_setString(1, v);
-  }
-
+  set startTime($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasStartTime() => $_has(1);
   @$pb.TagNumber(2)
@@ -1610,10 +1385,7 @@ class TripDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get startDate => $_getSZ(2);
   @$pb.TagNumber(3)
-  set startDate($core.String v) {
-    $_setString(2, v);
-  }
-
+  set startDate($core.String value) => $_setString(2, value);
   @$pb.TagNumber(3)
   $core.bool hasStartDate() => $_has(2);
   @$pb.TagNumber(3)
@@ -1622,10 +1394,8 @@ class TripDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   TripDescriptor_ScheduleRelationship get scheduleRelationship => $_getN(3);
   @$pb.TagNumber(4)
-  set scheduleRelationship(TripDescriptor_ScheduleRelationship v) {
-    $_setField(4, v);
-  }
-
+  set scheduleRelationship(TripDescriptor_ScheduleRelationship value) =>
+      $_setField(4, value);
   @$pb.TagNumber(4)
   $core.bool hasScheduleRelationship() => $_has(3);
   @$pb.TagNumber(4)
@@ -1635,10 +1405,7 @@ class TripDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get routeId => $_getSZ(4);
   @$pb.TagNumber(5)
-  set routeId($core.String v) {
-    $_setString(4, v);
-  }
-
+  set routeId($core.String value) => $_setString(4, value);
   @$pb.TagNumber(5)
   $core.bool hasRouteId() => $_has(4);
   @$pb.TagNumber(5)
@@ -1651,10 +1418,7 @@ class TripDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.int get directionId => $_getIZ(5);
   @$pb.TagNumber(6)
-  set directionId($core.int v) {
-    $_setUnsignedInt32(5, v);
-  }
-
+  set directionId($core.int value) => $_setUnsignedInt32(5, value);
   @$pb.TagNumber(6)
   $core.bool hasDirectionId() => $_has(5);
   @$pb.TagNumber(6)
@@ -1668,57 +1432,52 @@ class VehicleDescriptor extends $pb.GeneratedMessage {
     $core.String? label,
     $core.String? licensePlate,
   }) {
-    final $result = create();
-    if (id != null) {
-      $result.id = id;
-    }
-    if (label != null) {
-      $result.label = label;
-    }
-    if (licensePlate != null) {
-      $result.licensePlate = licensePlate;
-    }
-    return $result;
+    final result = VehicleDescriptor._();
+    if (id != null) result.id = id;
+    if (label != null) result.label = label;
+    if (licensePlate != null) result.licensePlate = licensePlate;
+    return result;
   }
-  VehicleDescriptor._() : super();
-  factory VehicleDescriptor.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory VehicleDescriptor.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  VehicleDescriptor._();
+
+  factory VehicleDescriptor.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      VehicleDescriptor()..mergeFromBuffer(data, registry);
+  factory VehicleDescriptor.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      VehicleDescriptor()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'VehicleDescriptor',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: VehicleDescriptor.$_createMessage)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..aOS(3, _omitFieldNames ? '' : 'licensePlate')
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  VehicleDescriptor clone() => VehicleDescriptor()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VehicleDescriptor clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   VehicleDescriptor copyWith(void Function(VehicleDescriptor) updates) =>
       super.copyWith((message) => updates(message as VehicleDescriptor))
           as VehicleDescriptor;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use VehicleDescriptor() / VehicleDescriptor.new instead')
   static VehicleDescriptor create() => VehicleDescriptor._();
-  VehicleDescriptor createEmptyInstance() => create();
-  static $pb.PbList<VehicleDescriptor> createRepeated() =>
-      $pb.PbList<VehicleDescriptor>();
+  static $pb.GeneratedMessage $_createMessage() => VehicleDescriptor._();
+  @$core.override
+  VehicleDescriptor createEmptyInstance() => VehicleDescriptor._();
   @$core.pragma('dart2js:noInline')
-  static VehicleDescriptor getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<VehicleDescriptor>(create);
+  static VehicleDescriptor getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VehicleDescriptor>(
+          VehicleDescriptor.$_createMessage);
   static VehicleDescriptor? _defaultInstance;
 
   /// Internal system identification of the vehicle. Should be unique per
@@ -1727,10 +1486,7 @@ class VehicleDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) {
-    $_setString(0, v);
-  }
-
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1741,10 +1497,7 @@ class VehicleDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get label => $_getSZ(1);
   @$pb.TagNumber(2)
-  set label($core.String v) {
-    $_setString(1, v);
-  }
-
+  set label($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasLabel() => $_has(1);
   @$pb.TagNumber(2)
@@ -1754,10 +1507,7 @@ class VehicleDescriptor extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get licensePlate => $_getSZ(2);
   @$pb.TagNumber(3)
-  set licensePlate($core.String v) {
-    $_setString(2, v);
-  }
-
+  set licensePlate($core.String value) => $_setString(2, value);
   @$pb.TagNumber(3)
   $core.bool hasLicensePlate() => $_has(2);
   @$pb.TagNumber(3)
@@ -1773,66 +1523,57 @@ class EntitySelector extends $pb.GeneratedMessage {
     TripDescriptor? trip,
     $core.String? stopId,
   }) {
-    final $result = create();
-    if (agencyId != null) {
-      $result.agencyId = agencyId;
-    }
-    if (routeId != null) {
-      $result.routeId = routeId;
-    }
-    if (routeType != null) {
-      $result.routeType = routeType;
-    }
-    if (trip != null) {
-      $result.trip = trip;
-    }
-    if (stopId != null) {
-      $result.stopId = stopId;
-    }
-    return $result;
+    final result = EntitySelector._();
+    if (agencyId != null) result.agencyId = agencyId;
+    if (routeId != null) result.routeId = routeId;
+    if (routeType != null) result.routeType = routeType;
+    if (trip != null) result.trip = trip;
+    if (stopId != null) result.stopId = stopId;
+    return result;
   }
-  EntitySelector._() : super();
-  factory EntitySelector.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory EntitySelector.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  EntitySelector._();
+
+  factory EntitySelector.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      EntitySelector()..mergeFromBuffer(data, registry);
+  factory EntitySelector.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      EntitySelector()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'EntitySelector',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: EntitySelector.$_createMessage)
     ..aOS(1, _omitFieldNames ? '' : 'agencyId')
     ..aOS(2, _omitFieldNames ? '' : 'routeId')
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'routeType', $pb.PbFieldType.O3)
+    ..aI(3, _omitFieldNames ? '' : 'routeType')
     ..aOM<TripDescriptor>(4, _omitFieldNames ? '' : 'trip',
-        subBuilder: TripDescriptor.create)
+        subBuilder: TripDescriptor.$_createMessage)
     ..aOS(5, _omitFieldNames ? '' : 'stopId')
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  EntitySelector clone() => EntitySelector()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  EntitySelector clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   EntitySelector copyWith(void Function(EntitySelector) updates) =>
       super.copyWith((message) => updates(message as EntitySelector))
           as EntitySelector;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use EntitySelector() / EntitySelector.new instead')
   static EntitySelector create() => EntitySelector._();
-  EntitySelector createEmptyInstance() => create();
-  static $pb.PbList<EntitySelector> createRepeated() =>
-      $pb.PbList<EntitySelector>();
+  static $pb.GeneratedMessage $_createMessage() => EntitySelector._();
+  @$core.override
+  EntitySelector createEmptyInstance() => EntitySelector._();
   @$core.pragma('dart2js:noInline')
-  static EntitySelector getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<EntitySelector>(create);
+  static EntitySelector getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EntitySelector>(
+          EntitySelector.$_createMessage);
   static EntitySelector? _defaultInstance;
 
   /// The values of the fields should correspond to the appropriate fields in the
@@ -1842,10 +1583,7 @@ class EntitySelector extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get agencyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set agencyId($core.String v) {
-    $_setString(0, v);
-  }
-
+  set agencyId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasAgencyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1854,10 +1592,7 @@ class EntitySelector extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get routeId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set routeId($core.String v) {
-    $_setString(1, v);
-  }
-
+  set routeId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasRouteId() => $_has(1);
   @$pb.TagNumber(2)
@@ -1867,10 +1602,7 @@ class EntitySelector extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get routeType => $_getIZ(2);
   @$pb.TagNumber(3)
-  set routeType($core.int v) {
-    $_setSignedInt32(2, v);
-  }
-
+  set routeType($core.int value) => $_setSignedInt32(2, value);
   @$pb.TagNumber(3)
   $core.bool hasRouteType() => $_has(2);
   @$pb.TagNumber(3)
@@ -1879,10 +1611,7 @@ class EntitySelector extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   TripDescriptor get trip => $_getN(3);
   @$pb.TagNumber(4)
-  set trip(TripDescriptor v) {
-    $_setField(4, v);
-  }
-
+  set trip(TripDescriptor value) => $_setField(4, value);
   @$pb.TagNumber(4)
   $core.bool hasTrip() => $_has(3);
   @$pb.TagNumber(4)
@@ -1893,10 +1622,7 @@ class EntitySelector extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get stopId => $_getSZ(4);
   @$pb.TagNumber(5)
-  set stopId($core.String v) {
-    $_setString(4, v);
-  }
-
+  set stopId($core.String value) => $_setString(4, value);
   @$pb.TagNumber(5)
   $core.bool hasStopId() => $_has(4);
   @$pb.TagNumber(5)
@@ -1908,67 +1634,63 @@ class TranslatedString_Translation extends $pb.GeneratedMessage {
     $core.String? text,
     $core.String? language,
   }) {
-    final $result = create();
-    if (text != null) {
-      $result.text = text;
-    }
-    if (language != null) {
-      $result.language = language;
-    }
-    return $result;
+    final result = TranslatedString_Translation._();
+    if (text != null) result.text = text;
+    if (language != null) result.language = language;
+    return result;
   }
-  TranslatedString_Translation._() : super();
-  factory TranslatedString_Translation.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory TranslatedString_Translation.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  TranslatedString_Translation._();
+
+  factory TranslatedString_Translation.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TranslatedString_Translation()..mergeFromBuffer(data, registry);
+  factory TranslatedString_Translation.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TranslatedString_Translation()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TranslatedString.Translation',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
+      createEmptyInstance: TranslatedString_Translation.$_createMessage)
     ..aQS(1, _omitFieldNames ? '' : 'text')
     ..aOS(2, _omitFieldNames ? '' : 'language')
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  TranslatedString_Translation clone() =>
-      TranslatedString_Translation()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TranslatedString_Translation clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TranslatedString_Translation copyWith(
           void Function(TranslatedString_Translation) updates) =>
       super.copyWith(
               (message) => updates(message as TranslatedString_Translation))
           as TranslatedString_Translation;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated(
+      'Use TranslatedString_Translation() / TranslatedString_Translation.new instead')
   static TranslatedString_Translation create() =>
       TranslatedString_Translation._();
-  TranslatedString_Translation createEmptyInstance() => create();
-  static $pb.PbList<TranslatedString_Translation> createRepeated() =>
-      $pb.PbList<TranslatedString_Translation>();
+  static $pb.GeneratedMessage $_createMessage() =>
+      TranslatedString_Translation._();
+  @$core.override
+  TranslatedString_Translation createEmptyInstance() =>
+      TranslatedString_Translation._();
   @$core.pragma('dart2js:noInline')
   static TranslatedString_Translation getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<TranslatedString_Translation>(create);
+      $pb.GeneratedMessage.$_defaultFor<TranslatedString_Translation>(
+          TranslatedString_Translation.$_createMessage);
   static TranslatedString_Translation? _defaultInstance;
 
   /// A UTF-8 string containing the message.
   @$pb.TagNumber(1)
   $core.String get text => $_getSZ(0);
   @$pb.TagNumber(1)
-  set text($core.String v) {
-    $_setString(0, v);
-  }
-
+  set text($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasText() => $_has(0);
   @$pb.TagNumber(1)
@@ -1980,10 +1702,7 @@ class TranslatedString_Translation extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get language => $_getSZ(1);
   @$pb.TagNumber(2)
-  set language($core.String v) {
-    $_setString(1, v);
-  }
-
+  set language($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasLanguage() => $_has(1);
   @$pb.TagNumber(2)
@@ -2004,51 +1723,49 @@ class TranslatedString extends $pb.GeneratedMessage {
   factory TranslatedString({
     $core.Iterable<TranslatedString_Translation>? translation,
   }) {
-    final $result = create();
-    if (translation != null) {
-      $result.translation.addAll(translation);
-    }
-    return $result;
+    final result = TranslatedString._();
+    if (translation != null) result.translation.addAll(translation);
+    return result;
   }
-  TranslatedString._() : super();
-  factory TranslatedString.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory TranslatedString.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+
+  TranslatedString._();
+
+  factory TranslatedString.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TranslatedString()..mergeFromBuffer(data, registry);
+  factory TranslatedString.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TranslatedString()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TranslatedString',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'transit_realtime'),
-      createEmptyInstance: create)
-    ..pc<TranslatedString_Translation>(
-        1, _omitFieldNames ? '' : 'translation', $pb.PbFieldType.PM,
-        subBuilder: TranslatedString_Translation.create)
+      createEmptyInstance: TranslatedString.$_createMessage)
+    ..pPM<TranslatedString_Translation>(1, _omitFieldNames ? '' : 'translation',
+        subBuilder: TranslatedString_Translation.$_createMessage)
     ..hasExtensions = true;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  TranslatedString clone() => TranslatedString()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TranslatedString clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   TranslatedString copyWith(void Function(TranslatedString) updates) =>
       super.copyWith((message) => updates(message as TranslatedString))
           as TranslatedString;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use TranslatedString() / TranslatedString.new instead')
   static TranslatedString create() => TranslatedString._();
-  TranslatedString createEmptyInstance() => create();
-  static $pb.PbList<TranslatedString> createRepeated() =>
-      $pb.PbList<TranslatedString>();
+  static $pb.GeneratedMessage $_createMessage() => TranslatedString._();
+  @$core.override
+  TranslatedString createEmptyInstance() => TranslatedString._();
   @$core.pragma('dart2js:noInline')
-  static TranslatedString getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<TranslatedString>(create);
+  static TranslatedString getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TranslatedString>(
+          TranslatedString.$_createMessage);
   static TranslatedString? _defaultInstance;
 
   /// At least one translation must be provided.
@@ -2056,6 +1773,7 @@ class TranslatedString extends $pb.GeneratedMessage {
   $pb.PbList<TranslatedString_Translation> get translation => $_getList(0);
 }
 
-const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames =
+const $core.bool _omitFieldNames =
+    $core.bool.fromEnvironment('protobuf.omit_field_names');
+const $core.bool _omitMessageNames =
     $core.bool.fromEnvironment('protobuf.omit_message_names');

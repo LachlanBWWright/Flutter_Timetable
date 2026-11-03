@@ -91,6 +91,7 @@ const List<Tab> _defaultStationTabs = <Tab>[
 
 /// Custom app bar for the new trip screen
 class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
   final bool isSearching;
   final TextEditingController searchController;
   final FocusNode? searchFocusNode;
@@ -107,6 +108,7 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const NewTripAppBar({
     super.key,
+    this.title = 'Add New Trip',
     required this.isSearching,
     required this.searchController,
     required this.onSearch,
@@ -127,16 +129,18 @@ class NewTripAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: isSearching
           ? TextField(
+              autofocus: true,
               focusNode: searchFocusNode,
               controller: searchController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
+                labelText: title,
                 hintText: 'Search for a station',
-                hintStyle: TextStyle(color: Colors.white),
+                hintStyle: const TextStyle(color: Colors.white),
               ),
               style: const TextStyle(color: Colors.white),
               onSubmitted: onSearch,
             )
-          : const Text('Add New Trip'),
+          : Text(title),
       actions: [
         if (!canSave) ...[
           // Sort button (only show when not searching, not in map view, and not ready to save)

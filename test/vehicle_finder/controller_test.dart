@@ -10,6 +10,41 @@ import 'package:lbww_flutter/vehicle_finder/provider.dart';
 import 'fixtures.dart';
 
 void main() {
+  test('automatic search combines modes and tolerates a failed feed', () {
+    fakeAsync((async) {
+      final requested = <TransportMode>[];
+      final stream = StreamController<FinderLocation>.broadcast();
+      final controller = VehicleFinderController(
+        locations: () => stream.stream,
+        vehicles: (mode) async {
+          requested.add(mode);
+          if (mode == TransportMode.train) {
+            throw const VehicleFinderException('Train feed unavailable');
+          }
+          if (mode == TransportMode.bus || mode == TransportMode.ferry) {
+            return [vehicle(0, mode: mode)];
+          }
+          return [];
+        },
+        clock: () => instant(0),
+      );
+      controller.start();
+      stream.add(phone(0));
+      async.flushMicrotasks();
+      expect(requested, containsAll(TransportMode.values));
+      expect(requested, hasLength(TransportMode.values.length));
+      expect(
+        controller.candidates.map((value) => value.vehicle.mode),
+        containsAll([TransportMode.bus, TransportMode.ferry]),
+      );
+      expect(controller.error, contains('Train positions are unavailable'));
+      expect(controller.running, isTrue);
+      controller.dispose();
+      stream.close();
+      async.flushMicrotasks();
+    });
+  });
+
   test('fast GPS streams do not trigger a fleet scan for every fix', () {
     fakeAsync((async) {
       final stream = StreamController<FinderLocation>.broadcast();
@@ -206,6 +241,54 @@ void main() {
       async.flushMicrotasks();
       expect(controller.running, isFalse);
       expect(controller.error, contains('permission denied'));
+      expect(async.pendingTimers, isEmpty);
+      controller.dispose();
+    });
+  });
+
+  test('visible-page search can keep polling beyond three minutes', () {
+    fakeAsync((async) {
+      final stream = StreamController<FinderLocation>.broadcast();
+      var requests = 0;
+      final controller = VehicleFinderController(
+        searchDuration: null,
+        locations: () => stream.stream,
+        vehicles: (_) async {
+          requests++;
+          return [];
+        },
+      );
+      controller.start();
+      async.flushMicrotasks();
+      async.elapse(const Duration(minutes: 4));
+      async.flushMicrotasks();
+      expect(controller.running, isTrue);
+      expect(requests, greaterThan(TransportMode.values.length));
+      controller.dispose();
+      stream.close();
+      async.flushMicrotasks();
+      expect(async.pendingTimers, isEmpty);
+    });
+  });
+
+  test('stopping during a pending location failure handles cancellation', () {
+    fakeAsync((async) {
+      final ready = Completer<void>();
+      Stream<FinderLocation> locations() async* {
+        await ready.future;
+        throw const VehicleFinderException('Location unavailable.');
+      }
+
+      final controller = VehicleFinderController(
+        locations: locations,
+        vehicles: (_) async => [],
+      );
+      controller.start();
+      async.flushMicrotasks();
+      controller.stop();
+      ready.complete();
+      async.flushMicrotasks();
+      expect(controller.running, isFalse);
       expect(async.pendingTimers, isEmpty);
       controller.dispose();
     });

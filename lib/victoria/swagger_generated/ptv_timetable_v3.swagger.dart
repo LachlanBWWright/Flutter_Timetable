@@ -5,15 +5,19 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:json_annotation/json_annotation.dart' as json;
 import 'package:collection/collection.dart';
+
 import 'dart:convert';
 
 import 'package:chopper/chopper.dart';
 
 import 'client_mapping.dart';
+
 import 'dart:async';
+
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart' show MultipartFile;
 import 'package:chopper/chopper.dart' as chopper;
+
 import 'ptv_timetable_v3.enums.swagger.dart' as enums;
 import 'ptv_timetable_v3.metadata.swagger.dart';
 export 'ptv_timetable_v3.enums.swagger.dart';
@@ -47,7 +51,7 @@ abstract class PtvTimetableV3 extends ChopperService {
       client: httpClient,
       authenticator: authenticator,
       errorConverter: errorConverter,
-      baseUrl: baseUrl ?? Uri.parse('https://timetableapi.ptv.vic.gov.au'),
+      baseUrl: baseUrl ?? Uri.parse('http://timetableapi.ptv.vic.gov.au'),
     );
     return _$PtvTimetableV3(newClient);
   }
@@ -69,9 +73,9 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DeparturesResponse>>
   v3DeparturesRouteTypeRouteTypeStopStopIdGet({
-    required enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType
+    required enums.V3DeparturesRouteTypeRouteTypeStopStopIdGetRouteType?
     routeType,
-    required int stopId,
+    required int? stopId,
     List<int>? platformNumbers,
     int? directionId,
     bool? gtfs,
@@ -129,7 +133,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   Future<chopper.Response<V3DeparturesResponse>>
   _v3DeparturesRouteTypeRouteTypeStopStopIdGet({
     @Path('route_type') required String? routeType,
-    @Path('stop_id') required int stopId,
+    @Path('stop_id') required int? stopId,
     @Query('platform_numbers') List<int>? platformNumbers,
     @Query('direction_id') int? directionId,
     @Query('gtfs') bool? gtfs,
@@ -172,10 +176,10 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DeparturesResponse>>
   v3DeparturesRouteTypeRouteTypeStopStopIdRouteRouteIdGet({
-    required enums.V3DeparturesRouteTypeRouteTypeStopStopIdRouteRouteIdGetRouteType
+    required enums.V3DeparturesRouteTypeRouteTypeStopStopIdRouteRouteIdGetRouteType?
     routeType,
-    required int stopId,
-    required String routeId,
+    required int? stopId,
+    required String? routeId,
     int? directionId,
     bool? gtfs,
     DateTime? dateUtc,
@@ -231,14 +235,13 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   @GET(
-    path:
-        '/v3/departures/route_type/{route_type}/stop/{stop_id}/route/{route_id}',
+    path: '/v3/departures/route_type/{route_type}/stop/{stop_id}/route/{route_id}',
   )
   Future<chopper.Response<V3DeparturesResponse>>
   _v3DeparturesRouteTypeRouteTypeStopStopIdRouteRouteIdGet({
     @Path('route_type') required String? routeType,
-    @Path('stop_id') required int stopId,
-    @Path('route_id') required String routeId,
+    @Path('stop_id') required int? stopId,
+    @Path('route_id') required String? routeId,
     @Query('direction_id') int? directionId,
     @Query('gtfs') bool? gtfs,
     @Query('date_utc') DateTime? dateUtc,
@@ -269,7 +272,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DirectionsResponse>> v3DirectionsRouteRouteIdGet({
-    required int routeId,
+    required int? routeId,
     String? token,
     String? devid,
     String? signature,
@@ -294,7 +297,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/directions/route/{route_id}')
   Future<chopper.Response<V3DirectionsResponse>> _v3DirectionsRouteRouteIdGet({
-    @Path('route_id') required int routeId,
+    @Path('route_id') required int? routeId,
     @Query('token') String? token,
     @Query('devid') String? devid,
     @Query('signature') String? signature,
@@ -317,7 +320,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DirectionsResponse>> v3DirectionsDirectionIdGet({
-    required int directionId,
+    required int? directionId,
     String? token,
     String? devid,
     String? signature,
@@ -342,7 +345,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/directions/{direction_id}')
   Future<chopper.Response<V3DirectionsResponse>> _v3DirectionsDirectionIdGet({
-    @Path('direction_id') required int directionId,
+    @Path('direction_id') required int? directionId,
     @Query('token') String? token,
     @Query('devid') String? devid,
     @Query('signature') String? signature,
@@ -367,8 +370,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DirectionsResponse>>
   v3DirectionsDirectionIdRouteTypeRouteTypeGet({
-    required int directionId,
-    required enums.V3DirectionsDirectionIdRouteTypeRouteTypeGetRouteType
+    required int? directionId,
+    required enums.V3DirectionsDirectionIdRouteTypeRouteTypeGetRouteType?
     routeType,
     String? token,
     String? devid,
@@ -397,7 +400,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/directions/{direction_id}/route_type/{route_type}')
   Future<chopper.Response<V3DirectionsResponse>>
   _v3DirectionsDirectionIdRouteTypeRouteTypeGet({
-    @Path('direction_id') required int directionId,
+    @Path('direction_id') required int? directionId,
     @Path('route_type') required String? routeType,
     @Query('token') String? token,
     @Query('devid') String? devid,
@@ -482,7 +485,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DisruptionsResponse>> v3DisruptionsRouteRouteIdGet({
-    required int routeId,
+    required int? routeId,
     enums.V3DisruptionsRouteRouteIdGetDisruptionStatus? disruptionStatus,
     String? token,
     String? devid,
@@ -511,7 +514,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/disruptions/route/{route_id}')
   Future<chopper.Response<V3DisruptionsResponse>>
   _v3DisruptionsRouteRouteIdGet({
-    @Path('route_id') required int routeId,
+    @Path('route_id') required int? routeId,
     @Query('disruption_status') String? disruptionStatus,
     @Query('token') String? token,
     @Query('devid') String? devid,
@@ -538,8 +541,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DisruptionsResponse>>
   v3DisruptionsRouteRouteIdStopStopIdGet({
-    required int routeId,
-    required int stopId,
+    required int? routeId,
+    required int? stopId,
     enums.V3DisruptionsRouteRouteIdStopStopIdGetDisruptionStatus?
     disruptionStatus,
     String? token,
@@ -571,8 +574,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/disruptions/route/{route_id}/stop/{stop_id}')
   Future<chopper.Response<V3DisruptionsResponse>>
   _v3DisruptionsRouteRouteIdStopStopIdGet({
-    @Path('route_id') required int routeId,
-    @Path('stop_id') required int stopId,
+    @Path('route_id') required int? routeId,
+    @Path('stop_id') required int? stopId,
     @Query('disruption_status') String? disruptionStatus,
     @Query('token') String? token,
     @Query('devid') String? devid,
@@ -597,7 +600,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DisruptionsResponse>> v3DisruptionsStopStopIdGet({
-    required int stopId,
+    required int? stopId,
     enums.V3DisruptionsStopStopIdGetDisruptionStatus? disruptionStatus,
     String? token,
     String? devid,
@@ -625,7 +628,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/disruptions/stop/{stop_id}')
   Future<chopper.Response<V3DisruptionsResponse>> _v3DisruptionsStopStopIdGet({
-    @Path('stop_id') required int stopId,
+    @Path('stop_id') required int? stopId,
     @Query('disruption_status') String? disruptionStatus,
     @Query('token') String? token,
     @Query('devid') String? devid,
@@ -649,7 +652,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3DisruptionResponse>> v3DisruptionsDisruptionIdGet({
-    required int disruptionId,
+    required int? disruptionId,
     String? token,
     String? devid,
     String? signature,
@@ -674,7 +677,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/disruptions/{disruption_id}')
   Future<chopper.Response<V3DisruptionResponse>> _v3DisruptionsDisruptionIdGet({
-    @Path('disruption_id') required int disruptionId,
+    @Path('disruption_id') required int? disruptionId,
     @Query('token') String? token,
     @Query('devid') String? devid,
     @Query('signature') String? signature,
@@ -747,8 +750,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3FareEstimateResponse>>
   v3FareEstimateMinZoneMinZoneMaxZoneMaxZoneGet({
-    required int minZone,
-    required int maxZone,
+    required int? minZone,
+    required int? maxZone,
     DateTime? journeyTouchOnUtc,
     DateTime? journeyTouchOffUtc,
     bool? isJourneyInFreeTramZone,
@@ -797,8 +800,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/fare_estimate/min_zone/{minZone}/max_zone/{maxZone}')
   Future<chopper.Response<V3FareEstimateResponse>>
   _v3FareEstimateMinZoneMinZoneMaxZoneMaxZoneGet({
-    @Path('minZone') required int minZone,
-    @Path('maxZone') required int maxZone,
+    @Path('minZone') required int? minZone,
+    @Path('maxZone') required int? maxZone,
     @Query('journey_touch_on_utc') DateTime? journeyTouchOnUtc,
     @Query('journey_touch_off_utc') DateTime? journeyTouchOffUtc,
     @Query('is_journey_in_free_tram_zone') bool? isJourneyInFreeTramZone,
@@ -878,8 +881,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3OutletGeolocationResponse>>
   v3OutletsLocationLatitudeLongitudeGet({
-    required num latitude,
-    required num longitude,
+    required num? latitude,
+    required num? longitude,
     num? maxDistance,
     int? maxResults,
     String? token,
@@ -913,8 +916,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/outlets/location/{latitude},{longitude}')
   Future<chopper.Response<V3OutletGeolocationResponse>>
   _v3OutletsLocationLatitudeLongitudeGet({
-    @Path('latitude') required num latitude,
-    @Path('longitude') required num longitude,
+    @Path('latitude') required num? latitude,
+    @Path('longitude') required num? longitude,
     @Query('max_distance') num? maxDistance,
     @Query('max_results') int? maxResults,
     @Query('token') String? token,
@@ -947,8 +950,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3StoppingPattern>>
   v3PatternRunRunRefRouteTypeRouteTypeGet({
-    required String runRef,
-    required enums.V3PatternRunRunRefRouteTypeRouteTypeGetRouteType routeType,
+    required String? runRef,
+    required enums.V3PatternRunRunRefRouteTypeRouteTypeGetRouteType? routeType,
     List<enums.V3PatternRunRunRefRouteTypeRouteTypeGetExpand>? expand,
     int? stopId,
     DateTime? dateUtc,
@@ -994,7 +997,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/pattern/run/{run_ref}/route_type/{route_type}')
   Future<chopper.Response<V3StoppingPattern>>
   _v3PatternRunRunRefRouteTypeRouteTypeGet({
-    @Path('run_ref') required String runRef,
+    @Path('run_ref') required String? runRef,
     @Path('route_type') required String? routeType,
     @Query('expand') List<Object?>? expand,
     @Query('stop_id') int? stopId,
@@ -1079,7 +1082,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3RouteResponse>> v3RoutesRouteIdGet({
-    required int routeId,
+    required int? routeId,
     bool? includeGeopath,
     DateTime? geopathUtc,
     String? token,
@@ -1110,7 +1113,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/routes/{route_id}')
   Future<chopper.Response<V3RouteResponse>> _v3RoutesRouteIdGet({
-    @Path('route_id') required int routeId,
+    @Path('route_id') required int? routeId,
     @Query('include_geopath') bool? includeGeopath,
     @Query('geopath_utc') DateTime? geopathUtc,
     @Query('token') String? token,
@@ -1177,7 +1180,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3RunsResponse>> v3RunsRouteRouteIdGet({
-    required int routeId,
+    required int? routeId,
     List<enums.V3RunsRouteRouteIdGetExpand>? expand,
     DateTime? dateUtc,
     bool? includeAdvertisedInterchange,
@@ -1211,7 +1214,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/runs/route/{route_id}')
   Future<chopper.Response<V3RunsResponse>> _v3RunsRouteRouteIdGet({
-    @Path('route_id') required int routeId,
+    @Path('route_id') required int? routeId,
     @Query('expand') List<Object?>? expand,
     @Query('date_utc') DateTime? dateUtc,
     @Query('include_advertised_interchange') bool? includeAdvertisedInterchange,
@@ -1242,8 +1245,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3RunsResponse>>
   v3RunsRouteRouteIdRouteTypeRouteTypeGet({
-    required int routeId,
-    required enums.V3RunsRouteRouteIdRouteTypeRouteTypeGetRouteType routeType,
+    required int? routeId,
+    required enums.V3RunsRouteRouteIdRouteTypeRouteTypeGetRouteType? routeType,
     List<enums.V3RunsRouteRouteIdRouteTypeRouteTypeGetExpand>? expand,
     DateTime? dateUtc,
     bool? includeAdvertisedInterchange,
@@ -1280,7 +1283,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/runs/route/{route_id}/route_type/{route_type}')
   Future<chopper.Response<V3RunsResponse>>
   _v3RunsRouteRouteIdRouteTypeRouteTypeGet({
-    @Path('route_id') required int routeId,
+    @Path('route_id') required int? routeId,
     @Path('route_type') required String? routeType,
     @Query('expand') List<Object?>? expand,
     @Query('date_utc') DateTime? dateUtc,
@@ -1312,7 +1315,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3RunsResponse>> v3RunsRunRefGet({
-    required String runRef,
+    required String? runRef,
     bool? includeGeopath,
     List<enums.V3RunsRunRefGetExpand>? expand,
     DateTime? dateUtc,
@@ -1349,7 +1352,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/runs/{run_ref}')
   Future<chopper.Response<V3RunsResponse>> _v3RunsRunRefGet({
-    @Path('run_ref') required String runRef,
+    @Path('run_ref') required String? runRef,
     @Query('include_geopath') bool? includeGeopath,
     @Query('expand') List<Object?>? expand,
     @Query('date_utc') DateTime? dateUtc,
@@ -1380,8 +1383,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3RunResponse>> v3RunsRunRefRouteTypeRouteTypeGet({
-    required String runRef,
-    required enums.V3RunsRunRefRouteTypeRouteTypeGetRouteType routeType,
+    required String? runRef,
+    required enums.V3RunsRunRefRouteTypeRouteTypeGetRouteType? routeType,
     List<enums.V3RunsRunRefRouteTypeRouteTypeGetExpand>? expand,
     DateTime? dateUtc,
     bool? includeGeopath,
@@ -1417,7 +1420,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/runs/{run_ref}/route_type/{route_type}')
   Future<chopper.Response<V3RunResponse>> _v3RunsRunRefRouteTypeRouteTypeGet({
-    @Path('run_ref') required String runRef,
+    @Path('run_ref') required String? runRef,
     @Path('route_type') required String? routeType,
     @Query('expand') List<Object?>? expand,
     @Query('date_utc') DateTime? dateUtc,
@@ -1454,7 +1457,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3SearchResult>> v3SearchSearchTermGet({
-    required String searchTerm,
+    required String? searchTerm,
     List<enums.V3SearchSearchTermGetRouteTypes>? routeTypes,
     num? latitude,
     num? longitude,
@@ -1506,7 +1509,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/search/{search_term}')
   Future<chopper.Response<V3SearchResult>> _v3SearchSearchTermGet({
-    @Path('search_term') required String searchTerm,
+    @Path('search_term') required String? searchTerm,
     @Query('route_types') List<Object?>? routeTypes,
     @Query('latitude') num? latitude,
     @Query('longitude') num? longitude,
@@ -1522,8 +1525,7 @@ abstract class PtvTimetableV3 extends ChopperService {
     @chopper.Tag()
     SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
       description: '',
-      summary:
-          'View stops, routes and myki ticket outlets that match the search term',
+      summary: 'View stops, routes and myki ticket outlets that match the search term',
       operationId: 'Search_Search',
       consumes: [],
       produces: ["application/json", "text/json"],
@@ -1548,8 +1550,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param devid Your developer id
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3StopResponse>> v3StopsStopIdRouteTypeRouteTypeGet({
-    required int stopId,
-    required enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType routeType,
+    required int? stopId,
+    required enums.V3StopsStopIdRouteTypeRouteTypeGetRouteType? routeType,
     bool? stopLocation,
     bool? stopAmenities,
     bool? stopAccessibility,
@@ -1600,7 +1602,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   @GET(path: '/v3/stops/{stop_id}/route_type/{route_type}')
   Future<chopper.Response<V3StopResponse>> _v3StopsStopIdRouteTypeRouteTypeGet({
-    @Path('stop_id') required int stopId,
+    @Path('stop_id') required int? stopId,
     @Path('route_type') required String? routeType,
     @Query('stop_location') bool? stopLocation,
     @Query('stop_amenities') bool? stopAmenities,
@@ -1640,8 +1642,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3StopsOnRouteResponse>>
   v3StopsRouteRouteIdRouteTypeRouteTypeGet({
-    required int routeId,
-    required enums.V3StopsRouteRouteIdRouteTypeRouteTypeGetRouteType routeType,
+    required int? routeId,
+    required enums.V3StopsRouteRouteIdRouteTypeRouteTypeGetRouteType? routeType,
     int? directionId,
     bool? stopDisruptions,
     bool? includeGeopath,
@@ -1684,7 +1686,7 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/stops/route/{route_id}/route_type/{route_type}')
   Future<chopper.Response<V3StopsOnRouteResponse>>
   _v3StopsRouteRouteIdRouteTypeRouteTypeGet({
-    @Path('route_id') required int routeId,
+    @Path('route_id') required int? routeId,
     @Path('route_type') required String? routeType,
     @Query('direction_id') int? directionId,
     @Query('stop_disruptions') bool? stopDisruptions,
@@ -1719,8 +1721,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   ///@param signature Authentication signature for request
   Future<chopper.Response<V3StopsByDistanceResponse>>
   v3StopsLocationLatitudeLongitudeGet({
-    required num latitude,
-    required num longitude,
+    required num? latitude,
+    required num? longitude,
     List<enums.V3StopsLocationLatitudeLongitudeGetRouteTypes>? routeTypes,
     int? maxResults,
     num? maxDistance,
@@ -1762,8 +1764,8 @@ abstract class PtvTimetableV3 extends ChopperService {
   @GET(path: '/v3/stops/location/{latitude},{longitude}')
   Future<chopper.Response<V3StopsByDistanceResponse>>
   _v3StopsLocationLatitudeLongitudeGet({
-    @Path('latitude') required num latitude,
-    @Path('longitude') required num longitude,
+    @Path('latitude') required num? latitude,
+    @Path('longitude') required num? longitude,
     @Query('route_types') List<Object?>? routeTypes,
     @Query('max_results') int? maxResults,
     @Query('max_distance') num? maxDistance,
@@ -20983,9 +20985,9 @@ class $JsonSerializableConverter extends chopper.JsonConverter {
 
     if (ResultType == DateTime) {
       return response.copyWith(
-        body:
-            DateTime.parse((response.body as String).replaceAll('"', ''))
-                as ResultType,
+        body: DateTime.parse(
+          (response.body as String).replaceAll('"', ''),
+        ) as ResultType,
       );
     }
 

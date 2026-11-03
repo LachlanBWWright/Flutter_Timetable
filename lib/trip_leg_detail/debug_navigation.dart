@@ -110,7 +110,7 @@ extension _DebugNavigation on _TripLegDetailScreenState {
       DebugEntityType.vehicle,
       initialFilters: {
         if (routeId != null && routeId.isNotEmpty) 'route': routeId,
-        if (tripId != null) 'trip': tripId,
+        'trip': ?tripId,
       },
     );
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/active_journey/session.dart';
+import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/home/home_page.dart';
 import 'package:lbww_flutter/vehicle_finder/controller.dart';
 import 'package:lbww_flutter/vehicle_finder/models.dart';
@@ -14,24 +15,25 @@ import 'fixtures.dart';
 void main() {
   setUp(() => ActiveJourneySession.instance.end());
   tearDown(() => ActiveJourneySession.instance.end());
-  testWidgets('temporary Home toolbar button opens an idle experiment', (
+  testWidgets('Home toolbar opens the vehicle finder without a start prompt', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       const MaterialApp(home: MyHomePage(title: 'Home', skipInitialLoad: true)),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.tap(find.byTooltip('Find my vehicle (experimental)'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(VehicleFinderScreen), findsOneWidget);
-    expect(find.text('Start search'), findsOneWidget);
+    expect(find.text('Start search'), findsNothing);
     expect(find.text('Stop search'), findsNothing);
-    expect(find.text('Experimental · NSW'), findsOneWidget);
+    expect(find.text('Nearby vehicles'), findsOneWidget);
   });
 
   testWidgets(
-    'search starts explicitly, confirms a candidate, and cancels on disposal',
+    'search starts automatically, confirms a candidate, and cancels on disposal',
     (tester) async {
       var starts = 0;
       var cancels = 0;
@@ -43,7 +45,8 @@ void main() {
           starts++;
           return stream.stream;
         },
-        vehicles: (_) async => [vehicle(0)],
+        vehicles: (mode) async =>
+            mode == TransportMode.train ? [vehicle(0)] : [],
         clock: () => instant(0),
       );
       addTearDown(controller.dispose);
@@ -51,10 +54,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(home: VehicleFinderScreen(controller: controller)),
       );
-      await tester.pumpAndSettle();
-      expect(starts, 0);
-      await tester.tap(find.text('Start search'));
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(starts, 1);
+      expect(find.text('Start search'), findsNothing);
       stream.add(phone(0));
       await tester.pump();
       expect(starts, 1);
@@ -67,7 +69,7 @@ void main() {
       );
       await tester.pump();
       await tester.tap(find.text('This is my vehicle'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 500));
       expect(controller.running, isFalse);
       expect(cancels, 1);
       expect(find.text('View on map'), findsOneWidget);
@@ -78,37 +80,76 @@ void main() {
     },
   );
 
-  testWidgets('backgrounding stops sampling and does not silently restart', (
+  testWidgets('search lists modes clearly without a mode selection step', (
     tester,
   ) async {
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    var cancelled = 0;
-    final stream = StreamController<FinderLocation>.broadcast(
-      onCancel: () => cancelled++,
-    );
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final requested = <TransportMode>[];
+    final stream = StreamController<FinderLocation>.broadcast();
     final controller = VehicleFinderController(
       locations: () => stream.stream,
-      vehicles: (_) async => [],
+      vehicles: (mode) async {
+        requested.add(mode);
+        return mode == TransportMode.bus || mode == TransportMode.ferry
+            ? [vehicle(0, mode: mode)]
+            : [];
+      },
+      clock: () => instant(0),
     );
     addTearDown(controller.dispose);
     addTearDown(stream.close);
     await tester.pumpWidget(
       MaterialApp(home: VehicleFinderScreen(controller: controller)),
     );
-    await tester.tap(find.text('Start search'));
+    expect(find.text('Transport type'), findsNothing);
+    expect(find.byType(DropdownButtonFormField<TransportMode>), findsNothing);
     await tester.pump();
-    // Permission prompts may transiently mark an app inactive.
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    expect(controller.running, isTrue);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    stream.add(phone(0));
     await tester.pump();
-    expect(cancelled, 1);
-    expect(controller.running, isFalse);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pump();
-    expect(controller.running, isFalse);
+    expect(requested, containsAll(TransportMode.values));
+    expect(find.textContaining('Bus'), findsWidgets);
+    expect(find.textContaining('Ferry'), findsWidgets);
+    expect(find.byIcon(Icons.directions_bus), findsOneWidget);
+    expect(find.byIcon(Icons.directions_boat), findsOneWidget);
+    expect(find.text('Possible vehicle'), findsNWidgets(2));
+    expect(find.text('Likely your vehicle'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets(
+    'backgrounding stops sampling and returning resumes automatically',
+    (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      var cancelled = 0;
+      final stream = StreamController<FinderLocation>.broadcast(
+        onCancel: () => cancelled++,
+      );
+      final controller = VehicleFinderController(
+        locations: () => stream.stream,
+        vehicles: (_) async => [],
+      );
+      addTearDown(controller.dispose);
+      addTearDown(stream.close);
+      await tester.pumpWidget(
+        MaterialApp(home: VehicleFinderScreen(controller: controller)),
+      );
+      await tester.pump();
+      // Permission prompts may transiently mark an app inactive.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      expect(controller.running, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      expect(cancelled, 1);
+      expect(controller.running, isFalse);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(controller.running, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('covering or closing the finder route stops a running search', (
     tester,
@@ -127,7 +168,6 @@ void main() {
         home: VehicleFinderScreen(controller: controller),
       ),
     );
-    await tester.tap(find.text('Start search'));
     await tester.pump();
     unawaited(
       navigator.currentState!.push(
@@ -136,11 +176,10 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(controller.running, isFalse);
     navigator.currentState!.pop();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Start search'));
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
     expect(controller.running, isTrue);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -170,13 +209,7 @@ void main() {
               home: const VehicleFinderScreen(),
             ),
           );
-          await tester.pumpAndSettle();
-          await tester.scrollUntilVisible(
-            find.text('Start search'),
-            300,
-            scrollable: find.byType(Scrollable).first,
-          );
-          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 500));
           await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
           await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
           await expectLater(tester, meetsGuideline(textContrastGuideline));
@@ -204,7 +237,7 @@ void main() {
           home: VehicleFinderScreen(controller: controller, supported: false),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 500));
       expect(
         find.textContaining('currently supports New South Wales'),
         findsOneWidget,

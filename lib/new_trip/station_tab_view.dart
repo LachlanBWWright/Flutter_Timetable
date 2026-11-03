@@ -3,7 +3,7 @@ part of '../new_trip.dart';
 extension _StationTabView on _NewTripScreenState {
   Widget _buildStationTab(_TripCreatorTab tab) {
     final mode = tab.mode;
-    if (_showMapView && !_manualBuilderEnabled) {
+    if (_showMapView) {
       final modeDisplayName = NewTripService.getModeDisplayName(mode);
       return StopsMapWidget(
         key: ValueKey('map_${tab.kind}'),
@@ -38,7 +38,7 @@ extension _StationTabView on _NewTripScreenState {
     }
 
     final isSelectingSameLineDestination =
-        !_manualBuilderEnabled &&
+        _pickerTarget == _StopTarget.destination &&
         _filterDestinationsToSameLine &&
         _originStation != null &&
         _destinationStation == null;
@@ -105,6 +105,7 @@ extension _StationTabView on _NewTripScreenState {
       children: [
         Expanded(
           child: EnhancedStationList(
+            key: PageStorageKey('trip-picker-${tab.kind}'),
             listItems: displayList,
             setStation: setStation,
             sortMode: _sortMode,

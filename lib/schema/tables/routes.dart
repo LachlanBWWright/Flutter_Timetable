@@ -1,25 +1,25 @@
 part of 'package:lbww_flutter/schema/database.dart';
 
-class Routes extends SafeTable {
-  TextColumn get endpoint => safeTextColumn();
+class Routes extends Table {
+  TextColumn get endpoint => text()();
 
-  TextColumn get routeId => safeTextColumn();
+  TextColumn get routeId => text()();
 
-  TextColumn get lineId => safeTextColumn();
+  TextColumn get lineId => text()();
 
-  TextColumn get routeShortName => safeTextColumn(nullable: true);
+  TextColumn get routeShortName => text().nullable()();
 
-  TextColumn get routeLongName => safeTextColumn(nullable: true);
+  TextColumn get routeLongName => text().nullable()();
 
-  TextColumn get routeDesc => safeTextColumn(nullable: true);
+  TextColumn get routeDesc => text().nullable()();
 
-  TextColumn get routeType => safeTextColumn(nullable: true);
+  TextColumn get routeType => text().nullable()();
 
-  TextColumn get routeColor => safeTextColumn(nullable: true);
+  TextColumn get routeColor => text().nullable()();
 
-  TextColumn get routeTextColor => safeTextColumn(nullable: true);
+  TextColumn get routeTextColor => text().nullable()();
 
-  TextColumn get routeSortOrder => safeTextColumn(nullable: true);
+  TextColumn get routeSortOrder => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {endpoint, routeId};

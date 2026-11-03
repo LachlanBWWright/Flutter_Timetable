@@ -16,7 +16,7 @@ import 'package:lbww_flutter/services/trip_line_service.dart';
 import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/new_trip_screen_utils.dart';
-import 'package:lbww_flutter/widgets/selected_stops_widget.dart';
+import 'package:lbww_flutter/widgets/selected_stops/selected_stops_controls.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
 
@@ -26,6 +26,8 @@ part 'new_trip/draft_lookups.dart';
 part 'new_trip/manual_journey.dart';
 part 'new_trip/station_tab_view.dart';
 part 'new_trip/trip_creator_tabs.dart';
+part 'new_trip/trip_form.dart';
+part 'new_trip/stop_picker.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({
@@ -69,8 +71,26 @@ class _NewTripScreenState extends State<NewTripScreen>
   int _draftGeneration = 0;
   int _lineLookupGeneration = 0;
   int _sharedLineLookupGeneration = 0;
-  int _interchangeLookupGeneration = 0;
   bool _isSavingTrip = false;
+  bool _isApplyingStop = false;
+  bool _pickerOpen = false;
+  _StopTarget? _pickerTarget;
+  bool _pickerNotificationPending = false;
+  BuildContext? _pickerContext;
+  final _pickerChanges = ValueNotifier(0);
+  final _pickerStorage = PageStorageBucket();
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    if (!_pickerOpen || _pickerNotificationPending) return;
+    _pickerNotificationPending = true;
+    scheduleMicrotask(() {
+      _pickerNotificationPending = false;
+      if (mounted && _pickerOpen) _pickerChanges.value++;
+    });
+  }
+
   Timer? _searchDebounce;
   final Map<_TripCreatorTabKind, int> _sortGenerations = {};
 
@@ -113,14 +133,29 @@ class _NewTripScreenState extends State<NewTripScreen>
   @override
   void initState() {
     super.initState();
+    _db = AppDatabase();
     if (widget.skipInitialLoad) {
       _tabs = _buildTabs();
-      _trainStationList = List<Station>.of(widget.initialStations);
+      for (final station in widget.initialStations) {
+        switch (station.mode ?? TransportMode.train) {
+          case TransportMode.train:
+            _trainStationList.add(station);
+          case TransportMode.lightrail:
+            _lightRailStationList.add(station);
+          case TransportMode.metro:
+            _metroStationList.add(station);
+          case TransportMode.bus:
+            _busStationList.add(station);
+          case TransportMode.ferry:
+            _ferryStationList.add(station);
+        }
+      }
       _tabController = TabController(length: _tabs.length, vsync: this);
       _searchFocusNode = FocusNode();
+      addListenerSafely(_tabController, _onTabChanged);
+      addListenerSafely(keyController, _applySearchFilter);
       return;
     }
-    _db = AppDatabase();
     _tabs = _buildTabs();
     _tabController = TabController(length: _tabs.length, vsync: this);
     addListenerSafely(_tabController, _onTabChanged);
@@ -145,6 +180,7 @@ class _NewTripScreenState extends State<NewTripScreen>
   void dispose() {
     _searchDebounce?.cancel();
     _searchGeneration++;
+    _pickerChanges.dispose();
     removeListenerSafely(
       TransportPreferencesService.showNswTrainLink,
       _onTransportPreferencesChanged,
@@ -167,77 +203,18 @@ class _NewTripScreenState extends State<NewTripScreen>
     } catch (_) {}
   }
 
-  Future<void> setStation(Station station) => _selectStation(station);
+  Future<void> setStation(Station station) async {
+    final picker = _pickerContext;
+    if (_pickerOpen && picker == null) return;
+    if (_pickerOpen && picker != null) {
+      _pickerContext = null;
+      FocusManager.instance.primaryFocus?.unfocus();
+      Navigator.of(picker).pop(station);
+      return;
+    }
+    await _selectStation(station);
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: NewTripAppBar(
-        isSearching: _isSearching,
-        searchController: keyController,
-        searchFocusNode: _searchFocusNode,
-        onSearch: (_) {},
-        onToggleSearch: _toggleSearch,
-        onSaveTrip: null,
-        canSave: false,
-        onOpenMap: _canUseNswStopsMap ? _openMap : null,
-        onToggleSort: _toggleSort,
-        sortMode: _sortMode,
-        showMapView: _showMapView,
-        tabController: _tabController,
-        tabs: _tabs.map((tab) => tab.tab).toList(),
-      ),
-      body: Column(
-        children: [
-          if (_draftRegion case final region?)
-            MaterialBanner(
-              content: Text('Trip region: ${region.label}'),
-              actions: const [SizedBox.shrink()],
-            )
-          else if (AppTransitContext.instance.enabledRegions.length > 1)
-            const MaterialBanner(
-              content: Text(
-                'Search all enabled regions. Selecting the first stop locks this trip to that region.',
-              ),
-              actions: [SizedBox.shrink()],
-            ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: _tabs.map(_buildStationTab).toList(),
-            ),
-          ),
-          SelectedStopsWidget(
-            origin: _originStation,
-            destination: _destinationStation,
-            currentMode: _currentMode,
-            originMode: _originMode,
-            destinationMode: _destinationMode,
-            isLoadingLineCandidates: _isLoadingLineCandidates,
-            originLineCandidates: _currentTabOriginLineCandidates,
-            isSameLineFilterEnabled: _filterDestinationsToSameLine,
-            onSameLineFilterChanged: _originStation == null
-                ? null
-                : _toggleSameLineDestinationFilter,
-            selectedLine: _selectedLine,
-            interchanges: _interchanges,
-            isResolvingSharedLines: _isResolvingSharedLines,
-            isManualBuilderEnabled: _manualBuilderEnabled,
-            pendingInterchangeInsertIndex: _pendingInterchangeInsertIndex,
-            statusMessage: _statusMessage,
-            manualValidationMessage: _manualValidationMessage,
-            onClearOrigin: _clearOrigin,
-            onClearDestination: _clearDestination,
-            onSaveDirect: _saveTrip,
-            onSaveManual: _canSaveManual ? _saveManualTrip : null,
-            onAddInterchange: _startInterchangeSelection,
-            onRemoveInterchange: _removeInterchange,
-            onMoveInterchange: _moveInterchange,
-            canSaveDirect: _canSaveDirect,
-            canSaveManual: _canSaveManual,
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildTripForm();
 }
