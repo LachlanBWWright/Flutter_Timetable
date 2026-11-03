@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+source "$(dirname "$0")/_common.sh"
+
+require_flutter
+ensure_env_file
+"${FLUTTER[@]}" pub get
+"${FLUTTER[@]}" config --enable-web
+"${FLUTTER[@]}" build web --release "$@"
+

@@ -1,1 +1,1 @@
-export 'trip_planner.swagger.dart' show TripPlanner;
+export '../nsw/swagger_generated/client_index.dart';

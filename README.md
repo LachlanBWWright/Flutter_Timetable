@@ -1,35 +1,57 @@
-# lbww_flutter
+# Flutter Timetable
 
-A new Flutter project.
+An Australian public transport app for planning journeys, checking departures,
+and keeping your regular trips in one place. Built with Flutter, it brings
+saved journeys, timetables, and live service information together in a single app.
 
-## Getting Started
+[Download for Android](https://github.com/LachlanBWWright/Flutter_Timetable/releases)
+· [Report a bug or suggest a feature](https://github.com/LachlanBWWright/Flutter_Timetable/issues)
 
-This project is a starting point for a Flutter application.
+## What you can do
 
-A few resources to get you started if this is your first Flutter project:
+- **Keep your regular journeys handy.** Save trips, pin favourites, and search
+  your saved journeys.
+- **Plan a trip.** Search for stops and journey options, or build a journey
+  manually with the stops and interchanges you want.
+- **Check departures and service details.** View timetables, stopping patterns,
+  and live updates where available.
+- **Explore the network.** Find stops on a map and see vehicle positions when
+  a live feed is available.
+- **Make it your own.** Set a home stop and choose your display preferences.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## A look inside
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+<p>
+  <img src="screenshots/phoneScreenshots/1_home.png" alt="Saved journeys on the home screen" width="240" />
+  <img src="screenshots/phoneScreenshots/7_trip_leg_detail.png" alt="Journey details and stops" width="240" />
+  <img src="screenshots/phoneScreenshots/10_stops_map.png" alt="Stops displayed on a map" width="240" />
+</p>
 
-## API Code Generation
+## Coverage
 
-This project uses `swagger_dart_code_generator` to generate Dart models
-and API clients from Swagger/OpenAPI schemas placed in `lib/swaggers`.
+New South Wales is enabled in the default app. The project also includes
+integrations for Victoria, Queensland, South Australia, Tasmania, the Northern
+Territory, and Western Australia. Regional availability varies between builds;
+not every region or provider offers the same journey planning and live data.
 
-To generate code, ensure you have installed dependencies and then run:
+Timetables and live information come from transport providers. Live updates
+may be delayed or unavailable, and saved or cached information may be older
+than the latest service changes.
 
-```
-dart run build_runner build --delete-conflicting-outputs
-```
+## Get the app
 
-You can also run the helper script:
+Download an Android APK from [GitHub Releases](https://github.com/LachlanBWWright/Flutter_Timetable/releases)
+and open it on your phone to install. Android may ask you to allow installation
+from your browser or file manager.
 
-```
-./scripts/generate_api.sh
-```
+For authenticated NSW services, add your TfNSW API key in the app's Settings.
+Published builds do not include a provider key by default.
 
-Generated files will be emitted to `lib/swagger_generated` per `build.yaml`.
+## Contributing
+
+Bug reports, feature ideas, and contributions are welcome. When reporting a
+problem, include the app version, your device, the transport region, and what
+you expected to happen.
+
+Want to run the app or contribute code? Start with the
+[development guide](docs/DEVELOPMENT.md).

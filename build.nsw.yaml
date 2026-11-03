@@ -1,0 +1,12 @@
+targets:
+  $default:
+    sources:
+      - lib/nsw/swaggers/generated/**
+      - $package$
+    builders:
+      swagger_dart_code_generator:
+        options:
+          input_folder: 'lib/nsw/swaggers/generated'
+          output_folder: 'lib/nsw/swagger_generated'
+          with_base_url: true
+          multipart_file_type: "http.MultipartFile"

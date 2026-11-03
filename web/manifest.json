@@ -1,11 +1,11 @@
 {
-    "name": "lbww_flutter",
-    "short_name": "lbww_flutter",
+    "name": "Australian Transit Journey Planner",
+    "short_name": "Transit Planner",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "A multi-region Australian public transport journey planner.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

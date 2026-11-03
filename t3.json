@@ -1,0 +1,62 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "defaultThreadEnvMode": "local",
+  "scripts": [
+    {
+      "name": "Linux: Get Dependencies",
+      "command": "flutter pub get",
+      "icon": "configure",
+      "runOnWorktreeCreate": true
+    },
+    {
+      "name": "Linux: Run App",
+      "command": "flutter run -d linux",
+      "icon": "play"
+    },
+    {
+      "name": "Linux: Build App",
+      "command": "flutter build linux",
+      "icon": "build"
+    },
+    {
+      "name": "ADB: List Devices",
+      "command": "adb devices -l",
+      "icon": "configure"
+    },
+    {
+      "name": "Android: Run App",
+      "command": "flutter run -d \"$(adb get-serialno)\"",
+      "icon": "play"
+    },
+    {
+      "name": "Android: Build Debug APK",
+      "command": "flutter build apk --debug",
+      "icon": "build"
+    },
+    {
+      "name": "ADB: Install Debug APK",
+      "command": "adb install -r build/app/outputs/flutter-apk/app-debug.apk",
+      "icon": "build"
+    },
+    {
+      "name": "ADB: Launch App",
+      "command": "adb shell am start -n com.example.lbww_flutter/.MainActivity",
+      "icon": "play"
+    },
+    {
+      "name": "ADB: App Logs",
+      "command": "adb logcat --pid=\"$(adb shell pidof -s com.example.lbww_flutter)\"",
+      "icon": "test"
+    },
+    {
+      "name": "Analyze Dart",
+      "command": "flutter analyze",
+      "icon": "lint"
+    },
+    {
+      "name": "Run Tests",
+      "command": "flutter test",
+      "icon": "test"
+    }
+  ]
+}

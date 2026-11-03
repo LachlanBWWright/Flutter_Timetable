@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    name: Screenshot baselines
+    uses: ./.github/workflows/goldens.yml
+
+  checks:
+    name: Analyze and test (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [nsw, all-regions]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - name: Install host SQLite library for database tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
+
+      - name: Run project CI checks
+        env:
+          CI_MODE: ${{ matrix.mode }}
+        run: ./scripts/ci.sh "$CI_MODE"
+
+      - name: Upload deterministic test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deterministic-test-coverage-${{ matrix.mode }}
+          path: coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 14
+
+  android-debug:
+    name: Build Android debug and release APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: checks
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - name: Build split debug APKs
+        run: |
+          cp .env.template .env
+          flutter pub get
+          flutter build apk --debug --split-per-abi
+
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apks
+          path: build/app/outputs/flutter-apk/*-debug.apk
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+      - name: Smoke-test release packaging
+        run: flutter build apk --release --target-platform android-arm64
+
+  android-e2e:
+    name: Android saved-trip E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: checks
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm && test -w /dev/kvm
+
+      - name: Prepare test assets and dependencies
+        run: |
+          cp .env.template .env
+          flutter pub get
+
+      - name: Run saved-trip flow on an Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 300
+          disable-animations: true
+          script: |
+            flutter test integration_test/saved_trip_journey_test.dart -d emulator-5554
