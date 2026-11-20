@@ -1,6 +1,10 @@
 import 'package:collection/collection.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 
+import 'timetable_provenance.dart';
+
+export 'timetable_provenance.dart';
+
 enum TransitRegion {
   nsw,
   victoria,
@@ -124,6 +128,9 @@ class TransitStopRef {
   final TransitSourceId sourceId;
   final String stopId;
 
+  bool belongsTo(TransitRegion region, TransitProviderId provider) =>
+      this.region == region && this.provider == provider;
+
   String get storageKey =>
       '${region.name}|${provider.name}|${sourceId.value}|$stopId';
 
@@ -203,6 +210,7 @@ class TransitStop {
     required this.ref,
     required this.name,
     this.mode,
+    this.modes = const {},
     this.platformCode,
     this.stopCode,
     this.description,
@@ -215,6 +223,24 @@ class TransitStop {
   final TransitStopRef ref;
   final String name;
   final TransportMode? mode;
+  final Set<TransportMode> modes;
+  bool supportsMode(TransportMode selected) => modes.isNotEmpty
+      ? modes.contains(selected)
+      : mode == null || mode == selected;
+
+  TransitStop withModes(Set<TransportMode> values) => TransitStop(
+    ref: ref,
+    name: name,
+    modes: Set.unmodifiable(values),
+    mode: values.length == 1 ? values.single : null,
+    platformCode: platformCode,
+    stopCode: stopCode,
+    description: description,
+    suburb: suburb,
+    latitude: latitude,
+    longitude: longitude,
+    accessibility: accessibility,
+  );
   final String? platformCode;
   final String? stopCode;
   final String? description;
@@ -253,6 +279,9 @@ class TransitDeparture {
     this.platform,
     this.plannedTime,
     this.estimatedTime,
+    this.timetable,
+    this.isApproximate = false,
+    this.headwaySeconds,
     this.cancelled = false,
     this.statusText,
   });
@@ -264,6 +293,15 @@ class TransitDeparture {
   final String? platform;
   final DateTime? plannedTime;
   final DateTime? estimatedTime;
+  final TimetableProvenance? timetable;
+  final bool isApproximate;
+  final int? headwaySeconds;
+  bool get isRealtime => estimatedTime != null;
+  String get timingDescription => isRealtime
+      ? 'Live estimate'
+      : isApproximate
+      ? 'Approximate frequency service'
+      : 'Scheduled';
   final bool cancelled;
   final String? statusText;
 }
@@ -297,8 +335,29 @@ class TransitTripUpdate {
     this.plannedTime,
     this.estimatedTime,
     this.statusText,
+    this.sourceId,
+    this.routeId,
+    this.serviceDate,
+    this.startTime,
+    this.stopSequence,
+    this.noData = false,
+    this.cancelled = false,
+    this.skipped = false,
+    this.estimatedArrivalTime,
+    this.estimatedDepartureTime,
+    this.delaySeconds,
+    this.arrivalDelaySeconds,
+    this.departureDelaySeconds,
   });
 
+  final TransitSourceId? sourceId;
+  final String? routeId;
+  final String? serviceDate, startTime;
+  final int? stopSequence;
+  final bool noData;
+  final bool cancelled, skipped;
+  final DateTime? estimatedArrivalTime, estimatedDepartureTime;
+  final int? delaySeconds, arrivalDelaySeconds, departureDelaySeconds;
   final String tripId;
   final TransitStopRef? stop;
   final DateTime? plannedTime;
@@ -328,10 +387,18 @@ class TransitLeg {
     this.mode,
     this.departureTime,
     this.arrivalTime,
+    this.isWalking = false,
+    this.isApproximate = false,
+    this.isRealtime = false,
+    this.plannedDepartureTime,
+    this.plannedArrivalTime,
     this.label,
     this.rawPayload,
   });
 
+  final bool isWalking;
+  final bool isApproximate, isRealtime;
+  final DateTime? plannedDepartureTime, plannedArrivalTime;
   final TransitStop origin;
   final TransitStop destination;
   final TransitRoute? route;

@@ -40,3 +40,11 @@ class NetworkUnavailable extends TransitFailure {
 class StaleDataUnavailable extends TransitFailure {
   const StaleDataUnavailable({super.message});
 }
+
+class TransitOperationCancelled extends TransitFailure {
+  const TransitOperationCancelled() : super(message: 'Operation cancelled.');
+}
+
+class TransitResourceLimit extends TransitFailure {
+  const TransitResourceLimit({super.message});
+}

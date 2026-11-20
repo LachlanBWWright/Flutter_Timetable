@@ -3710,6 +3710,322 @@ class TripPlannerCacheCompanion extends UpdateCompanion<TripPlannerCacheData> {
   }
 }
 
+class $GtfsFeedCachesTable extends GtfsFeedCaches
+    with TableInfo<$GtfsFeedCachesTable, GtfsFeedCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GtfsFeedCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _archiveMeta = const VerificationMeta(
+    'archive',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> archive = GeneratedColumn<Uint8List>(
+    'archive',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stopModesMeta = const VerificationMeta(
+    'stopModes',
+  );
+  @override
+  late final GeneratedColumn<String> stopModes = GeneratedColumn<String>(
+    'stop_modes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [source, archive, fetchedAt, stopModes];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'gtfs_feed_caches';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GtfsFeedCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('archive')) {
+      context.handle(
+        _archiveMeta,
+        archive.isAcceptableOrUnknown(data['archive']!, _archiveMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_archiveMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    if (data.containsKey('stop_modes')) {
+      context.handle(
+        _stopModesMeta,
+        stopModes.isAcceptableOrUnknown(data['stop_modes']!, _stopModesMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {source};
+  @override
+  GtfsFeedCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GtfsFeedCache(
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      archive: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}archive'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+      stopModes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stop_modes'],
+      )!,
+    );
+  }
+
+  @override
+  $GtfsFeedCachesTable createAlias(String alias) {
+    return $GtfsFeedCachesTable(attachedDatabase, alias);
+  }
+}
+
+class GtfsFeedCache extends DataClass implements Insertable<GtfsFeedCache> {
+  final String source;
+  final Uint8List archive;
+  final DateTime fetchedAt;
+  final String stopModes;
+  const GtfsFeedCache({
+    required this.source,
+    required this.archive,
+    required this.fetchedAt,
+    required this.stopModes,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['source'] = Variable<String>(source);
+    map['archive'] = Variable<Uint8List>(archive);
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    map['stop_modes'] = Variable<String>(stopModes);
+    return map;
+  }
+
+  GtfsFeedCachesCompanion toCompanion(bool nullToAbsent) {
+    return GtfsFeedCachesCompanion(
+      source: Value(source),
+      archive: Value(archive),
+      fetchedAt: Value(fetchedAt),
+      stopModes: Value(stopModes),
+    );
+  }
+
+  factory GtfsFeedCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GtfsFeedCache(
+      source: serializer.fromJson<String>(json['source']),
+      archive: serializer.fromJson<Uint8List>(json['archive']),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+      stopModes: serializer.fromJson<String>(json['stopModes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'source': serializer.toJson<String>(source),
+      'archive': serializer.toJson<Uint8List>(archive),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+      'stopModes': serializer.toJson<String>(stopModes),
+    };
+  }
+
+  GtfsFeedCache copyWith({
+    String? source,
+    Uint8List? archive,
+    DateTime? fetchedAt,
+    String? stopModes,
+  }) => GtfsFeedCache(
+    source: source ?? this.source,
+    archive: archive ?? this.archive,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+    stopModes: stopModes ?? this.stopModes,
+  );
+  GtfsFeedCache copyWithCompanion(GtfsFeedCachesCompanion data) {
+    return GtfsFeedCache(
+      source: data.source.present ? data.source.value : this.source,
+      archive: data.archive.present ? data.archive.value : this.archive,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+      stopModes: data.stopModes.present ? data.stopModes.value : this.stopModes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GtfsFeedCache(')
+          ..write('source: $source, ')
+          ..write('archive: $archive, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('stopModes: $stopModes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    source,
+    $driftBlobEquality.hash(archive),
+    fetchedAt,
+    stopModes,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GtfsFeedCache &&
+          other.source == this.source &&
+          $driftBlobEquality.equals(other.archive, this.archive) &&
+          other.fetchedAt == this.fetchedAt &&
+          other.stopModes == this.stopModes);
+}
+
+class GtfsFeedCachesCompanion extends UpdateCompanion<GtfsFeedCache> {
+  final Value<String> source;
+  final Value<Uint8List> archive;
+  final Value<DateTime> fetchedAt;
+  final Value<String> stopModes;
+  final Value<int> rowid;
+  const GtfsFeedCachesCompanion({
+    this.source = const Value.absent(),
+    this.archive = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.stopModes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GtfsFeedCachesCompanion.insert({
+    required String source,
+    required Uint8List archive,
+    required DateTime fetchedAt,
+    this.stopModes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : source = Value(source),
+       archive = Value(archive),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<GtfsFeedCache> custom({
+    Expression<String>? source,
+    Expression<Uint8List>? archive,
+    Expression<DateTime>? fetchedAt,
+    Expression<String>? stopModes,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (source != null) 'source': source,
+      if (archive != null) 'archive': archive,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (stopModes != null) 'stop_modes': stopModes,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GtfsFeedCachesCompanion copyWith({
+    Value<String>? source,
+    Value<Uint8List>? archive,
+    Value<DateTime>? fetchedAt,
+    Value<String>? stopModes,
+    Value<int>? rowid,
+  }) {
+    return GtfsFeedCachesCompanion(
+      source: source ?? this.source,
+      archive: archive ?? this.archive,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      stopModes: stopModes ?? this.stopModes,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (archive.present) {
+      map['archive'] = Variable<Uint8List>(archive.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    if (stopModes.present) {
+      map['stop_modes'] = Variable<String>(stopModes.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GtfsFeedCachesCompanion(')
+          ..write('source: $source, ')
+          ..write('archive: $archive, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('stopModes: $stopModes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3723,6 +4039,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TripPlannerCacheTable tripPlannerCache = $TripPlannerCacheTable(
     this,
   );
+  late final $GtfsFeedCachesTable gtfsFeedCaches = $GtfsFeedCachesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3734,37 +4051,36 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     stopLineMemberships,
     staticCacheStatuses,
     tripPlannerCache,
+    gtfsFeedCaches,
   ];
 }
 
-typedef $$JourneysTableCreateCompanionBuilder =
-    JourneysCompanion Function({
-      Value<int> id,
-      required String origin,
-      required String originId,
-      required String destination,
-      required String destinationId,
-      Value<String> tripType,
-      Value<String?> mode,
-      Value<String?> lineId,
-      Value<String?> lineName,
-      Value<String?> legsJson,
-      Value<bool> isPinned,
-    });
-typedef $$JourneysTableUpdateCompanionBuilder =
-    JourneysCompanion Function({
-      Value<int> id,
-      Value<String> origin,
-      Value<String> originId,
-      Value<String> destination,
-      Value<String> destinationId,
-      Value<String> tripType,
-      Value<String?> mode,
-      Value<String?> lineId,
-      Value<String?> lineName,
-      Value<String?> legsJson,
-      Value<bool> isPinned,
-    });
+typedef $$JourneysTableCreateCompanionBuilder = JourneysCompanion Function({
+  Value<int> id,
+  required String origin,
+  required String originId,
+  required String destination,
+  required String destinationId,
+  Value<String> tripType,
+  Value<String?> mode,
+  Value<String?> lineId,
+  Value<String?> lineName,
+  Value<String?> legsJson,
+  Value<bool> isPinned,
+});
+typedef $$JourneysTableUpdateCompanionBuilder = JourneysCompanion Function({
+  Value<int> id,
+  Value<String> origin,
+  Value<String> originId,
+  Value<String> destination,
+  Value<String> destinationId,
+  Value<String> tripType,
+  Value<String?> mode,
+  Value<String?> lineId,
+  Value<String?> lineName,
+  Value<String?> legsJson,
+  Value<bool> isPinned,
+});
 
 class $$JourneysTableFilterComposer
     extends Composer<_$AppDatabase, $JourneysTable> {
@@ -4052,34 +4368,32 @@ typedef $$JourneysTableProcessedTableManager =
       Journey,
       PrefetchHooks Function()
     >;
-typedef $$RoutesTableCreateCompanionBuilder =
-    RoutesCompanion Function({
-      required String endpoint,
-      required String routeId,
-      required String lineId,
-      Value<String?> routeShortName,
-      Value<String?> routeLongName,
-      Value<String?> routeDesc,
-      Value<String?> routeType,
-      Value<String?> routeColor,
-      Value<String?> routeTextColor,
-      Value<String?> routeSortOrder,
-      Value<int> rowid,
-    });
-typedef $$RoutesTableUpdateCompanionBuilder =
-    RoutesCompanion Function({
-      Value<String> endpoint,
-      Value<String> routeId,
-      Value<String> lineId,
-      Value<String?> routeShortName,
-      Value<String?> routeLongName,
-      Value<String?> routeDesc,
-      Value<String?> routeType,
-      Value<String?> routeColor,
-      Value<String?> routeTextColor,
-      Value<String?> routeSortOrder,
-      Value<int> rowid,
-    });
+typedef $$RoutesTableCreateCompanionBuilder = RoutesCompanion Function({
+  required String endpoint,
+  required String routeId,
+  required String lineId,
+  Value<String?> routeShortName,
+  Value<String?> routeLongName,
+  Value<String?> routeDesc,
+  Value<String?> routeType,
+  Value<String?> routeColor,
+  Value<String?> routeTextColor,
+  Value<String?> routeSortOrder,
+  Value<int> rowid,
+});
+typedef $$RoutesTableUpdateCompanionBuilder = RoutesCompanion Function({
+  Value<String> endpoint,
+  Value<String> routeId,
+  Value<String> lineId,
+  Value<String?> routeShortName,
+  Value<String?> routeLongName,
+  Value<String?> routeDesc,
+  Value<String?> routeType,
+  Value<String?> routeColor,
+  Value<String?> routeTextColor,
+  Value<String?> routeSortOrder,
+  Value<int> rowid,
+});
 
 class $$RoutesTableFilterComposer
     extends Composer<_$AppDatabase, $RoutesTable> {
@@ -4360,46 +4674,44 @@ typedef $$RoutesTableProcessedTableManager =
       Route,
       PrefetchHooks Function()
     >;
-typedef $$StopsTableCreateCompanionBuilder =
-    StopsCompanion Function({
-      required String stopId,
-      required String stopName,
-      Value<String?> stopCode,
-      Value<String?> ttsStopName,
-      Value<String?> stopDesc,
-      Value<String?> zoneId,
-      Value<String?> stopUrl,
-      Value<String?> stopTimezone,
-      Value<String?> levelId,
-      Value<double?> stopLat,
-      Value<double?> stopLon,
-      Value<int?> locationType,
-      Value<String?> parentStation,
-      Value<int?> wheelchairBoarding,
-      Value<String?> platformCode,
-      required String endpoint,
-      Value<int> rowid,
-    });
-typedef $$StopsTableUpdateCompanionBuilder =
-    StopsCompanion Function({
-      Value<String> stopId,
-      Value<String> stopName,
-      Value<String?> stopCode,
-      Value<String?> ttsStopName,
-      Value<String?> stopDesc,
-      Value<String?> zoneId,
-      Value<String?> stopUrl,
-      Value<String?> stopTimezone,
-      Value<String?> levelId,
-      Value<double?> stopLat,
-      Value<double?> stopLon,
-      Value<int?> locationType,
-      Value<String?> parentStation,
-      Value<int?> wheelchairBoarding,
-      Value<String?> platformCode,
-      Value<String> endpoint,
-      Value<int> rowid,
-    });
+typedef $$StopsTableCreateCompanionBuilder = StopsCompanion Function({
+  required String stopId,
+  required String stopName,
+  Value<String?> stopCode,
+  Value<String?> ttsStopName,
+  Value<String?> stopDesc,
+  Value<String?> zoneId,
+  Value<String?> stopUrl,
+  Value<String?> stopTimezone,
+  Value<String?> levelId,
+  Value<double?> stopLat,
+  Value<double?> stopLon,
+  Value<int?> locationType,
+  Value<String?> parentStation,
+  Value<int?> wheelchairBoarding,
+  Value<String?> platformCode,
+  required String endpoint,
+  Value<int> rowid,
+});
+typedef $$StopsTableUpdateCompanionBuilder = StopsCompanion Function({
+  Value<String> stopId,
+  Value<String> stopName,
+  Value<String?> stopCode,
+  Value<String?> ttsStopName,
+  Value<String?> stopDesc,
+  Value<String?> zoneId,
+  Value<String?> stopUrl,
+  Value<String?> stopTimezone,
+  Value<String?> levelId,
+  Value<double?> stopLat,
+  Value<double?> stopLon,
+  Value<int?> locationType,
+  Value<String?> parentStation,
+  Value<int?> wheelchairBoarding,
+  Value<String?> platformCode,
+  Value<String> endpoint,
+  Value<int> rowid,
+});
 
 class $$StopsTableFilterComposer extends Composer<_$AppDatabase, $StopsTable> {
   $$StopsTableFilterComposer({
@@ -5588,6 +5900,198 @@ typedef $$TripPlannerCacheTableProcessedTableManager =
       TripPlannerCacheData,
       PrefetchHooks Function()
     >;
+typedef $$GtfsFeedCachesTableCreateCompanionBuilder =
+    GtfsFeedCachesCompanion Function({
+      required String source,
+      required Uint8List archive,
+      required DateTime fetchedAt,
+      Value<String> stopModes,
+      Value<int> rowid,
+    });
+typedef $$GtfsFeedCachesTableUpdateCompanionBuilder =
+    GtfsFeedCachesCompanion Function({
+      Value<String> source,
+      Value<Uint8List> archive,
+      Value<DateTime> fetchedAt,
+      Value<String> stopModes,
+      Value<int> rowid,
+    });
+
+class $$GtfsFeedCachesTableFilterComposer
+    extends Composer<_$AppDatabase, $GtfsFeedCachesTable> {
+  $$GtfsFeedCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get archive => $composableBuilder(
+    column: $table.archive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stopModes => $composableBuilder(
+    column: $table.stopModes,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GtfsFeedCachesTableOrderingComposer
+    extends Composer<_$AppDatabase, $GtfsFeedCachesTable> {
+  $$GtfsFeedCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get archive => $composableBuilder(
+    column: $table.archive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stopModes => $composableBuilder(
+    column: $table.stopModes,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GtfsFeedCachesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GtfsFeedCachesTable> {
+  $$GtfsFeedCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get archive =>
+      $composableBuilder(column: $table.archive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get stopModes =>
+      $composableBuilder(column: $table.stopModes, builder: (column) => column);
+}
+
+class $$GtfsFeedCachesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GtfsFeedCachesTable,
+          GtfsFeedCache,
+          $$GtfsFeedCachesTableFilterComposer,
+          $$GtfsFeedCachesTableOrderingComposer,
+          $$GtfsFeedCachesTableAnnotationComposer,
+          $$GtfsFeedCachesTableCreateCompanionBuilder,
+          $$GtfsFeedCachesTableUpdateCompanionBuilder,
+          (
+            GtfsFeedCache,
+            BaseReferences<_$AppDatabase, $GtfsFeedCachesTable, GtfsFeedCache>,
+          ),
+          GtfsFeedCache,
+          PrefetchHooks Function()
+        > {
+  $$GtfsFeedCachesTableTableManager(
+    _$AppDatabase db,
+    $GtfsFeedCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GtfsFeedCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GtfsFeedCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GtfsFeedCachesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> source = const Value.absent(),
+                Value<Uint8List> archive = const Value.absent(),
+                Value<DateTime> fetchedAt = const Value.absent(),
+                Value<String> stopModes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GtfsFeedCachesCompanion(
+                source: source,
+                archive: archive,
+                fetchedAt: fetchedAt,
+                stopModes: stopModes,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String source,
+                required Uint8List archive,
+                required DateTime fetchedAt,
+                Value<String> stopModes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GtfsFeedCachesCompanion.insert(
+                source: source,
+                archive: archive,
+                fetchedAt: fetchedAt,
+                stopModes: stopModes,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$GtfsFeedCachesTable, GtfsFeedCache>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $GtfsFeedCachesTable,
+                    GtfsFeedCache
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GtfsFeedCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GtfsFeedCachesTable,
+      GtfsFeedCache,
+      $$GtfsFeedCachesTableFilterComposer,
+      $$GtfsFeedCachesTableOrderingComposer,
+      $$GtfsFeedCachesTableAnnotationComposer,
+      $$GtfsFeedCachesTableCreateCompanionBuilder,
+      $$GtfsFeedCachesTableUpdateCompanionBuilder,
+      (
+        GtfsFeedCache,
+        BaseReferences<_$AppDatabase, $GtfsFeedCachesTable, GtfsFeedCache>,
+      ),
+      GtfsFeedCache,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5604,4 +6108,6 @@ class $AppDatabaseManager {
       $$StaticCacheStatusesTableTableManager(_db, _db.staticCacheStatuses);
   $$TripPlannerCacheTableTableManager get tripPlannerCache =>
       $$TripPlannerCacheTableTableManager(_db, _db.tripPlannerCache);
+  $$GtfsFeedCachesTableTableManager get gtfsFeedCaches =>
+      $$GtfsFeedCachesTableTableManager(_db, _db.gtfsFeedCaches);
 }

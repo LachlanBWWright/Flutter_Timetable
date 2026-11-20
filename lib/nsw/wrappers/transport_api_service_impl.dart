@@ -1,9 +1,12 @@
 import 'dart:convert';
 
 import 'package:option_result/option_result.dart';
+import 'package:timezone/timezone.dart' as tz;
 
+import '../../constants/transport_modes.dart';
 import '../../logs/logger.dart' as app_logger;
 import '../../services/api_key_service.dart';
+import '../../transit/gtfs/gtfs_service_clock.dart';
 import '../../utils/safe_value_utils.dart';
 import '../../wrappers/app_http_client_impl.dart';
 import '../swagger_clients/swagger_backend.dart';
@@ -12,14 +15,14 @@ import '../swagger_generated/trip_planner.swagger.dart' as generated;
 import '../swagger_generated/trip_planner.swagger.dart' show TripPlanner;
 import 'trip_planner_generated_mapper.dart';
 
-part 'transport_api/journey_models.dart';
-part 'transport_api/leg_model.dart';
-part 'transport_api/stop_models.dart';
 part 'transport_api/footpath_models.dart';
 part 'transport_api/information_models.dart';
+part 'transport_api/journey_models.dart';
+part 'transport_api/leg_model.dart';
 part 'transport_api/path_models.dart';
-part 'transport_api/transportation_models.dart';
+part 'transport_api/stop_models.dart';
 part 'transport_api/system_messages.dart';
+part 'transport_api/transportation_models.dart';
 
 final logger = app_logger.safeLogger;
 
@@ -149,24 +152,62 @@ class TransportApiService {
   static Future<Result<GetTripsResponse, String>> getTrips({
     required String originId,
     required String destinationId,
+    DateTime? when,
+    bool arrivalBased = false,
+    bool wheelchair = false,
+    List<TransportMode>? enabledModes,
   }) async {
     try {
       final client = await _client();
       if (client == null) return const Err('Unable to create API client');
+      initializeGtfsTimeZones();
+      final local = when == null
+          ? null
+          : tz.TZDateTime.from(when, tz.getLocation('Australia/Sydney'));
       final response = await client.tripGet(
         outputFormat: enums.TripGetOutputFormat.rapidjson,
         coordOutputFormat: enums.TripGetCoordOutputFormat.epsg4326,
-        depArrMacro: enums.TripGetDepArrMacro.dep,
+        depArrMacro: arrivalBased
+            ? enums.TripGetDepArrMacro.arr
+            : enums.TripGetDepArrMacro.dep,
+        itdDate: local == null
+            ? null
+            : '${local.year}${local.month.toString().padLeft(2, '0')}${local.day.toString().padLeft(2, '0')}',
+        itdTime: local == null
+            ? null
+            : '${local.hour.toString().padLeft(2, '0')}${local.minute.toString().padLeft(2, '0')}',
+        wheelchair: wheelchair ? enums.TripGetWheelchair.on : null,
         typeOrigin: enums.TripGetTypeOrigin.any,
         nameOrigin: originId,
         typeDestination: enums.TripGetTypeDestination.any,
         nameDestination: destinationId,
         calcNumberOfTrips: 20,
+        exclMOT1:
+            enabledModes != null && !enabledModes.contains(TransportMode.train)
+            ? enums.TripGetExclMOT1.value_1
+            : null,
+        exclMOT2:
+            enabledModes != null && !enabledModes.contains(TransportMode.metro)
+            ? enums.TripGetExclMOT2.value_1
+            : null,
+        exclMOT4:
+            enabledModes != null &&
+                !enabledModes.contains(TransportMode.lightrail)
+            ? enums.TripGetExclMOT4.value_1
+            : null,
+        exclMOT5:
+            enabledModes != null && !enabledModes.contains(TransportMode.bus)
+            ? enums.TripGetExclMOT5.value_1
+            : null,
+        exclMOT9:
+            enabledModes != null && !enabledModes.contains(TransportMode.ferry)
+            ? enums.TripGetExclMOT9.value_1
+            : null,
         excludedMeans: enums.TripGetExcludedMeans.checkbox,
         exclMOT7: enums.TripGetExclMOT7.value_1,
         exclMOT11: enums.TripGetExclMOT11.value_1,
         tfNSWTR: enums.TripGetTfNSWTR.$true,
-        itOptionsActive: 0,
+        itOptionsActive: wheelchair || enabledModes != null ? 1 : 0,
       );
       logger.i('Response code ${response.statusCode}');
 

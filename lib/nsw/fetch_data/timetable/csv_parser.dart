@@ -84,114 +84,102 @@ List<Note> parseNotesCsv(String csv) {
 List<T> _parseCsvRecords<T>(
   String csv, {
   required String fileLabel,
+  bool strict = false,
+  bool retainRecords = true,
+  int? maximumRecords,
   required bool shouldParseNumbers,
   required T Function(List<String> header, List<String> row) parseRow,
 }) {
-  final rows = _csvToRows(csv, shouldParseNumbers: shouldParseNumbers);
-  if (rows.isEmpty) {
-    safeLogWarning('$fileLabel is empty');
-    return [];
-  }
-  if (rows.length < 2) {
-    final sample = csv.length > 500 ? csv.substring(0, 500) : csv;
-    safeLogWarning(
-      '$fileLabel contains less than 2 rows; using fallback empty list; sample="$sample"',
+  if (csv.isEmpty) return [];
+  // Decode one row at a time: large stop_times files must not retain a second
+  // full table of dynamic rows alongside the immutable domain snapshot.
+  final lineEnd = csv.indexOf(RegExp(r'[\r\n]'));
+  final firstLine = csv.substring(0, lineEnd < 0 ? csv.length : lineEnd);
+  final delimiters = [',', ';', '\t', '|']
+    ..sort(
+      (a, b) =>
+          (firstLine.split(b).length).compareTo(firstLine.split(a).length),
     );
-    return [];
-  }
-
-  final rowIterator = rows.iterator;
-  if (!rowIterator.moveNext()) {
-    safeLogWarning('$fileLabel did not expose a readable header row');
-    return [];
-  }
-
-  final List<String> header;
-  try {
-    header = _rowToStrings(rowIterator.current, stripLeadingBom: true);
-  } catch (e, st) {
-    safeLogWarning('Failed to parse $fileLabel header row: $e\n$st');
-    return [];
-  }
-
+  final decoder = CsvDecoder(
+    fieldDelimiter: delimiters.first,
+    fieldTransform: shouldParseNumbers
+        ? (field, _, _) => num.tryParse(field.toString()) ?? field
+        : null,
+  );
   final records = <T>[];
-  var rowIndex = 1;
-  for (final row in rows.skip(1)) {
-    try {
-      records.add(parseRow(header, _rowToStrings(row)));
-    } catch (e, st) {
-      safeLogWarning('Skipping malformed $fileLabel row #$rowIndex: $e\n$st');
+  List<String>? header;
+  var rowIndex = 0;
+  final interned = <String, String>{};
+  List<int> sharedColumns = [];
+  final sink = decoder.startChunkedConversion(
+    _CsvRowSink((raw) {
+      final row = _rowToStrings(raw, stripLeadingBom: header == null);
+      if (header == null) {
+        header = row;
+        const shared = {
+          'trip_id',
+          'route_id',
+          'stop_id',
+          'service_id',
+          'agency_id',
+          'parent_station',
+          'stop_sequence',
+          'arrival_time',
+          'departure_time',
+        };
+        sharedColumns = [
+          for (var i = 0; i < row.length; i++)
+            if (shared.contains(row[i])) i,
+        ];
+        return;
+      }
+      rowIndex++;
+      if (maximumRecords != null && rowIndex > maximumRecords) {
+        throw const TransitResourceLimit(
+          message: 'This timetable exceeds the stop-time memory budget.',
+        );
+      }
+      for (final i in sharedColumns) {
+        if (i < row.length) {
+          final value = row[i];
+          row[i] = interned[value] ?? value;
+          if (interned.length < 100000) {
+            interned.putIfAbsent(value, () => value);
+          }
+        }
+      }
+      try {
+        final record = parseRow(header!, row);
+        if (retainRecords) records.add(record);
+      } catch (e, st) {
+        if (strict) rethrow;
+        safeLogWarning('Skipping malformed $fileLabel row #$rowIndex: $e\n$st');
+      }
+    }),
+  );
+  try {
+    const chunkSize = 64 * 1024;
+    for (var offset = 0; offset < csv.length; offset += chunkSize) {
+      sink.add(
+        csv.substring(offset, (offset + chunkSize).clamp(0, csv.length)),
+      );
     }
-    rowIndex++;
+    sink.close();
+  } catch (e, st) {
+    if (strict) rethrow;
+    safeLogWarning('Failed to parse $fileLabel: $e\n$st');
+    return [];
   }
   return records;
 }
 
-// Note: custom CSV line parser removed in favor of package:csv
-
-/// Convert a raw CSV string to rows while trying to autodetect EOL and field
-/// delimiter. This works around feeds that use different line endings or
-/// separators so the entire file isn't interpreted as a single row.
-List<List<dynamic>> _csvToRows(String csv, {bool shouldParseNumbers = false}) {
-  if (csv.isEmpty) return [];
-
-  // Detect end-of-line sequence: prefer CRLF, then LF, then CR.
-  String eol;
-  if (csv.contains('\r\n')) {
-    eol = '\r\n';
-  } else if (csv.contains('\n')) {
-    eol = '\n';
-  } else if (csv.contains('\r')) {
-    eol = '\r';
-  } else {
-    eol = '\n';
-  }
-
-  // Pick a likely field delimiter by checking the first non-empty line
-  final lines = csv.split(eol);
-  var firstLine = '';
-  for (final l in lines) {
-    if (l.trim().isNotEmpty) {
-      firstLine = l;
-      break;
-    }
-  }
-  if (firstLine.isEmpty && lines.isNotEmpty) firstLine = lines.first;
-
-  final delimiters = [',', ';', '\t', '|'];
-  var fieldDelimiter = ',';
-  var bestCount = -1;
-  for (final d in delimiters) {
-    final count = firstLine.split(d).length - 1;
-    if (count > bestCount) {
-      bestCount = count;
-      fieldDelimiter = d;
-    }
-  }
-
-  try {
-    return CsvDecoder(
-      fieldDelimiter: fieldDelimiter,
-      fieldTransform: shouldParseNumbers
-          ? (field, _, _) => num.tryParse(field.toString()) ?? field
-          : null,
-    ).convert(csv);
-  } catch (e) {
-    safeLogWarning(
-      'CsvDecoder failed with eol="$eol" fieldDelimiter="$fieldDelimiter": $e',
-    );
-    // Fallback: let the decoder detect the field delimiter.
-    try {
-      return CsvDecoder(
-        fieldTransform: shouldParseNumbers
-            ? (field, _, _) => num.tryParse(field.toString()) ?? field
-            : null,
-      ).convert(csv);
-    } catch (e2) {
-      safeLogWarning('CSV parsing fallback failed: $e2');
-      return [];
-    }
-  }
+class _CsvRowSink implements Sink<List<dynamic>> {
+  _CsvRowSink(this.onRow);
+  final void Function(List<dynamic>) onRow;
+  @override
+  void add(List<dynamic> row) => onRow(row);
+  @override
+  void close() {}
 }
 
 List<String> _rowToStrings(List<dynamic> row, {bool stripLeadingBom = false}) {

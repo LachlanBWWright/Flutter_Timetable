@@ -1,14 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+
 import 'constants/transport_modes.dart';
 import 'home_stop/home_stop_mode_tabs.dart';
 import 'home_stop/home_stop_station_tab.dart';
+import 'nsw/wrappers/gtfs_endpoint_catalog.dart';
 import 'services/home_stop_service.dart';
 import 'services/location_service.dart';
 import 'services/preference_read_failure.dart';
-import 'services/station_loader.dart';
+import 'services/transport_preferences_service.dart';
+import 'transit/transit.dart';
 import 'utils/guarded_state.dart';
 import 'widgets/station_widgets.dart';
+import 'widgets/stops/stop_search_status.dart';
+import 'widgets/stops/stops_search_repository.dart';
 
 class SetHomeStopScreen extends StatefulWidget {
   const SetHomeStopScreen({
@@ -17,12 +24,14 @@ class SetHomeStopScreen extends StatefulWidget {
     this.initialStations = const [],
     this.initialHomeStop,
     this.homeStopService = const HomeStopService(),
+    this.stopSearchRepository,
   });
 
   final bool skipInitialLoad;
   final List<Station> initialStations;
   final String? initialHomeStop;
   final HomeStopService homeStopService;
+  final RegionalStopsSearchRepository? stopSearchRepository;
 
   @override
   State<SetHomeStopScreen> createState() => _SetHomeStopScreenState();
@@ -33,6 +42,11 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   final Map<TransportMode, List<Station>> _stationCatalog = {};
   int _sortGeneration = 0;
   int _loadGeneration = 0;
+  Timer? _searchDebounce;
+  StreamSubscription<RegionalStopSearchSnapshot>? _searchSubscription;
+  StopSearchCancellation? _searchCancellation;
+  RegionalStopSearchSnapshot _searchSnapshot =
+      const RegionalStopSearchSnapshot();
   String _selectedStationName = '';
   String _selectedStationId = '';
   TransportMode? _selectedStationMode;
@@ -45,10 +59,6 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   late TabController _tabController;
   TransportMode _currentMode = TransportMode.train;
   String? _currentHomeStop;
-
-  List<Station> _stationsAtOrEmpty(List<List<Station>> results, int index) {
-    return results.skip(index).firstOrNull ?? const <Station>[];
-  }
 
   @override
   void initState() {
@@ -65,6 +75,14 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
       _currentHomeStop = widget.initialHomeStop;
       return;
     }
+    addListenerSafely(
+      AppTransitContext.instance.enabledRegionsListenable,
+      _applySearchFilter,
+    );
+    addListenerSafely(
+      AppTransitContext.instance.selectedRegionListenable,
+      _applySearchFilter,
+    );
     _loadAllModes();
     _loadCurrentHomeStop();
   }
@@ -84,34 +102,100 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   Future<void> _loadAllModes() async {
-    final generation = ++_loadGeneration;
+    _applySearchFilter();
+  }
+
+  void _cancelLoading() {
+    _searchDebounce?.cancel();
+    _searchCancellation?.cancel();
+    unawaited(_searchSubscription?.cancel());
     guardedSetState(() {
-      _isLoading = true;
-    });
-
-    final results = await Future.wait([
-      loadStationsFromDbForMode(TransportMode.train),
-      loadStationsFromDbForMode(TransportMode.lightrail),
-      loadStationsFromDbForMode(TransportMode.metro),
-      loadStationsFromDbForMode(TransportMode.bus),
-      loadStationsFromDbForMode(TransportMode.ferry),
-    ]);
-
-    if (!mounted || generation != _loadGeneration) return;
-
-    guardedSetState(() {
-      for (var index = 0; index < 5; index++) {
-        _stationCatalog[_getTransportModeForIndex(index)] =
-            List<Station>.unmodifiable(_stationsAtOrEmpty(results, index));
-      }
       _isLoading = false;
+      _searchSnapshot = _searchSnapshot.stopped();
     });
+  }
 
-    await _applySorting();
+  void _startLoading(int generation) {
+    if (!mounted || generation != _loadGeneration) return;
+    final token = StopSearchCancellation();
+    _searchCancellation = token;
+    final mode = _currentMode;
+    final query = keyController.text.trim();
+    final repository =
+        widget.stopSearchRepository ??
+        RegionalStopsSearchRepository(
+          enabledServices: () => AppTransitContext.instance.enabledServices,
+        );
+    _searchSubscription = repository
+        .watchStops(
+          query,
+          browse: query.isEmpty,
+          limit: 2000,
+          cancellation: token,
+          sourcesForRegion: (region) => region == TransitRegion.nsw
+              ? NswGtfsEndpointCatalog.endpointsForMode(
+                  mode,
+                  includeTrainLink:
+                      TransportPreferencesService.showNswTrainLink.value,
+                ).map((endpoint) => TransitSourceId(endpoint.key)).toList()
+              : null,
+        )
+        .listen(
+          (snapshot) {
+            if (!mounted || generation != _loadGeneration) return;
+            final stations = snapshot.stops
+                .where((stop) => stop.supportsMode(mode))
+                .map(
+                  (stop) => Station(
+                    name: stop.name,
+                    id: stop.ref.stopId,
+                    transitRef: stop.ref,
+                    mode: stop.mode ?? mode,
+                    stopCode: stop.stopCode,
+                    stopDesc: stop.description,
+                    latitude: stop.latitude,
+                    longitude: stop.longitude,
+                  ),
+                )
+                .toList();
+            guardedSetState(() {
+              _stationCatalog[mode] = stations;
+              _isLoading = snapshot.isLoading;
+              _searchSnapshot = snapshot;
+            });
+            unawaited(_applySorting());
+          },
+          onError: (Object error, StackTrace stack) {
+            if (!mounted || generation != _loadGeneration) return;
+            if (error is! Exception) Error.throwWithStackTrace(error, stack);
+            guardedSetState(() {
+              _isLoading = false;
+              _searchSnapshot = RegionalStopSearchSnapshot(
+                stops: _searchSnapshot.stops,
+                errors: {
+                  AppTransitContext.instance.selectedRegion: {
+                    'search': error.toString(),
+                  },
+                },
+              );
+            });
+          },
+        );
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _searchCancellation?.cancel();
+    unawaited(_searchSubscription?.cancel());
+    removeListenerSafely(
+      AppTransitContext.instance.enabledRegionsListenable,
+      _applySearchFilter,
+    );
+    removeListenerSafely(
+      AppTransitContext.instance.selectedRegionListenable,
+      _applySearchFilter,
+    );
     removeListenerSafely(_tabController, _onTabChanged);
     disposeChangeNotifierSafely(_tabController);
     removeListenerSafely(keyController, _applySearchFilter);
@@ -149,8 +233,28 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   }
 
   void _applySearchFilter() {
-    // Filtering is derived from the complete catalog at build time.
-    guardedSetState(() {});
+    if (widget.skipInitialLoad) {
+      guardedSetState(() {});
+      return;
+    }
+    _searchDebounce?.cancel();
+    _searchCancellation?.cancel();
+    unawaited(_searchSubscription?.cancel());
+    final generation = ++_loadGeneration;
+    guardedSetState(() {
+      _isLoading = true;
+      _searchSnapshot = const RegionalStopSearchSnapshot(
+        loading: {TransitRegion.nsw},
+      );
+    });
+    if (keyController.text.trim().isEmpty) {
+      _startLoading(generation);
+    } else {
+      _searchDebounce = Timer(
+        const Duration(milliseconds: 300),
+        () => _startLoading(generation),
+      );
+    }
   }
 
   Future<void> _applySorting() async {
@@ -291,7 +395,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
   Widget _buildStationTab() {
     return HomeStopStationTab(
       stationList: _getCurrentStationList(),
-      isLoading: _isLoading,
+      isLoading: _isLoading && _getCurrentStationList().isEmpty,
       currentHomeStop: _currentHomeStop,
       selectedStationName: _selectedStationName,
       sortMode: _sortMode,
@@ -356,9 +460,20 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
         ],
         bottom: TabBar(controller: _tabController, tabs: homeStopModeTabs),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: List.generate(5, (_) => _buildStationTab()),
+      body: Column(
+        children: [
+          StopSearchStatus(
+            snapshot: _searchSnapshot,
+            onCancel: _cancelLoading,
+            onRetry: _applySearchFilter,
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: List.generate(5, (_) => _buildStationTab()),
+            ),
+          ),
+        ],
       ),
     );
   }

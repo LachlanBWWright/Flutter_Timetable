@@ -220,6 +220,10 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (services.supportsRealtime) 'Realtime',
       if (services.supportsDepartures) 'Departures',
       if (services.supportsJourneyPlanning) 'Journey planning',
+      if (services.planningCapabilities.arriveBy) 'Arrive by',
+      if (services.planningCapabilities.accessibility) 'Accessible planning',
+      if (services.planningCapabilities.walkingLimits) 'Walking limits',
+      if (services.timetableLoader != null) 'Connected feeds',
       if (services.supportsDisruptions) 'Disruptions',
     ];
     return capabilities.join(' • ');

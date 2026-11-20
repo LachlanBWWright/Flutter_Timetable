@@ -1,21 +1,36 @@
 part of '../ptv_transit_adapter.dart';
 
 class PtvDepartureRepository implements DepartureRepository {
-  PtvDepartureRepository({PtvSignedClient? signedClient})
+  PtvDepartureRepository({PtvSignedClient? signedClient, this.database})
     : _signedClient = signedClient ?? PtvSignedClient();
 
   final PtvSignedClient _signedClient;
+  final db.AppDatabase? database;
 
   @override
   Future<List<TransitDeparture>> getDepartures(DepartureRequest request) async {
+    validateDepartureStop(
+      request.stop,
+      region: TransitRegion.victoria,
+      provider: TransitProviderId.ptv,
+      acceptsSource: (source) =>
+          source.value == 'ptv:static' ||
+          RegExp(r'^ptv:route_type:[0-4]$').hasMatch(source.value),
+    );
+    if (request.stop.sourceId.value != 'ptv:static' &&
+        (int.tryParse(request.stop.stopId) == null ||
+            int.parse(request.stop.stopId) < 0)) {
+      throw const InvalidJourneyRequest(
+        message: 'PTV departures require a valid numeric stop ID.',
+      );
+    }
     if (request.stop.sourceId.value == 'ptv:static') {
       return _getStaticDepartures(request);
     }
     if (!_signedClient.isConfigured &&
         !SharedTransitCache.instance.isConfigured) {
       throw const InvalidCredentials(
-        message:
-            'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
+        message: 'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
       );
     }
     final routeType = _parseRouteType(request.stop.sourceId.value);
@@ -68,10 +83,9 @@ class PtvDepartureRepository implements DepartureRepository {
               (tryReadMapValue(directions, '${departure.directionId}')
                   as Map<String, dynamic>?) ??
               (tryReadMapValue(
-                    directions,
-                    departure.directionId?.toString() ?? '',
-                  )
-                  as Map<String, dynamic>?);
+                directions,
+                departure.directionId?.toString() ?? '',
+              ) as Map<String, dynamic>?);
           final runJson =
               (tryReadMapValue(runs, '${departure.runId}')
                   as Map<String, dynamic>?) ??
@@ -109,56 +123,19 @@ class PtvDepartureRepository implements DepartureRepository {
   Future<List<TransitDeparture>> _getStaticDepartures(
     DepartureRequest request,
   ) async {
-    final data = await _loadVictoriaGtfs();
-    final now = request.when ?? DateTime.now();
-    final activeServices = _activeServiceIds(data, now);
-    final trips = {for (final trip in data.trips) trip.tripId: trip};
-    final routes = {for (final route in data.routes) route.routeId: route};
-    final departures =
-        data.stopTimes
-            .where((time) => time.stopId == request.stop.stopId)
-            .where(
-              (time) => activeServices.contains(trips[time.tripId]?.serviceId),
+    final data = await _loadVictoriaGtfs(database: database);
+    final configured =
+        SharedTransitCache.instance.isConfigured ||
+        _readEnv('VICTORIA_OPEN_DATA_API_KEY').isNotEmpty ||
+        _readEnv('VICTORIA_GTFS_RT_TRIP_UPDATES_URL').isNotEmpty;
+    final updates = await freshGtfsUpdates(
+      data,
+      configured
+          ? () => const VictoriaRealtimeRepository().getTripUpdates(
+              const RealtimeRequest(sourceId: TransitSourceId('ptv:static')),
             )
-            .map((time) {
-              final trip = trips[time.tripId];
-              final route = trip == null ? null : routes[trip.routeId];
-              final planned = _gtfsTimeToDateTime(now, time.departureTime);
-              return TransitDeparture(
-                stop: request.stop,
-                route: route == null
-                    ? null
-                    : TransitRoute(
-                        ref: TransitRouteRef(
-                          region: TransitRegion.victoria,
-                          provider: TransitProviderId.ptv,
-                          sourceId: request.stop.sourceId,
-                          routeId: route.routeId,
-                        ),
-                        name: route.routeLongName.isNotEmpty
-                            ? route.routeLongName
-                            : route.routeShortName,
-                        shortName: route.routeShortName,
-                        mode: _transportModeForRouteType(
-                          int.tryParse(route.routeType) ?? -1,
-                        ),
-                      ),
-                tripId: time.tripId,
-                destinationName: trip?.tripHeadsign,
-                plannedTime: planned,
-                estimatedTime: planned,
-              );
-            })
-            .where((departure) => departure.plannedTime != null)
-            .where(
-              (departure) => !departure.plannedTime!.isBefore(
-                now.subtract(const Duration(minutes: 1)),
-              ),
-            )
-            .toList(growable: false)
-          ..sort(
-            (left, right) => left.plannedTime!.compareTo(right.plannedTime!),
-          );
-    return departures.take(20).toList(growable: false);
+          : null,
+    );
+    return scheduledGtfsDepartures(data, request, updates: updates);
   }
 }

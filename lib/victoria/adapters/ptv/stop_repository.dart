@@ -1,9 +1,8 @@
 part of '../ptv_transit_adapter.dart';
 
 class PtvStopRepository implements StopRepository {
-  PtvStopRepository({PtvSignedClient? signedClient, db.AppDatabase? database})
-    : _signedClient = signedClient ?? PtvSignedClient(),
-      _database = database;
+  PtvStopRepository({PtvSignedClient? signedClient, this._database})
+    : _signedClient = signedClient ?? PtvSignedClient();
 
   final PtvSignedClient _signedClient;
   final db.AppDatabase? _database;
@@ -12,6 +11,11 @@ class PtvStopRepository implements StopRepository {
 
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
+    if (!stop.belongsTo(TransitRegion.victoria, TransitProviderId.ptv) ||
+        (stop.sourceId.value != 'ptv:static' &&
+            !stop.sourceId.value.startsWith('ptv:route_type:'))) {
+      return null;
+    }
     if (stop.sourceId.value == 'ptv:static') {
       final rows = await database.getStopsById(stop.stopId);
       final row = rows
@@ -34,12 +38,14 @@ class PtvStopRepository implements StopRepository {
           stopAccessibility: true,
           stopDisruptions: true,
           devid: _signedClient.developerId,
-          signature: _signedClient
-              .signatureForPath('/v3/stops/$stopId/route_type/$routeType', {
-                'stop_location': 'true',
-                'stop_accessibility': 'true',
-                'stop_disruptions': 'true',
-              }),
+          signature: _signedClient.signatureForPath(
+            '/v3/stops/$stopId/route_type/$routeType',
+            {
+              'stop_location': 'true',
+              'stop_accessibility': 'true',
+              'stop_disruptions': 'true',
+            },
+          ),
         );
     final body = response.body;
     final stopBody = body?.stop;
@@ -61,7 +67,8 @@ class PtvStopRepository implements StopRepository {
 
   @override
   Future<List<TransitStop>> searchStops(StopSearchRequest request) async {
-    if (!_signedClient.isConfigured) {
+    if (request.query.trim().isEmpty) return const [];
+    {
       final query = request.query.trim().toLowerCase();
       final rows = await database.searchStops(
         query,
@@ -69,7 +76,9 @@ class PtvStopRepository implements StopRepository {
         endpoints: const ['ptv:static'],
       );
       final loaded = rows.map(_mapDatabaseStop).toList(growable: false);
-      if (loaded.isNotEmpty || !SharedTransitCache.instance.isConfigured) {
+      if (loaded.isNotEmpty ||
+          (!_signedClient.isConfigured &&
+              !SharedTransitCache.instance.isConfigured)) {
         return loaded;
       }
     }
@@ -123,8 +132,7 @@ class PtvStopRepository implements StopRepository {
     if (!_signedClient.isConfigured &&
         !SharedTransitCache.instance.isConfigured) {
       throw const InvalidCredentials(
-        message:
-            'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
+        message: 'PTV credentials are not configured. Set PTV_DEV_ID and PTV_API_KEY.',
       );
     }
   }

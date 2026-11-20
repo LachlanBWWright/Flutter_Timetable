@@ -1,11 +1,8 @@
 part of '../ptv_transit_adapter.dart';
 
 class VictoriaStaticGtfsRepository implements StaticGtfsRepository {
-  VictoriaStaticGtfsRepository({
-    PtvCredentials? credentials,
-    db.AppDatabase? database,
-  }) : _credentials = credentials ?? loadPtvCredentials(),
-       _database = database;
+  VictoriaStaticGtfsRepository({PtvCredentials? credentials, this._database})
+    : _credentials = credentials ?? loadPtvCredentials();
 
   final PtvCredentials _credentials;
   final db.AppDatabase? _database;
@@ -16,26 +13,26 @@ class VictoriaStaticGtfsRepository implements StaticGtfsRepository {
   Stream<StaticImportProgress> refreshStaticData(
     StaticImportRequest request,
   ) async* {
-    final url = _readEnv('VICTORIA_STATIC_GTFS_URL').isNotEmpty
-        ? _readEnv('VICTORIA_STATIC_GTFS_URL')
-        : victoriaStaticGtfsUrl;
+    if (request.sourceIds?.any((source) => source.value != 'ptv:static') ==
+        true) {
+      throw const InvalidJourneyRequest(
+        message: 'Unknown Victoria static source.',
+      );
+    }
     yield const StaticImportProgress(
       sourceId: TransitSourceId('ptv:static'),
       completed: 0,
       total: 1,
-      message: 'Downloading Victoria static GTFS…',
+      message: 'Downloading Victoria timetable…',
     );
-    final uri = tryParseUriValue(url);
-    final response = uri == null ? null : await AppHttpClient.get(uri);
-    if (response == null || response.statusCode != 200) {
-      throw const ProviderUnavailable(
-        message: 'Failed to download Victoria static GTFS.',
-      );
-    }
-    final stops = await compute(
-      parseVictoriaStopsFromZip,
-      Uint8List.fromList(response.bodyBytes),
+    final data = await _loadVictoriaGtfs(
+      requireTimetable: false,
+      database: database,
+      force: request.force,
+      cancellation: request.cancellation,
     );
+    request.cancellation?.throwIfCancelled();
+    final stops = data.stops;
     await database.insertStopsForEndpoint(
       stops
           .map(
@@ -48,6 +45,7 @@ class VictoriaStaticGtfsRepository implements StaticGtfsRepository {
               stopLat: Value(stop.stopLat),
               stopLon: Value(stop.stopLon),
               platformCode: Value(stop.platformCode),
+              parentStation: Value(stop.parentStation),
               wheelchairBoarding: Value(stop.wheelchairBoarding),
             ),
           )

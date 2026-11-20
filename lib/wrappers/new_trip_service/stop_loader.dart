@@ -67,10 +67,14 @@ class _NewTripStops {
   }
 
   static Future<GtfsData?> _loadEndpointStaticData(
-    StopsEndpoint endpoint,
-  ) async {
+    StopsEndpoint endpoint, {
+    bool force = false,
+    TransitCancellation? cancellation,
+  }) async {
     final gtfsData = await _GtfsEndpointFetcher.fetchGtfsDataForEndpoint(
       endpoint,
+      force: force,
+      cancellation: cancellation,
     );
     if (gtfsData == null || gtfsData.stops.isEmpty) {
       return null;

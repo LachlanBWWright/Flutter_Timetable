@@ -4,9 +4,11 @@ class _StaticTransportUpdater {
   static Stream<StaticTransportUpdateProgress> updateStaticTransportData({
     bool force = false,
     List<StopsEndpoint>? endpoints,
+    TransitCancellation? cancellation,
   }) {
     final selectedEndpoints = _selectedEndpointsOrDefault(endpoints);
     final total = selectedEndpoints.length;
+    final token = cancellation ?? TransitCancellation();
     var cancelled = false;
     late final StreamController<StaticTransportUpdateProgress> controller;
     controller = StreamController<StaticTransportUpdateProgress>(
@@ -17,12 +19,14 @@ class _StaticTransportUpdater {
             selectedEndpoints: selectedEndpoints,
             total: total,
             force: force,
-            isCancelled: () => cancelled,
+            cancellation: token,
+            isCancelled: () => cancelled || token.isCancelled,
           ),
         );
       },
       onCancel: () {
         cancelled = true;
+        token.cancel();
       },
     );
 
@@ -34,6 +38,7 @@ class _StaticTransportUpdater {
     required List<StopsEndpoint> selectedEndpoints,
     required int total,
     required bool force,
+    required TransitCancellation cancellation,
     required bool Function() isCancelled,
   }) async {
     void emit(StaticTransportUpdateProgress progress) {
@@ -76,7 +81,11 @@ class _StaticTransportUpdater {
         try {
           final gtfsData = isCancelled()
               ? null
-              : await _NewTripStops._loadEndpointStaticData(endpoint);
+              : await _NewTripStops._loadEndpointStaticData(
+                  endpoint,
+                  force: force,
+                  cancellation: cancellation,
+                );
           if (isCancelled()) {
             // Leave the previous snapshot and its success timestamps intact.
             await StopsService.database.markStaticCacheBuildFinished(

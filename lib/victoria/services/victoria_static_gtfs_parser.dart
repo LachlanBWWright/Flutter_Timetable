@@ -6,6 +6,9 @@ import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/gtfs/stop.dart';
 import 'package:lbww_flutter/nsw/fetch_data/timetable_data.dart';
 
+import '../../transit/errors/transit_failure.dart';
+import '../../transit/runtime/transit_resource_budget.dart';
+
 /// Extracts stops from both ordinary GTFS ZIPs and Transport Victoria's
 /// multi-mode bundle, whose mode folders may contain nested GTFS ZIPs.
 List<Stop> parseVictoriaStopsFromZip(Uint8List bytes) {
@@ -32,13 +35,8 @@ List<Stop> parseVictoriaStopsFromZip(Uint8List bytes) {
 }
 
 /// Parses and merges every mode archive in Victoria's bundled GTFS release.
-GtfsData parseVictoriaGtfsFromZip(Uint8List bytes) {
-  // Keep one merged buffer per file instead of retaining every mode's decoded
-  // String and then creating a second merged copy. Victoria's schedule bundle
-  // is large enough for that temporary duplication to exhaust the Flutter
-  // test runner (and, on smaller devices, the application).
-  final parts = <String, StringBuffer>{};
-
+GtfsData parseVictoriaGtfsFromZip(Uint8List bytes, {bool stopsOnly = false}) {
+  final feeds = <GtfsData>[];
   const supportedFiles = {
     'agency.txt',
     'calendar.txt',
@@ -47,36 +45,98 @@ GtfsData parseVictoriaGtfsFromZip(Uint8List bytes) {
     'stops.txt',
     'stop_times.txt',
     'trips.txt',
+    'frequencies.txt',
+    'transfers.txt',
+    'pathways.txt',
   };
 
-  void appendCsv(String name, List<int> content) {
-    final csv = utf8.decode(content);
-    final buffer = parts.putIfAbsent(name, StringBuffer.new);
-    if (buffer.isNotEmpty) {
-      final firstNewline = csv.indexOf('\n');
-      if (firstNewline < 0) return;
-      buffer.write(csv.substring(firstNewline + 1));
-    } else {
-      buffer.write(csv);
+  var expanded = 0;
+  var remainingStopTimes = TransitResourceBudget.defaultMaximumStopTimes;
+  void readArchive(List<int> archiveBytes, String namespace, [int depth = 0]) {
+    if (depth > 8) {
+      throw const InvalidProviderResponse(
+        message: 'GTFS archive nesting is too deep.',
+      );
     }
-    if (!csv.endsWith('\n')) buffer.writeln();
-  }
-
-  void readArchive(List<int> archiveBytes) {
+    final groups = <String, Map<String, String>>{};
     for (final file in ZipDecoder().decodeBytes(archiveBytes)) {
       if (!file.isFile) continue;
-      final name = file.name.split('/').last.toLowerCase();
+      final path = file.name.split('/');
+      final name = path.last.toLowerCase();
+      if (!name.endsWith('.zip') && !supportedFiles.contains(name)) {
+        file.clear();
+        continue;
+      }
+      expanded += file.size;
+      if (expanded > 2 * 1024 * 1024 * 1024) {
+        throw const TransitResourceLimit(
+          message: 'Expanded Victoria feed exceeds its budget.',
+        );
+      }
       final contents = file.content as List<int>;
       if (name.endsWith('.zip')) {
-        readArchive(contents);
+        readArchive(contents, '$namespace/${file.name}', depth + 1);
       } else if (supportedFiles.contains(name)) {
-        appendCsv(name, contents);
+        final folder = path.take(path.length - 1).join('/');
+        (groups[folder] ??= {})[name] = utf8.decode(contents);
       }
+      file.clear();
+    }
+    for (final entry in groups.entries) {
+      // Stops remain shared across modes. Timetable IDs are local to each
+      // archive; qualify them so equal trip/service IDs cannot cross-link.
+      final scope = namespace.isEmpty && entry.key.isEmpty
+          ? ''
+          : '$namespace/${entry.key}';
+      final data = stopsOnly
+          ? parseGtfsStopFiles(entry.value, namespace: scope)
+          : parseGtfsFiles(
+              entry.value,
+              namespace: scope,
+              maximumStopTimes: remainingStopTimes,
+            );
+      remainingStopTimes -= data.stopTimes.length;
+      feeds.add(data);
     }
   }
 
-  readArchive(bytes);
-  return parseGtfsFiles({
-    for (final entry in parts.entries) entry.key: entry.value.toString(),
-  });
+  readArchive(bytes, '');
+  if (stopsOnly) {
+    return GtfsData(
+      agencies: [],
+      calendars: [],
+      calendarDates: [],
+      routes: [],
+      stopTimes: [],
+      trips: [],
+      shapes: [],
+      notes: [],
+      isStopSnapshot: true,
+      stops: {
+        for (final feed in feeds)
+          for (final stop in feed.stops) stop.stopId: stop,
+      }.values.toList(),
+      stopModes: {
+        for (final id in feeds.expand((f) => f.stopModes.keys).toSet())
+          id: {for (final feed in feeds) ...?feed.stopModes[id]},
+      },
+    );
+  }
+  return GtfsData(
+    frequencies: feeds.expand((feed) => feed.frequencies).toList(),
+    transfers: feeds.expand((feed) => feed.transfers).toList(),
+    pathways: feeds.expand((feed) => feed.pathways).toList(),
+    agencies: feeds.expand((feed) => feed.agencies).toList(),
+    calendars: feeds.expand((feed) => feed.calendars).toList(),
+    calendarDates: feeds.expand((feed) => feed.calendarDates).toList(),
+    routes: feeds.expand((feed) => feed.routes).toList(),
+    stops: {
+      for (final stop in feeds.expand((feed) => feed.stops).toList())
+        stop.stopId: stop,
+    }.values.toList(),
+    stopTimes: feeds.expand((feed) => feed.stopTimes).toList(),
+    trips: feeds.expand((feed) => feed.trips).toList(),
+    shapes: feeds.expand((feed) => feed.shapes).toList(),
+    notes: feeds.expand((feed) => feed.notes).toList(),
+  );
 }

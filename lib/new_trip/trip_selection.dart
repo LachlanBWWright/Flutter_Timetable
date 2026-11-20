@@ -9,7 +9,9 @@ extension _TripSelection on _NewTripScreenState {
     if (_isApplyingStop || _isSavingTrip) return;
     final selectedRegion =
         selectedStation.transitRef?.region ?? TransitRegion.nsw;
-    if (_draftRegion != null && selectedRegion != _draftRegion) {
+    if ((_manualBuilderEnabled || _interchanges.isNotEmpty) &&
+        _draftRegion != null &&
+        selectedRegion != _draftRegion) {
       showSnackBar(
         SnackBar(
           content: Text(

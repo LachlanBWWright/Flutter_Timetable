@@ -65,7 +65,7 @@ const sharedProviderSources = <String, String>{
       'realtime',
   'https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/vline/vehicle-positions':
       'realtime',
-  'https://opendata.transport.vic.gov.au/dataset/3f4e292e-7f8a-4ffe-831f-1953be0fe448/resource/fb152201-859f-4882-9206-b768060b50ad/download/gtfs.zip':
+  'https://opendata.transport.vic.gov.au/dataset/3f4e292e-7f8a-4ffe-831f-1953be0fe448/resource/62370a3a-3fe0-4f6b-9022-9ebbf25751cc/download/gtfs.zip':
       'static',
   'https://gtfs.adelaidemetro.com.au/v1/static/latest/google_transit.zip':
       'static',

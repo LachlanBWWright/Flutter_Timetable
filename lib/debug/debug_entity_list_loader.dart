@@ -21,10 +21,9 @@ class DebugEntityListLoader {
 
   DebugEntityListLoader({
     required this.resolver,
-    List<db.Stop>? preloadedDbStops,
-    List<db.Route>? preloadedDbRoutes,
-  }) : _preloadedDbStops = preloadedDbStops,
-       _preloadedDbRoutes = preloadedDbRoutes;
+    this._preloadedDbStops,
+    this._preloadedDbRoutes,
+  });
 
   Future<DebugEntityListPageData> load(DebugEntityType entityType) {
     switch (entityType) {

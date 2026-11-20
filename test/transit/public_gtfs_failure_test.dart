@@ -1,5 +1,7 @@
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/transit/gtfs/public_gtfs_transit_adapter.dart';
 import 'package:lbww_flutter/transit/transit.dart';
 
@@ -20,9 +22,13 @@ const _config = PublicGtfsProviderConfig(
 );
 
 void main() {
+  late db.AppDatabase database;
+  setUp(() => database = db.AppDatabase.connect(NativeDatabase.memory()));
+  tearDown(() => database.close());
   test('unknown source fails before fetching', () async {
     var fetched = false;
     final repository = PublicGtfsDepartureRepository(
+      database: database,
       config: _config,
       fetcher: (_) async {
         fetched = true;
@@ -38,6 +44,7 @@ void main() {
 
   test('HTTP failure is a provider failure, not an empty feed', () async {
     final repository = PublicGtfsDepartureRepository(
+      database: database,
       config: _config,
       fetcher: (_) async => http.Response('Unavailable', 503),
     );
@@ -49,6 +56,7 @@ void main() {
 
   test('corrupt successful response is an invalid feed', () async {
     final repository = PublicGtfsDepartureRepository(
+      database: database,
       config: _config,
       fetcher: (_) async => http.Response('not a zip', 200),
     );
@@ -61,6 +69,7 @@ void main() {
   test('typed download failures propagate unchanged', () async {
     const failure = NetworkUnavailable(message: 'Offline');
     final repository = PublicGtfsDepartureRepository(
+      database: database,
       config: _config,
       fetcher: (_) async => throw failure,
     );
@@ -75,6 +84,7 @@ void main() {
     () async {
       var calls = 0;
       final repository = PublicGtfsDepartureRepository(
+        database: database,
         config: _config,
         fetcher: (_) async {
           calls++;

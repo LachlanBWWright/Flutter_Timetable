@@ -11,6 +11,17 @@ class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
   Stream<StaticImportProgress> refreshStaticData(
     StaticImportRequest request,
   ) async* {
+    final knownSources = translinkStaticGtfsFeeds
+        .map((feed) => 'qld:${feed.id}')
+        .toSet();
+    if (request.sourceIds?.any(
+          (source) => !knownSources.contains(source.value),
+        ) ==
+        true) {
+      throw const InvalidJourneyRequest(
+        message: 'Unknown TransLink static source.',
+      );
+    }
     final selectedFeeds =
         request.sourceIds == null || request.sourceIds!.isEmpty
         ? translinkStaticGtfsFeeds
@@ -30,21 +41,26 @@ class TranslinkStaticGtfsRepository implements StaticGtfsRepository {
         message: 'Downloading ${feed.label} static GTFS…',
       );
       try {
-        final bytes = await fetchTranslinkStaticGtfsZip(feed.id);
-        if (bytes == null || bytes.isEmpty) {
-          yield StaticImportProgress(
-            sourceId: TransitSourceId('qld:${feed.id}'),
-            completed: completed,
-            total: selectedFeeds.length,
-            message: 'Failed to download ${feed.label} GTFS.',
-            error: 'The public TransLink feed was unavailable.',
-          );
-          continue;
-        }
-        final stops = await compute(
-          parseStopsOnlyFromZipBytes,
-          Uint8List.fromList(bytes),
+        final data = await PersistentGtfsStore(database: _database).load(
+          source: 'qld:${feed.id}',
+          parse: parseGtfsStopSnapshot,
+          force: request.force,
+          cancellation: request.cancellation,
+          download: (cancellation) async {
+            final response = await fetchTranslinkStaticGtfsResponse(
+              feed.id,
+              cancellation: cancellation,
+            );
+            if (response == null || response.bodyBytes.isEmpty) {
+              throw const ProviderUnavailable(
+                message: 'TransLink feed unavailable.',
+              );
+            }
+            return GtfsArchiveDownload.fromResponse(response);
+          },
         );
+        request.cancellation?.throwIfCancelled();
+        final stops = data.stops;
         await _database.insertStopsForEndpoint(
           stops
               .map(

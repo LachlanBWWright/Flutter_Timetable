@@ -118,6 +118,12 @@ void main() {
     () async {
       await dotenv.load();
       final services = buildPtvRegionServices();
+      if (services.realtime == null) {
+        markTestSkipped(
+          'Victoria portal realtime credentials/cache are not configured.',
+        );
+        return;
+      }
       expect(services.realtime, isNotNull);
       for (final feed in victoriaRealtimeFeedSets) {
         final request = RealtimeRequest(

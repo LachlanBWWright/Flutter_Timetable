@@ -192,6 +192,19 @@ mixin _StopQueries on _$AppDatabase, _DatabaseOperations {
           batch.insert(stops, stop, mode: InsertMode.replace);
         }
       });
+      final feed =
+          await (selectOnly(gtfsFeedCaches)
+                ..addColumns([gtfsFeedCaches.fetchedAt])
+                ..where(gtfsFeedCaches.source.equals(endpoint)))
+              .getSingleOrNull();
+      await into(staticCacheStatuses).insertOnConflictUpdate(
+        StaticCacheStatusesCompanion.insert(
+          endpoint: endpoint,
+          stopsUpdatedAt: Value(
+            feed?.read(gtfsFeedCaches.fetchedAt) ?? DateTime.now(),
+          ),
+        ),
+      );
     });
   }
 }

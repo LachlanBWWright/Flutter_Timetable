@@ -2,23 +2,36 @@ import 'package:collection/collection.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/nsw/wrappers/transport_api_service_impl.dart'
     as tfnsw;
+import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/new_trip_service.dart' as legacy_new_trip;
 import 'package:lbww_flutter/services/realtime_service.dart' as legacy_realtime;
 import 'package:lbww_flutter/services/stops_service.dart' as legacy_stops;
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/errors/transit_failure.dart';
+import 'package:lbww_flutter/transit/gtfs/static_backed_stop_repository.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 import 'package:option_result/option_result.dart';
 
+import '../../gtfs/gtfs_data.dart';
+import '../../nsw/fetch_data/timetable_data.dart' show fetchStaticGtfsSource;
+
 class TfnswStopRepository implements StopRepository {
-  const TfnswStopRepository();
+  const TfnswStopRepository({this.database});
+
+  final db.AppDatabase? database;
+  db.AppDatabase get _database =>
+      database ?? legacy_stops.StopsService.database;
 
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
-    final rows = await legacy_stops.StopsService.database.getStopsById(
-      stop.stopId,
-    );
+    if (!stop.belongsTo(TransitRegion.nsw, TransitProviderId.tfnsw) ||
+        !legacy_stops.StopsEndpoint.values.any(
+          (endpoint) => endpoint.key == stop.sourceId.value,
+        )) {
+      return null;
+    }
+    final rows = await _database.getStopsById(stop.stopId);
     final row = rows
         .where((candidate) => candidate.endpoint == stop.sourceId.value)
         .firstOrNull;
@@ -39,9 +52,14 @@ class TfnswStopRepository implements StopRepository {
 
   @override
   Future<List<TransitStop>> searchStops(StopSearchRequest request) async {
-    final results = await legacy_stops.StopsService.database.searchStops(
-      request.query,
+    final query = request.query.trim();
+    if (query.isEmpty) return const [];
+    final results = await _database.searchStops(
+      query,
       limit: request.limit,
+      endpoints: legacy_stops.StopsEndpoint.values.map(
+        (endpoint) => endpoint.key,
+      ),
     );
     return results
         .map(
@@ -94,7 +112,19 @@ class TfnswStaticGtfsRepository implements StaticGtfsRepository {
   Stream<StaticImportProgress> refreshStaticData(
     StaticImportRequest request,
   ) async* {
-    final endpoints = request.sourceIds
+    final knownSources = legacy_stops.StopsEndpoint.values
+        .map((endpoint) => endpoint.key)
+        .toSet();
+    if (request.sourceIds?.any(
+          (source) => !knownSources.contains(source.value),
+        ) ==
+        true) {
+      throw const InvalidJourneyRequest(message: 'Unknown NSW static source.');
+    }
+    final selectedSources = request.sourceIds?.isEmpty == true
+        ? null
+        : request.sourceIds;
+    final endpoints = selectedSources
         ?.map(
           (sourceId) => legacy_stops.StopsEndpoint.values.firstWhere(
             (endpoint) => endpoint.key == sourceId.value,
@@ -105,6 +135,7 @@ class TfnswStaticGtfsRepository implements StaticGtfsRepository {
     await for (final progress
         in legacy_new_trip.NewTripService.updateStaticTransportData(
           force: request.force,
+          cancellation: request.cancellation,
           endpoints: endpoints,
         )) {
       yield StaticImportProgress(
@@ -200,8 +231,15 @@ class TfnswRealtimeRepository implements RealtimeRepository {
   }
 }
 
-class TfnswJourneyPlanner implements JourneyPlanner {
+class TfnswJourneyPlanner implements CapableJourneyPlanner {
   const TfnswJourneyPlanner();
+  @override
+  TransitPlanningCapabilities get capabilities =>
+      const TransitPlanningCapabilities(
+        arriveBy: true,
+        accessibility: true,
+        realtime: true,
+      );
 
   @override
   Future<JourneyPlan> planJourney(JourneyPlanRequest request) async {
@@ -209,10 +247,24 @@ class TfnswJourneyPlanner implements JourneyPlanner {
         request.destination.region != TransitRegion.nsw) {
       throw UnsupportedError('Cross-region journey planning is not supported.');
     }
-    final result = await tfnsw.TransportApiService.getTrips(
+    request.cancellation?.throwIfCancelled();
+    if (request.walkingLimit != null) {
+      throw const UnsupportedCapability(
+        message: 'Walking limits require local timetable planning.',
+      );
+    }
+    if (request.enabledModes?.isEmpty == true) {
+      return const JourneyPlan(journeys: []);
+    }
+    final future = tfnsw.TransportApiService.getTrips(
       originId: request.origin.stopId,
       destinationId: request.destination.stopId,
+      when: request.when,
+      arrivalBased: request.arrivalBased,
+      wheelchair: request.accessibility != TransitAccessibility.none,
+      enabledModes: request.enabledModes,
     );
+    final result = await (request.cancellation?.wait(future) ?? future);
     return switch (result) {
       Ok(:final v) => JourneyPlan(
         journeys: v.tripJourneys.map(_mapJourney).toList(growable: false),
@@ -273,6 +325,10 @@ class TfnswJourneyPlanner implements JourneyPlanner {
               mode: _modeFromTfnswProduct(product),
             ),
       mode: _modeFromTfnswProduct(product),
+      isWalking: leg.transportation?.product?.classField == 100,
+      isRealtime: leg.isRealtimeControlled == true,
+      plannedDepartureTime: _tryParseDateTime(leg.origin.departureTimePlanned),
+      plannedArrivalTime: _tryParseDateTime(leg.destination.arrivalTimePlanned),
       departureTime: _tryParseDateTime(
         leg.origin.departureTimeEstimated ?? leg.origin.departureTimePlanned,
       ),
@@ -302,15 +358,52 @@ class TfnswJourneyPlanner implements JourneyPlanner {
   }
 }
 
+Future<GtfsData> _loadTfnswTimetable(
+  TransitSourceId source, {
+  TransitCancellation? cancellation,
+}) async {
+  final endpoint = legacy_stops.StopsEndpoint.values.firstWhereOrNull(
+    (e) => e.key == source.value,
+  );
+  if (endpoint == null) {
+    throw const InvalidJourneyRequest(message: 'Unknown NSW timetable source.');
+  }
+  final data = await fetchStaticGtfsSource(
+    endpoint,
+    cancellation: cancellation,
+  );
+  if (data == null) {
+    throw const ProviderUnavailable(message: 'NSW timetable unavailable.');
+  }
+  return data;
+}
+
 TransitRegionServices buildTfnswRegionServices() {
-  return const TransitRegionServices(
+  const staticData = TfnswStaticGtfsRepository();
+  return TransitRegionServices(
     region: TransitRegion.nsw,
     provider: TransitProviderId.tfnsw,
-    stops: TfnswStopRepository(),
-    staticGtfs: TfnswStaticGtfsRepository(),
-    realtime: TfnswRealtimeRepository(),
-    journeyPlanner: TfnswJourneyPlanner(),
-    attribution: TransitProviderAttribution(
+    stops: StaticBackedStopRepository(
+      region: TransitRegion.nsw,
+      provider: TransitProviderId.tfnsw,
+      sources: legacy_stops.StopsEndpoint.values
+          .map((endpoint) => TransitSourceId(endpoint.key))
+          .toList(),
+      modeForSource: (source) =>
+          legacy_stops.StopsService.modeForEndpointKey(source.value),
+      cachedStops: const TfnswStopRepository(),
+      staticData: staticData,
+    ),
+    staticGtfs: staticData,
+    timetableSources: legacy_stops.StopsEndpoint.values
+        .map((e) => TransitSourceId(e.key))
+        .toList(),
+    cancellableTimetableLoader: (source, token) =>
+        _loadTfnswTimetable(source, cancellation: token),
+    timetableLoader: _loadTfnswTimetable,
+    realtime: const TfnswRealtimeRepository(),
+    journeyPlanner: const TfnswJourneyPlanner(),
+    attribution: const TransitProviderAttribution(
       provider: TransitProviderId.tfnsw,
       name: 'Transport for NSW Open Data',
       licenseName: 'TfNSW Open Data terms',

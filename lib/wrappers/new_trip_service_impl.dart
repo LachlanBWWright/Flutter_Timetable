@@ -6,21 +6,22 @@ import '../constants/transport_modes.dart';
 import '../gtfs/gtfs_data.dart';
 import '../gtfs/stop.dart';
 import '../models/manual_trip_models.dart';
+import '../nsw/fetch_data/timetable_data.dart' show fetchStaticGtfsSource;
 import '../nsw/wrappers/gtfs_endpoint_catalog.dart';
-// logger removed
 import '../services/location_service.dart';
 import '../services/station_loader.dart';
 import '../services/stops_service.dart';
 import '../services/trip_line_service.dart';
+import '../transit/domain/transit_cancellation.dart';
 import '../widgets/station_widgets.dart';
 import 'new_trip_service/endpoint_stop_cache.dart';
 
-part 'new_trip_service/stop_loader.dart';
-part 'new_trip_service/static_transport_updater.dart';
 part 'new_trip_service/endpoint_update_queue.dart';
 part 'new_trip_service/gtfs_endpoint_fetcher.dart';
-part 'new_trip_service/station_sorter.dart';
 part 'new_trip_service/manual_trip_builder.dart';
+part 'new_trip_service/static_transport_updater.dart';
+part 'new_trip_service/station_sorter.dart';
+part 'new_trip_service/stop_loader.dart';
 
 enum StaticTransportUpdateStage {
   fetching,
@@ -51,14 +52,29 @@ class StaticTransportUpdateProgress {
   bool get success => error == null;
 }
 
-typedef NewTripProgressCallback =
-    void Function(String message, int current, int total);
+typedef NewTripProgressCallback = void Function(
+  String message,
+  int current,
+  int total,
+);
 
 /// Service for loading stops and assembling manual trips.
 ///
 /// The public entry point delegates to focused loading, update, sorting and
 /// trip-building components within this library.
 class NewTripService {
+  /// Loads a picker tab's stops, fetching its static feed when missing.
+  static Future<List<Station>> loadStopsForEndpoints(
+    List<StopsEndpoint> endpoints,
+    TransportMode mode,
+  ) async {
+    final stops = await _NewTripStops._cacheLoader.load(endpoints);
+    return stops
+        .where((stop) => stop.parentStation == null)
+        .map((stop) => _NewTripStops._stationFromStop(stop, mode))
+        .toList();
+  }
+
   static Future<List<Station>> loadStopsForMode(
     TransportMode mode, {
     NewTripProgressCallback? onProgress,
@@ -70,9 +86,11 @@ class NewTripService {
   static Stream<StaticTransportUpdateProgress> updateStaticTransportData({
     bool force = false,
     List<StopsEndpoint>? endpoints,
+    TransitCancellation? cancellation,
   }) => _StaticTransportUpdater.updateStaticTransportData(
     force: force,
     endpoints: endpoints,
+    cancellation: cancellation,
   );
 
   static Future<GtfsData?> fetchGtfsDataForEndpoint(StopsEndpoint endpoint) =>

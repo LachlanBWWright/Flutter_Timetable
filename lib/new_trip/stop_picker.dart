@@ -46,10 +46,19 @@ extension _StopPicker on _NewTripScreenState {
                   ),
                   body: Column(
                     children: [
+                      StopSearchStatus(
+                        snapshot: _stopSearchSnapshot,
+                        onCancel: _cancelStopSearch,
+                        onRetry: _retryRegionalStopSearch,
+                      ),
                       if (_draftRegion case final region?)
                         Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Text('Trip region: ${region.label}'),
+                          child: Text(
+                            _interchanges.isNotEmpty
+                                ? 'Trip region: ${region.label}'
+                                : 'Search includes enabled regions',
+                          ),
                         ),
                       if (target == _StopTarget.destination &&
                           _originStation != null &&

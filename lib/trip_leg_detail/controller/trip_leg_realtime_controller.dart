@@ -13,10 +13,9 @@ typedef TripUpdateAggregateLoader =
 /// Owns realtime aggregate loading, in-flight de-duplication and stale result guards.
 class TripLegRealtimeController extends ChangeNotifier {
   TripLegRealtimeController({
-    required VehicleAggregateLoader loadVehicles,
-    required TripUpdateAggregateLoader loadTripUpdates,
-  }) : _loadVehicles = loadVehicles,
-       _loadTripUpdates = loadTripUpdates;
+    required this._loadVehicles,
+    required this._loadTripUpdates,
+  });
 
   final VehicleAggregateLoader _loadVehicles;
   final TripUpdateAggregateLoader _loadTripUpdates;

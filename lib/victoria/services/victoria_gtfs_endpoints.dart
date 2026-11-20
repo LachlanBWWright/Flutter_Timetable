@@ -4,7 +4,7 @@
 const victoriaStaticGtfsUrl =
     'https://opendata.transport.vic.gov.au/dataset/'
     '3f4e292e-7f8a-4ffe-831f-1953be0fe448/resource/'
-    'fb152201-859f-4882-9206-b768060b50ad/download/gtfs.zip';
+    '62370a3a-3fe0-4f6b-9022-9ebbf25751cc/download/gtfs.zip';
 
 class VictoriaRealtimeFeedSet {
   const VictoriaRealtimeFeedSet({

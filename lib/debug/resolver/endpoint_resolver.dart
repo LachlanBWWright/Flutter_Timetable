@@ -12,10 +12,9 @@ class DebugEndpointResolver {
   final DebugEndpointForMode _endpointsForMode;
 
   DebugEndpointResolver({
-    required DebugEntityDataSource dataSource,
-    required DebugEndpointForMode endpointsForMode,
-  }) : _dataSource = dataSource,
-       _endpointsForMode = endpointsForMode;
+    required this._dataSource,
+    required this._endpointsForMode,
+  });
 
   StopsEndpoint? endpointForKey(String? endpointKey) {
     if (endpointKey == null) {

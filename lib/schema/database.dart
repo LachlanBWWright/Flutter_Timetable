@@ -12,6 +12,7 @@ part 'tables/static_cache_statuses.dart';
 part 'tables/stop_line_memberships.dart';
 part 'tables/stops.dart';
 part 'tables/trip_planner_cache.dart';
+part 'tables/gtfs_feed_caches.dart';
 
 part 'database.g.dart';
 part 'database/safe_table.dart';
@@ -37,6 +38,7 @@ QueryExecutor _openAppDatabase() => driftDatabase(
     StopLineMemberships,
     StaticCacheStatuses,
     TripPlannerCache,
+    GtfsFeedCaches,
   ],
 )
 class AppDatabase extends _$AppDatabase
@@ -78,7 +80,7 @@ class AppDatabase extends _$AppDatabase
   }
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -90,6 +92,10 @@ class AppDatabase extends _$AppDatabase
       );
     },
     onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 10) await m.createTable(gtfsFeedCaches);
+      if (from == 10) {
+        await m.addColumn(gtfsFeedCaches, gtfsFeedCaches.stopModes);
+      }
       // Add new stop columns introduced in schemaVersion 4. Drift will
       // skip columns that already exist when upgrading.
       if (from < 4) {
@@ -213,6 +219,7 @@ class AppDatabase extends _$AppDatabase
           await database.delete(database.stops).go();
           await database.delete(database.staticCacheStatuses).go();
           await database.delete(database.tripPlannerCache).go();
+          await database.delete(database.gtfsFeedCaches).go();
           await database.customStatement(
             'DELETE FROM sqlite_sequence WHERE name = ?',
             ['journeys'],

@@ -35,24 +35,12 @@ class TranslinkRealtimeRepository implements RealtimeRepository {
       feedSetId,
       query: request.query,
     );
-    final updates = (feed?.entity ?? const <FeedEntity>[])
-        .where((entity) => entity.hasTripUpdate())
-        .map(
-          (entity) => TransitTripUpdate(
-            tripId: entity.tripUpdate.trip.tripId,
-            stop:
-                entity.tripUpdate.stopTimeUpdate.isNotEmpty &&
-                    entity.tripUpdate.stopTimeUpdate.first.hasStopId()
-                ? TransitStopRef(
-                    region: TransitRegion.queensland,
-                    provider: TransitProviderId.translink,
-                    sourceId: TransitSourceId('qld:$feedSetId'),
-                    stopId: entity.tripUpdate.stopTimeUpdate.first.stopId,
-                  )
-                : null,
-          ),
-        )
-        .toList(growable: false);
+    final updates = gtfsRealtimeUpdates(
+      feed,
+      region: TransitRegion.queensland,
+      provider: TransitProviderId.translink,
+      source: TransitSourceId('qld:$feedSetId'),
+    );
     return RealtimeSnapshot(items: updates, fetchedAt: feedFetchedAt(feed));
   }
 

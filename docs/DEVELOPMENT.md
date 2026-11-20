@@ -237,3 +237,92 @@ automatically provided `GITHUB_TOKEN`.
 
 See [shared cache setup](../backend/README.md). Leaving `FIREBASE_CACHE_URL` empty
 keeps normal provider fetching; the optional backend is deployed separately.
+
+## Regional timetable planning
+
+Provider services expose detailed planning capabilities through reusable
+interfaces; Settings lists the available options for each region. Build flags
+continue to control which regions are enabled.
+
+The local GTFS planner now reads transfers, pathways and frequency services,
+uses immutable indexed feed snapshots, and honours arrive-by requests,
+accessibility constraints and total walking-time limits. The Trip screen's
+**Journey options** button exposes these controls. Custom searches bypass the
+ordinary current-departure cache. NSW's live planner receives the requested
+Sydney date/time and wheelchair options; walking limits use local GTFS.
+
+Strict step-free searches require positive vehicle, stop and pathway evidence;
+unknown accessibility is excluded. Preferred wheelchair searches allow unknown
+information but exclude explicit inaccessible vehicles/stops and known stairs.
+Headway services (`exact_times=0`) and inferred walking links are labelled
+approximate. Exact frequency services expand individual scheduled runs.
+
+`AppTransitContext.planJourney` connects the two selected feed snapshots,
+including different regions, and preserves each stop/route's provider and source
+identity. It estimates links between nearby feed entrances within 250 metres.
+These links include a 30-second buffer and are excluded from strict step-free
+searches. The search currently includes the origin and destination feeds only;
+it does not discover a third intermediary feed. Local searches span 48 hours.
+Manual multi-leg editing retains its existing region restrictions.
+
+Fresh Queensland, Adelaide Metro and configured Victoria trip updates can
+adjust scheduled journeys/departures, cancel runs and skip stops. All published
+stop updates are mapped, with service-date and source matching. Victoria IDs
+must match a unique static trip/route namespace. Stale or unavailable updates
+leave the timetable usable; saved results preserve planned and estimated times,
+approximation flags and fallback status. Victoria realtime requires portal
+credentials or a configured shared cache.
+
+`TransitResourceBudget` controls archive storage, estimated retained parsed-cache
+memory, connection/label counts, timetable row counts and extended service-day
+lookback. Defaults include a 256 MiB parsed-cache estimate, 512 MiB downloaded
+archive limit, 1 GiB disk archive quota, two million retained stop-time rows,
+one million search connections, 256 labels per stop and 366 service days.
+The parsed-cache estimate is not a bound on peak process RSS. Streamed CSV
+parsing shares repeated identifiers and avoids a second complete dynamic row
+table. Compact stop imports validate timetable rows without retaining a full
+journey graph. Oversized full timetables return `TransitResourceLimit` rather
+than silently dropping rows. The current statewide Victoria bundle can exceed
+this local planner limit; a successful stop import does not establish that the
+full statewide journey graph is supported on a device.
+
+Native parsing/planning workers terminate on cancellation. Cancellable provider
+loaders forward the same token through shared downloads and persistent parsing;
+one cancelled consumer does not abort another consumer's work. On web, CPU
+cancellation remains cooperative because Flutter compute runs on the main
+isolate. Forced refreshes wait for ordinary work and then share a new forced
+load. Disk eviction preserves stop-mode metadata and feed dates.
+
+Multi-agency feeds use each route's agency timezone, including historical IANA
+aliases. Service times beyond 167 hours are accepted within the configured
+lookback budget. Calendar validity, chronology, references, parent cycles,
+frequency periods and transfer/pathway fields are checked before publication.
+
+Useful focused checks:
+
+```sh
+flutter test --no-pub test/transit --exclude-tags integration
+flutter test --no-pub integration_test/offline_transit_test.dart -d <device-id> \
+  --dart-define=ENABLE_QUEENSLAND=true
+```
+
+The Android integration covers SQLite archive reopening offline, an accessible
+arrive-by result independent of device timezone, native worker cancellation and
+journey-option controls. It complements the saved-trip lifecycle integration.
+A physical-device run and representative large-feed memory measurement are
+still needed before claiming device-wide coverage.
+
+Verification on 7 November 2026: analysis passed; all-region deterministic tests
+passed (583 tests, one skipped); the three Android integration tests passed on
+an API 34 emulator with UTC as the device timezone, and the normal all-region
+debug APK built and installed. Changed files pass formatting; the repository-wide
+formatter reports 62 unchanged files with existing formatting differences.
+
+Live checks passed for the NSW API, Queensland static/realtime endpoints and
+representative Tasmania, NT, WA and SA import/planning flows. Victoria's updated
+catalogue URL downloaded successfully and its compact stop import/search worked;
+full statewide planning returned the stop-time budget error under a 4 GiB test
+process cap. Victoria realtime was skipped because its credentials/cache were
+not configured. No physical ADB device was available. These are verification
+limits within this work, rather than a claim that every provider/mode/device
+combination has been exercised.

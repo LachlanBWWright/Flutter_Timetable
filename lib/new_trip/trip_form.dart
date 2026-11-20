@@ -25,7 +25,11 @@ extension _TripForm on _NewTripScreenState {
                   ),
                   if (_draftRegion case final region?) ...[
                     const SizedBox(height: 12),
-                    Text('Trip region: ${region.label}'),
+                    Text(
+                      _interchanges.isNotEmpty
+                          ? 'Trip region: ${region.label}'
+                          : 'Search includes enabled regions',
+                    ),
                   ],
                   const SizedBox(height: 24),
                   _stopRow(

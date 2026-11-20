@@ -11,7 +11,7 @@ class CsvFieldReader {
         return null;
       }
 
-      final value = row.skip(index).firstOrNull;
+      final value = index < row.length ? row[index] : null;
       if (value == null || value.isEmpty) {
         return null;
       }

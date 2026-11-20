@@ -1,6 +1,8 @@
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 
+import '../../gtfs/gtfs_data.dart';
+
 class TransitRegionServices {
   const TransitRegionServices({
     required this.region,
@@ -12,6 +14,9 @@ class TransitRegionServices {
     this.departures,
     this.journeyPlanner,
     this.disruptions,
+    this.timetableLoader,
+    this.cancellableTimetableLoader,
+    this.timetableSources = const [],
   });
 
   final TransitRegion region;
@@ -23,6 +28,15 @@ class TransitRegionServices {
   final DepartureRepository? departures;
   final JourneyPlanner? journeyPlanner;
   final DisruptionRepository? disruptions;
+  final Future<GtfsData> Function(TransitSourceId)? timetableLoader;
+  final Future<GtfsData> Function(TransitSourceId, TransitCancellation)?
+  cancellableTimetableLoader;
+  final List<TransitSourceId> timetableSources;
+
+  TransitPlanningCapabilities get planningCapabilities =>
+      journeyPlanner is CapableJourneyPlanner
+      ? (journeyPlanner as CapableJourneyPlanner).capabilities
+      : const TransitPlanningCapabilities();
 
   bool get supportsJourneyPlanning => journeyPlanner != null;
   bool get supportsRealtime => realtime != null;

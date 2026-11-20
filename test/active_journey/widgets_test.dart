@@ -112,7 +112,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Start search'));
+      await tester.tap(find.byTooltip('Refresh nearby vehicles'));
+      await tester.pump();
+      expect(controller.running, isTrue);
       fixes.add(
         FinderLocation(
           latitude: -33.86,
@@ -129,16 +131,17 @@ void main() {
         scrollable: find.byType(Scrollable).last,
       );
       await tester.pump();
+      final cancellationsBeforeConfirm = cancelled;
       await tester.tap(find.text('This is my vehicle'));
       await tester.pumpAndSettle();
-      expect(cancelled, 1);
+      expect(cancelled, cancellationsBeforeConfirm + 1);
       expect(session.service, isNotNull);
       navigator.currentState!.pop();
       await tester.pumpAndSettle();
       expect(find.text('Possible current trip'), findsOneWidget);
       expect(controller.running, isFalse);
       await tester.pump(const Duration(minutes: 1));
-      expect(cancelled, 1);
+      expect(cancelled, cancellationsBeforeConfirm + 1);
     },
   );
 
@@ -163,9 +166,8 @@ void main() {
             MaterialApp(
               theme: ThemeData(brightness: brightness),
               builder: (context, child) => MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: const TextScaler.linear(2)),
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: const TextScaler.linear(2)),
                 child: child!,
               ),
               home: ActiveJourneyScreen(journeys: [saved()], session: session),

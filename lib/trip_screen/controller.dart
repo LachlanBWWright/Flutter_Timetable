@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:lbww_flutter/models/manual_trip_models.dart';
 import 'package:lbww_flutter/schema/database.dart';
@@ -6,11 +7,13 @@ import 'package:lbww_flutter/services/regional_saved_trip_service.dart';
 import 'package:lbww_flutter/services/saved_trip_render_service.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
 import 'package:lbww_flutter/services/trip_cache_service.dart';
+import 'package:lbww_flutter/transit/domain/transit_cancellation.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/errors/transit_failure.dart';
 import 'package:lbww_flutter/transit/registry/region_feature_flags.dart';
 import 'package:lbww_flutter/utils/trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/trip_cache/age_snapshot.dart';
+import 'package:option_result/option_result.dart';
 
 @immutable
 class TripScreenState {
@@ -30,12 +33,11 @@ class TripScreenState {
   final String testText;
 }
 
-typedef TripCacheLoader =
-    Future<TripCacheSnapshot> Function({
-      required String originId,
-      required String destinationId,
-      required bool forceRefresh,
-    });
+typedef TripCacheLoader = Future<TripCacheSnapshot> Function({
+  required String originId,
+  required String destinationId,
+  required bool forceRefresh,
+});
 typedef ManualTripBuilder = Future<TripJourney?> Function(Journey trip);
 typedef TripClock = DateTime Function();
 
@@ -45,14 +47,13 @@ class TripScreenController extends ChangeNotifier {
     List<TripJourney> initialTrips = const [],
     TripCacheLoader? cacheLoader,
     ManualTripBuilder? manualBuilder,
-    RegionalPlanLoader? regionalPlanLoader,
+    this.regionalPlanLoader,
     TripClock? clock,
     this.onUsableData,
     bool startAgingTimer = true,
   }) : _cacheLoader = cacheLoader ?? _defaultCacheLoader,
        _manualBuilder =
            manualBuilder ?? SavedTripRenderService.buildManualTripJourney,
-       _regionalPlanLoader = regionalPlanLoader,
        _clock = clock ?? DateTime.now,
        _state = TripScreenState(trips: initialTrips) {
     if (startAgingTimer && !trip.isManualMultiLeg) {
@@ -66,13 +67,26 @@ class TripScreenController extends ChangeNotifier {
   final void Function()? onUsableData;
   final TripCacheLoader _cacheLoader;
   final ManualTripBuilder _manualBuilder;
-  final RegionalPlanLoader? _regionalPlanLoader;
+  final RegionalPlanLoader? regionalPlanLoader;
   final TripClock _clock;
   TripScreenState _state;
   TripScreenState get state => _state;
   int _generation = 0;
   Timer? _departureTimer;
   bool _disposed = false;
+  DateTime? planningTime;
+  bool arrivalBased = false;
+  Duration? walkingLimit;
+  TransitAccessibility accessibility = TransitAccessibility.none;
+  TransitCancellation? _cancellation;
+  bool get hasPlanningOptions =>
+      planningTime != null ||
+      arrivalBased ||
+      walkingLimit != null ||
+      accessibility != TransitAccessibility.none;
+  void cancelPlanning() {
+    _cancellation?.cancel();
+  }
 
   static Future<TripCacheSnapshot> _defaultCacheLoader({
     required String originId,
@@ -92,6 +106,8 @@ class TripScreenController extends ChangeNotifier {
 
   Future<void> load({bool forceRefresh = false}) async {
     if (_disposed) return;
+    _cancellation?.cancel();
+    final cancellation = _cancellation = TransitCancellation();
     final generation = ++_generation;
     _emit(
       TripScreenState(
@@ -116,6 +132,51 @@ class TripScreenController extends ChangeNotifier {
         );
         return;
       }
+      if (hasPlanningOptions) {
+        List<TripJourney> journeys;
+        if (TransitStopRef.tryParse(trip.originId) != null &&
+            TransitStopRef.tryParse(trip.destinationId) != null) {
+          journeys = await RegionalSavedTripService.planSavedTrip(
+            trip,
+            planLoader: regionalPlanLoader,
+            when: planningTime ?? _clock(),
+            arrivalBased: arrivalBased,
+            walkingLimit: walkingLimit,
+            accessibility: accessibility,
+            cancellation: cancellation,
+          );
+        } else {
+          if (walkingLimit != null) {
+            throw const UnsupportedCapability(
+              message:
+                  'Choose provider-qualified stops to apply a walking limit.',
+            );
+          }
+          final result = await cancellation.wait(
+            TransportApiService.getTrips(
+              originId: trip.originId,
+              destinationId: trip.destinationId,
+              when: planningTime ?? _clock(),
+              arrivalBased: arrivalBased,
+              wheelchair: accessibility != TransitAccessibility.none,
+            ),
+          );
+          journeys = switch (result) {
+            Ok(:final v) => v.tripJourneys,
+            Err(:final e) => throw ProviderUnavailable(message: e),
+          };
+        }
+        if (_disposed || generation != _generation) return;
+        _emit(
+          TripScreenState(
+            trips: sortTripJourneysForDisplay(journeys),
+            rawTripJson: prettyPrintRawJson({
+              'journeys': journeys.map((j) => j.rawJson).toList(),
+            }),
+          ),
+        );
+        return;
+      }
       final originRef = TransitStopRef.tryParse(trip.originId);
       final destinationRef = TransitStopRef.tryParse(trip.destinationId);
       if (RegionalSavedTripService.hasStructuredStops(trip)) {
@@ -124,16 +185,6 @@ class TripScreenController extends ChangeNotifier {
         if ((originIsStructured && originRef == null) ||
             (destinationIsStructured && destinationRef == null)) {
           _emit(TripScreenState(error: 'Saved trip cannot be loaded.'));
-          return;
-        }
-        if (originRef != null &&
-            destinationRef != null &&
-            originRef.region != destinationRef.region) {
-          _emit(
-            TripScreenState(
-              error: 'Cross-region journey planning is not supported.',
-            ),
-          );
           return;
         }
         final refRegion = originRef?.region ?? destinationRef!.region;
@@ -151,23 +202,23 @@ class TripScreenController extends ChangeNotifier {
           );
           return;
         }
-        final parsedRefs = [
-          ?originRef,
-          ?destinationRef,
-        ];
+        final parsedRefs = [?originRef, ?destinationRef];
         if (refRegion == TransitRegion.nsw &&
+            destinationRef?.region == TransitRegion.nsw &&
             parsedRefs.any((ref) => ref.provider != TransitProviderId.tfnsw)) {
           _emit(TripScreenState(error: 'Saved trip provider is unavailable.'));
           return;
         }
-        if (refRegion != TransitRegion.nsw) {
+        if (refRegion != TransitRegion.nsw ||
+            destinationRef?.region != TransitRegion.nsw) {
           final regionalOriginRef = originRef!;
           final regionalDestinationRef = destinationRef!;
           final fetchedAt = _clock();
           final journeys = await RegionalSavedTripService.planSavedTrip(
             trip,
-            planLoader: _regionalPlanLoader,
+            planLoader: regionalPlanLoader,
             when: fetchedAt,
+            cancellation: cancellation,
           );
           if (_disposed || generation != _generation) return;
           _emit(
@@ -216,10 +267,12 @@ class TripScreenController extends ChangeNotifier {
         );
         return;
       }
-      final snapshot = await _cacheLoader(
-        originId: originRef?.stopId ?? trip.originId,
-        destinationId: destinationRef?.stopId ?? trip.destinationId,
-        forceRefresh: forceRefresh,
+      final snapshot = await cancellation.wait(
+        _cacheLoader(
+          originId: originRef?.stopId ?? trip.originId,
+          destinationId: destinationRef?.stopId ?? trip.destinationId,
+          forceRefresh: forceRefresh,
+        ),
       );
       if (_disposed || generation != _generation) return;
       final response = snapshot.response;
@@ -266,7 +319,7 @@ class TripScreenController extends ChangeNotifier {
 
   void ageNow() {
     final snapshot = _state.snapshot;
-    if (snapshot == null || trip.isManualMultiLeg) return;
+    if (snapshot == null || trip.isManualMultiLeg || hasPlanningOptions) return;
     final updated = ageTripCacheSnapshot(snapshot, _clock());
     final upcoming = updated.response?.tripJourneys ?? const <TripJourney>[];
     if (upcoming.length == _state.trips.length &&
@@ -294,6 +347,7 @@ class TripScreenController extends ChangeNotifier {
     _disposed = true;
     _generation++;
     _departureTimer?.cancel();
+    _cancellation?.cancel();
     super.dispose();
   }
 }

@@ -7,9 +7,8 @@ import 'gtfs_planner_fixtures.dart';
 
 void main() {
   test('uses agency timezone and coalesces connections on one trip', () async {
-    final result = await fixturePlanner(
-      plannerData(),
-    ).planJourney(plannerRequest());
+    final result = await fixturePlanner(plannerData())
+        .planJourney(plannerRequest());
 
     expect(result.journeys, hasLength(1));
     final leg = result.journeys.single.legs.single;
@@ -40,9 +39,8 @@ void main() {
             'T1,03:00:00,03:00:00,A,1,0,0\n'
             'T1,03:20:00,03:20:00,C,2,0,0\n',
       );
-      final result = await fixturePlanner(
-        data,
-      ).planJourney(plannerRequest(when: transition.when));
+      final result = await fixturePlanner(data)
+          .planJourney(plannerRequest(when: transition.when));
       final leg = result.journeys.single.legs.single;
       expect(leg.departureTime, transition.departure);
       expect(
@@ -63,9 +61,8 @@ void main() {
             'T1,${service.hour}:00:00,${service.hour}:00:00,A,1,0,0\n'
             'T1,${service.hour}:20:00,${service.hour}:20:00,C,2,0,0\n',
       );
-      final result = await fixturePlanner(
-        data,
-      ).planJourney(plannerRequest(when: DateTime.utc(2026, 8, 12, 14, 55)));
+      final result = await fixturePlanner(data)
+          .planJourney(plannerRequest(when: DateTime.utc(2026, 8, 12, 14, 55)));
       expect(
         result.journeys.single.legs.single.departureTime,
         DateTime.utc(2026, 8, 12, 15),
@@ -74,9 +71,8 @@ void main() {
   }
 
   test('finds tomorrow after the final service of today', () async {
-    final result = await fixturePlanner(
-      plannerData(),
-    ).planJourney(plannerRequest(when: DateTime.utc(2026, 8, 13, 2)));
+    final result = await fixturePlanner(plannerData())
+        .planJourney(plannerRequest(when: DateTime.utc(2026, 8, 13, 2)));
     expect(
       result.journeys.single.legs.single.departureTime,
       DateTime.utc(2026, 8, 14),
@@ -86,9 +82,8 @@ void main() {
   test(
     'a successful feed with no active services yields an empty plan',
     () async {
-      final result = await fixturePlanner(
-        plannerData(serviceDate: '20260101'),
-      ).planJourney(plannerRequest());
+      final result = await fixturePlanner(plannerData(serviceDate: '20260101'))
+          .planJourney(plannerRequest());
       expect(result.journeys, isEmpty);
     },
   );
@@ -109,14 +104,13 @@ void main() {
 
   for (final routeType in ['11', '209', '716', '800']) {
     test('recognizes extended bus route type $routeType', () async {
-      final result = await fixturePlanner(
-        plannerData(routeType: routeType),
-      ).planJourney(plannerRequest(modes: [TransportMode.bus]));
+      final result = await fixturePlanner(plannerData(routeType: routeType))
+          .planJourney(plannerRequest(modes: [TransportMode.bus]));
       expect(result.journeys.single.legs.single.mode, TransportMode.bus);
     });
   }
 
-  test('rejects unsupported constraints before loading a feed', () async {
+  test('supports advertised planning constraints', () async {
     var loads = 0;
     final planner = GtfsJourneyPlanner(
       region: TransitRegion.queensland,
@@ -135,12 +129,9 @@ void main() {
         ),
       ),
     ]) {
-      await expectLater(
-        planner.planJourney(request),
-        throwsA(isA<UnsupportedCapability>()),
-      );
+      await planner.planJourney(request);
     }
-    expect(loads, 0);
+    expect(loads, 3);
   });
 
   test('rejects a negative walking limit as invalid input', () async {

@@ -9,7 +9,6 @@ import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/journey_service.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
-import 'package:lbww_flutter/services/station_loader.dart';
 import 'package:lbww_flutter/services/stops_service.dart';
 import 'package:lbww_flutter/services/transport_preferences_service.dart';
 import 'package:lbww_flutter/services/trip_line_service.dart';
@@ -18,24 +17,28 @@ import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/new_trip_screen_utils.dart';
 import 'package:lbww_flutter/widgets/selected_stops/selected_stops_controls.dart';
 import 'package:lbww_flutter/widgets/station_widgets.dart';
+import 'package:lbww_flutter/widgets/stops/stop_search_status.dart';
+import 'package:lbww_flutter/widgets/stops/stops_search_repository.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
 
-part 'new_trip/station_catalog.dart';
-part 'new_trip/trip_selection.dart';
 part 'new_trip/draft_lookups.dart';
 part 'new_trip/manual_journey.dart';
+part 'new_trip/station_catalog.dart';
 part 'new_trip/station_tab_view.dart';
+part 'new_trip/stop_picker.dart';
 part 'new_trip/trip_creator_tabs.dart';
 part 'new_trip/trip_form.dart';
-part 'new_trip/stop_picker.dart';
+part 'new_trip/trip_selection.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({
     super.key,
     this.skipInitialLoad = false,
     this.initialStations = const [],
+    this.stopSearchRepository,
   });
 
+  final RegionalStopsSearchRepository? stopSearchRepository;
   final bool skipInitialLoad;
   final List<Station> initialStations;
 
@@ -52,11 +55,6 @@ class _NewTripScreenState extends State<NewTripScreen>
     return items.skip(index).firstOrNull;
   }
 
-  List<Station> _stationsAtOrEmpty(List<dynamic> results, int index) {
-    final value = _itemAtOrNull(results, index);
-    return value is List<Station> ? value : const <Station>[];
-  }
-
   List<Station> _trainStationList = [];
   List<Station> _nswTrainLinkStationList = [];
   List<Station> _busStationList = [];
@@ -66,6 +64,10 @@ class _NewTripScreenState extends State<NewTripScreen>
   List<Station> _regionalSearchResults = [];
   bool _isRegionalSearchLoading = false;
   bool _regionalSearchFailed = false;
+  RegionalStopSearchSnapshot _stopSearchSnapshot =
+      const RegionalStopSearchSnapshot();
+  StreamSubscription<RegionalStopSearchSnapshot>? _stopSearchSubscription;
+  StopSearchCancellation? _stopSearchCancellation;
   TransitRegion? _draftRegion;
   int _searchGeneration = 0;
   int _draftGeneration = 0;
@@ -112,6 +114,8 @@ class _NewTripScreenState extends State<NewTripScreen>
   late FocusNode _searchFocusNode;
   late final AppDatabase _db;
   final TripLineService _tripLineService = TripLineService.instance;
+  // The picker uses this controller on a separate route while this state's
+  // tickers are muted. Tab taps must update immediately rather than animate.
   late TabController _tabController;
   late List<_TripCreatorTab> _tabs;
   _TripCreatorTabKind _currentTabKind = _TripCreatorTabKind.sydneyTrains;
@@ -150,14 +154,22 @@ class _NewTripScreenState extends State<NewTripScreen>
             _ferryStationList.add(station);
         }
       }
-      _tabController = TabController(length: _tabs.length, vsync: this);
+      _tabController = TabController(
+        length: _tabs.length,
+        vsync: this,
+        animationDuration: Duration.zero,
+      );
       _searchFocusNode = FocusNode();
       addListenerSafely(_tabController, _onTabChanged);
       addListenerSafely(keyController, _applySearchFilter);
       return;
     }
     _tabs = _buildTabs();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(
+      length: _tabs.length,
+      vsync: this,
+      animationDuration: Duration.zero,
+    );
     addListenerSafely(_tabController, _onTabChanged);
     addListenerSafely(
       TransportPreferencesService.showNswTrainLink,
@@ -179,6 +191,8 @@ class _NewTripScreenState extends State<NewTripScreen>
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _stopSearchCancellation?.cancel();
+    unawaited(_stopSearchSubscription?.cancel());
     _searchGeneration++;
     _pickerChanges.dispose();
     removeListenerSafely(

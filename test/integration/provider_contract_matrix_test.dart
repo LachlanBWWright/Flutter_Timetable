@@ -5,6 +5,9 @@ import 'package:lbww_flutter/queensland/adapters/translink_transit_adapter.dart'
 import 'package:lbww_flutter/south_australia/adapters/adelaide_metro_transit_adapter.dart';
 import 'package:lbww_flutter/tasmania/tasmania_gtfs.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
+import 'package:lbww_flutter/transit/errors/transit_failure.dart';
+import 'package:lbww_flutter/transit/gtfs/static_backed_stop_repository.dart';
+import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 import 'package:lbww_flutter/victoria/adapters/ptv_transit_adapter.dart';
 import 'package:lbww_flutter/western_australia/transperth_gtfs.dart';
@@ -24,7 +27,11 @@ void main() {
     expect(providers.map((services) => services.region), hasLength(7));
     expect(providers.map((services) => services.region).toSet(), hasLength(7));
     for (final services in providers) {
-      expect(services.stops, isNotNull, reason: services.region.label);
+      expect(
+        services.stops,
+        isA<StaticBackedStopRepository>(),
+        reason: services.region.label,
+      );
       expect(
         services.attribution.provider,
         services.provider,
@@ -48,4 +55,32 @@ void main() {
     expect(buildNorthernTerritoryRegionServices().realtime, isNull);
     expect(buildWesternAustraliaRegionServices().realtime, isNull);
   });
+
+  test(
+    'every region rejects unknown static sources before doing any work',
+    () async {
+      final services = [
+        buildTfnswRegionServices(),
+        buildPtvRegionServices(),
+        buildTranslinkRegionServices(),
+        buildAdelaideMetroRegionServices(),
+        buildTasmaniaRegionServices(),
+        buildNorthernTerritoryRegionServices(),
+        buildWesternAustraliaRegionServices(),
+      ];
+      for (final region in services) {
+        await expectLater(
+          region.staticGtfs!
+              .refreshStaticData(
+                const StaticImportRequest(
+                  sourceIds: [TransitSourceId('unknown')],
+                ),
+              )
+              .first,
+          throwsA(isA<InvalidJourneyRequest>()),
+          reason: region.region.name,
+        );
+      }
+    },
+  );
 }

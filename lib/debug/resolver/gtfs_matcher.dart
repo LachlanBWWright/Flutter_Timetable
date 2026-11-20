@@ -18,10 +18,9 @@ class DebugGtfsMatcher {
   final DebugEndpointResolver _endpointResolver;
 
   const DebugGtfsMatcher({
-    required DebugEntityDataSource dataSource,
-    required DebugEndpointResolver endpointResolver,
-  }) : _dataSource = dataSource,
-       _endpointResolver = endpointResolver;
+    required this._dataSource,
+    required this._endpointResolver,
+  });
 
   Future<DebugResolvedGtfsRoute?> resolveGtfsRoute({
     required String routeId,

@@ -5,7 +5,9 @@ import 'package:http/http.dart' as http;
 import '../logs/logger.dart';
 import '../transit/cache/realtime_query.dart';
 import '../transit/cache/shared_transit_cache.dart';
+import '../transit/domain/transit_cancellation.dart';
 import '../transit/errors/transit_failure.dart';
+import '../transit/runtime/bounded_bytes.dart';
 import 'app_http_retry_policy.dart';
 
 class AppHttpClient {
@@ -15,6 +17,7 @@ class AppHttpClient {
   static const int _defaultRetries = 2;
   static Future<http.Response?> get(
     Uri uri, {
+    TransitCancellation? cancellation,
     Map<String, String>? headers,
     Duration timeout = _defaultTimeout,
     int retries = _defaultRetries,
@@ -23,11 +26,13 @@ class AppHttpClient {
     bool useSharedCache = true,
     SharedTransitCache? sharedCache,
   }) async {
+    cancellation?.throwIfCancelled();
     if (useSharedCache) {
       final cached = await (sharedCache ?? SharedTransitCache.instance).lookup(
         uri,
         query: query,
         client: client,
+        cancellation: cancellation,
       );
       if (cached != null) return cached;
     }
@@ -39,10 +44,12 @@ class AppHttpClient {
 
     try {
       for (var attempt = 0; attempt < attempts; attempt++) {
+        cancellation?.throwIfCancelled();
         try {
           final response = await _getAttempt(
             activeClient,
             uri,
+            cancellation: cancellation,
             headers: headers,
             timeout: timeout,
           );
@@ -54,7 +61,12 @@ class AppHttpClient {
           }
           final delay = AppHttpRetryPolicy.delayFor(attempt, response);
           if (delay == null) return response;
-          await Future<void>.delayed(delay);
+          await (cancellation?.wait(Future<void>.delayed(delay)) ??
+              Future<void>.delayed(delay));
+        } on TransitResourceLimit {
+          rethrow;
+        } on TransitOperationCancelled {
+          rethrow;
         } catch (error, stackTrace) {
           lastError = error;
           lastStackTrace = stackTrace;
@@ -66,7 +78,10 @@ class AppHttpClient {
             );
             return null;
           }
-          await Future<void>.delayed(AppHttpRetryPolicy.backoffDelay(attempt));
+          final pause = Future<void>.delayed(
+            AppHttpRetryPolicy.backoffDelay(attempt),
+          );
+          await (cancellation?.wait(pause) ?? pause);
         }
       }
     } finally {
@@ -84,6 +99,7 @@ class AppHttpClient {
   static Future<http.Response> _getAttempt(
     http.Client client,
     Uri uri, {
+    TransitCancellation? cancellation,
     Map<String, String>? headers,
     required Duration timeout,
   }) {
@@ -91,22 +107,41 @@ class AppHttpClient {
     final request = http.AbortableRequest(
       'GET',
       uri,
-      abortTrigger: abort.future,
+      abortTrigger: cancellation == null
+          ? abort.future
+          : Future.any([abort.future, cancellation.whenCancelled]),
     );
     if (headers != null) request.headers.addAll(headers);
 
     final response = () async {
       final streamedResponse = await client.send(request);
-      return http.Response.fromStream(streamedResponse);
+      return http.Response.fromStream(
+        http.StreamedResponse(
+          _deadlineStream(
+            boundedTransitBytes(streamedResponse.stream),
+            timeout,
+            abort,
+            cancellation: cancellation,
+          ),
+          streamedResponse.statusCode,
+          headers: streamedResponse.headers,
+          request: request,
+          contentLength: streamedResponse.contentLength,
+          isRedirect: streamedResponse.isRedirect,
+          persistentConnection: streamedResponse.persistentConnection,
+          reasonPhrase: streamedResponse.reasonPhrase,
+        ),
+      );
     }();
 
-    return response.timeout(
+    final result = response.timeout(
       timeout,
       onTimeout: () {
         _completeAbort(abort);
         throw TimeoutException('HTTP GET exceeded its deadline.', timeout);
       },
     );
+    return cancellation?.wait(result) ?? result;
   }
 
   /// Fetches a response while preserving a provider-specific failure reason.
@@ -114,6 +149,7 @@ class AppHttpClient {
   /// indistinguishable from a valid empty feed.
   static Future<http.Response> getOrThrow(
     Uri uri, {
+    TransitCancellation? cancellation,
     Map<String, String>? headers,
     Duration timeout = _defaultTimeout,
     int retries = _defaultRetries,
@@ -122,6 +158,7 @@ class AppHttpClient {
   }) async {
     final response = await get(
       uri,
+      cancellation: cancellation,
       headers: headers,
       timeout: timeout,
       retries: retries,
@@ -158,11 +195,10 @@ class AppHttpClient {
 class BoundedHttpClient extends http.BaseClient {
   BoundedHttpClient({
     http.Client? inner,
-    SharedTransitCache? sharedCache,
+    this._sharedCache,
     this.useSharedCache = true,
     this.timeout = const Duration(seconds: 20),
-  }) : _inner = inner ?? http.Client(),
-       _sharedCache = sharedCache;
+  }) : _inner = inner ?? http.Client();
 
   final bool useSharedCache;
   final SharedTransitCache? _sharedCache;
@@ -238,10 +274,9 @@ class BoundedHttpClient extends http.BaseClient {
 class _AbortableRequest extends http.BaseRequest with http.Abortable {
   _AbortableRequest({
     required http.BaseRequest request,
-    required http.ByteStream body,
+    required this._body,
     required this.abortTrigger,
-  }) : _body = body,
-       super(request.method, request.url) {
+  }) : super(request.method, request.url) {
     headers.addAll(request.headers);
     contentLength = request.contentLength;
     persistentConnection = request.persistentConnection;
@@ -273,8 +308,9 @@ Future<void> _combinedAbortTrigger(
 Stream<List<int>> _deadlineStream(
   Stream<List<int>> source,
   Duration remaining,
-  Completer<void> abort,
-) {
+  Completer<void> abort, {
+  TransitCancellation? cancellation,
+}) {
   late final StreamController<List<int>> controller;
   StreamSubscription<List<int>>? subscription;
   var finished = false;
@@ -336,6 +372,19 @@ Stream<List<int>> _deadlineStream(
       await subscription?.cancel();
     },
   );
+  if (cancellation != null) {
+    unawaited(
+      cancellation.whenCancelled.then((_) {
+        if (finished) return;
+        finished = true;
+        timer.cancel();
+        _completeAbort(abort);
+        if (subscription != null) unawaited(subscription!.cancel());
+        controller.addError(const TransitOperationCancelled());
+        unawaited(controller.close());
+      }),
+    );
+  }
   return controller.stream;
 }
 

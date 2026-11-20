@@ -4,8 +4,9 @@ import 'package:flutter/foundation.dart';
 
 import '../../transit/transit.dart';
 
-typedef StopsSearchRepository =
-    Future<List<TransitStop>> Function(String query);
+typedef StopsSearchRepository = Future<List<TransitStop>> Function(
+  String query,
+);
 
 /// Immutable view of the latest stop search.
 @immutable
@@ -24,9 +25,9 @@ class StopsSearchState {
 /// Debounces searches and rejects completions from superseded requests.
 class StopsSearchController extends ChangeNotifier {
   StopsSearchController({
-    required StopsSearchRepository repository,
+    required this._repository,
     this.debounceDuration = const Duration(milliseconds: 300),
-  }) : _repository = repository;
+  });
 
   StopsSearchRepository _repository;
   final Duration debounceDuration;

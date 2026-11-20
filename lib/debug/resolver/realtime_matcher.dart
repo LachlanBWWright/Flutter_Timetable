@@ -8,8 +8,7 @@ import 'resolver_models.dart';
 class DebugRealtimeMatcher {
   final DebugEntityDataSource _dataSource;
 
-  const DebugRealtimeMatcher({required DebugEntityDataSource dataSource})
-    : _dataSource = dataSource;
+  const DebugRealtimeMatcher({required this._dataSource});
 
   Future<List<VehiclePosition>> matchVehicles({
     Set<String> tripIds = const <String>{},

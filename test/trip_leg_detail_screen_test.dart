@@ -40,81 +40,92 @@ void main() {
     );
   }
 
-  testWidgets('TripLegDetailScreen hides map button when transport id missing', (
-    tester,
-  ) async {
-    final leg = Leg(
-      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination: Stop(
-        id: 'D1',
-        name: 'Destination',
-        type: 'stop',
-        coord: [0.1, 0.1],
-      ),
-      transportation: null,
-    );
+  Future<TripUpdateAggregationResult> emptyTripUpdates() async =>
+      const TripUpdateAggregationResult(
+        tripUpdates: <TripUpdate>[],
+        breakdown: <String, int>{},
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: TripLegDetailScreen(
-          leg: leg,
-          skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async =>
-              const VehiclePositionAggregationResult(
-                vehicles: <VehiclePosition>[],
-                breakdown: <String, int>{},
-              ),
+  testWidgets(
+    'TripLegDetailScreen hides map button when transport id missing',
+    (tester) async {
+      final leg = Leg(
+        origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
+        destination: Stop(
+          id: 'D1',
+          name: 'Destination',
+          type: 'stop',
+          coord: [0.1, 0.1],
         ),
-      ),
-    );
+        transportation: null,
+      );
 
-    // Use pump instead of pumpAndSettle to avoid long frame settle with large debug text
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    // Map icon shouldn't be present
-    expect(find.byIcon(Icons.map), findsNothing);
-  });
-
-  testWidgets('TripLegDetailScreen shows map button when transport id present', (
-    tester,
-  ) async {
-    final transportation = Transportation(
-      id: 'ROUTE1',
-      name: 'Line 1',
-      product: Product(classField: 5),
-    );
-    final leg = Leg(
-      origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
-      destination: Stop(
-        id: 'D1',
-        name: 'Destination',
-        type: 'stop',
-        coord: [0.1, 0.1],
-      ),
-      transportation: transportation,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: TripLegDetailScreen(
-          leg: leg,
-          skipInitialLoadDelay: true,
-          getAllVehiclesAggregated: () async =>
-              const VehiclePositionAggregationResult(
-                vehicles: <VehiclePosition>[],
-                breakdown: <String, int>{},
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TripLegDetailScreen(
+            leg: leg,
+            skipInitialLoadDelay: true,
+            getAllTripUpdatesAggregated: emptyTripUpdates,
+            getAllVehiclesAggregated: () async =>
+                const VehiclePositionAggregationResult(
+                  vehicles: <VehiclePosition>[],
+                  breakdown: <String, int>{},
+                ),
+          ),
         ),
-      ),
-    );
+      );
 
-    // Use small pump increments to avoid long frame settle with large debug text
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      // Use pump instead of pumpAndSettle to avoid long frame settle with large debug text
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.byIcon(Icons.map), findsOneWidget);
-  });
+      // Map icon shouldn't be present
+      expect(find.byIcon(Icons.map), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'TripLegDetailScreen shows map button when transport id present',
+    (tester) async {
+      final transportation = Transportation(
+        id: 'ROUTE1',
+        name: 'Line 1',
+        product: Product(classField: 5),
+      );
+      final leg = Leg(
+        origin: Stop(id: 'O1', name: 'Origin', type: 'stop', coord: [0.0, 0.0]),
+        destination: Stop(
+          id: 'D1',
+          name: 'Destination',
+          type: 'stop',
+          coord: [0.1, 0.1],
+        ),
+        transportation: transportation,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TripLegDetailScreen(
+            leg: leg,
+            getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
+            skipInitialLoadDelay: true,
+            getAllTripUpdatesAggregated: emptyTripUpdates,
+            getAllVehiclesAggregated: () async =>
+                const VehiclePositionAggregationResult(
+                  vehicles: <VehiclePosition>[],
+                  breakdown: <String, int>{},
+                ),
+          ),
+        ),
+      );
+
+      // Use small pump increments to avoid long frame settle with large debug text
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byIcon(Icons.map), findsOneWidget);
+    },
+  );
 
   testWidgets('Trip debug card displayed when TripJourney passed', (
     tester,
@@ -157,6 +168,7 @@ void main() {
           trip: trip,
           getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
           skipInitialLoadDelay: true,
+          getAllTripUpdatesAggregated: emptyTripUpdates,
           getAllVehiclesAggregated: () async =>
               const VehiclePositionAggregationResult(
                 vehicles: <VehiclePosition>[],
@@ -237,6 +249,7 @@ void main() {
           trip: trip,
           getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
           skipInitialLoadDelay: true,
+          getAllTripUpdatesAggregated: emptyTripUpdates,
           getAllVehiclesAggregated: () async =>
               const VehiclePositionAggregationResult(
                 vehicles: <VehiclePosition>[],
@@ -373,6 +386,7 @@ void main() {
             debugListLoader: listLoader,
             getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
             skipInitialLoadDelay: true,
+            getAllTripUpdatesAggregated: emptyTripUpdates,
             getAllVehiclesAggregated: () async =>
                 const VehiclePositionAggregationResult(
                   vehicles: <VehiclePosition>[],
@@ -452,6 +466,7 @@ void main() {
             trip: trip,
             getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
             skipInitialLoadDelay: true,
+            getAllTripUpdatesAggregated: emptyTripUpdates,
             getAllVehiclesAggregated: () async =>
                 const VehiclePositionAggregationResult(
                   vehicles: <VehiclePosition>[],
@@ -544,6 +559,7 @@ void main() {
           trip: trip,
           getGtfsDataForEndpoint: (_) async => emptyGtfsData(),
           skipInitialLoadDelay: true,
+          getAllTripUpdatesAggregated: emptyTripUpdates,
           getAllVehiclesAggregated: () async =>
               VehiclePositionAggregationResult(
                 vehicles: <VehiclePosition>[vpMatch, vpOther],
@@ -937,6 +953,7 @@ void main() {
           leg: leg,
           trip: trip,
           skipInitialLoadDelay: true,
+          getAllTripUpdatesAggregated: emptyTripUpdates,
           getGtfsDataForEndpoint: (endpoint) async {
             if (endpoint == StopsEndpoint.buses) {
               return gtfsData;

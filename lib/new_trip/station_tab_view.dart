@@ -43,51 +43,28 @@ extension _StationTabView on _NewTripScreenState {
         _originStation != null &&
         _destinationStation == null;
     final useRegionalSearch = _usesRegionalStopSearch;
-    final regionalQuery = keyController.text.trim();
-    final baseList = keyController.text.trim().isNotEmpty && useRegionalSearch
-        ? _regionalSearchResults
-              .where((station) => station.mode == null || station.mode == mode)
-              .toList()
-        : useRegionalSearch
-        ? const <Station>[]
-        : _manualBuilderEnabled &&
-              _pendingInterchangeInsertIndex != null &&
-              selectedLine != null &&
-              mode == selectedLine.mode
+    final baseList =
+        _manualBuilderEnabled &&
+            _pendingInterchangeInsertIndex != null &&
+            selectedLine != null &&
+            mode == selectedLine.mode
         ? _manualCandidateStations
         : isSelectingSameLineDestination
         ? _sameLineDestinationStations
+        : useRegionalSearch
+        ? _regionalSearchResults
         : _getStationListForTab(tab);
 
     final displayList = filterStationsByQuery(baseList, keyController.text);
 
     if (displayList.isEmpty) {
-      if (useRegionalSearch && regionalQuery.isNotEmpty) {
-        if (_isRegionalSearchLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (_regionalSearchFailed) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Could not search enabled regions. Check your connection and try again.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: _retryRegionalStopSearch,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
+      if (useRegionalSearch && _isRegionalSearchLoading) {
+        return const Center(child: Text('Loading stops…'));
+      }
+      if (useRegionalSearch && _regionalSearchFailed) {
+        return const Center(
+          child: Text('Stops could not be loaded. Retry above.'),
+        );
       }
       final emptyMessage =
           _manualBuilderEnabled &&

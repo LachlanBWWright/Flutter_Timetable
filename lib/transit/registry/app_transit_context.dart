@@ -11,6 +11,11 @@ import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 import 'package:lbww_flutter/victoria/adapters/ptv_transit_adapter.dart';
 import 'package:lbww_flutter/western_australia/transperth_gtfs.dart';
 
+import '../errors/transit_failure.dart';
+import '../gtfs/gtfs_journey_planner.dart';
+import '../gtfs/gtfs_network_planner.dart';
+import '../interfaces/transit_interfaces.dart';
+
 class AppTransitContext {
   AppTransitContext._();
 
@@ -67,6 +72,38 @@ class AppTransitContext {
   TransitRegionServices servicesFor(TransitRegion region) {
     _ensureInitialized();
     return _registry.servicesFor(region);
+  }
+
+  Future<JourneyPlan> planJourney(JourneyPlanRequest request) {
+    if (!RegionFeatureFlags.isEnabled(request.origin.region) ||
+        !RegionFeatureFlags.isEnabled(request.destination.region)) {
+      throw const UnsupportedCapability(
+        message: 'A selected region is unavailable in this build.',
+      );
+    }
+    if (request.origin.region != request.destination.region ||
+        request.origin.provider != request.destination.provider ||
+        request.origin.sourceId != request.destination.sourceId) {
+      return GtfsNetworkPlanner(servicesFor: servicesFor).planJourney(request);
+    }
+    final service = servicesFor(request.origin.region);
+    if (request.origin.region == TransitRegion.nsw &&
+        request.walkingLimit != null &&
+        service.timetableLoader != null) {
+      return GtfsJourneyPlanner(
+        region: service.region,
+        provider: service.provider,
+        loadData: service.timetableLoader!,
+        loadCancellableData: service.cancellableTimetableLoader,
+      ).planJourney(request);
+    }
+    final planner = service.journeyPlanner;
+    if (planner == null) {
+      throw const UnsupportedCapability(
+        message: 'The selected provider has no journey planner.',
+      );
+    }
+    return planner.planJourney(request);
   }
 
   Future<void> setSelectedRegion(TransitRegion region) async {

@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/schema/database.dart';
 import 'package:lbww_flutter/services/transport_api_service.dart';
+import 'package:lbww_flutter/transit/transit.dart';
 import 'package:lbww_flutter/trip_screen/controller.dart';
 import 'package:lbww_flutter/wrappers/trip_cache_service/trip_cache_snapshot.dart';
 
@@ -26,6 +28,45 @@ TripCacheSnapshot snapshot({String version = 'v'}) => TripCacheSnapshot(
 );
 
 void main() {
+  test(
+    'custom planning forwards constraints and cancels work when disposed',
+    () async {
+      final entered = Completer<JourneyPlanRequest>();
+      final trip = const Journey(
+        id: 1,
+        origin: 'A',
+        originId: 'nsw|tfnsw|fixture|A',
+        destination: 'B',
+        destinationId: 'nsw|tfnsw|fixture|B',
+        tripType: 'stops',
+        isPinned: false,
+      );
+      final controller = TripScreenController(
+        trip: trip,
+        startAgingTimer: false,
+        regionalPlanLoader: (request) async {
+          entered.complete(request);
+          await request.cancellation!.whenCancelled;
+          request.cancellation!.throwIfCancelled();
+          return const JourneyPlan(journeys: []);
+        },
+      );
+      controller.planningTime = DateTime.utc(2026, 11, 7, 3);
+      controller.arrivalBased = true;
+      controller.walkingLimit = const Duration(minutes: 5);
+      controller.accessibility = TransitAccessibility.stepFreeOnly;
+      final work = controller.load();
+      final request = await entered.future;
+      expect(request.when, controller.planningTime);
+      expect(request.arrivalBased, isTrue);
+      expect(request.walkingLimit, const Duration(minutes: 5));
+      expect(request.accessibility, TransitAccessibility.stepFreeOnly);
+      controller.dispose();
+      await work;
+      expect(request.cancellation!.isCancelled, isTrue);
+    },
+  );
+
   test('newer request wins when older request completes later', () async {
     final first = Completer<TripCacheSnapshot>();
     final second = Completer<TripCacheSnapshot>();
@@ -33,12 +74,11 @@ void main() {
     final controller = TripScreenController(
       trip: journey(),
       startAgingTimer: false,
-      cacheLoader:
-          ({
-            required originId,
-            required destinationId,
-            required forceRefresh,
-          }) => ++count == 1 ? first.future : second.future,
+      cacheLoader: ({
+        required originId,
+        required destinationId,
+        required forceRefresh,
+      }) => ++count == 1 ? first.future : second.future,
     );
     final oldLoad = controller.load();
     final newLoad = controller.load(forceRefresh: true);

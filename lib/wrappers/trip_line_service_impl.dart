@@ -25,10 +25,9 @@ class TripLineService {
   TripLineService({
     TripLineGtfsLoader? gtfsLoader,
     TripLineStopLookup? stopLookup,
-    bool readPersistedCache = true,
+    this._readPersistedCache = true,
   }) : _gtfsLoader = gtfsLoader ?? NewTripService.fetchGtfsDataForEndpoint,
-       _stopLookup = stopLookup ?? _lookupStopsFromDatabase,
-       _readPersistedCache = readPersistedCache;
+       _stopLookup = stopLookup ?? _lookupStopsFromDatabase;
 
   static final TripLineService instance = TripLineService();
 

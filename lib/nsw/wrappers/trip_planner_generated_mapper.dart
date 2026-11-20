@@ -11,8 +11,13 @@ GetTripsResponse getTripsResponseFromGenerated(
   Map<String, dynamic>? rawJson,
 }) {
   return GetTripsResponse(
-    tripJourneys: (response.journeys ?? const [])
-        .map(tripJourneyFromGenerated)
+    tripJourneys: (response.journeys ?? const []).indexed
+        .map(
+          (entry) => tripJourneyFromGenerated(
+            entry.$2,
+            rawJson: _rawAt(rawJson?['journeys'], entry.$1),
+          ),
+        )
         .toList(growable: false),
     systemMessages: SystemMessages(
       responseMessages: (response.systemMessages ?? const [])
@@ -25,31 +30,54 @@ GetTripsResponse getTripsResponseFromGenerated(
 }
 
 TripJourney tripJourneyFromGenerated(
-  generated.TripRequestResponseJourney value,
-) {
+  generated.TripRequestResponseJourney value, {
+  Map<String, dynamic>? rawJson,
+}) {
   return TripJourney(
     isAdditional: value.isAdditional,
-    legs: (value.legs ?? const [])
-        .map(legFromGenerated)
+    legs: (value.legs ?? const []).indexed
+        .map(
+          (entry) => legFromGenerated(
+            entry.$2,
+            rawJson: _rawAt(rawJson?['legs'], entry.$1),
+          ),
+        )
         .toList(growable: false),
     rating: value.rating,
-    rawJson: value.toJson(),
+    rawJson: rawJson ?? value.toJson(),
   );
 }
 
-Leg legFromGenerated(generated.TripRequestResponseJourneyLeg value) {
+Leg legFromGenerated(
+  generated.TripRequestResponseJourneyLeg value, {
+  Map<String, dynamic>? rawJson,
+}) {
   return Leg(
     coords: value.coords
         ?.map((row) => row.whereType<double>().toList(growable: false))
         .toList(growable: false),
-    origin: stopFromGenerated(value.origin) ?? _unknownStopForMapper(),
+    origin:
+        stopFromGenerated(
+          value.origin,
+          rawJson: _rawObject(rawJson?['origin']),
+        ) ??
+        _unknownStopForMapper(),
     destination:
-        stopFromGenerated(value.destination) ?? _unknownStopForMapper(),
+        stopFromGenerated(
+          value.destination,
+          rawJson: _rawObject(rawJson?['destination']),
+        ) ??
+        _unknownStopForMapper(),
     distance: value.distance,
     duration: value.duration,
     isRealtimeControlled: value.isRealtimeControlled,
-    stopSequence: value.stopSequence
-        ?.map(stopFromGenerated)
+    stopSequence: value.stopSequence?.indexed
+        .map(
+          (entry) => stopFromGenerated(
+            entry.$2,
+            rawJson: _rawAt(rawJson?['stopSequence'], entry.$1),
+          ),
+        )
         .whereType<Stop>()
         .toList(growable: false),
     properties: value.properties == null
@@ -63,12 +91,18 @@ Leg legFromGenerated(generated.TripRequestResponseJourneyLeg value) {
                 ?.map((item) => item.toString())
                 .toList(growable: false),
           ),
-    transportation: transportationFromGenerated(value.transportation),
-    rawJson: value.toJson(),
+    transportation: transportationFromGenerated(
+      value.transportation,
+      rawJson: _rawObject(rawJson?['transportation']),
+    ),
+    rawJson: rawJson ?? value.toJson(),
   );
 }
 
-Stop? stopFromGenerated(generated.TripRequestResponseJourneyLegStop? value) {
+Stop? stopFromGenerated(
+  generated.TripRequestResponseJourneyLegStop? value, {
+  Map<String, dynamic>? rawJson,
+}) {
   if (value == null) return null;
   return Stop(
     arrivalTimeEstimated: value.arrivalTimeEstimated,
@@ -81,7 +115,7 @@ Stop? stopFromGenerated(generated.TripRequestResponseJourneyLegStop? value) {
     name: value.name ?? '',
     parent: parentFromGenerated(value.parent),
     type: value.type?.value ?? '',
-    rawJson: value.toJson(),
+    rawJson: rawJson ?? value.toJson(),
   );
 }
 
@@ -97,8 +131,9 @@ Parent? parentFromGenerated(generated.ParentLocation? value) {
 }
 
 Transportation? transportationFromGenerated(
-  generated.TripTransportation? value,
-) {
+  generated.TripTransportation? value, {
+  Map<String, dynamic>? rawJson,
+}) {
   if (value == null) return null;
   return Transportation(
     description: value.description,
@@ -129,7 +164,7 @@ Transportation? transportationFromGenerated(
             isTTB: value.properties!.isTTB,
             tripCode: value.properties!.tripCode,
           ),
-    rawJson: value.toJson(),
+    rawJson: rawJson ?? value.toJson(),
   );
 }
 
@@ -146,3 +181,8 @@ ResponseMessage responseMessageFromGenerated(
 
 Stop _unknownStopForMapper() =>
     Stop(id: '', name: 'Unknown', type: '', rawJson: const <String, dynamic>{});
+
+Map<String, dynamic>? _rawObject(Object? value) =>
+    value is Map<String, dynamic> ? value : null;
+Map<String, dynamic>? _rawAt(Object? value, int index) =>
+    value is List && index < value.length ? _rawObject(value[index]) : null;

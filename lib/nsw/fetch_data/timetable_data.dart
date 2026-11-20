@@ -5,24 +5,35 @@ import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lbww_flutter/nsw/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 
+import '../../constants/transport_modes.dart';
 import '../../gtfs/agency.dart';
 import '../../gtfs/calendar.dart';
 import '../../gtfs/calendar_date.dart';
+import '../../gtfs/frequency.dart';
 import '../../gtfs/gtfs_data.dart';
 import '../../gtfs/note.dart';
+import '../../gtfs/pathway.dart';
 import '../../gtfs/route.dart';
 import '../../gtfs/shape.dart';
 import '../../gtfs/stop.dart';
 import '../../gtfs/stop_time.dart';
+import '../../gtfs/timetable_index.dart' show gtfsTimeSeconds;
+import '../../gtfs/transfer.dart';
 import '../../gtfs/trip.dart';
 import '../../logs/logger.dart';
 import '../../services/api_key_service.dart';
 import '../../services/app_http_client.dart';
+import '../../transit/domain/transit_cancellation.dart';
+import '../../transit/errors/transit_failure.dart';
+import '../../transit/gtfs/gtfs_feed_validation.dart';
+import '../../transit/gtfs/persistent_gtfs_store.dart';
+import '../../transit/runtime/transit_resource_budget.dart';
 import '../../utils/safe_value_utils.dart';
+import '../wrappers/stops_service_impl.dart' show StopsEndpoint;
 import 'realtime_feed_parser.dart';
 
-part 'timetable/csv_parser.dart';
 part 'timetable/archive_parser.dart';
+part 'timetable/csv_parser.dart';
 
 /// Which schedule surface to use when fetching GTFS schedule ZIPs
 enum GtfsScheduleVersion { v1, v2 }
@@ -97,6 +108,8 @@ Future<FeedMessage?> _fetchRealtimeFeed(
 Future<GtfsData?> _fetchGtfsDataFromEndpoint(
   String endpoint, {
   GtfsScheduleVersion version = GtfsScheduleVersion.v1,
+  bool force = false,
+  TransitCancellation? cancellation,
 }) async {
   try {
     final versionPath = version == GtfsScheduleVersion.v2 ? 'v2' : 'v1';
@@ -105,16 +118,22 @@ Future<GtfsData?> _fetchGtfsDataFromEndpoint(
       logger.e('Failed to build GTFS URI for $endpoint (version=$versionPath)');
       return null;
     }
-    final response = await AppHttpClient.get(url, headers: getHeaders());
-    if (response == null || response.statusCode != 200) {
-      logger.e(
-        'Failed to fetch GTFS data for $endpoint (version=$versionPath): ${response?.statusCode ?? 'network error'}, ${response?.body ?? ''}',
-      );
-      return null;
-    }
-    // ZIP inflation, UTF-8 decoding and CSV/model creation are CPU intensive.
-    // Keep them off the UI isolate after the asynchronous download completes.
-    final data = await compute(parseGtfsZipBytes, response.bodyBytes);
+    final source = StopsEndpoint.values.firstWhere(
+      (source) => source.path == endpoint,
+    );
+    final data = await PersistentGtfsStore().load(
+      source: source.key,
+      force: force,
+      cancellation: cancellation,
+      download: (cancellation) async {
+        final response = await AppHttpClient.getOrThrow(
+          url,
+          cancellation: cancellation,
+          headers: getHeaders(),
+        );
+        return GtfsArchiveDownload.fromResponse(response);
+      },
+    );
     safeLogInfo('Parsed GTFS files for $endpoint: ${data.stops.length} stops');
     return data;
   } catch (e, st) {
@@ -246,3 +265,14 @@ Future<GtfsData?> fetchRegionBusesNewcastleHunterGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/newcastlehunter');
 Future<GtfsData?> fetchRegionBusesFarWestGtfsData() =>
     _fetchGtfsDataFromEndpoint('/regionbuses/farwest');
+
+Future<GtfsData?> fetchStaticGtfsSource(
+  StopsEndpoint endpoint, {
+  bool force = false,
+  TransitCancellation? cancellation,
+}) => _fetchGtfsDataFromEndpoint(
+  endpoint.path,
+  version: endpoint.isV2 ? GtfsScheduleVersion.v2 : GtfsScheduleVersion.v1,
+  force: force,
+  cancellation: cancellation,
+);

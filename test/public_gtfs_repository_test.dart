@@ -10,6 +10,11 @@ import 'package:lbww_flutter/transit/gtfs/public_gtfs_transit_adapter.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 
 void main() {
+  late db.AppDatabase timetableDatabase;
+  setUp(
+    () => timetableDatabase = db.AppDatabase.connect(NativeDatabase.memory()),
+  );
+  tearDown(() => timetableDatabase.close());
   const sourceId = TransitSourceId('fixture:network');
   const config = PublicGtfsProviderConfig(
     region: TransitRegion.tasmania,
@@ -23,6 +28,35 @@ void main() {
         url: 'https://fixture.example/gtfs.zip',
       ),
     ],
+  );
+
+  test(
+    'searching an empty database imports a real fixture feed automatically',
+    () async {
+      final database = db.AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(database.close);
+      var requests = 0;
+      final services = buildPublicGtfsRegionServices(
+        config: config,
+        database: database,
+        fetcher: (_) async {
+          requests++;
+          return _fixtureResponse();
+        },
+      );
+      final matches = await services.stops.searchStops(
+        const StopSearchRequest(query: 'Argyle'),
+      );
+      expect(matches, isNotEmpty);
+      expect(requests, 1);
+      expect(
+        await services.stops.searchStops(
+          const StopSearchRequest(query: 'unknown'),
+        ),
+        isEmpty,
+      );
+      expect(requests, 1);
+    },
   );
 
   test(
@@ -66,7 +100,7 @@ void main() {
             sourceId: sourceId,
             stopId: 'B1',
           ),
-          when: DateTime(2026, 8, 12, 9),
+          when: DateTime.utc(2026, 8, 11, 23),
         ),
       );
       final saved = await database.insertJourney(
@@ -80,7 +114,7 @@ void main() {
       );
       final storedJourneys = await database.getAllJourneys();
 
-      expect(requests, 3);
+      expect(requests, 1);
       expect(progress, hasLength(2));
       expect(progress.first.completed, 0);
       expect(progress.last.completed, 1);
@@ -106,6 +140,7 @@ void main() {
     () async {
       var requests = 0;
       final services = buildPublicGtfsRegionServices(
+        database: timetableDatabase,
         config: config,
         fetcher: (_) async {
           requests++;
@@ -120,7 +155,7 @@ void main() {
       );
       final request = DepartureRequest(
         stop: stop,
-        when: DateTime(2026, 8, 11, 9, 0),
+        when: DateTime.utc(2026, 8, 10, 23),
       );
 
       final departures = await services.departures!.getDepartures(request);
@@ -131,8 +166,8 @@ void main() {
       expect(requests, 1);
       expect(departures, hasLength(2));
       expect(departures.map((item) => item.tripId), ['T1', 'T2']);
-      expect(departures.first.plannedTime, DateTime(2026, 8, 11, 10));
-      expect(departures.last.plannedTime, DateTime(2026, 8, 11, 10, 30));
+      expect(departures.first.plannedTime, DateTime.utc(2026, 8, 11));
+      expect(departures.last.plannedTime, DateTime.utc(2026, 8, 11, 0, 30));
       expect(departures.first.route?.shortName, '10');
       expect(departures.first.route?.mode, isNotNull);
       expect(cachedDepartures, hasLength(2));
@@ -143,6 +178,7 @@ void main() {
     'applies calendar exceptions and supports trips after midnight',
     () async {
       final services = buildPublicGtfsRegionServices(
+        database: timetableDatabase,
         config: config,
         fetcher: (_) async => _fixtureResponse(),
       );
@@ -154,17 +190,17 @@ void main() {
       );
 
       final exceptionDay = await services.departures!.getDepartures(
-        DepartureRequest(stop: stop, when: DateTime(2026, 8, 13, 9)),
+        DepartureRequest(stop: stop, when: DateTime.utc(2026, 8, 12, 23)),
       );
       final overnight = await services.departures!.getDepartures(
-        DepartureRequest(stop: stop, when: DateTime(2026, 8, 12, 23)),
+        DepartureRequest(stop: stop, when: DateTime.utc(2026, 8, 12, 13)),
       );
 
       expect(exceptionDay, hasLength(1));
       expect(exceptionDay.single.tripId, 'T3');
-      expect(overnight, hasLength(1));
-      expect(overnight.single.tripId, 'T4');
-      expect(overnight.single.plannedTime, DateTime(2026, 8, 13, 1, 10));
+      // The board includes the next 24 hours, including tomorrow's exception.
+      expect(overnight.map((departure) => departure.tripId), ['T4', 'T3']);
+      expect(overnight.first.plannedTime, DateTime.utc(2026, 8, 12, 15, 10));
     },
   );
 

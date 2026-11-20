@@ -34,11 +34,17 @@ mixin _StaticImportQueries on _$AppDatabase, _DatabaseOperations {
         batch.insertAll(stopLineMemberships, memberships);
       });
       final now = DateTime.now();
+      final feed =
+          await (selectOnly(gtfsFeedCaches)
+                ..addColumns([gtfsFeedCaches.fetchedAt])
+                ..where(gtfsFeedCaches.source.equals(endpoint)))
+              .getSingleOrNull();
+      final snapshotTime = feed?.read(gtfsFeedCaches.fetchedAt) ?? now;
       await into(staticCacheStatuses).insertOnConflictUpdate(
         StaticCacheStatusesCompanion.insert(
           endpoint: endpoint,
-          stopsUpdatedAt: Value(now),
-          lineMembershipsUpdatedAt: Value(now),
+          stopsUpdatedAt: Value(snapshotTime),
+          lineMembershipsUpdatedAt: Value(snapshotTime),
           lastBuildFinishedAt: Value(now),
           lastError: const Value(null),
           isBuilding: const Value(false),

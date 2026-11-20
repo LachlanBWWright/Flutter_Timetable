@@ -9,6 +9,13 @@ class TranslinkStopRepository implements StopRepository {
 
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
+    if (!stop.belongsTo(
+          TransitRegion.queensland,
+          TransitProviderId.translink,
+        ) ||
+        !stop.sourceId.value.startsWith('qld:')) {
+      return null;
+    }
     final rows = await _database.getStopsById(stop.stopId);
     final match = rows
         .where((row) => row.endpoint == stop.sourceId.value)
@@ -69,7 +76,6 @@ class TranslinkStopRepository implements StopRepository {
         stopId: stopId,
       ),
       name: stopName,
-      mode: _modeFromStopName(stopName),
       latitude: latitude,
       longitude: longitude,
       platformCode: platformCode,

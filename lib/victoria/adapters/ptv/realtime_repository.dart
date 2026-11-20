@@ -35,6 +35,57 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
   Future<RealtimeSnapshot<TransitTripUpdate>> getTripUpdates(
     RealtimeRequest request,
   ) async {
+    if (request.sourceId?.value == 'ptv:static') {
+      final snapshots = await Future.wait(
+        victoriaRealtimeFeedSets.map((set) async {
+          try {
+            return await getTripUpdates(
+              RealtimeRequest(
+                sourceId: TransitSourceId('ptv:${set.id}'),
+                query: request.query,
+              ),
+            );
+          } on Exception {
+            return null;
+          }
+        }),
+      );
+      final available = snapshots
+          .whereType<RealtimeSnapshot<TransitTripUpdate>>()
+          .toList();
+      if (available.isEmpty) {
+        throw const ProviderUnavailable(
+          message: 'Victoria live updates unavailable.',
+        );
+      }
+      final fetched = available
+          .map((s) => s.fetchedAt)
+          .reduce((a, b) => a.isBefore(b) ? a : b);
+      return RealtimeSnapshot(
+        items: [
+          for (final snapshot in available)
+            ...snapshot.items.map(
+              (u) => remapGtfsUpdate(
+                u,
+                tripId: u.tripId,
+                source: const TransitSourceId('ptv:static'),
+                stop: u.stop == null
+                    ? null
+                    : TransitStopRef(
+                        region: TransitRegion.victoria,
+                        provider: TransitProviderId.ptv,
+                        sourceId: const TransitSourceId('ptv:static'),
+                        stopId: u.stop!.stopId,
+                      ),
+              ),
+            ),
+        ],
+        fetchedAt: fetched,
+        isStale:
+            available.length != victoriaRealtimeFeedSets.length ||
+            available.any((s) => s.isStale),
+      );
+    }
     final legacyUrl = _readEnv('VICTORIA_GTFS_RT_TRIP_UPDATES_URL');
     final feed = await _fetchFeed(
       legacyUrl.isNotEmpty
@@ -42,27 +93,15 @@ class VictoriaRealtimeRepository implements RealtimeRepository {
           : _feedSet(request.sourceId).tripUpdatesUrl,
       query: request.query,
     );
-    final updates = (feed?.entity ?? const <FeedEntity>[])
-        .where((entity) => entity.hasTripUpdate())
-        .map(
-          (entity) => TransitTripUpdate(
-            tripId: entity.tripUpdate.trip.tripId,
-            stop:
-                entity.tripUpdate.stopTimeUpdate.isNotEmpty &&
-                    entity.tripUpdate.stopTimeUpdate.first.hasStopId()
-                ? TransitStopRef(
-                    region: TransitRegion.victoria,
-                    provider: TransitProviderId.ptv,
-                    sourceId: TransitSourceId(
-                      'ptv:${_feedSet(request.sourceId).id}',
-                    ),
-                    stopId: entity.tripUpdate.stopTimeUpdate.first.stopId,
-                  )
-                : null,
-          ),
-        )
-        .toList(growable: false);
-    return RealtimeSnapshot(items: updates, fetchedAt: feedFetchedAt(feed));
+    return RealtimeSnapshot(
+      items: gtfsRealtimeUpdates(
+        feed,
+        region: TransitRegion.victoria,
+        provider: TransitProviderId.ptv,
+        source: request.sourceId ?? const TransitSourceId('ptv:metro'),
+      ),
+      fetchedAt: feedFetchedAt(feed),
+    );
   }
 
   @override

@@ -6,6 +6,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import '../../nsw/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import '../domain/transit_cancellation.dart';
+import '../errors/transit_failure.dart';
+import '../runtime/bounded_bytes.dart';
 import 'provider_sources.dart';
 import 'realtime_query.dart';
 
@@ -72,7 +75,7 @@ class SharedTransitCache {
   final DateTime Function() _clock;
   final Duration timeout;
   final _loaded = <String, ({http.Response response, DateTime expires})>{};
-  final _inflight = <String, Future<http.Response?>>{};
+  final _inflight = <String, _SharedLookup>{};
   int _generation = 0;
   DateTime? _retryAfter;
   bool get isConfigured => endpoint != null;
@@ -118,7 +121,9 @@ class SharedTransitCache {
     Uri uri, {
     RealtimeQuery? query,
     http.Client? client,
+    TransitCancellation? cancellation,
   }) async {
+    cancellation?.throwIfCancelled();
     uri = cacheUri(uri);
     if (!supports(uri)) return null;
     uri = uri.replace(
@@ -133,15 +138,29 @@ class SharedTransitCache {
     }
     _loaded.remove(key);
     if (_retryAfter != null && _clock().isBefore(_retryAfter!)) return null;
-    final pending = _inflight[key];
-    if (pending != null) return pending;
-    final generation = _generation;
-    final future = _lookup(uri, query, key, generation, client);
-    _inflight[key] = future;
+    var pending = _inflight[key];
+    if (pending == null || pending.cancellation.isCancelled) {
+      pending = _SharedLookup();
+      final started = pending;
+      _inflight[key] = started;
+      started.future =
+          _lookup(
+            uri,
+            query,
+            key,
+            _generation,
+            client,
+            started.cancellation,
+          ).whenComplete(() {
+            if (identical(_inflight[key], started)) _inflight.remove(key);
+          });
+    }
+    pending.consumers++;
     try {
-      return await future;
+      return await (cancellation?.wait(pending.future) ?? pending.future);
     } finally {
-      if (identical(_inflight[key], future)) _inflight.remove(key);
+      pending.consumers--;
+      if (pending.consumers == 0) pending.cancellation.cancel();
     }
   }
 
@@ -151,28 +170,51 @@ class SharedTransitCache {
     String key,
     int generation,
     http.Client? supplied,
+    TransitCancellation cancellation,
   ) async {
     final client = supplied ?? http.Client();
     final abort = Completer<void>();
+    Future<http.Response> read(http.BaseRequest request, Duration deadline) =>
+        cancellation.wait(
+          (() async {
+            final response = await client.send(request);
+            return http.Response.fromStream(
+              http.StreamedResponse(
+                cancellation.bind(boundedTransitBytes(response.stream)),
+                response.statusCode,
+                headers: response.headers,
+                contentLength: response.contentLength,
+                request: response.request,
+                isRedirect: response.isRedirect,
+                persistentConnection: response.persistentConnection,
+                reasonPhrase: response.reasonPhrase,
+              ),
+            );
+          })().timeout(
+            deadline,
+            onTimeout: () {
+              if (!abort.isCompleted) abort.complete();
+              throw TimeoutException('Shared cache deadline exceeded');
+            },
+          ),
+        );
     try {
       final request =
-          http.AbortableRequest('POST', endpoint!, abortTrigger: abort.future)
+          http.AbortableRequest(
+              'POST',
+              endpoint!,
+              abortTrigger: Future.any([
+                abort.future,
+                cancellation.whenCancelled,
+              ]),
+            )
             ..headers['content-type'] = 'application/json'
             ..body = jsonEncode({
               'version': 1,
               'url': uri.toString(),
               'filter': query?.toJson() ?? {},
             });
-      var result =
-          await (() async => http.Response.fromStream(
-            await client.send(request),
-          ))().timeout(
-            timeout,
-            onTimeout: () {
-              if (!abort.isCompleted) abort.complete();
-              throw TimeoutException('Shared cache deadline exceeded');
-            },
-          );
+      var result = await read(request, timeout);
       if (generation == _generation &&
           (result.statusCode >= 500 || result.statusCode == 429)) {
         _retryAfter = _clock().add(const Duration(seconds: 15));
@@ -208,18 +250,9 @@ class SharedTransitCache {
         final storageRequest = http.AbortableRequest(
           'GET',
           target,
-          abortTrigger: abort.future,
+          abortTrigger: Future.any([abort.future, cancellation.whenCancelled]),
         );
-        final archive =
-            await (() async => http.Response.fromStream(
-              await client.send(storageRequest),
-            ))().timeout(
-              const Duration(seconds: 20),
-              onTimeout: () {
-                if (!abort.isCompleted) abort.complete();
-                throw TimeoutException('Shared archive deadline exceeded');
-              },
-            );
+        final archive = await read(storageRequest, const Duration(seconds: 20));
         if (archive.statusCode != 200) return null;
         result = http.Response.bytes(
           archive.bodyBytes,
@@ -288,6 +321,10 @@ class SharedTransitCache {
         _loaded[key] = (response: result, expires: expires);
       }
       return result;
+    } on TransitResourceLimit {
+      rethrow;
+    } on TransitOperationCancelled {
+      rethrow;
     } catch (_) {
       if (generation == _generation) {
         _retryAfter = _clock().add(const Duration(seconds: 15));
@@ -297,4 +334,10 @@ class SharedTransitCache {
       if (supplied == null) client.close();
     }
   }
+}
+
+class _SharedLookup {
+  final cancellation = TransitCancellation();
+  int consumers = 0;
+  late Future<http.Response?> future;
 }

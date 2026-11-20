@@ -2,65 +2,7 @@ part of '../new_trip.dart';
 
 extension _StationCatalog on _NewTripScreenState {
   Future<void> _loadAllModes() async {
-    if (!mounted) return;
-
-    guardedSetState(() {
-      _isLoading = true;
-    });
-
-    final results = await Future.wait([
-      loadStationsFromDbForEndpoints([StopsEndpoint.sydneytrains]),
-      if (TransportPreferencesService.showNswTrainLink.value)
-        loadStationsFromDbForEndpoints([StopsEndpoint.nswtrains])
-      else
-        Future.value(<Station>[]),
-      loadStationsFromDbForEndpoints(
-        NewTripService.getEndpointsForMode(TransportMode.lightrail),
-      ),
-      loadStationsFromDbForEndpoints(
-        NewTripService.getEndpointsForMode(TransportMode.metro),
-      ),
-      loadStationsFromDbForEndpoints(
-        NewTripService.getEndpointsForMode(TransportMode.bus),
-      ),
-      loadStationsFromDbForEndpoints(
-        NewTripService.getEndpointsForMode(TransportMode.ferry),
-      ),
-    ]);
-
-    if (!mounted) return;
-
-    guardedSetState(() {
-      _trainStationList = _stationsAtOrEmpty(results, 0);
-      _nswTrainLinkStationList = _stationsAtOrEmpty(results, 1);
-      _lightRailStationList = _stationsAtOrEmpty(results, 2);
-      _metroStationList = _stationsAtOrEmpty(results, 3);
-      _busStationList = _stationsAtOrEmpty(results, 4);
-      _ferryStationList = _stationsAtOrEmpty(results, 5);
-      _isLoading = false;
-    });
-
-    await _applySorting();
-
-    final hasAnyStops =
-        _trainStationList.isNotEmpty ||
-        _nswTrainLinkStationList.isNotEmpty ||
-        _busStationList.isNotEmpty ||
-        _ferryStationList.isNotEmpty ||
-        _lightRailStationList.isNotEmpty ||
-        _metroStationList.isNotEmpty;
-
-    if (!hasAnyStops && mounted) {
-      showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No stops found in database. Please update static transport data from Settings.',
-          ),
-          duration: Duration(seconds: 5),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
+    _applySearchFilter();
   }
 
   void _onTabChanged() {
@@ -90,6 +32,7 @@ extension _StationCatalog on _NewTripScreenState {
     _tabController = TabController(
       length: _tabs.length,
       vsync: this,
+      animationDuration: Duration.zero,
       initialIndex: nextIndex == -1 ? 0 : nextIndex,
     );
     _currentTabKind = _tabs.isNotEmpty
@@ -241,11 +184,7 @@ extension _StationCatalog on _NewTripScreenState {
   String _persistedStopId(Station station) =>
       station.transitRef?.storageKey ?? station.id;
 
-  bool get _usesRegionalStopSearch =>
-      !widget.skipInitialLoad &&
-      (AppTransitContext.instance.enabledRegions.length > 1 ||
-          (_draftRegion ?? AppTransitContext.instance.selectedRegion) !=
-              TransitRegion.nsw);
+  bool get _usesRegionalStopSearch => !widget.skipInitialLoad;
 
   bool get _canUseNswStopsMap =>
       _draftRegion == TransitRegion.nsw ||
@@ -253,48 +192,51 @@ extension _StationCatalog on _NewTripScreenState {
           AppTransitContext.instance.selectedRegion == TransitRegion.nsw);
 
   void _applySearchFilter() {
-    if (_showMapView && !_canUseNswStopsMap) {
-      _showMapView = false;
-    }
-    _searchDebounce?.cancel();
-    final generation = ++_searchGeneration;
-    final query = keyController.text.trim();
-    final shouldSearch =
-        query.length >= 2 &&
-        _isSearching &&
-        !_showMapView &&
-        _usesRegionalStopSearch;
-    guardedSetState(() {
-      _regionalSearchResults = [];
-      _isRegionalSearchLoading = shouldSearch;
-      _regionalSearchFailed = false;
-    });
-    if (!shouldSearch) return;
-    final region = _draftRegion;
-    final tabKind = _currentTab.kind;
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      unawaited(_searchEnabledRegionStops(query, generation, region, tabKind));
-    });
-  }
-
-  void _retryRegionalStopSearch() {
-    final query = keyController.text.trim();
-    if (query.length < 2 ||
-        !_isSearching ||
-        _showMapView ||
-        !_usesRegionalStopSearch) {
+    if (widget.skipInitialLoad) {
+      guardedSetState(() {});
       return;
     }
+    if (_showMapView && !_canUseNswStopsMap) _showMapView = false;
     _searchDebounce?.cancel();
+    _stopSearchCancellation?.cancel();
+    unawaited(_stopSearchSubscription?.cancel());
     final generation = ++_searchGeneration;
-    unawaited(
-      _searchEnabledRegionStops(
-        query,
-        generation,
-        _draftRegion,
-        _currentTab.kind,
-      ),
-    );
+    final query = keyController.text.trim();
+    final region = (_manualBuilderEnabled || _interchanges.isNotEmpty)
+        ? _draftRegion
+        : null;
+    final tabKind = _currentTab.kind;
+    guardedSetState(() {
+      _regionalSearchResults = [];
+      _isLoading = false;
+      _isRegionalSearchLoading = true;
+      _regionalSearchFailed = false;
+      _stopSearchSnapshot = const RegionalStopSearchSnapshot(
+        loading: {TransitRegion.nsw},
+      );
+    });
+    if (_showMapView) return;
+    if (query.isEmpty) {
+      unawaited(_searchEnabledRegionStops(query, generation, region, tabKind));
+    } else {
+      _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+        unawaited(
+          _searchEnabledRegionStops(query, generation, region, tabKind),
+        );
+      });
+    }
+  }
+
+  void _retryRegionalStopSearch() => _applySearchFilter();
+
+  void _cancelStopSearch() {
+    _searchDebounce?.cancel();
+    _stopSearchCancellation?.cancel();
+    unawaited(_stopSearchSubscription?.cancel());
+    guardedSetState(() {
+      _stopSearchSnapshot = _stopSearchSnapshot.stopped();
+      _isRegionalSearchLoading = false;
+    });
   }
 
   bool _isSearchCurrent(
@@ -305,9 +247,11 @@ extension _StationCatalog on _NewTripScreenState {
   ) =>
       mounted &&
       generation == _searchGeneration &&
-      _isSearching &&
       query == keyController.text.trim() &&
-      region == _draftRegion &&
+      region ==
+          ((_manualBuilderEnabled || _interchanges.isNotEmpty)
+              ? _draftRegion
+              : null) &&
       tabKind == _currentTab.kind;
 
   Future<void> _searchEnabledRegionStops(
@@ -317,55 +261,87 @@ extension _StationCatalog on _NewTripScreenState {
     _TripCreatorTabKind tabKind,
   ) async {
     if (!_isSearchCurrent(query, generation, region, tabKind)) return;
-
-    final services = region == null
-        ? AppTransitContext.instance.enabledServices
-        : [AppTransitContext.instance.servicesFor(region)];
-    guardedSetState(() {
-      _isRegionalSearchLoading = true;
-      _regionalSearchFailed = false;
-    });
-    final results = await Future.wait(
-      services.map((service) async {
-        try {
-          return (
-            stops: await service.stops.searchStops(
-              StopSearchRequest(query: query, limit: 50),
-            ),
-            failed: false,
-          );
-        } on Exception {
-          return (stops: const <TransitStop>[], failed: true);
-        }
-      }),
-    );
-    if (!_isSearchCurrent(query, generation, region, tabKind)) return;
-    final allProvidersFailed =
-        results.isNotEmpty && results.every((result) => result.failed);
-    final seen = <String>{};
-    final stations =
-        results
-            .expand((result) => result.stops)
-            .where((stop) => seen.add(stop.ref.storageKey))
-            .map(
-              (stop) => Station(
-                name: stop.name,
-                id: stop.ref.stopId,
-                transitRef: stop.ref,
-                mode: stop.mode,
-                stopCode: stop.stopCode,
-                stopDesc: stop.description,
-                platformCode: stop.platformCode,
-                latitude: stop.latitude,
-                longitude: stop.longitude,
-              ),
-            )
-            .toList(growable: false)
-          ..sort((left, right) => left.name.compareTo(right.name));
-    guardedSetState(() {
-      _regionalSearchResults = stations;
-      _isRegionalSearchLoading = false;
-      _regionalSearchFailed = allProvidersFailed;
-    });
+    final token = StopSearchCancellation();
+    _stopSearchCancellation = token;
+    final repository =
+        widget.stopSearchRepository ??
+        RegionalStopsSearchRepository(
+          enabledServices: () => region == null
+              ? AppTransitContext.instance.enabledServices
+              : [AppTransitContext.instance.servicesFor(region)],
+        );
+    _stopSearchSubscription = repository
+        .watchStops(
+          query,
+          browse: query.isEmpty,
+          cancellation: token,
+          limit: 2000,
+          sourcesForRegion: (region) => region == TransitRegion.nsw
+              ? _currentTab.endpoints
+                    .map((endpoint) => TransitSourceId(endpoint.key))
+                    .toList()
+              : null,
+        )
+        .listen(
+          (snapshot) {
+            if (!_isSearchCurrent(query, generation, region, tabKind)) return;
+            final stations = snapshot.stops
+                .where((stop) => stop.supportsMode(_currentMode))
+                .map(
+                  (stop) => Station(
+                    name: stop.name,
+                    id: stop.ref.stopId,
+                    transitRef: stop.ref,
+                    mode: stop.mode ?? _currentMode,
+                    stopCode: stop.stopCode,
+                    stopDesc: stop.description,
+                    platformCode: stop.platformCode,
+                    latitude: stop.latitude,
+                    longitude: stop.longitude,
+                  ),
+                )
+                .toList();
+            guardedSetState(() {
+              _stopSearchSnapshot = snapshot;
+              _regionalSearchResults = stations;
+              _isRegionalSearchLoading = snapshot.isLoading;
+              _regionalSearchFailed =
+                  snapshot.errors.isNotEmpty && snapshot.stops.isEmpty;
+              switch (tabKind) {
+                case _TripCreatorTabKind.sydneyTrains:
+                  _trainStationList = stations;
+                case _TripCreatorTabKind.nswTrainLink:
+                  _nswTrainLinkStationList = stations;
+                case _TripCreatorTabKind.lightRail:
+                  _lightRailStationList = stations;
+                case _TripCreatorTabKind.metro:
+                  _metroStationList = stations;
+                case _TripCreatorTabKind.bus:
+                  _busStationList = stations;
+                case _TripCreatorTabKind.ferry:
+                  _ferryStationList = stations;
+              }
+            });
+            unawaited(_applySorting());
+          },
+          onError: (Object error, StackTrace stack) {
+            if (!_isSearchCurrent(query, generation, region, tabKind)) return;
+            if (error is! Exception) {
+              Error.throwWithStackTrace(error, stack);
+            }
+            guardedSetState(() {
+              _isRegionalSearchLoading = false;
+              _regionalSearchFailed = true;
+              _stopSearchSnapshot = RegionalStopSearchSnapshot(
+                stops: _stopSearchSnapshot.stops,
+                errors: {
+                  (region ?? AppTransitContext.instance.selectedRegion): {
+                    'search': error.toString(),
+                  },
+                },
+              );
+            });
+          },
+        );
   }
 }

@@ -8,11 +8,11 @@ import '../logs/logger.dart';
 /// Call [updateRoute] from the owner's didChangeDependencies.
 class VisibleRealtimeRefresh extends WidgetsBindingObserver {
   VisibleRealtimeRefresh({
-    required Future<void> Function() onRefresh,
+    required this._onRefresh,
     this.interval = const Duration(seconds: 30),
     this.enabled = true,
     this.refreshOnStart = true,
-  }) : _onRefresh = onRefresh {
+  }) {
     WidgetsBinding.instance.addObserver(this);
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     _foreground = lifecycle == null || lifecycle == AppLifecycleState.resumed;

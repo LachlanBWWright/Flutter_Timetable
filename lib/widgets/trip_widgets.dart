@@ -6,6 +6,8 @@ import 'package:lbww_flutter/utils/date_time_utils.dart';
 import 'package:lbww_flutter/utils/guarded_state.dart';
 import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 
+import '../transit/domain/timetable_provenance.dart';
+
 /// Utility class for transport mode colors and names
 class TransportModeUtils {
   /// Get color for transport mode based on ID
@@ -170,6 +172,9 @@ class _TripCardState extends State<TripCard>
       );
     }
 
+    final timetable = TimetableProvenance.tryParse(
+      widget.trip.rawJson['timetable'],
+    );
     final firstLeg = legs.first;
     final lastLeg = legs.last;
 
@@ -235,6 +240,31 @@ class _TripCardState extends State<TripCard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (timetable != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text(
+                timetable.description,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          if (legs.any((leg) => leg.isRealtimeControlled == true))
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text('Live updates applied'),
+            ),
+          if (widget.trip.rawJson['isApproximate'] == true)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text(
+                'Approximate times · frequency service or estimated walk',
+              ),
+            ),
+          if (widget.trip.rawJson['realtimeStatus'] case final String status)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text(status),
+            ),
           // Header: single-leg trips navigate directly; multi-leg trips expand/collapse
           InkWell(
             onTap: () {

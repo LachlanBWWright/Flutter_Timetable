@@ -128,6 +128,9 @@ extension _ManualJourney on _NewTripScreenState {
 
   bool _validateSavedStopRegions(List<Station> stops) {
     if (stops.isEmpty) return false;
+    if (!_manualBuilderEnabled && _interchanges.isEmpty && stops.length == 2) {
+      return true;
+    }
     final region = stops.first.transitRef?.region ?? TransitRegion.nsw;
     if (stops.every(
       (stop) => (stop.transitRef?.region ?? TransitRegion.nsw) == region,

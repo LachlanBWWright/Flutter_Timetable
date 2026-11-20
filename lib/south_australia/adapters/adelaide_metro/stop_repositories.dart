@@ -9,6 +9,13 @@ class AdelaideMetroStopRepository implements StopRepository {
 
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
+    if (!stop.belongsTo(
+          TransitRegion.southAustralia,
+          TransitProviderId.adelaideMetro,
+        ) ||
+        stop.sourceId.value != 'sa:static') {
+      return null;
+    }
     final rows = await _database.getStopsById(stop.stopId);
     final match = rows
         .where((row) => row.endpoint == stop.sourceId.value)
@@ -57,30 +64,27 @@ class AdelaideMetroStaticGtfsRepository implements StaticGtfsRepository {
   Stream<StaticImportProgress> refreshStaticData(
     StaticImportRequest request,
   ) async* {
+    if (request.sourceIds?.any((source) => source.value != 'sa:static') ==
+        true) {
+      throw const InvalidJourneyRequest(
+        message: 'Unknown Adelaide Metro static source.',
+      );
+    }
     yield const StaticImportProgress(
       sourceId: TransitSourceId('sa:static'),
       completed: 0,
       total: 1,
       message: 'Downloading Adelaide Metro static GTFS…',
     );
-    final response = await AppHttpClient.get(
-      Uri.parse(adelaideMetroStaticGtfsUrl),
-    );
-    if (response == null || response.statusCode != 200) {
-      yield const StaticImportProgress(
-        sourceId: TransitSourceId('sa:static'),
-        completed: 0,
-        total: 1,
-        message: 'Failed to download Adelaide Metro GTFS.',
-        error: 'The public Adelaide Metro feed was unavailable.',
-      );
-      return;
-    }
     try {
-      final stops = await compute(
-        parseStopsOnlyFromZipBytes,
-        Uint8List.fromList(response.bodyBytes),
+      final data = await _loadAdelaideMetroGtfs(
+        requireTimetable: false,
+        database: _database,
+        force: request.force,
+        cancellation: request.cancellation,
       );
+      request.cancellation?.throwIfCancelled();
+      final stops = data.stops;
       await _database.insertStopsForEndpoint(
         stops
             .map(

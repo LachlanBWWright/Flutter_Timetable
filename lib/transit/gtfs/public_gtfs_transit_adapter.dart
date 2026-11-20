@@ -1,19 +1,18 @@
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/gtfs/gtfs_data.dart';
 import 'package:lbww_flutter/logs/logger.dart';
-import 'package:lbww_flutter/nsw/fetch_data/timetable_data.dart';
 import 'package:lbww_flutter/schema/database.dart' as db;
 import 'package:lbww_flutter/services/app_http_client.dart';
 import 'package:lbww_flutter/transit/domain/transit_types.dart';
 import 'package:lbww_flutter/transit/errors/transit_failure.dart';
 import 'package:lbww_flutter/transit/gtfs/gtfs_journey_planner.dart';
+import 'package:lbww_flutter/transit/gtfs/persistent_gtfs_store.dart';
+import 'package:lbww_flutter/transit/gtfs/scheduled_gtfs_departures.dart';
+import 'package:lbww_flutter/transit/gtfs/static_backed_stop_repository.dart';
 import 'package:lbww_flutter/transit/interfaces/transit_interfaces.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
-
 part 'public_gtfs_departures.dart';
 
 typedef PublicGtfsFetcher = Future<http.Response> Function(Uri uri);
@@ -54,23 +53,38 @@ TransitRegionServices buildPublicGtfsRegionServices({
   db.AppDatabase? database,
   PublicGtfsFetcher fetcher = _fetchPublicGtfsFeed,
 }) {
+  final staticData = PublicGtfsStaticRepository(
+    config: config,
+    database: database,
+    fetcher: fetcher,
+  );
   final timetable = PublicGtfsDepartureRepository(
+    database: database,
     config: config,
     fetcher: fetcher,
   );
   return TransitRegionServices(
     region: config.region,
     provider: config.provider,
-    stops: PublicGtfsStopRepository(config: config, database: database),
-    staticGtfs: PublicGtfsStaticRepository(
-      config: config,
+    stops: StaticBackedStopRepository(
+      region: config.region,
+      provider: config.provider,
+      sources: config.feeds.map((feed) => feed.sourceId).toList(),
+      cachedStops: PublicGtfsStopRepository(config: config, database: database),
+      staticData: staticData,
       database: database,
-      fetcher: fetcher,
     ),
+    staticGtfs: staticData,
+    timetableLoader: timetable.loadFeed,
+    cancellableTimetableLoader: (source, token) =>
+        timetable.loadFeed(source, cancellation: token),
+    timetableSources: config.feeds.map((feed) => feed.sourceId).toList(),
     departures: timetable,
     journeyPlanner: GtfsJourneyPlanner(
       region: config.region,
       provider: config.provider,
+      loadCancellableData: (source, token) =>
+          timetable.loadFeed(source, cancellation: token),
       loadData: (sourceId) => timetable.loadFeed(sourceId),
     ),
     attribution: TransitProviderAttribution(
@@ -92,6 +106,10 @@ class PublicGtfsStopRepository implements StopRepository {
 
   @override
   Future<TransitStop?> getStop(TransitStopRef stop) async {
+    if (!stop.belongsTo(config.region, config.provider) ||
+        !config.feeds.any((feed) => feed.sourceId == stop.sourceId)) {
+      return null;
+    }
     final row = (await _database.getStopsById(stop.stopId))
         .where((candidate) => candidate.endpoint == stop.sourceId.value)
         .firstOrNull;
@@ -164,21 +182,29 @@ class PublicGtfsStaticRepository implements StaticGtfsRepository {
         message: 'Downloading ${feed.label} static GTFS…',
       );
       try {
-        final response = await fetcher(Uri.parse(feed.url));
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          throw ProviderUnavailable(
-            message: 'The ${feed.label} timetable is temporarily unavailable.',
-          );
-        }
-        final stops = await compute(
-          parseStopsOnlyFromZipBytes,
-          Uint8List.fromList(response.bodyBytes),
+        final data = await PersistentGtfsStore(database: _database).load(
+          source: feed.sourceId.value,
+          parse: parseGtfsStopSnapshot,
+          force: request.force,
+          cancellation: request.cancellation,
+          download: (cancellation) async {
+            final uri = Uri.parse(feed.url);
+            final response = fetcher == _fetchPublicGtfsFeed
+                ? await AppHttpClient.getOrThrow(
+                    uri,
+                    cancellation: cancellation,
+                  )
+                : await cancellation.wait(fetcher(uri));
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+              throw const ProviderUnavailable(
+                message: 'The timetable could not be downloaded.',
+              );
+            }
+            return GtfsArchiveDownload.fromResponse(response);
+          },
         );
-        if (stops.isEmpty) {
-          throw const InvalidProviderResponse(
-            message: 'The GTFS feed contains no stops.',
-          );
-        }
+        request.cancellation?.throwIfCancelled();
+        final stops = data.stops;
         await _database.insertStopsForEndpoint(
           stops
               .map(

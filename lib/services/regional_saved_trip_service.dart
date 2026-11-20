@@ -9,8 +9,9 @@ import 'package:lbww_flutter/transit/registry/app_transit_context.dart';
 import 'package:lbww_flutter/transit/registry/region_feature_flags.dart';
 import 'package:lbww_flutter/transit/registry/transit_registry.dart';
 
-typedef RegionalPlanLoader =
-    Future<JourneyPlan> Function(JourneyPlanRequest request);
+typedef RegionalPlanLoader = Future<JourneyPlan> Function(
+  JourneyPlanRequest request,
+);
 
 /// Plans and adapts a saved regional stop pair to the existing trip UI model.
 class RegionalSavedTripService {
@@ -24,14 +25,18 @@ class RegionalSavedTripService {
     final destination = TransitStopRef.tryParse(trip.destinationId);
     return origin != null &&
         destination != null &&
-        origin.region == destination.region &&
-        origin.region != TransitRegion.nsw;
+        (origin.region != TransitRegion.nsw ||
+            destination.region != TransitRegion.nsw);
   }
 
   static Future<List<api.TripJourney>> planSavedTrip(
     Journey trip, {
     RegionalPlanLoader? planLoader,
     DateTime? when,
+    bool arrivalBased = false,
+    Duration? walkingLimit,
+    TransitAccessibility accessibility = TransitAccessibility.none,
+    TransitCancellation? cancellation,
   }) async {
     final origin = TransitStopRef.tryParse(trip.originId);
     final destination = TransitStopRef.tryParse(trip.destinationId);
@@ -40,20 +45,8 @@ class RegionalSavedTripService {
         message: 'Saved regional stops are missing provider references.',
       );
     }
-    if (origin.region != destination.region) {
-      throw const UnsupportedCapability(
-        message: 'Cross-region journey planning is not supported.',
-      );
-    }
-    if (origin.region != TransitRegion.nsw &&
-        origin.provider != TransitProviderId.ptv &&
-        origin.sourceId != destination.sourceId) {
-      throw const UnsupportedCapability(
-        message:
-            'Journey planning between separate regional feed areas is not supported.',
-      );
-    }
-    if (!RegionFeatureFlags.isEnabled(origin.region)) {
+    if (!RegionFeatureFlags.isEnabled(origin.region) ||
+        !RegionFeatureFlags.isEnabled(destination.region)) {
       throw UnsupportedCapability(
         message:
             'Saved journeys for ${origin.region.label} are unavailable in this build.',
@@ -62,7 +55,7 @@ class RegionalSavedTripService {
 
     final expectedProvider = _providerForRegion(origin.region);
     if (origin.provider != expectedProvider ||
-        destination.provider != expectedProvider) {
+        destination.provider != _providerForRegion(destination.region)) {
       throw UnsupportedCapability(
         message:
             'Saved stop providers do not match the ${origin.region.label} adapter.',
@@ -87,19 +80,28 @@ class RegionalSavedTripService {
       origin: origin,
       destination: destination,
       when: when ?? DateTime.now(),
+      arrivalBased: arrivalBased,
+      walkingLimit: walkingLimit,
+      accessibility: accessibility,
+      cancellation: cancellation,
       enabledModes: trip.savedMode == null ? null : [trip.savedMode!],
     );
-    final plan = await (planLoader ?? planner!.planJourney)(request);
+    final plan = await (planLoader ?? context.planJourney)(request);
     _validatePlan(
       plan,
       region: origin.region,
       provider: expectedProvider,
       sourceId: origin.sourceId,
+      destination: destination,
     );
     return plan.journeys
         .map(
           (journey) => _toTripJourney(
             journey,
+            timetable: plan.timetable,
+            realtimeStatus: plan.rawPayload is Map
+                ? (plan.rawPayload as Map)['realtimeStatus'] as String?
+                : null,
             region: origin.region,
             provider: expectedProvider,
             sourceId: origin.sourceId,
@@ -113,14 +115,24 @@ class RegionalSavedTripService {
     required TransitRegion region,
     required TransitProviderId provider,
     required TransitSourceId sourceId,
+    required TransitStopRef destination,
   }) {
+    bool allowed(TransitRegion r, TransitProviderId p, TransitSourceId s) =>
+        (r == region && p == provider && s == sourceId) ||
+        (r == destination.region &&
+            p == destination.provider &&
+            s == destination.sourceId) ||
+        (region == TransitRegion.nsw &&
+            destination.region == TransitRegion.nsw &&
+            provider == TransitProviderId.tfnsw &&
+            r == TransitRegion.nsw &&
+            p == TransitProviderId.tfnsw &&
+            s.value == 'journey-planner');
     for (final journey in plan.journeys) {
       for (final leg in journey.legs) {
         for (final stop in [leg.origin, leg.destination]) {
           final ref = stop.ref;
-          if (ref.region != region ||
-              ref.provider != provider ||
-              ref.sourceId != sourceId) {
+          if (!allowed(ref.region, ref.provider, ref.sourceId)) {
             throw const InvalidProviderResponse(
               message:
                   'The regional planner returned stops from a different feed.',
@@ -129,9 +141,7 @@ class RegionalSavedTripService {
         }
         final route = leg.route?.ref;
         if (route != null &&
-            (route.region != region ||
-                route.provider != provider ||
-                route.sourceId != sourceId)) {
+            !allowed(route.region, route.provider, route.sourceId)) {
           throw const InvalidProviderResponse(
             message:
                 'The regional planner returned a route from a different feed.',
@@ -167,6 +177,8 @@ class RegionalSavedTripService {
 
   static api.TripJourney _toTripJourney(
     TransitJourney journey, {
+    TimetableProvenance? timetable,
+    String? realtimeStatus,
     required TransitRegion region,
     required TransitProviderId provider,
     required TransitSourceId sourceId,
@@ -188,6 +200,9 @@ class RegionalSavedTripService {
       legs: convertedLegs,
       rawJson: {
         'provenance': provenance,
+        'realtimeStatus': ?realtimeStatus,
+        'isApproximate': journey.legs.any((leg) => leg.isApproximate),
+        if (timetable != null) 'timetable': timetable.toJson(),
         'transitRegion': region.name,
         'transitProvider': provider.name,
         'transitSourceId': sourceId.value,
@@ -205,48 +220,77 @@ class RegionalSavedTripService {
   }) {
     final metadata = <String, dynamic>{
       'provenance': provenance,
-      'transitRegion': region.name,
-      'transitProvider': provider.name,
-      'transitSourceId': sourceId.value,
+      'transitRegion': leg.origin.ref.region.name,
+      'transitProvider': leg.origin.ref.provider.name,
+      'transitSourceId': leg.origin.ref.sourceId.value,
     };
     final route = leg.route;
     final mode = leg.mode ?? route?.mode;
-    final transportation = route == null && mode == null
+    final name = leg.isWalking ? 'Walk' : route?.name ?? mode?.displayName;
+    final shortName = leg.isWalking ? 'Walk' : route?.shortName ?? name;
+    final productClass = leg.isWalking
+        ? 100
+        : mode == null
+        ? null
+        : _transportClass(mode);
+    final productName = leg.isWalking ? 'Walk' : mode?.displayName;
+    final transportation = route == null && mode == null && !leg.isWalking
         ? null
         : api.Transportation(
             id: route?.ref.storageKey,
-            name: route?.name ?? mode?.displayName,
-            disassembledName:
-                route?.shortName ?? route?.name ?? mode?.displayName,
+            name: name,
+            disassembledName: shortName,
             number: route?.shortName,
             destination: leg.label == null
                 ? null
                 : api.TransportationDestination(name: leg.label),
-            product: mode == null
+            product: productClass == null
                 ? null
-                : api.Product(
-                    classField: _transportClass(mode),
-                    name: mode.displayName,
-                  ),
-            rawJson: {...metadata, 'routeId': route?.ref.routeId},
+                : api.Product(classField: productClass, name: productName),
+            rawJson: {
+              ...metadata,
+              'routeId': route?.ref.routeId,
+              'id': route?.ref.storageKey,
+              'name': name,
+              'disassembledName': shortName,
+              'number': route?.shortName,
+              if (leg.label != null) 'destination': {'name': leg.label},
+              if (productClass != null)
+                'product': {'class': productClass, 'name': productName},
+            },
           );
     final origin = _toApiStop(
       leg.origin,
       metadata,
-      departureTime: leg.departureTime,
+      departureTime: leg.plannedDepartureTime ?? leg.departureTime,
+      estimatedDepartureTime: leg.isRealtime ? leg.departureTime : null,
     );
     final destination = _toApiStop(
       leg.destination,
       metadata,
-      arrivalTime: leg.arrivalTime,
+      arrivalTime: leg.plannedArrivalTime ?? leg.arrivalTime,
+      estimatedArrivalTime: leg.isRealtime ? leg.arrivalTime : null,
     );
     return api.Leg(
       origin: origin,
       destination: destination,
-      isRealtimeControlled: false,
+      isRealtimeControlled: leg.isRealtime,
       stopSequence: [origin, destination],
       transportation: transportation,
-      rawJson: metadata,
+      duration: leg.departureTime == null || leg.arrivalTime == null
+          ? null
+          : leg.arrivalTime!.difference(leg.departureTime!).inSeconds,
+      rawJson: {
+        ...metadata,
+        'origin': origin.rawJson,
+        'destination': destination.rawJson,
+        'stopSequence': [origin.rawJson, destination.rawJson],
+        'transportation': transportation?.rawJson,
+        'isRealtimeControlled': leg.isRealtime,
+        'isApproximate': leg.isApproximate,
+        if (leg.departureTime != null && leg.arrivalTime != null)
+          'duration': leg.arrivalTime!.difference(leg.departureTime!).inSeconds,
+      },
     );
   }
 
@@ -255,6 +299,8 @@ class RegionalSavedTripService {
     Map<String, dynamic> metadata, {
     DateTime? departureTime,
     DateTime? arrivalTime,
+    DateTime? estimatedDepartureTime,
+    DateTime? estimatedArrivalTime,
   }) {
     final coordinates = stop.latitude != null && stop.longitude != null
         ? [stop.latitude!, stop.longitude!]
@@ -267,10 +313,24 @@ class RegionalSavedTripService {
       coord: coordinates,
       departureTimePlanned: departureTime?.toIso8601String(),
       arrivalTimePlanned: arrivalTime?.toIso8601String(),
+      arrivalTimeEstimated: estimatedArrivalTime?.toIso8601String(),
+      departureTimeEstimated: estimatedDepartureTime?.toIso8601String(),
       rawJson: {
         ...metadata,
+        'id': stop.ref.storageKey,
+        'name': stop.name,
+        'disassembledName': stop.name,
+        'type': 'stop',
+        'coord': coordinates,
+        'departureTimePlanned': departureTime?.toIso8601String(),
+        'arrivalTimePlanned': arrivalTime?.toIso8601String(),
+        'arrivalTimeEstimated': estimatedArrivalTime?.toIso8601String(),
+        'departureTimeEstimated': estimatedDepartureTime?.toIso8601String(),
         'stopId': stop.ref.stopId,
         'stopStorageKey': stop.ref.storageKey,
+        'transitRegion': stop.ref.region.name,
+        'transitProvider': stop.ref.provider.name,
+        'transitSourceId': stop.ref.sourceId.value,
       },
     );
   }

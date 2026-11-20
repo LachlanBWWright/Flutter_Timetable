@@ -38,24 +38,14 @@ class AdelaideMetroRealtimeRepository implements RealtimeRepository {
       adelaideMetroTripUpdatesUrl,
       query: request.query,
     );
-    final updates = (feed?.entity ?? const <sa_pb.FeedEntity>[])
-        .where((entity) => entity.hasTripUpdate())
-        .map(
-          (entity) => TransitTripUpdate(
-            tripId: entity.tripUpdate.trip.tripId,
-            stop:
-                entity.tripUpdate.stopTimeUpdate.isNotEmpty &&
-                    entity.tripUpdate.stopTimeUpdate.first.hasStopId()
-                ? TransitStopRef(
-                    region: TransitRegion.southAustralia,
-                    provider: TransitProviderId.adelaideMetro,
-                    sourceId: const TransitSourceId('sa:adelaide'),
-                    stopId: entity.tripUpdate.stopTimeUpdate.first.stopId,
-                  )
-                : null,
-          ),
-        )
-        .toList(growable: false);
+    final updates = gtfsRealtimeUpdates(
+      feed == null
+          ? null
+          : common_pb.FeedMessage.fromBuffer(feed.writeToBuffer()),
+      region: TransitRegion.southAustralia,
+      provider: TransitProviderId.adelaideMetro,
+      source: const TransitSourceId('sa:static'),
+    );
     return RealtimeSnapshot(items: updates, fetchedAt: feedFetchedAt(feed));
   }
 
