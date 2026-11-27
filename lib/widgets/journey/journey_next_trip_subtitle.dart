@@ -125,12 +125,11 @@ class _JourneyNextTripSubtitleState extends State<JourneyNextTripSubtitle> {
         ? 'Next $departure'
         : 'Next $departure – ${_formatDateTime(arrival, sameDayAs: times.departure)}';
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        style: Theme.of(context).textTheme.titleSmall
+            ?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }

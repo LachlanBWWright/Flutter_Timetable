@@ -186,12 +186,14 @@ class TransportPositionsWidget extends StatefulWidget {
   final TransportMode? mode;
   final TransportMode? transportMode;
   final String displayName;
+  final Future<FeedMessage?> Function(TransportMode)? loadPositions;
 
   const TransportPositionsWidget({
     super.key,
     this.mode,
     this.transportMode,
     required this.displayName,
+    this.loadPositions,
   });
 
   @override
@@ -219,18 +221,11 @@ class _TransportPositionsWidgetState extends State<TransportPositionsWidget>
 
     await runAsyncGuarded(
       () async {
-        FeedMessage? feed;
-        final transportMode = widget.transportMode;
-        final mode = widget.mode;
-        if (transportMode != null) {
-          feed = await RealtimeService.getPositionsForTransportMode(
-            transportMode,
-          );
-        } else if (mode != null) {
-          feed = await RealtimeService.getPositionsForTransportMode(mode);
-        } else {
-          feed = null;
-        }
+        final mode = widget.transportMode ?? widget.mode;
+        final loadPositions =
+            widget.loadPositions ??
+            RealtimeService.getPositionsForTransportMode;
+        final feed = mode == null ? null : await loadPositions(mode);
         final positions = RealtimeService.extractVehiclePositions(feed);
         guardedSetState(() {
           _positions = positions;

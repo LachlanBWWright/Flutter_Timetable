@@ -81,6 +81,7 @@ void main() {
 
       // Map icon shouldn't be present
       expect(find.byIcon(Icons.map), findsNothing);
+      expect(find.text('Trip Leg Details'), findsOneWidget);
     },
   );
 
@@ -124,6 +125,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byIcon(Icons.map), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text('Bus')),
+        findsOneWidget,
+      );
     },
   );
 

@@ -107,7 +107,13 @@ void main() {
     await tester.pump();
 
     expect(find.text('Woodford to Central'), findsOneWidget);
-    expect(find.text('Trip'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Woodford to Central'),
+      ),
+      findsOneWidget,
+    );
     for (final metadata in [
       'Journey results',
       'Fetched',

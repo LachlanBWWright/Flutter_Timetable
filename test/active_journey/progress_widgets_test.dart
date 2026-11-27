@@ -43,27 +43,23 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: const TextScaler.linear(2)),
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(2)),
             child: child!,
           ),
           home: ActiveJourneyScreen(journeys: [saved()], session: session),
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.text('Get off at'), findsOneWidget);
+      expect(find.text('On board'), findsOneWidget);
       await tester.scrollUntilVisible(
-        find.text('Next reported stop: Beta'),
+        find.text('Next reported stop'),
         100,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('Next reported stop: Beta'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.text('2 known stops remaining'),
-        100,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.text('2 known stops remaining'), findsOneWidget);
+      expect(find.text('Next reported stop'), findsOneWidget);
+
       await tester.scrollUntilVisible(
         find.text('Arrival times are unavailable for some stops.'),
         150,

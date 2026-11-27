@@ -2,6 +2,25 @@ part of '../realtime_map_widget.dart';
 
 extension _RealtimeMapContent on _RealtimeMapWidgetState {
   Widget _buildMapContent(BuildContext context) {
+    final count = _vehicles.length;
+    final mode = widget.transportMode ?? widget.mode;
+    final singular = switch (mode) {
+      TransportMode.metro => 'metro train',
+      TransportMode.lightrail => 'light rail vehicle',
+      _ => mode?.displayName.toLowerCase() ?? 'vehicle',
+    };
+    final plural = switch (mode) {
+      TransportMode.bus => 'buses',
+      TransportMode.ferry => 'ferries',
+      _ => '${singular}s',
+    };
+    final countLabel = count == 0 && _metadata.isUnavailable
+        ? 'Live positions unavailable'
+        : count == 0
+        ? 'No $plural${_usesViewportQuery ? ' in this area' : ' reported'}'
+        : '$count ${count == 1 ? singular : plural}';
+    final colors = Theme.of(context).colorScheme;
+
     return Stack(
       children: [
         FlutterMap(
@@ -42,21 +61,30 @@ extension _RealtimeMapContent on _RealtimeMapWidgetState {
             MarkerLayer(markers: _buildVehicleMarkers()),
           ],
         ),
-        if (widget.showVehicleCount)
-          Positioned(
+        if (widget.showVehicleCount &&
+            (!_isLoading || count > 0) &&
+            (widget.vehicleId == null || count > 0 || _metadata.isUnavailable))
+          PositionedDirectional(
             top: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${_vehicles.length} vehicles',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+            start: 16,
+            end: 16,
+            child: Align(
+              alignment: AlignmentDirectional.topEnd,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.inverseSurface,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  countLabel,
+                  style: TextStyle(
+                    color: colors.onInverseSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

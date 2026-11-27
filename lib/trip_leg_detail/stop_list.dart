@@ -160,7 +160,7 @@ extension _StopList on _TripLegDetailScreenState {
         _VehicleStopRow(
           label: stop.disassembledName ?? stop.name,
           stopId: stop.id,
-          platform: _extractPlatformLabel(stop),
+          platform: stopPlatformLabel(stop),
           wheelchairAccess: stop.properties?.wheelchairAccess,
           arrivalTimePlanned: stop.arrivalTimePlanned,
           arrivalTimeEstimated: stop.arrivalTimeEstimated,
@@ -213,24 +213,6 @@ extension _StopList on _TripLegDetailScreenState {
   bool _isWheelchairAccessible(String? value) {
     final normalized = trimmedOrNull(value)?.toLowerCase();
     return normalized == 'true' || normalized == 'yes' || normalized == '1';
-  }
-
-  String? _extractPlatformLabel(Stop stop) {
-    final raw = stop.rawJson;
-    final candidates = [
-      tryReadMapValue(raw, 'platform'),
-      tryReadMapValue(raw, 'platformCode'),
-      tryReadMapValue(raw, 'platformName'),
-      tryReadMapValue(tryReadJsonMap(raw, 'properties'), 'platform'),
-      tryReadMapValue(tryReadJsonMap(raw, 'properties'), 'platformCode'),
-    ];
-    for (final candidate in candidates) {
-      final text = candidate?.toString().trim();
-      if (text != null && text.isNotEmpty) {
-        return text;
-      }
-    }
-    return null;
   }
 
   Widget _buildStopTimeWidget(

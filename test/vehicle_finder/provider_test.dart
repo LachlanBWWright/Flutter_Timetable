@@ -43,6 +43,7 @@ void main() {
       final result = finderVehiclesFromSnapshot(
         TransportMode.train,
         snapshot,
+        destinations: const {('trip', 'T1'): 'Central'},
       ).single;
       expect(result.observedAt, epoch);
       expect(result.speed, isNull);
@@ -51,6 +52,7 @@ void main() {
       expect(result.label, 'Train 1');
       expect(result.tripKey, contains('20261020'));
       expect(result.route, 'T1');
+      expect(result.destination, 'Central');
       expect(result.service!.tripId, 'trip');
       expect(result.service!.startDate, '20261020');
       expect(result.service!.startTime, '12:00:00');

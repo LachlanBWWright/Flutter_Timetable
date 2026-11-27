@@ -11,7 +11,7 @@ void main() {
   test(
     'canonical light rail cannot replace the four-source positions group',
     () async {
-      await _withLightRailFeeds(() async {
+      await _withLightRailFeeds('vehiclepos', () async {
         final canonical = await RealtimeService.getPositionsForTransportMode(
           TransportMode.lightrail,
         );
@@ -29,7 +29,7 @@ void main() {
   test(
     'canonical light rail cannot replace the four-source updates group',
     () async {
-      await _withLightRailFeeds(() async {
+      await _withLightRailFeeds('realtime', () async {
         final canonical = await RealtimeService.getUpdatesForTransportMode(
           TransportMode.lightrail,
         );
@@ -52,11 +52,17 @@ const _allLightRailSources = [
   'parramatta',
 ];
 
-Future<void> _withLightRailFeeds(Future<void> Function() action) async {
+Future<void> _withLightRailFeeds(
+  String feedPath,
+  Future<void> Function() action,
+) async {
   RealtimeService.invalidateRealtimeCache();
   await http.runWithClient(
     action,
     () => MockClient((request) async {
+      if (request.url.pathSegments.last == 'innerwest') {
+        expect(request.url.path, '/v2/gtfs/$feedPath/lightrail/innerwest');
+      }
       final feed = FeedMessage(
         header: FeedHeader(gtfsRealtimeVersion: '2.0'),
         entity: [FeedEntity(id: request.url.pathSegments.last)],

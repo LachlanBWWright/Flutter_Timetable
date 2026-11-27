@@ -29,6 +29,57 @@ TripCacheSnapshot snapshot({String version = 'v'}) => TripCacheSnapshot(
 
 void main() {
   test(
+    'retrying a saved manual trip replaces its error with the journey',
+    () async {
+      final trip = journey().copyWith(tripType: 'manualMultiLeg');
+      final rendered = TripJourney(legs: const [], rawJson: {'manual': true});
+      var attempts = 0;
+      final controller = TripScreenController(
+        trip: trip,
+        startAgingTimer: false,
+        manualBuilder: (savedTrip) async {
+          expect(savedTrip, trip);
+          return ++attempts == 1 ? null : rendered;
+        },
+        cacheLoader: ({
+          required originId,
+          required destinationId,
+          required forceRefresh,
+        }) => throw StateError('Manual trips should use the manual builder'),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.load();
+      expect(controller.state.error, 'Unable to load the saved manual trip.');
+      expect(controller.state.isLoading, isFalse);
+
+      await controller.load(forceRefresh: true);
+      expect(attempts, 2);
+      expect(controller.state.error, isNull);
+      expect(controller.state.trips, [rendered]);
+      expect(controller.state.rawTripJson, contains('"manual": true'));
+    },
+  );
+
+  test('a malformed saved stop reference is rejected before lookup', () async {
+    final controller = TripScreenController(
+      trip: journey().copyWith(originId: 'nsw|tfnsw|missing-stop-id'),
+      startAgingTimer: false,
+      cacheLoader: ({
+        required originId,
+        required destinationId,
+        required forceRefresh,
+      }) => throw StateError('Malformed references should be rejected first'),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+    expect(controller.state.error, 'Saved trip cannot be loaded.');
+    expect(controller.state.trips, isEmpty);
+    expect(controller.state.isLoading, isFalse);
+  });
+
+  test(
     'custom planning forwards constraints and cancels work when disposed',
     () async {
       final entered = Completer<JourneyPlanRequest>();

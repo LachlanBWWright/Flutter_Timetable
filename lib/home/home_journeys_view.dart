@@ -48,18 +48,24 @@ extension _HomeJourneysView on _MyHomePageState {
                             color: Colors.grey,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _controller.state.loadFailed
-                              ? 'Pull down to retry'
-                              : _journeys.isEmpty
-                              ? 'Pull down to refresh or add a new trip'
-                              : 'Try a different search term',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        const SizedBox(height: 12),
+                        if (_controller.state.loadFailed)
+                          TextButton(
+                            onPressed: getTrips,
+                            child: const Text('Retry'),
+                          )
+                        else if (_journeys.isEmpty &&
+                            AppTransitContext
+                                .instance
+                                .currentServices
+                                .supportsJourneyPlanning)
+                          FilledButton.icon(
+                            onPressed: _navigateToNewTrip,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add trip'),
+                          )
+                        else if (_journeys.isNotEmpty)
+                          const Text('Try a different search term'),
                       ],
                     ),
                   ),
@@ -78,14 +84,12 @@ extension _HomeJourneysView on _MyHomePageState {
                 if (_controller.state.loadFailed)
                   SliverToBoxAdapter(
                     child: MaterialBanner(
-                      content: const Text(
-                        'Could not load saved trips. Pull down to retry.',
-                      ),
+                      content: const Text('Could not load saved trips.'),
                       leading: const Icon(Icons.error_outline),
                       actions: [
                         TextButton(
                           onPressed: getTrips,
-                          child: const Text('RETRY'),
+                          child: const Text('Retry'),
                         ),
                       ],
                     ),

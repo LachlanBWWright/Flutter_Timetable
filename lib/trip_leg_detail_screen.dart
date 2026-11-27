@@ -264,6 +264,15 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
     final transportation = leg.transportation;
     final transportProduct = transportation?.product;
     final transportClass = transportProduct?.classField;
+    final productName = _transportProductName(transportation);
+    final legTitle = switch (transportClass) {
+      99 || 100 => 'Walking',
+      final int id => TransportModeUtils.getModeName(
+        id,
+        fallback: productName ?? 'Trip Leg Details',
+      ),
+      null => productName ?? 'Trip Leg Details',
+    };
 
     final origin = leg.origin;
     final destination = leg.destination;
@@ -307,7 +316,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trip Leg Details'),
+        title: Text(legTitle),
         backgroundColor: modeColor,
         foregroundColor: getContrastingForeground(modeColor),
         actions: [
@@ -376,19 +385,21 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildInfoCard(
+                      originName,
+                      destinationName,
+                      modeColor,
+                      leg,
+                    ),
+                  ),
                   _buildMapCard(transportId, mode, leg, modeColor, otherLegs),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                     child: Column(
                       children: [
-                        _buildInfoCard(
-                          originName,
-                          destinationName,
-                          modeColor,
-                          origin,
-                          destination,
-                          leg,
-                        ),
+                        _buildStopListSection(leg, modeColor),
                         const SizedBox(height: 8),
                         _buildDebugCards(leg, transportId, modeColor),
                       ],

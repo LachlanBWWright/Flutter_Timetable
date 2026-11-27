@@ -309,6 +309,7 @@ class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
       for (final (index, tripJourney) in state.trips.indexed)
         TripCard(
           trip: tripJourney,
+          emphasizeTimes: true,
           onVisible: (trip) => _prefetchVisibleTrip(trip, index),
           onSelectLeg: (leg) => _pushLegDetail(leg, tripJourney),
         ),
@@ -330,7 +331,11 @@ class _TripScreenState extends State<TripScreen> with GuardedState<TripScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Trip'),
+      title: Text(
+        '${widget.trip.origin} to ${widget.trip.destination}',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
       actions: [
         if (!widget.trip.isManualMultiLeg)
           IconButton(

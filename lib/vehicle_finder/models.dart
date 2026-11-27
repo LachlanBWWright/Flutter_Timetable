@@ -32,6 +32,7 @@ class FinderVehicle {
     this.currentStopSequence,
     this.atStop = false,
     this.route,
+    this.destination,
     this.label,
     this.speed,
     this.heading,
@@ -48,6 +49,7 @@ class FinderVehicle {
   final int? currentStopSequence;
   final bool atStop;
   final String? route;
+  final String? destination;
   final String? label;
   final double? speed;
   final double? heading;

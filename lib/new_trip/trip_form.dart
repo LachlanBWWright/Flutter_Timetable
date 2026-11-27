@@ -15,23 +15,6 @@ extension _TripForm on _NewTripScreenState {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Trip stops',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Choose your starting stop and destination. Tap a stop to change it.',
-                  ),
-                  if (_draftRegion case final region?) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _interchanges.isNotEmpty
-                          ? 'Trip region: ${region.label}'
-                          : 'Search includes enabled regions',
-                    ),
-                  ],
-                  const SizedBox(height: 24),
                   _stopRow(
                     label: 'From',
                     station: _originStation,
@@ -91,9 +74,11 @@ extension _TripForm on _NewTripScreenState {
                   if (_originStation != null ||
                       _destinationStation != null ||
                       _interchanges.isNotEmpty)
-                    TextButton(
-                      onPressed: canEdit ? _clearAllSelections : null,
-                      child: const Text('Clear all stops'),
+                    Center(
+                      child: TextButton(
+                        onPressed: canEdit ? _clearAllSelections : null,
+                        child: const Text('Clear all stops'),
+                      ),
                     ),
                 ],
               ),
@@ -112,23 +97,49 @@ extension _TripForm on _NewTripScreenState {
     VoidCallback? onClear,
   }) {
     final canEdit = !_isSavingTrip && !_isApplyingStop;
-    return Card.outlined(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final mode = station?.mode;
+    final accent = mode == null
+        ? switch (target) {
+            _StopTarget.origin => colors.primary,
+            _StopTarget.destination => colors.tertiary,
+            _ => colors.secondary,
+          }
+        : TransportColors.getColorByTransportMode(mode);
+    final marker = switch (target) {
+      _StopTarget.origin => Icons.trip_origin,
+      _StopTarget.destination => Icons.location_on_outlined,
+      _ => Icons.alt_route,
+    };
+    return StopAccentCard(
+      accent: station == null ? null : accent,
       child: ListTile(
         key: ValueKey('trip-${target.name}${index == null ? '' : '-$index'}'),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Icon(
-          target == _StopTarget.origin
-              ? Icons.trip_origin
-              : target == _StopTarget.destination
-              ? Icons.location_on_outlined
-              : Icons.alt_route,
+        contentPadding: const EdgeInsetsDirectional.fromSTEB(16, 8, 12, 8),
+        leading: DecoratedBox(
+          decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+          child: Padding(
+            padding: const EdgeInsets.all(9),
+            child: Icon(
+              marker,
+              size: 20,
+              color: getContrastingForeground(accent),
+            ),
+          ),
         ),
-        title: Text(label, style: Theme.of(context).textTheme.labelMedium),
+        title: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
         subtitle: Text(
           station?.name ?? 'Choose a stop',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: station == null ? colors.onSurfaceVariant : colors.onSurface,
+            fontWeight: station == null ? FontWeight.w400 : FontWeight.w600,
+          ),
         ),
         onTap: canEdit ? () => _openStopPicker(target, index: index) : null,
         trailing: index != null

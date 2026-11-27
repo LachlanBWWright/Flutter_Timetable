@@ -10,6 +10,16 @@ import {createResolver} from '../src/cache.js';
 
 const parse = url => parseRequest({version: 1, url, filter: {}});
 
+test('the shared cache accepts both Inner West Light Rail v2 feeds', () => {
+  for (const feed of ['realtime', 'vehiclepos']) {
+    const url = `https://api.transport.nsw.gov.au/v2/gtfs/${feed}/lightrail/innerwest`;
+    const source = parse(url);
+    assert.equal(source.url, url);
+    assert.equal(source.provider, 'tfnsw');
+    assert.equal(source.kind, 'realtime');
+  }
+});
+
 test('all registered providers use isolated canonical cache sources', () => {
   for (const entry of sources) {
     const source = parse(entry.url);
@@ -103,4 +113,39 @@ test('published archive pointers survive shared resolution', async () => {
   assert.equal(calls, 1);
   assert.equal(snapshot.kind, 'static');
   assert.ok(snapshot.downloadUrl.startsWith('https://firebasestorage.googleapis.com/'));
+});
+
+test('PTV stop details retain location and station description', () => {
+  const stop = {
+    stop_id: 100,
+    stop_name: 'Central',
+    station_description: 'Enter from the main concourse',
+    stop_location: {latitude: -37.8, longitude: 144.9},
+  };
+  const status = {health: 1};
+  const bytes = Buffer.from(JSON.stringify({stop: {...stop, unused: true}, status}));
+  const result = project(bytes, 'ptvStop', {});
+  assert.equal(result.contentType, 'application/json');
+  assert.deepEqual(JSON.parse(result.bytes), {stop, status});
+  assert.throws(
+    () => project(Buffer.from('{"stop":[]}'), 'ptvStop', {}),
+    /Incomplete PTV response/,
+  );
+});
+
+test('PTV disruptions retain status and group alerts by mode', () => {
+  const alert = {
+    disruption_id: 42,
+    title: 'Part closure',
+    description: 'Use replacement buses',
+    disruption_status: 'Current',
+  };
+  const bytes = Buffer.from(JSON.stringify({
+    status: {health: 1},
+    disruptions: {metro_train: [{...alert, unused: true}], bus: [], metadata: {}},
+  }));
+  assert.deepEqual(JSON.parse(project(bytes, 'ptvDisruptions', {}).bytes), {
+    status: {health: 1},
+    disruptions: {metro_train: [alert], bus: []},
+  });
 });

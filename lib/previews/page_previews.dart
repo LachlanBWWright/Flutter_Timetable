@@ -16,6 +16,8 @@ import 'package:lbww_flutter/trip.dart';
 import 'package:lbww_flutter/trip_composer_screen.dart';
 import 'package:lbww_flutter/trip_leg_detail_screen.dart';
 import 'package:lbww_flutter/trip_legs_screen.dart';
+import 'package:lbww_flutter/vehicle_finder/controller.dart';
+import 'package:lbww_flutter/vehicle_finder/models.dart';
 import 'package:lbww_flutter/vehicle_finder/screen.dart';
 import 'package:lbww_flutter/widgets/realtime_map_widget.dart';
 import 'package:lbww_flutter/widgets/stops_map_widget.dart';
@@ -190,4 +192,35 @@ Widget debugEntityScreenPreview() => const DebugEntityScreen(
   size: Size(430, 850),
   wrapper: appPreviewWrapper,
 )
-Widget vehicleFinderPagePreview() => const VehicleFinderScreen();
+Widget vehicleFinderPagePreview() {
+  final time = DateTime.utc(2030, 6, 14);
+  return VehicleFinderScreen(
+    controller: VehicleFinderController(
+      clock: () => time,
+      locations: () => Stream.multi((events) {
+        events.add(
+          FinderLocation(
+            latitude: -33.86,
+            longitude: 151.2,
+            timestamp: time,
+            accuracy: 10,
+          ),
+        );
+      }),
+      vehicles: (mode) async => mode != TransportMode.train
+          ? []
+          : [
+              FinderVehicle(
+                id: '17',
+                mode: mode,
+                latitude: -33.86,
+                longitude: 151.2002,
+                observedAt: time,
+                tripKey: 'preview-t1',
+                route: 'T1',
+                destination: 'Hornsby',
+              ),
+            ],
+    ),
+  );
+}

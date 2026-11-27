@@ -35,10 +35,7 @@ void main() {
 
     expect(journeyId, greaterThan(0));
     expect(find.text('Central'), findsOneWidget);
-    expect(
-      find.text('Could not load saved trips. Pull down to retry.'),
-      findsOneWidget,
-    );
-    expect(find.text('RETRY'), findsOneWidget);
+    expect(find.text('Could not load saved trips.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
   });
 }

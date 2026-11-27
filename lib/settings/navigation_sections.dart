@@ -1,75 +1,19 @@
 part of '../settings.dart';
 
 extension _SettingsNavigationSections on _SettingsScreenState {
-  Widget _buildMapSection() {
-    return _settingsSection(
-      margin: const EdgeInsets.all(8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Live Transport Map',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'View real-time vehicle positions on an interactive map',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _navigateToRealtimeMap,
-                icon: const Icon(Icons.map),
-                label: const Text('Open Realtime Map'),
-                style: ButtonStyles.elevated(Colors.blueAccent),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildMapSection() => ListTile(
+    leading: const Icon(Icons.map_outlined),
+    title: const Text('Live map'),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: _navigateToRealtimeMap,
+  );
 
-  Widget _buildHomeStopSection() {
-    return _settingsSection(
-      margin: const EdgeInsets.all(8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Home Stop',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Set your home stop for quick trip planning',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _navigateToSetHomeStop,
-                icon: const Icon(Icons.home),
-                label: const Text('Set Home Stop'),
-                style: ButtonStyles.elevated(Colors.teal),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildHomeStopSection() => ListTile(
+    leading: const Icon(Icons.home_outlined),
+    title: const Text('Home stop'),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: _navigateToSetHomeStop,
+  );
 
   Widget _buildTransportOptionsSection() {
     return _settingsSection(

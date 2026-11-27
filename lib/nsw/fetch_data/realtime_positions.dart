@@ -68,7 +68,7 @@ Future<FeedMessage?> fetchLightRailInnerWestPositions({
   RealtimeQuery? query,
 }) async {
   return fetchRealtimeFeed(
-    'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/innerwest',
+    'https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/lightrail/innerwest',
     logLabel: 'Inner West light rail positions',
     query: query,
   );

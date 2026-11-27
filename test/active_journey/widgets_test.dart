@@ -51,12 +51,14 @@ void main() {
       await tester.tap(find.text('A → C'));
       await tester.pumpAndSettle();
       expect(session.selectedKey, '1:false');
-      expect(find.text('Current trip'), findsWidgets);
+      expect(find.text('Get off at'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('End trip'),
         200,
         scrollable: find.byType(Scrollable).last,
       );
+      await tester.ensureVisible(find.text('End trip'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('End trip'));
       await tester.pumpAndSettle();
       expect(session.vehicle, isNull);

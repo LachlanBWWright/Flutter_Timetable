@@ -32,12 +32,12 @@ class JourneyDirectionButton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (showNextTripTimes)
+            JourneyNextTripSubtitle(journey: journey, reverse: reverse),
           Text(
             reverse ? journey.destination : journey.origin,
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
-          if (showNextTripTimes)
-            JourneyNextTripSubtitle(journey: journey, reverse: reverse),
           ActiveJourneyIndicator(journey: journey, reverse: reverse),
         ],
       ),

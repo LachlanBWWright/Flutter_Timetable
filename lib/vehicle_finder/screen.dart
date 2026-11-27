@@ -4,6 +4,7 @@ import '../active_journey/screen.dart';
 import '../active_journey/session.dart';
 import '../constants/transport_modes.dart';
 import '../schema/database.dart' show Journey;
+import '../settings.dart';
 import '../widgets/realtime_map_widget.dart';
 import 'controller.dart';
 import 'models.dart';
@@ -135,24 +136,18 @@ class _VehicleFinderScreenState extends State<VehicleFinderScreen>
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text(
-              'Nearby vehicles',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            const Text('Trains, light rail, metro, buses and ferries'),
-            const SizedBox(height: 16),
-            if (_controller.running) ...[
+            if (_controller.running &&
+                _controller.error == null &&
+                _controller.candidates.isEmpty) ...[
               const LinearProgressIndicator(
                 semanticsLabel: 'Comparing live vehicle positions',
               ),
               const SizedBox(height: 12),
             ],
-            Text(_controller.status),
-            if (_controller.location case final location?) ...[
-              const SizedBox(height: 8),
-              Text('Location accuracy: about ${location.accuracy.round()} m'),
-            ],
+            if (_controller.error == null &&
+                _controller.candidates.isEmpty &&
+                confirmed == null)
+              Text(_controller.status),
             if (_controller.error case final error?) ...[
               const SizedBox(height: 12),
               Text(
@@ -165,9 +160,21 @@ class _VehicleFinderScreenState extends State<VehicleFinderScreen>
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () => _controller.start(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                  onPressed: _controller.needsApiKey
+                      ? () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const SettingsScreen(),
+                          ),
+                        )
+                      : () => _controller.start(),
+                  icon: Icon(
+                    _controller.needsApiKey
+                        ? Icons.settings_outlined
+                        : Icons.refresh,
+                  ),
+                  label: Text(
+                    _controller.needsApiKey ? 'Open settings' : 'Retry',
+                  ),
                 ),
               ),
             if (_session.hasSelection)
@@ -230,25 +237,24 @@ class _VehicleFinderScreenState extends State<VehicleFinderScreen>
       children: [
         ListTile(
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          titleAlignment: ListTileTitleAlignment.top,
           leading: Icon(_modeIcon(vehicle.mode)),
           title: Text(
-            vehicle.label?.isNotEmpty == true
-                ? '${vehicle.mode.displayName} · ${vehicle.title}'
+            vehicle.route?.isNotEmpty == true
+                ? '${vehicle.mode.displayName} ${vehicle.route}'
                 : vehicle.title,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (vehicle.route?.isNotEmpty == true)
-                Text('Route ${vehicle.route}'),
-              Text(
-                candidate.likely ? 'Likely your vehicle' : 'Possible vehicle',
-              ),
-              Text('${candidate.distance.round()} m away at its last report'),
-              Text(
-                '${candidate.observations} distinct live observations compared',
-              ),
+              if (vehicle.destination case final destination?)
+                Text('To $destination'),
+              if (vehicle.label case final label?
+                  when label.isNotEmpty && vehicle.route?.isNotEmpty == true)
+                Text(label),
+              Text(candidate.likely ? 'Likely match' : 'Possible match'),
+              Text('${candidate.distance.round()} m away at last report'),
               const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () {

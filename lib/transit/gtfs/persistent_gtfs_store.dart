@@ -48,6 +48,10 @@ class PersistentGtfsStore {
   static final Expando<Map<String, _FeedWork>> _pending = Expando();
   static final Expando<Map<String, ({GtfsData data, DateTime fetchedAt})>>
   _parsed = Expando();
+
+  /// The parsed feed already in memory, without opening a file or fetching.
+  GtfsData? cachedDataFor(String source) => _parsed[database]?[source]?.data;
+
   void _remember(String source, GtfsData data, DateTime fetchedAt) {
     final entries = _parsed[database] ??= {};
     entries.remove(source);

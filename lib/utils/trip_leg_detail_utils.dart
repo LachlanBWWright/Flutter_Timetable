@@ -1,5 +1,6 @@
 import 'package:latlong2/latlong.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/services/transport_api_service.dart' show Stop;
 
 import 'date_time_utils.dart';
 import 'safe_value_utils.dart';
@@ -97,4 +98,28 @@ String formatTimeDifference(String? plannedTime, String? estimatedTime) {
   }
 
   return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
+}
+
+String? stopPlatformLabel(Stop stop) {
+  final raw = stop.rawJson;
+  final candidates = [
+    tryReadMapValue(raw, 'platform'),
+    tryReadMapValue(raw, 'platformCode'),
+    tryReadMapValue(raw, 'platformName'),
+    tryReadMapValue(tryReadJsonMap(raw, 'properties'), 'platform'),
+    tryReadMapValue(tryReadJsonMap(raw, 'properties'), 'platformCode'),
+  ];
+  for (final candidate in candidates) {
+    final text = candidate?.toString().trim();
+    if (text != null && text.isNotEmpty) {
+      return text.replaceFirst(
+        RegExp(r'^Platform\s+', caseSensitive: false),
+        '',
+      );
+    }
+  }
+  return RegExp(
+    r'\bPlatform\s+([^,]+)$',
+    caseSensitive: false,
+  ).firstMatch(stop.name)?.group(1);
 }

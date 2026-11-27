@@ -41,7 +41,7 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Your running service')),
+    appBar: AppBar(title: const Text('On board')),
     body: ListenableBuilder(
       listenable: _session,
       builder: (context, _) {
@@ -64,14 +64,50 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
               (selected == null || _session.confirmedMatchIsLive),
         );
         final stops = selected?.stops ?? service?.stops ?? [];
+        final theme = Theme.of(context);
+        final destination = selected?.currentDestination;
+        final arrival = selected?.stops.lastOrNull?.arrival;
+        final isFresh =
+            _session.fresh &&
+            (selected == null || _session.confirmedMatchIsLive);
+        final nextStop = progress.nextStop;
+        final destinationSkipped =
+            isFresh && selected?.stops.lastOrNull?.skipped == true;
+        final primaryLabel = destination != null
+            ? progress.arrived
+                  ? 'Arrived at'
+                  : destinationSkipped
+                  ? 'Stop skipped'
+                  : 'Get off at'
+            : nextStop != null
+            ? 'Next reported stop'
+            : null;
+        final primaryStop = destination ?? nextStop?.name;
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text(vehicle.title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            const Text(
-              'Live transport updates keep this service visible. Your location is only used when you start a vehicle search.',
-            ),
+            if (primaryStop != null && primaryLabel != null)
+              Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                color: theme.colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(primaryLabel, style: theme.textTheme.labelLarge),
+                      Text(primaryStop, style: theme.textTheme.headlineSmall),
+                      if (!progress.arrived &&
+                          !destinationSkipped &&
+                          arrival != null)
+                        Text(
+                          '${isFresh ? 'Arrival' : 'Last available arrival'} ${_time(context, arrival)}',
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            Text(vehicle.title, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             if (_session.loading)
               const LinearProgressIndicator(
@@ -82,24 +118,9 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
                 _session.error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
-            if (selected != null) ...[
-              Text(
-                selected.title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Text(
-                _session.labelFor(selected.journey, selected.reverse) ??
-                    'Last selection',
-              ),
-            ] else if (service != null && service.matches.isEmpty)
-              const Text(
-                'Could not match a saved journey yet. You can still follow this service on the map. A saved connection must identify this exact service to match.',
-              )
-            else if (service != null) ...[
-              const Text(
-                'Which saved journey are you taking? A shared service can fit several destinations.',
-              ),
-              for (final match in service.matches)
+            if (selected == null && service?.matches.isNotEmpty == true) ...[
+              const Text('Choose your saved journey'),
+              for (final match in service!.matches)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(match.title),
@@ -109,29 +130,13 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
                       : null,
                 ),
             ],
-            if (progress.arrived)
+            if (progress.stopsRemaining case final remaining?
+                when !progress.arrived)
               Text(
-                'Arrived at ${selected!.currentDestination}',
-                style: Theme.of(context).textTheme.titleMedium,
-              )
-            else ...[
-              if (progress.currentStop != null)
-                Text('At ${progress.currentStop!.name}'),
-              if (progress.nextStop != null)
-                Text('Next reported stop: ${progress.nextStop!.name}'),
-              if (progress.stopsRemaining != null)
-                Text(
-                  '${progress.stopsRemaining} known ${progress.stopsRemaining == 1 ? 'stop' : 'stops'} remaining${selected?.hasOnwardTravel == true ? ' on this leg' : ''}',
-                ),
-              if (selected?.stops.lastOrNull?.arrival != null)
-                Text(
-                  '${_session.fresh ? 'Scheduled or reported arrival' : 'Last available arrival'} at ${selected!.currentDestination}: ${_time(context, selected.stops.last.arrival!)}',
-                ),
-            ],
-            if (selected?.hasOnwardTravel == true)
-              Text(
-                'Continue your journey to ${selected!.destination} after this leg. Only the selected vehicle is being followed.',
+                '$remaining known ${remaining == 1 ? 'stop' : 'stops'} remaining',
               ),
+            if (selected?.hasOnwardTravel == true)
+              Text('After this leg, continue to ${selected!.destination}.'),
             if (service?.partial == true || (service != null && stops.isEmpty))
               const Padding(
                 padding: EdgeInsets.only(top: 8),
@@ -150,30 +155,51 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
                 'Known service stops',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              for (final stop in stops)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  selected:
-                      identical(stop, progress.nextStop) ||
-                      identical(stop, progress.currentStop),
-                  title: Text(stop.name),
-                  subtitle:
-                      !stop.skipped &&
-                          !identical(stop, progress.currentStop) &&
-                          !identical(stop, progress.nextStop)
-                      ? null
-                      : Text(
-                          stop.skipped
-                              ? 'Skipped'
-                              : identical(stop, progress.currentStop)
-                              ? 'At this stop'
-                              : identical(stop, progress.nextStop)
-                              ? 'Next reported stop'
-                              : '',
+              for (final (index, stop) in stops.indexed)
+                Stack(
+                  children: [
+                    if (stops.length > 1)
+                      PositionedDirectional(
+                        start: 10,
+                        top: index == 0 ? 24 : 0,
+                        bottom: index == stops.length - 1 ? null : 0,
+                        height: index == stops.length - 1 && index != 0
+                            ? 24
+                            : null,
+                        width: 2,
+                        child: ColoredBox(
+                          color: theme.colorScheme.outlineVariant,
                         ),
-                  trailing: stop.arrival == null
-                      ? null
-                      : Text(_time(context, stop.arrival!)),
+                      ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      minLeadingWidth: 22,
+                      leading: Icon(
+                        identical(stop, progress.currentStop)
+                            ? Icons.radio_button_checked
+                            : identical(stop, nextStop)
+                            ? Icons.trip_origin
+                            : Icons.circle,
+                        size: 22,
+                        color:
+                            identical(stop, progress.currentStop) ||
+                                identical(stop, nextStop)
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outline,
+                      ),
+                      title: Text(stop.name),
+                      subtitle: stop.skipped
+                          ? const Text('Skipped')
+                          : identical(stop, progress.currentStop)
+                          ? const Text('At this stop')
+                          : identical(stop, nextStop)
+                          ? const Text('Next reported stop')
+                          : null,
+                      trailing: stop.arrival == null
+                          ? null
+                          : Text(_time(context, stop.arrival!)),
+                    ),
+                  ],
                 ),
             ],
             const SizedBox(height: 16),

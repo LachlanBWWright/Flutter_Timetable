@@ -174,7 +174,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.clear));
       await tester.pump();
       expect(writes, 1);
-      expect(find.text('Selected: Central'), findsOneWidget);
+      expect(find.text('New home stop'), findsOneWidget);
       expect(find.byType(SetHomeStopScreen), findsOneWidget);
       expect(find.text('Home stop set to Central'), findsNothing);
 
@@ -184,7 +184,7 @@ void main() {
         find.text('Could not save home stop. Please try again.'),
         findsOneWidget,
       );
-      expect(find.text('Selected: Central'), findsOneWidget);
+      expect(find.text('New home stop'), findsOneWidget);
       expect(find.byType(SetHomeStopScreen), findsOneWidget);
       expect(find.text('Home stop set to Central'), findsNothing);
 

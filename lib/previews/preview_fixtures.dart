@@ -150,6 +150,7 @@ final previewTripJourney = TripJourney.fromJson({
       'origin': {
         'id': '200060',
         'name': 'Central Station',
+        'platform': '16',
         'coord': [-33.8831, 151.2065],
         'departureTimePlanned': '2030-06-14T10:00:00+10:00',
         'departureTimeEstimated': '2030-06-14T10:02:00+10:00',
@@ -181,7 +182,7 @@ final previewTripJourney = TripJourney.fromJson({
         'id': 'T1',
         'name': 'T1 North Shore & Western Line',
         'number': 'T1',
-        'product': {'name': 'Train'},
+        'product': {'name': 'Train', 'class': 1},
         'destination': {'name': 'Hornsby'},
       },
     },

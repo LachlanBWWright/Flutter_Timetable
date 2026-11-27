@@ -10,16 +10,18 @@ class SavedTripRenderService {
   SavedTripRenderService._();
 
   static Future<api.TripJourney?> buildManualTripJourney(
-    Journey journey,
-  ) async {
+    Journey journey, {
+    AppDatabase? database,
+  }) async {
     final definition = journey.manualTripDefinition;
     if (definition == null) {
       return null;
     }
 
+    final stopsDatabase = database ?? StopsService.database;
     final legs = <api.Leg>[];
     for (final leg in definition.legs) {
-      legs.add(await _buildManualLeg(leg));
+      legs.add(await _buildManualLeg(leg, stopsDatabase));
     }
 
     return api.TripJourney(
@@ -32,9 +34,13 @@ class SavedTripRenderService {
     );
   }
 
-  static Future<api.Leg> _buildManualLeg(ManualTripLeg leg) async {
-    final origin = await _buildStop(leg.originId, leg.originName);
+  static Future<api.Leg> _buildManualLeg(
+    ManualTripLeg leg,
+    AppDatabase database,
+  ) async {
+    final origin = await _buildStop(database, leg.originId, leg.originName);
     final destination = await _buildStop(
+      database,
       leg.destinationId,
       leg.destinationName,
     );
@@ -74,10 +80,14 @@ class SavedTripRenderService {
     );
   }
 
-  static Future<api.Stop> _buildStop(String stopId, String fallbackName) async {
+  static Future<api.Stop> _buildStop(
+    AppDatabase database,
+    String stopId,
+    String fallbackName,
+  ) async {
     final ref = TransitStopRef.tryParse(stopId);
     final rawStopId = ref?.stopId ?? stopId;
-    final rows = await StopsService.database.getStopsById(rawStopId);
+    final rows = await database.getStopsById(rawStopId);
     final row = rows
         .where(
           (candidate) =>

@@ -23,13 +23,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(FlutterMap), findsOneWidget);
-    expect(find.text('0 vehicles'), findsOneWidget);
+    expect(find.text('No vehicles reported'), findsOneWidget);
     _expectNoStatusBanners();
 
     await tester.pumpWidget(map(() async => {TransportMode.bus: null}));
     await tester.pumpAndSettle();
     expect(find.byType(FlutterMap), findsOneWidget);
-    expect(find.text('0 vehicles'), findsOneWidget);
+    expect(find.text('Live positions unavailable'), findsOneWidget);
     _expectNoStatusBanners();
   });
 
@@ -60,7 +60,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(_vehicleMarkers(tester), isEmpty);
-      expect(find.text('0 vehicles'), findsOneWidget);
+      expect(find.text('No vehicles reported'), findsOneWidget);
       _expectNoStatusBanners();
     },
   );
@@ -98,11 +98,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('1 vehicles'), findsOneWidget);
+    expect(find.text('1 vehicle'), findsOneWidget);
     _expectNoStatusBanners();
     await tester.tap(find.byIcon(Icons.refresh));
     await tester.pumpAndSettle();
-    expect(find.text('1 vehicles'), findsOneWidget);
+    expect(find.text('1 vehicle'), findsOneWidget);
     expect(calls, 2);
     expect(_vehicleMarkers(tester), hasLength(1));
     _expectNoStatusBanners();
@@ -208,7 +208,7 @@ void main() {
         await tester.tap(find.byIcon(Icons.refresh));
         await tester.pumpAndSettle();
         expect(identical(_vehicleMarkers(tester), markers), isTrue);
-        expect(find.text('1 vehicles'), findsOneWidget);
+        expect(find.text('1 vehicle'), findsOneWidget);
         expect(find.byIcon(Icons.refresh), findsOneWidget);
         _expectNoStatusBanners();
       },

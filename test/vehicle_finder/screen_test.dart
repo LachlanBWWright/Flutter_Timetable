@@ -5,8 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lbww_flutter/active_journey/session.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/home/home_page.dart';
+import 'package:lbww_flutter/settings.dart';
 import 'package:lbww_flutter/vehicle_finder/controller.dart';
 import 'package:lbww_flutter/vehicle_finder/models.dart';
+import 'package:lbww_flutter/vehicle_finder/provider.dart';
 import 'package:lbww_flutter/vehicle_finder/screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -29,7 +31,32 @@ void main() {
     expect(find.byType(VehicleFinderScreen), findsOneWidget);
     expect(find.text('Start search'), findsNothing);
     expect(find.text('Stop search'), findsNothing);
-    expect(find.text('Nearby vehicles'), findsOneWidget);
+    expect(find.text('Find my vehicle'), findsOneWidget);
+  });
+
+  testWidgets('missing credentials link directly to Settings', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final stream = StreamController<FinderLocation>();
+    final controller = VehicleFinderController(
+      locations: () => stream.stream,
+      vehicles: (_) async => throw const VehicleFinderException(
+        'Add a TfNSW API key in Settings to find live vehicles.',
+        isFatal: true,
+        needsApiKey: true,
+      ),
+    );
+    addTearDown(controller.dispose);
+    addTearDown(stream.close);
+    await tester.pumpWidget(
+      MaterialApp(home: VehicleFinderScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search stopped.'), findsNothing);
+    expect(find.text('Retry'), findsNothing);
+    await tester.tap(find.text('Open settings'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
   });
 
   testWidgets(
@@ -60,8 +87,8 @@ void main() {
       stream.add(phone(0));
       await tester.pump();
       expect(starts, 1);
-      expect(find.text('Possible vehicle'), findsOneWidget);
-      expect(find.text('Likely your vehicle'), findsNothing);
+      expect(find.text('Possible match'), findsOneWidget);
+      expect(find.text('Likely match'), findsNothing);
       await tester.scrollUntilVisible(
         find.text('This is my vehicle'),
         200,
@@ -114,8 +141,8 @@ void main() {
     expect(find.textContaining('Ferry'), findsWidgets);
     expect(find.byIcon(Icons.directions_bus), findsOneWidget);
     expect(find.byIcon(Icons.directions_boat), findsOneWidget);
-    expect(find.text('Possible vehicle'), findsNWidgets(2));
-    expect(find.text('Likely your vehicle'), findsNothing);
+    expect(find.text('Possible match'), findsNWidgets(2));
+    expect(find.text('Likely match'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -201,9 +228,8 @@ void main() {
             MaterialApp(
               theme: ThemeData(brightness: brightness),
               builder: (context, child) => MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: const TextScaler.linear(2)),
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: const TextScaler.linear(2)),
                 child: child!,
               ),
               home: const VehicleFinderScreen(),

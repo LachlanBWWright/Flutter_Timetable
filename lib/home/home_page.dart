@@ -322,7 +322,8 @@ class _MyHomePageState extends State<MyHomePage> with GuardedState<MyHomePage> {
         searchController: _searchController,
       ),
       floatingActionButton:
-          AppTransitContext.instance.currentServices.supportsJourneyPlanning
+          _journeys.isNotEmpty &&
+              AppTransitContext.instance.currentServices.supportsJourneyPlanning
           ? FloatingActionButton(
               onPressed: _navigateToNewTrip,
               tooltip: 'Add trip',

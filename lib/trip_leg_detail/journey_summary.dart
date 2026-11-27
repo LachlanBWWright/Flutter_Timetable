@@ -6,106 +6,91 @@ extension _JourneySummary on _TripLegDetailScreenState {
     String originName,
     String destinationName,
     Color modeColor,
-    Stop origin,
-    Stop destination,
     Leg leg,
   ) {
-    final liveOrigin = _liveEndpointRow(leg, arrival: false);
-    final liveDestination = _liveEndpointRow(leg, arrival: true);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // From / To with departure / arrival times
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'From',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    Text(
-                      originName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.departure_board,
-                          color: Colors.green,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            _endpointTimeLabel(liveOrigin, arrival: false),
-                            style: const TextStyle(fontSize: 13),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+    final origin = _endpoint(
+      label: 'From',
+      name: originName,
+      row: _liveEndpointRow(leg, arrival: false),
+      arrival: false,
+    );
+    final destination = _endpoint(
+      label: 'To',
+      name: destinationName,
+      row: _liveEndpointRow(leg, arrival: true),
+      arrival: true,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+            if (constraints.maxWidth < 480 * textScale) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [origin, const SizedBox(height: 12), destination],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: origin),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                  child: Icon(Icons.arrow_forward, color: modeColor),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Icon(Icons.arrow_forward, color: modeColor),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'To',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    Text(
-                      destinationName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.end,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        const Icon(Icons.schedule, color: Colors.red, size: 14),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            _endpointTimeLabel(liveDestination, arrival: true),
-                            style: const TextStyle(fontSize: 13),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                Expanded(child: destination),
+              ],
+            );
+          },
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text('Error: $_error', style: const TextStyle(color: Colors.red)),
-          ],
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          _buildStopListSection(leg, modeColor),
         ],
-      ),
+      ],
+    );
+  }
+
+  Widget _endpoint({
+    required String label,
+    required String name,
+    required _VehicleStopRow row,
+    required bool arrival,
+  }) {
+    final theme = Theme.of(context);
+    final platform = trimmedOrNull(row.platform);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.labelMedium),
+        Text(
+          name,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          children: [
+            Text(_endpointTimeLabel(row, arrival: arrival)),
+            if (platform != null &&
+                !name.toLowerCase().contains(
+                  'platform ${platform.toLowerCase()}',
+                ))
+              Text('Platform $platform'),
+          ],
+        ),
+      ],
     );
   }
 

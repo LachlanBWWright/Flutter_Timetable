@@ -421,9 +421,7 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
                 controller: keyController,
                 decoration: const InputDecoration(
                   hintText: 'Search for a station',
-                  hintStyle: TextStyle(color: Colors.white),
                 ),
-                style: const TextStyle(color: Colors.white),
               )
             : const Text('Set Home Stop'),
         actions: [
@@ -458,7 +456,12 @@ class _SetHomeStopScreenState extends State<SetHomeStopScreen>
               tooltip: 'Save home stop',
             ),
         ],
-        bottom: TabBar(controller: _tabController, tabs: homeStopModeTabs),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          tabs: homeStopModeTabs,
+        ),
       ),
       body: Column(
         children: [

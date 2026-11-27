@@ -41,6 +41,7 @@ class VehicleFinderController extends ChangeNotifier {
   TransportMode? mode;
   String status = 'Finding nearby vehicles…';
   String? error;
+  bool needsApiKey = false;
   FinderLocation? location;
   List<VehicleCandidate> candidates = [];
   VehicleCandidate? confirmed;
@@ -57,6 +58,7 @@ class VehicleFinderController extends ChangeNotifier {
     running = true;
     status = 'Waiting for your location…';
     error = null;
+    needsApiKey = false;
     location = null;
     confirmed = null;
     candidates = [];
@@ -86,9 +88,7 @@ class VehicleFinderController extends ChangeNotifier {
         onError: (Object failure) {
           if (!_current(generation)) return;
           _fail(
-            failure is VehicleFinderException
-                ? failure.message
-                : 'Could not read your location. Check location access and try again.',
+            failure is VehicleFinderException ? failure.message : 'Could not read your location. Check location access and try again.',
           );
         },
         onDone: () {
@@ -176,7 +176,7 @@ class VehicleFinderController extends ChangeNotifier {
     } catch (failure) {
       if (!_current(generation)) return;
       if (failure is VehicleFinderException && failure.isFatal) {
-        _fail(failure.message);
+        _fail(failure.message, needsApiKey: failure.needsApiKey);
         return;
       }
       _snapshot = [];
@@ -227,9 +227,10 @@ class VehicleFinderController extends ChangeNotifier {
     stop(message: 'Vehicle selected. You can now view it on the map.');
   }
 
-  void _fail(String message) {
+  void _fail(String message, {bool needsApiKey = false}) {
     stop(message: 'Search stopped.');
     error = message;
+    this.needsApiKey = needsApiKey;
     _publish();
   }
 

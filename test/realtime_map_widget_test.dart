@@ -69,8 +69,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Should show overlay with 1 vehicle
-    expect(find.textContaining('vehicles'), findsOneWidget);
-    expect(find.text('1 vehicles'), findsOneWidget);
+    expect(find.text('1 vehicle'), findsOneWidget);
   });
 
   testWidgets(
@@ -109,7 +108,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('0 vehicles'), findsOneWidget);
+      expect(find.text('No vehicle found for id ROUTE-ABC'), findsOneWidget);
       expect(
         tester.widget<MarkerLayer>(find.byType(MarkerLayer).last).markers,
         isEmpty,
@@ -262,7 +261,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('1 vehicles'), findsOneWidget);
+    expect(find.text('1 bus'), findsOneWidget);
 
     first.complete(
       const VehiclePositionAggregationResult(
@@ -271,7 +270,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('1 vehicles'), findsOneWidget);
+    expect(find.text('1 bus'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.directions_bus));
     await tester.pumpAndSettle();
     expect(find.text('NEW'), findsOneWidget);

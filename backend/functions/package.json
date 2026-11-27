@@ -8,10 +8,10 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/index.js && node --check src/cache.js && node --check src/projection.js && node --check src/providers.js"
+    "check": "node --check src/index.js && node --check src/handler.js && node --check src/cache.js && node --check src/projection.js && node --check src/providers.js"
   },
   "dependencies": {
-    "firebase-admin": "^14.5.0",
+    "firebase-admin": "^14.5.1",
     "firebase-functions": "^7.4.0",
     "protobufjs": "^8.8.1"
   }

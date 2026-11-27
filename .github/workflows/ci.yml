@@ -47,15 +47,14 @@ jobs:
       - name: Run project CI checks
         env:
           CI_MODE: ${{ matrix.mode }}
-        run: ./scripts/ci.sh "$CI_MODE"
+        run: ./scripts/ci.sh "$CI_MODE" --coverage-path "$RUNNER_TEMP/timetable-lcov.info"
 
       - name: Upload deterministic test coverage
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: deterministic-test-coverage-${{ matrix.mode }}
-          path: coverage/lcov.info
-          if-no-files-found: warn
+          path: ${{ runner.temp }}/timetable-lcov.info
+          if-no-files-found: error
           retention-days: 14
 
   android-debug:

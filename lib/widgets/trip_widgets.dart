@@ -33,7 +33,7 @@ class TransportModeUtils {
   }
 
   /// Get human-readable name for transport mode
-  static String getModeName(int id) {
+  static String getModeName(int id, {String? fallback}) {
     switch (id) {
       case 1:
         return 'Train';
@@ -53,7 +53,7 @@ class TransportModeUtils {
       case 100:
         return 'Walk';
       default:
-        return 'Mode $id';
+        return fallback ?? 'Mode $id';
     }
   }
 }
@@ -63,12 +63,14 @@ class TripCard extends StatefulWidget {
   final TripJourney trip;
   final void Function(Leg) onSelectLeg;
   final void Function(TripJourney)? onVisible;
+  final bool emphasizeTimes;
 
   const TripCard({
     super.key,
     required this.trip,
     required this.onSelectLeg,
     this.onVisible,
+    this.emphasizeTimes = false,
   });
 
   @override
@@ -141,14 +143,14 @@ class _TripCardState extends State<TripCard>
     return formatTimeDifference(planned, estimated);
   }
 
-  String _formatTimeRange(Leg leg) {
+  String _formatTimeRange(Stop origin, Stop destination) {
     final departure = _formatTimeDifference(
-      leg.origin.departureTimePlanned,
-      leg.origin.departureTimeEstimated,
+      origin.departureTimePlanned,
+      origin.departureTimeEstimated,
     );
     final arrival = _formatTimeDifference(
-      leg.destination.arrivalTimePlanned,
-      leg.destination.arrivalTimeEstimated,
+      destination.arrivalTimePlanned,
+      destination.arrivalTimeEstimated,
     );
     return '$departure - $arrival';
   }
@@ -177,6 +179,28 @@ class _TripCardState extends State<TripCard>
     );
     final firstLeg = legs.first;
     final lastLeg = legs.last;
+
+    final timeRange = _formatTimeRange(firstLeg.origin, lastLeg.destination);
+    final route =
+        '${_displayStopName(firstLeg.origin)} to ${_displayStopName(lastLeg.destination)}';
+    final modeNames = [
+      for (final leg in legs)
+        if (leg.transportation?.product case final product?)
+          product.classField == null
+              ? product.name?.trim() ?? ''
+              : TransportModeUtils.getModeName(
+                  product.classField!,
+                  fallback: product.name?.trim() ?? '',
+                ),
+    ].where((name) => name.isNotEmpty).toList();
+    final transfers =
+        modeNames.where((name) => name.toLowerCase() != 'walk').length - 1;
+    final platform = stopPlatformLabel(firstLeg.origin);
+    final details = [
+      ...modeNames.toSet(),
+      if (transfers > 0) transfers == 1 ? '1 transfer' : '$transfers transfers',
+      if (platform != null) 'Platform $platform',
+    ];
 
     // Build sequential segments per-leg, inserting grey waiting segments between legs where applicable
     final segments = <Widget>[];
@@ -248,11 +272,6 @@ class _TripCardState extends State<TripCard>
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-          if (legs.any((leg) => leg.isRealtimeControlled == true))
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text('Live updates applied'),
-            ),
           if (widget.trip.rawJson['isApproximate'] == true)
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -276,30 +295,16 @@ class _TripCardState extends State<TripCard>
             },
             child: ListTile(
               title: Text(
-                '${_displayStopName(firstLeg.origin)} to ${_displayStopName(lastLeg.destination)}',
+                widget.emphasizeTimes ? timeRange : route,
+                style: widget.emphasizeTimes
+                    ? Theme.of(context).textTheme.titleMedium
+                    : null,
               ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        _formatTimeDifference(
-                          firstLeg.origin.departureTimePlanned,
-                          firstLeg.origin.departureTimeEstimated,
-                        ),
-                      ),
-                      const Text(' - '),
-                      Text(
-                        _formatTimeDifference(
-                          lastLeg.destination.arrivalTimePlanned,
-                          lastLeg.destination.arrivalTimeEstimated,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              subtitle: widget.emphasizeTimes
+                  ? details.isEmpty
+                        ? null
+                        : Text(details.join(' · '))
+                  : Text(timeRange),
               trailing: AnimatedRotation(
                 turns: _expanded ? 0.25 : 0.0,
                 duration: const Duration(milliseconds: 200),
@@ -328,14 +333,21 @@ class _TripCardState extends State<TripCard>
                   ),
                 ),
                 title: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Timestamp left of the leg description
-                    Text(
-                      _formatTimeRange(leg),
-                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        _formatTimeRange(leg.origin, leg.destination),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
+                      flex: 3,
                       child: Text(
                         '${_displayStopName(leg.origin)} → ${_displayStopName(leg.destination)}',
                       ),
