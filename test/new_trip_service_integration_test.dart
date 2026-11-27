@@ -1,3 +1,6 @@
+@Tags(['integration'])
+library;
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lbww_flutter/services/new_trip_service.dart';
 import 'package:lbww_flutter/services/stops_service.dart' show StopsEndpoint;
@@ -22,7 +25,11 @@ void main() {
       );
       expect(data, isNotNull);
       // At least one agency or stop should be present in a successful feed
-      expect((data!.agencies.isNotEmpty || data.stops.isNotEmpty), isTrue);
+      expect(
+        ((data?.agencies.isNotEmpty ?? false) ||
+            (data?.stops.isNotEmpty ?? false)),
+        isTrue,
+      );
     },
     timeout: const Timeout(Duration(seconds: 60)),
     skip: 'Requires live API key',
@@ -35,7 +42,11 @@ void main() {
         StopsEndpoint.buses,
       );
       expect(data, isNotNull);
-      expect((data!.stops.isNotEmpty || data.routes.isNotEmpty), isTrue);
+      expect(
+        ((data?.stops.isNotEmpty ?? false) ||
+            (data?.routes.isNotEmpty ?? false)),
+        isTrue,
+      );
     },
     timeout: const Timeout(Duration(seconds: 60)),
     skip: 'Requires live API key',

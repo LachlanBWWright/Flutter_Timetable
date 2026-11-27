@@ -5,7 +5,7 @@ This document provides recommendations for improving the technical composition o
 ## Overview
 
 The project is a Flutter application for managing public transport timetables with the following characteristics:
-- **Language:** Dart with Flutter 3.27.0
+- **Language:** Dart with Flutter 3.47.7 (repository-pinned toolchain)
 - **Database:** Drift (SQLite)
 - **APIs:** Transport API integration with Swagger-generated clients
 - **Architecture:** Widget-based with service layer pattern

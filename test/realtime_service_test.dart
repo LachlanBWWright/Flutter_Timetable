@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lbww_flutter/services/realtime_service.dart';
-import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/constants/transport_modes.dart';
+import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
+import 'package:lbww_flutter/services/realtime_service.dart';
 
 void main() {
   test('getAllVehiclePositionsAggregated deduplicates across feeds', () async {
@@ -56,10 +56,16 @@ void main() {
     eO.vehicle = vpO;
     feedOther.entity.add(eO);
 
-    final getAllPositionsOverride = () async => {TransportMode.bus: feedBus};
-    final getRegionBusesOverride = () async => [feedRegion, null];
-    final getAllFerriesOverride = () async => <FeedMessage?>[];
-    final getAllLightRailOverride = () async => <FeedMessage?>[feedOther];
+    Future<Map<TransportMode, FeedMessage?>> getAllPositionsOverride() async =>
+        {TransportMode.bus: feedBus};
+    Future<List<FeedMessage?>> getRegionBusesOverride() async => [
+      feedRegion,
+      null,
+    ];
+    Future<List<FeedMessage?>> getAllFerriesOverride() async =>
+        <FeedMessage?>[];
+    Future<List<FeedMessage?>> getAllLightRailOverride() async =>
+        <FeedMessage?>[feedOther];
 
     final result = await RealtimeService.getAllVehiclePositionsAggregated(
       getAllPositionsOverride: getAllPositionsOverride,
@@ -68,8 +74,8 @@ void main() {
       getAllLightRailOverride: getAllLightRailOverride,
     );
 
-    final vehicles = result['vehicles'] as List<VehiclePosition>;
-    final breakdown = result['breakdown'] as Map<String, int>;
+    final vehicles = result.vehicles;
+    final breakdown = result.breakdown;
 
     // Vehicles should include V1 once (deduped) and V2
     final ids = vehicles

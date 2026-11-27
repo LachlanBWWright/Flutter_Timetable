@@ -1,22 +1,45 @@
-name: Test Suite
+name: Live provider tests
 
 on:
-  pull_request:
-    branches:
-      - master
-      - dev
-  push:
-    branches:
-      - master
-      - dev
+  workflow_dispatch:
+    inputs:
+      run_nsw_api_tests:
+        description: Run NSW API checks
+        type: boolean
+        default: false
+      run_vic_api_tests:
+        description: Run Victoria API checks
+        type: boolean
+        default: false
+      run_qld_api_tests:
+        description: Run Queensland API checks
+        type: boolean
+        default: false
+      run_sa_api_tests:
+        description: Run South Australia API checks
+        type: boolean
+        default: false
+      run_public_state_api_tests:
+        description: Run public GTFS checks for Tasmania, NT, and WA
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
-
-    # Allow tests to fail without blocking the workflow for now
-    # To re-enable blocking on test failures, remove the 'continue-on-error: true' line below
-    continue-on-error: true
+    timeout-minutes: 20
+    env:
+      API_KEY: ${{ secrets.API_KEY }}
+      PTV_DEV_ID: ${{ secrets.PTV_DEV_ID }}
+      PTV_API_KEY: ${{ secrets.PTV_API_KEY }}
+      RUN_NSW_API_TESTS: ${{ inputs.run_nsw_api_tests && secrets.API_KEY != '' }}
+      RUN_VIC_API_TESTS: ${{ inputs.run_vic_api_tests && secrets.PTV_DEV_ID != '' && secrets.PTV_API_KEY != '' }}
+      RUN_QLD_API_TESTS: ${{ inputs.run_qld_api_tests }}
+      RUN_SA_API_TESTS: ${{ inputs.run_sa_api_tests }}
+      RUN_PUBLIC_STATE_API_TESTS: ${{ inputs.run_public_state_api_tests }}
 
     steps:
       - name: Checkout code
@@ -25,26 +48,41 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - name: Create .env file
+        run: |
+          printf 'API_KEY=%s\n' "$API_KEY" > .env
+          printf 'PTV_DEV_ID=%s\n' "$PTV_DEV_ID" >> .env
+          printf 'PTV_API_KEY=%s\n' "$PTV_API_KEY" >> .env
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-        # To make formatting checks blocking, remove 'continue-on-error: true' from the job level
-
-      - name: Analyze project source
-        run: flutter analyze
-        # To make analysis checks blocking, remove 'continue-on-error: true' from the job level
-
-      - name: Run tests
-        run: flutter test
-        # To make test failures blocking, remove 'continue-on-error: true' from the job level
-
-      - name: Test results summary
-        if: always()
+      - name: Install host SQLite library for provider tests
         run: |
-          echo "Test suite completed. Check the logs above for any failures."
-          echo "NOTE: Tests are currently set to not block CI. To enable blocking:"
-          echo "Remove 'continue-on-error: true' from the test job in .github/workflows/test.yml"
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
+
+      - name: Validate selected provider credentials
+        env:
+          SELECT_NSW: ${{ inputs.run_nsw_api_tests }}
+          SELECT_VIC: ${{ inputs.run_vic_api_tests }}
+        run: |
+          if [[ "$SELECT_NSW" == true && -z "$API_KEY" ]]; then
+            echo 'NSW tests require the API_KEY secret.' >&2
+            exit 1
+          fi
+          if [[ "$SELECT_VIC" == true && ( -z "$PTV_DEV_ID" || -z "$PTV_API_KEY" ) ]]; then
+            echo 'Victoria tests require PTV_DEV_ID and PTV_API_KEY secrets.' >&2
+            exit 1
+          fi
+
+      - name: Run selected live provider tests
+        if: >-
+          ${{ inputs.run_nsw_api_tests || inputs.run_vic_api_tests ||
+              inputs.run_qld_api_tests || inputs.run_sa_api_tests ||
+              inputs.run_public_state_api_tests }}
+        run: flutter test --tags integration

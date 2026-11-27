@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart' as geo;
@@ -6,10 +7,15 @@ import 'package:lbww_flutter/constants/transport_modes.dart';
 import 'package:lbww_flutter/protobuf/gtfs-realtime/gtfs-realtime.pb.dart';
 import 'package:lbww_flutter/services/location_service.dart';
 import 'package:lbww_flutter/services/realtime_service.dart';
-import 'package:lbww_flutter/utils/date_time_utils.dart';
+import 'package:lbww_flutter/utils/guarded_state.dart';
+import 'package:lbww_flutter/utils/safe_value_utils.dart';
+import 'package:lbww_flutter/utils/trip_leg_detail_utils.dart';
 import 'package:lbww_flutter/widgets/trip_widgets.dart' show TransportModeUtils;
 
 import 'utils/color_utils.dart';
+
+part 'trip_leg/map_view.dart';
+part 'trip_leg/stop_card.dart';
 
 class TripLegDetailScreen extends StatefulWidget {
   final Map<String, dynamic> leg;
@@ -19,15 +25,13 @@ class TripLegDetailScreen extends StatefulWidget {
   State<TripLegDetailScreen> createState() => _TripLegDetailScreenState();
 }
 
-class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
+class _TripLegDetailScreenState extends State<TripLegDetailScreen>
+    with GuardedState<TripLegDetailScreen> {
   final MapController _mapController = MapController();
   geo.Position? _userLocation;
   VehiclePosition? _currentVehicle;
   bool _isLoadingLocation = false;
   bool _isLoadingVehicles = false;
-
-  // Sydney CBD as default center
-  static const LatLng _defaultCenter = LatLng(-33.8688, 151.2093);
 
   @override
   void initState() {
@@ -36,375 +40,80 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
     _loadRealtimeData();
   }
 
-  int? _extractTransportClassFromLeg(Map<String, dynamic>? leg) {
-    if (leg == null) return 5;
-    final transportation = leg['transportation'];
-    if (transportation is! Map<String, dynamic>) return 5;
-    final product = transportation['product'];
-    if (product is! Map<String, dynamic>) return 5;
-    final raw = product['class'];
-    if (raw == null) return null;
-    if (raw is int) return raw;
-    return int.tryParse('$raw');
-  }
-
   Future<void> _loadUserLocation() async {
-    setState(() {
+    guardedSetState(() {
       _isLoadingLocation = true;
     });
 
-    try {
-      final position = await LocationService.getCurrentLocation();
-      if (mounted) {
-        setState(() {
-          _userLocation = position;
-          _isLoadingLocation = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingLocation = false;
-        });
-      }
+    final position = await LocationService.getCurrentLocation();
+    if (mounted) {
+      guardedSetState(() {
+        _userLocation = position;
+        _isLoadingLocation = false;
+      });
     }
   }
 
   Future<void> _loadRealtimeData() async {
-    setState(() {
+    guardedSetState(() {
       _isLoadingVehicles = true;
     });
 
-    try {
-      // Get the transport mode from leg data
-      final dynamic transportationRaw = widget.leg['transportation'];
-      final Map<String, dynamic>? transportation =
-          transportationRaw is Map<String, dynamic> ? transportationRaw : null;
-      final int? transportClass = _extractTransportClassFromLeg(widget.leg);
-      String? tripId;
-      if (transportation != null) {
-        final id = transportation['id'];
-        if (id != null) tripId = '$id';
-      }
+    final int? transportClass = extractTransportClassFromLeg(widget.leg);
+    final tripId = extractTripId(widget.leg);
 
-      if (transportClass != null) {
-        // Determine which high-level transport mode to query based on transport class
-        final TransportMode? mode = _getRealtimeModeFromClass(transportClass);
+    if (transportClass != null) {
+      final TransportMode? mode = realtimeModeFromClass(transportClass);
 
-        if (mode != null) {
-          final feedMessage =
-              await RealtimeService.getPositionsForTransportMode(mode);
-          final vehicles = RealtimeService.extractVehiclePositions(feedMessage);
+      if (mode != null) {
+        final feedMessage = await RealtimeService.getPositionsForTransportMode(
+          mode,
+        );
+        final vehicles = RealtimeService.extractVehiclePositions(feedMessage);
 
-          // Try to find the specific vehicle for this trip
-          VehiclePosition? currentVehicle;
-          if (tripId != null) {
-            try {
-              currentVehicle = vehicles.firstWhere(
+        final currentVehicle = tripId == null
+            ? null
+            : vehicles.firstWhereOrNull(
                 (vehicle) => vehicle.trip.tripId == tripId,
               );
-            } catch (e) {
-              // Vehicle not found, keep currentVehicle as null
-            }
-          }
 
-          if (mounted) {
-            setState(() {
-              _currentVehicle = currentVehicle;
-              _isLoadingVehicles = false;
-            });
-          }
+        if (mounted) {
+          guardedSetState(() {
+            _currentVehicle = currentVehicle;
+            _isLoadingVehicles = false;
+          });
         }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingVehicles = false;
-        });
-      }
-    }
-  }
-
-  TransportMode? _getRealtimeModeFromClass(int transportClass) {
-    switch (transportClass) {
-      case 1: // Train
-        return TransportMode.train;
-      case 4: // Light Rail
-        return TransportMode.lightrail;
-      case 5: // Bus
-      case 11: // School Bus
-        return TransportMode.bus;
-      case 9: // Ferry
-        return TransportMode.ferry;
-      default:
-        return null;
-    }
-  }
-
-  LatLng _getMapCenter() {
-    // Prefer current vehicle position
-    final currentVehicle = _currentVehicle;
-    if (currentVehicle != null &&
-        currentVehicle.hasPosition() &&
-        currentVehicle.position.hasLatitude() &&
-        currentVehicle.position.hasLongitude()) {
-      return LatLng(
-        currentVehicle.position.latitude,
-        currentVehicle.position.longitude,
-      );
-    }
-
-    // Try to get center from stop coordinates
-    final origin = widget.leg['origin'] as Map<String, dynamic>?;
-
-    if (origin?['coord'] != null) {
-      final coord = origin!['coord'] as List?;
-      if (coord != null &&
-          coord.length >= 2 &&
-          coord[0] != null &&
-          coord[1] != null) {
-        return LatLng(
-          (coord[0] as num).toDouble(),
-          (coord[1] as num).toDouble(),
-        );
+        return;
       }
     }
 
-    // Fall back to user location
-    final userLocation = _userLocation;
-    if (userLocation != null) {
-      return LatLng(userLocation.latitude, userLocation.longitude);
-    }
-
-    // Default to Sydney CBD
-    return _defaultCenter;
-  }
-
-  List<Marker> _buildMapMarkers() {
-    final markers = <Marker>[];
-    final int transportClassForMarkers =
-        _extractTransportClassFromLeg(widget.leg) ?? 5;
-
-    // Add user location marker
-    final userLocation = _userLocation;
-    if (userLocation != null) {
-      markers.add(
-        Marker(
-          point: LatLng(userLocation.latitude, userLocation.longitude),
-          child: const Icon(
-            Icons.person_pin_circle,
-            color: Colors.blue,
-            size: 30,
-          ),
-        ),
-      );
-    }
-
-    // Add current vehicle marker if available
-    final currentVehicle = _currentVehicle;
-    if (currentVehicle != null &&
-        currentVehicle.hasPosition() &&
-        currentVehicle.position.hasLatitude() &&
-        currentVehicle.position.hasLongitude()) {
-      markers.add(
-        Marker(
-          point: LatLng(
-            currentVehicle.position.latitude,
-            currentVehicle.position.longitude,
-          ),
-          child: Icon(
-            Icons.directions_bus,
-            color: TransportModeUtils.getModeColor(transportClassForMarkers),
-            size: 25,
-          ),
-        ),
-      );
-    }
-
-    // Add origin and destination markers
-    final origin = widget.leg['origin'] as Map<String, dynamic>?;
-    final destination = widget.leg['destination'] as Map<String, dynamic>?;
-
-    if (origin?['coord'] != null) {
-      final coord = origin!['coord'] as List?;
-      if (coord != null && coord.length >= 2) {
-        markers.add(
-          Marker(
-            point: LatLng(
-              (coord[0] as num).toDouble(),
-              (coord[1] as num).toDouble(),
-            ),
-            child: const Icon(Icons.play_arrow, color: Colors.green, size: 25),
-          ),
-        );
-      }
-    }
-
-    if (destination?['coord'] != null) {
-      final destCoord = destination!['coord'] as List?;
-      if (destCoord != null && destCoord.length >= 2) {
-        markers.add(
-          Marker(
-            point: LatLng(
-              (destCoord[0] as num).toDouble(),
-              (destCoord[1] as num).toDouble(),
-            ),
-            child: const Icon(Icons.stop, color: Colors.red, size: 25),
-          ),
-        );
-      }
-    }
-
-    return markers;
-  }
-
-  Widget _buildMapView() {
-    return SizedBox(
-      height: 250,
-      width: double.infinity,
-      child: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(initialCenter: _getMapCenter(), initialZoom: 14.0),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.app',
-          ),
-          MarkerLayer(markers: _buildMapMarkers()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStopCard(Map<String, dynamic> stop, int index) {
-    final stopName = stop['disassembledName'] ?? stop['name'] ?? 'Unknown Stop';
-    final departureTimePlanned = stop['departureTimePlanned'] as String?;
-    final departureTimeEstimated = stop['departureTimeEstimated'] as String?;
-    final arrivalTimePlanned = stop['arrivalTimePlanned'] as String?;
-    final arrivalTimeEstimated = stop['arrivalTimeEstimated'] as String?;
-
-    // Check if this stop is where the vehicle currently is
-    bool isCurrentStop = false;
-    final currentVehicle = _currentVehicle;
-    if (currentVehicle != null) {
-      final currentStopSequence = currentVehicle.currentStopSequence;
-      if (currentStopSequence > 0 && currentStopSequence == index + 1) {
-        isCurrentStop = true;
-      }
-    }
-
-    return Card(
-      elevation: isCurrentStop ? 8 : 2,
-      color: isCurrentStop ? Colors.orange.withValues(alpha: .1) : null,
-      child: Container(
-        decoration: isCurrentStop
-            ? BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange, width: 2),
-              )
-            : null,
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: isCurrentStop ? Colors.orange : Colors.grey,
-            foregroundColor: getContrastingForeground(
-              isCurrentStop ? Colors.orange : Colors.grey,
-            ),
-            child: Text('${index + 1}'),
-          ),
-          title: Text(
-            stopName,
-            style: TextStyle(
-              fontWeight: isCurrentStop ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (departureTimePlanned != null ||
-                  departureTimeEstimated != null)
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.departure_board,
-                      size: 16,
-                      color: Colors.green,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Depart: ${_formatTimeDifference(departureTimePlanned, departureTimeEstimated)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-              if (arrivalTimePlanned != null || arrivalTimeEstimated != null)
-                Row(
-                  children: [
-                    const Icon(Icons.schedule, size: 16, color: Colors.red),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Arrive: ${_formatTimeDifference(arrivalTimePlanned, arrivalTimeEstimated)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          trailing: isCurrentStop
-              ? const Icon(Icons.directions_bus, color: Colors.orange)
-              : null,
-        ),
-      ),
-    );
-  }
-
-  String _formatTimeDifference(String? plannedTime, String? estimatedTime) {
-    if (estimatedTime == null) {
-      return plannedTime != null
-          ? DateTimeUtils.parseTimeOnly(plannedTime)
-          : 'TBD';
-    }
-
-    if (plannedTime == null) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
-    }
-
-    try {
-      final planned = DateTimeUtils.parseTimeToDateTime(plannedTime);
-      final estimated = DateTimeUtils.parseTimeToDateTime(estimatedTime);
-
-      if (planned == null || estimated == null) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      }
-
-      final difference = estimated.difference(planned).inMinutes;
-
-      if (difference == 0) {
-        return DateTimeUtils.parseTimeOnly(estimatedTime);
-      } else if (difference > 0) {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (+${difference}m late)';
-      } else {
-        return '${DateTimeUtils.parseTimeOnly(estimatedTime)} (${difference.abs()}m early)';
-      }
-    } catch (e) {
-      return DateTimeUtils.parseTimeOnly(estimatedTime);
+    if (mounted) {
+      guardedSetState(() {
+        _isLoadingVehicles = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final dynamic transportationRaw = widget.leg['transportation'];
-    final Map<String, dynamic>? transportation =
-        transportationRaw is Map<String, dynamic> ? transportationRaw : null;
-    final int? transportClass = _extractTransportClassFromLeg(widget.leg);
+    final transportation = tryReadJsonMap(widget.leg, 'transportation');
+    final int? transportClass = extractTransportClassFromLeg(widget.leg);
 
-    final origin = widget.leg['origin'] as Map<String, dynamic>?;
-    final destination = widget.leg['destination'] as Map<String, dynamic>?;
-    final originName = origin?['disassembledName'] ?? origin?['name'];
+    final origin = tryReadJsonMap(widget.leg, 'origin');
+    final destination = tryReadJsonMap(widget.leg, 'destination');
+    final originName =
+        tryReadStringValue(origin, 'disassembledName') ??
+        tryReadStringValue(origin, 'name') ??
+        'Unknown';
     final destinationName =
-        destination?['disassembledName'] ?? destination?['name'];
+        tryReadStringValue(destination, 'disassembledName') ??
+        tryReadStringValue(destination, 'name') ??
+        'Unknown';
     final transportName =
-        transportation?['name'] ?? transportation?['disassembledName'] ?? '';
-    final stopSequence = widget.leg['stopSequence'] as List?;
+        tryReadStringValue(transportation, 'name') ??
+        tryReadStringValue(transportation, 'disassembledName') ??
+        '';
+    final stopSequence = tryReadListValue(widget.leg, 'stopSequence');
 
     final currentVehicle = _currentVehicle;
 
@@ -428,7 +137,12 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Map view at the top
-            _buildMapView(),
+            _TripLegMapView(
+              leg: widget.leg,
+              userLocation: _userLocation,
+              currentVehicle: _currentVehicle,
+              mapController: _mapController,
+            ),
 
             // Trip information
             Container(
@@ -517,7 +231,7 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
               ),
             ),
 
-            // Stops list as cards
+            // Stops list as a timeline-style list
             if (stopSequence != null && stopSequence.isNotEmpty)
               ListView.builder(
                 shrinkWrap: true,
@@ -525,27 +239,36 @@ class _TripLegDetailScreenState extends State<TripLegDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 itemCount: stopSequence.length,
                 itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: _buildStopCard(
-                      stopSequence[index] as Map<String, dynamic>,
-                      index,
-                    ),
+                  final rawStop = stopSequence.elementAtOrNull(index);
+                  final stop = rawStop is Map<String, dynamic>
+                      ? rawStop
+                      : rawStop is Map
+                      ? {
+                          for (final entry in rawStop.entries)
+                            entry.key.toString(): entry.value,
+                        }
+                      : null;
+                  if (stop == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return _TripLegStopCard(
+                    stop: stop,
+                    index: index,
+                    currentVehicle: _currentVehicle,
                   );
                 },
               )
             else
-              Container(
+              Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Card(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.directions_walk,
-                      color: Colors.orange,
-                    ),
-                    title: const Text('Walking'),
-                    subtitle: Text('Walk from $originName to $destinationName'),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.directions_walk,
+                    color: Colors.orange,
                   ),
+                  title: const Text('Walking'),
+                  subtitle: Text('Walk from $originName to $destinationName'),
                 ),
               ),
             // (Debug card removed — moved to Trip Leg Detail screen)
